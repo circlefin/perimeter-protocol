@@ -5,6 +5,9 @@
     "lint": "eslint .",
     "test": "npx hardhat test"
   },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.7.3"
+  },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^1.0.2",
     "@typescript-eslint/eslint-plugin": "^5.36.2",
