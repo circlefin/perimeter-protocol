@@ -46,6 +46,18 @@ describe("ProtocolPermission", () => {
       ).to.be.revertedWith("Address is already allowed");
     });
 
+    it("reverts if not called by the Owner", async () => {
+      const { protocolPermission, otherAccount } = await loadFixture(
+        deployFixture
+      );
+
+      await expect(
+        protocolPermission
+          .connect(otherAccount)
+          .addToAllowList(otherAccount.getAddress())
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+
     it("emits an AllowListUpdated event upon success", async () => {
       const { protocolPermission, otherAccount } = await loadFixture(
         deployFixture
@@ -79,6 +91,18 @@ describe("ProtocolPermission", () => {
       await expect(
         protocolPermission.removeFromAllowList(otherAccount.getAddress())
       ).to.be.revertedWith("Address is not already allowed");
+    });
+
+    it("reverts if not called by the Owner", async () => {
+      const { protocolPermission, otherAccount } = await loadFixture(
+        deployFixture
+      );
+
+      await expect(
+        protocolPermission
+          .connect(otherAccount)
+          .removeFromAllowList(otherAccount.getAddress())
+      ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it("emits an AllowListUpdated event upon success", async () => {
