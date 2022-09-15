@@ -4,6 +4,13 @@ pragma solidity ^0.8.16;
 import "./interfaces/IProtocolPermission.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+/**
+ * @title The ProtocolPermission contract
+ * @dev Implementation of the {IProtocolPermission} interface.
+ *
+ * This implementation implements a basic Allow-List of addresses, which can
+ * be managed only by the contract owner.
+ */
 contract ProtocolPermission is Ownable, IProtocolPermission {
     /**
      * @dev A mapping of addresses to whether they are allowed as a Pool Manager
