@@ -2,12 +2,50 @@
 pragma solidity ^0.8.16;
 
 import "./interfaces/IProtocolPermission.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract ProtocolPermission is IProtocolPermission {
+contract ProtocolPermission is Ownable, IProtocolPermission {
     /**
-     * @dev See {IProtocolPermission-isAllowed}.
+     * @dev A mapping of addresses to whether they are allowed as a Pool Manager
      */
-    function isAllowed(address) external pure returns (bool) {
-        return true;
+    mapping(address => bool) private _allowList;
+
+    /**
+     * @dev Emitted when an address is added or removed from the allow list.
+     */
+    event AllowListUpdated(address indexed addr, bool isAllowed);
+
+    /**
+     * @dev Adds an address to the allowList.
+     * @param addr The address to add to the allowList
+     *
+     * Emits an {AllowListAdded} event.
+     */
+    function addToAllowList(address addr) external {
+        require(!isAllowed(addr), "Address is already allowed");
+
+        _allowList[addr] = true;
+        emit AllowListUpdated(addr, true);
+    }
+
+    /**
+     * @dev Removes an address from the allowList.
+     * @param addr The address to remove from the allowList
+     *
+     * Emits an {AllowListRemoved} event.
+     */
+    function removeFromAllowList(address addr) external {
+        require(isAllowed(addr), "Address is not already allowed");
+
+        delete _allowList[addr];
+        emit AllowListUpdated(addr, false);
+    }
+
+    /**
+     * @dev Checks against an allowList to see if the given address is allowed.
+     * See {IProtocolPermission-isAllowed}.
+     */
+    function isAllowed(address addr) public view returns (bool) {
+        return _allowList[addr];
     }
 }
