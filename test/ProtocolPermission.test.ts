@@ -34,16 +34,17 @@ describe("ProtocolPermission", () => {
       ).to.equal(true);
     });
 
-    it("reverts if the address is already in the allowList", async () => {
+    it("succeeds if the address is already in the allowList", async () => {
       const { protocolPermission, otherAccount } = await loadFixture(
         deployFixture
       );
 
       await protocolPermission.addToAllowList(otherAccount.getAddress());
+      await protocolPermission.addToAllowList(otherAccount.getAddress());
 
-      await expect(
-        protocolPermission.addToAllowList(otherAccount.getAddress())
-      ).to.be.revertedWith("Address is already allowed");
+      expect(
+        await protocolPermission.isAllowed(otherAccount.getAddress())
+      ).to.equal(true);
     });
 
     it("reverts if not called by the Owner", async () => {
@@ -83,14 +84,16 @@ describe("ProtocolPermission", () => {
       ).to.equal(false);
     });
 
-    it("reverts if the address is not in the allowList", async () => {
+    it("succeeds if the address is not in the allowList", async () => {
       const { protocolPermission, otherAccount } = await loadFixture(
         deployFixture
       );
 
-      await expect(
-        protocolPermission.removeFromAllowList(otherAccount.getAddress())
-      ).to.be.revertedWith("Address is not already allowed");
+      await protocolPermission.removeFromAllowList(otherAccount.getAddress());
+
+      expect(
+        await protocolPermission.isAllowed(otherAccount.getAddress())
+      ).to.equal(false);
     });
 
     it("reverts if not called by the Owner", async () => {
