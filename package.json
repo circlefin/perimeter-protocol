@@ -3,7 +3,9 @@
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint .",
-    "test": "npx hardhat test"
+    "test": "npx hardhat test",
+    "test:coverage": "npx hardhat coverage",
+    "test:gas": "REPORT_GAS=true npx hardhat test"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.7.3"

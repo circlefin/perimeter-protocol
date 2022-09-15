@@ -1,12 +1,46 @@
 # valyria-core
 
-Try running some of the following tasks:
+This repository contains the contracts for the Valyria protocol.
 
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat coverage
+## Getting started
+
+```sh
+npm install
+```
+
+## Running a node
+
+```sh
 npx hardhat node
 npx hardhat run scripts/deploy.ts
+```
+
+## Testing
+
+```sh
+npm test
+
+# or
+
+npx hardhat test
+```
+
+### Gas usage reports
+
+```sh
+npm run test:gas
+
+# or
+
+REPORT_GAS=true npx hardhat test
+```
+
+### Code Coverage
+
+```sh
+npm run test:coverage
+
+# or
+
+npx hardhat coverage
 ```
