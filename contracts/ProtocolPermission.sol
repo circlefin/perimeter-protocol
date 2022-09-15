@@ -21,7 +21,7 @@ contract ProtocolPermission is Ownable, IProtocolPermission {
      *
      * Emits an {AllowListAdded} event.
      */
-    function addToAllowList(address addr) external {
+    function addToAllowList(address addr) external onlyOwner {
         require(!isAllowed(addr), "Address is already allowed");
 
         _allowList[addr] = true;
@@ -34,7 +34,7 @@ contract ProtocolPermission is Ownable, IProtocolPermission {
      *
      * Emits an {AllowListRemoved} event.
      */
-    function removeFromAllowList(address addr) external {
+    function removeFromAllowList(address addr) external onlyOwner {
         require(isAllowed(addr), "Address is not already allowed");
 
         delete _allowList[addr];
