@@ -1,14 +1,46 @@
 # valyria-core
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
+This repository contains the contracts for the Valyria protocol.
 
-Try running some of the following tasks:
+## Getting started
 
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat coverage
+```sh
+npm install
+```
+
+## Running a node
+
+```sh
 npx hardhat node
 npx hardhat run scripts/deploy.ts
+```
+
+## Testing
+
+```sh
+npm test
+
+# or
+
+npx hardhat test
+```
+
+### Gas usage reports
+
+```sh
+npm run test:gas
+
+# or
+
+REPORT_GAS=true npx hardhat test
+```
+
+### Code Coverage
+
+```sh
+npm run test:coverage
+
+# or
+
+npx hardhat coverage
 ```
