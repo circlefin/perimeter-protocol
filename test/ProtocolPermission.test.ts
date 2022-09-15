@@ -21,105 +21,98 @@ describe("ProtocolPermission", () => {
     return { protocolPermission, owner, otherAccount };
   }
 
-  describe("addToAllowList()", () => {
-    it("adds an address to the allowList", async () => {
-      const { protocolPermission, otherAccount } = await loadFixture(
-        deployFixture
-      );
+  describe("setAllowed()", () => {
+    describe("adding", () => {
+      it("adds an address to the allowList", async () => {
+        const { protocolPermission, otherAccount } = await loadFixture(
+          deployFixture
+        );
 
-      await protocolPermission.addToAllowList(otherAccount.getAddress());
+        await protocolPermission.setAllowed(otherAccount.getAddress(), true);
 
-      expect(
-        await protocolPermission.isAllowed(otherAccount.getAddress())
-      ).to.equal(true);
+        expect(
+          await protocolPermission.isAllowed(otherAccount.getAddress())
+        ).to.equal(true);
+      });
+
+      it("succeeds if the address is already in the allowList", async () => {
+        const { protocolPermission, otherAccount } = await loadFixture(
+          deployFixture
+        );
+
+        await protocolPermission.setAllowed(otherAccount.getAddress(), true);
+        await protocolPermission.setAllowed(otherAccount.getAddress(), true);
+
+        expect(
+          await protocolPermission.isAllowed(otherAccount.getAddress())
+        ).to.equal(true);
+      });
+      it("emits an AllowListUpdated event upon success", async () => {
+        const { protocolPermission, otherAccount } = await loadFixture(
+          deployFixture
+        );
+
+        expect(
+          await protocolPermission.setAllowed(otherAccount.getAddress(), true)
+        )
+          .to.emit(protocolPermission, "AllowListUpdated")
+          .withArgs(otherAccount.getAddress(), true);
+      });
     });
 
-    it("succeeds if the address is already in the allowList", async () => {
-      const { protocolPermission, otherAccount } = await loadFixture(
-        deployFixture
-      );
+    describe("removing", () => {
+      it("removes an address from the allowList", async () => {
+        const { protocolPermission, otherAccount } = await loadFixture(
+          deployFixture
+        );
 
-      await protocolPermission.addToAllowList(otherAccount.getAddress());
-      await protocolPermission.addToAllowList(otherAccount.getAddress());
+        await protocolPermission.setAllowed(otherAccount.getAddress(), false);
+        await protocolPermission.setAllowed(otherAccount.getAddress(), false);
 
-      expect(
-        await protocolPermission.isAllowed(otherAccount.getAddress())
-      ).to.equal(true);
+        expect(
+          await protocolPermission.isAllowed(otherAccount.getAddress())
+        ).to.equal(false);
+      });
+
+      it("succeeds if the address is not in the allowList", async () => {
+        const { protocolPermission, otherAccount } = await loadFixture(
+          deployFixture
+        );
+
+        await protocolPermission.setAllowed(otherAccount.getAddress(), false);
+
+        expect(
+          await protocolPermission.isAllowed(otherAccount.getAddress())
+        ).to.equal(false);
+      });
+
+      it("emits an AllowListUpdated event upon success", async () => {
+        const { protocolPermission, otherAccount } = await loadFixture(
+          deployFixture
+        );
+
+        await protocolPermission.setAllowed(otherAccount.getAddress(), false);
+
+        expect(
+          await protocolPermission.setAllowed(otherAccount.getAddress(), false)
+        )
+          .to.emit(protocolPermission, "AllowListUpdated")
+          .withArgs(otherAccount.getAddress(), false);
+      });
     });
 
-    it("reverts if not called by the Owner", async () => {
-      const { protocolPermission, otherAccount } = await loadFixture(
-        deployFixture
-      );
+    describe("ownership", () => {
+      it("reverts if not called by the Owner", async () => {
+        const { protocolPermission, otherAccount } = await loadFixture(
+          deployFixture
+        );
 
-      await expect(
-        protocolPermission
-          .connect(otherAccount)
-          .addToAllowList(otherAccount.getAddress())
-      ).to.be.revertedWith("Ownable: caller is not the owner");
-    });
-
-    it("emits an AllowListUpdated event upon success", async () => {
-      const { protocolPermission, otherAccount } = await loadFixture(
-        deployFixture
-      );
-
-      expect(await protocolPermission.addToAllowList(otherAccount.getAddress()))
-        .to.emit(protocolPermission, "AllowListUpdated")
-        .withArgs(otherAccount.getAddress(), true);
-    });
-  });
-
-  describe("removeFromAllowList()", () => {
-    it("removes an address from the allowList", async () => {
-      const { protocolPermission, otherAccount } = await loadFixture(
-        deployFixture
-      );
-
-      await protocolPermission.addToAllowList(otherAccount.getAddress());
-      await protocolPermission.removeFromAllowList(otherAccount.getAddress());
-
-      expect(
-        await protocolPermission.isAllowed(otherAccount.getAddress())
-      ).to.equal(false);
-    });
-
-    it("succeeds if the address is not in the allowList", async () => {
-      const { protocolPermission, otherAccount } = await loadFixture(
-        deployFixture
-      );
-
-      await protocolPermission.removeFromAllowList(otherAccount.getAddress());
-
-      expect(
-        await protocolPermission.isAllowed(otherAccount.getAddress())
-      ).to.equal(false);
-    });
-
-    it("reverts if not called by the Owner", async () => {
-      const { protocolPermission, otherAccount } = await loadFixture(
-        deployFixture
-      );
-
-      await expect(
-        protocolPermission
-          .connect(otherAccount)
-          .removeFromAllowList(otherAccount.getAddress())
-      ).to.be.revertedWith("Ownable: caller is not the owner");
-    });
-
-    it("emits an AllowListUpdated event upon success", async () => {
-      const { protocolPermission, otherAccount } = await loadFixture(
-        deployFixture
-      );
-
-      await protocolPermission.addToAllowList(otherAccount.getAddress());
-
-      expect(
-        await protocolPermission.removeFromAllowList(otherAccount.getAddress())
-      )
-        .to.emit(protocolPermission, "AllowListUpdated")
-        .withArgs(otherAccount.getAddress(), false);
+        await expect(
+          protocolPermission
+            .connect(otherAccount)
+            .setAllowed(otherAccount.getAddress(), true)
+        ).to.be.revertedWith("Ownable: caller is not the owner");
+      });
     });
   });
 
@@ -139,7 +132,7 @@ describe("ProtocolPermission", () => {
         deployFixture
       );
 
-      await protocolPermission.addToAllowList(otherAccount.getAddress());
+      await protocolPermission.setAllowed(otherAccount.getAddress(), true);
 
       expect(
         await protocolPermission.isAllowed(otherAccount.getAddress())
