@@ -60,7 +60,76 @@ describe("ProtocolPermission", () => {
     });
 
     describe("with verification registries", () => {
-      it("returns true if the address is not in the allow list but is in the registry", async () => {
+      it("returns true if the address is on an allowList, even if not present in a VerificationRegistry", async () => {
+        const {
+          protocolPermission,
+          mockVeriteVerificationRegistry,
+          otherAccount
+        } = await loadFixture(deployFixture);
+
+        await protocolPermission.setAllowed(otherAccount.getAddress(), true);
+        await protocolPermission.addVerificationRegistry(
+          mockVeriteVerificationRegistry.address
+        );
+
+        expect(
+          await protocolPermission.isAllowed(otherAccount.getAddress())
+        ).to.equal(true);
+      });
+
+      it("returns true if the address is not in the allowList but is in the registry", async () => {
+        const {
+          protocolPermission,
+          mockVeriteVerificationRegistry,
+          otherAccount
+        } = await loadFixture(deployFixture);
+
+        mockVeriteVerificationRegistry.setVerified(
+          otherAccount.getAddress(),
+          true
+        );
+
+        await protocolPermission.addVerificationRegistry(
+          mockVeriteVerificationRegistry.address
+        );
+
+        expect(
+          await protocolPermission.isAllowed(otherAccount.getAddress())
+        ).to.equal(true);
+      });
+
+      it("returns true if the address is is in any supported registry", async () => {
+        const {
+          protocolPermission,
+          mockVeriteVerificationRegistry,
+          otherAccount
+        } = await loadFixture(deployFixture);
+
+        // Deploy a new registry
+        const MockVeriteVerificationRegistry = await ethers.getContractFactory(
+          "MockVeriteVerificationRegistry"
+        );
+        const emptyRegistry = await MockVeriteVerificationRegistry.deploy();
+        await emptyRegistry.deployed();
+
+        // Add the empty registry to the list first
+        await protocolPermission.addVerificationRegistry(emptyRegistry.address);
+
+        mockVeriteVerificationRegistry.setVerified(
+          otherAccount.getAddress(),
+          true
+        );
+
+        await protocolPermission.addVerificationRegistry(
+          mockVeriteVerificationRegistry.address
+        );
+
+        expect(
+          await protocolPermission.isAllowed(otherAccount.getAddress())
+        ).to.equal(true);
+      });
+
+      it("returns false if the address is not in the allowList and not in the registry", async () => {
         const {
           protocolPermission,
           mockVeriteVerificationRegistry,
@@ -73,7 +142,7 @@ describe("ProtocolPermission", () => {
 
         expect(
           await protocolPermission.isAllowed(otherAccount.getAddress())
-        ).to.equal(true);
+        ).to.equal(false);
       });
     });
   });
@@ -189,6 +258,11 @@ describe("ProtocolPermission", () => {
         otherAccount
       } = await loadFixture(deployFixture);
 
+      mockVeriteVerificationRegistry.setVerified(
+        otherAccount.getAddress(),
+        true
+      );
+
       await protocolPermission.addVerificationRegistry(
         mockVeriteVerificationRegistry.address
       );
@@ -222,12 +296,44 @@ describe("ProtocolPermission", () => {
         otherAccount
       } = await loadFixture(deployFixture);
 
+      mockVeriteVerificationRegistry.setVerified(
+        otherAccount.getAddress(),
+        true
+      );
+
       await protocolPermission.addVerificationRegistry(
         mockVeriteVerificationRegistry.address
       );
 
       await protocolPermission.removeVerificationRegistry(
         mockVeriteVerificationRegistry.address
+      );
+
+      expect(
+        await protocolPermission.isAllowed(otherAccount.getAddress())
+      ).to.equal(false);
+    });
+
+    it("silently succeeds when removing an address that is not present", async () => {
+      const {
+        protocolPermission,
+        mockVeriteVerificationRegistry,
+        otherAccount
+      } = await loadFixture(deployFixture);
+
+      await protocolPermission.addVerificationRegistry(
+        mockVeriteVerificationRegistry.address
+      );
+
+      // Deploy a new registry
+      const MockVeriteVerificationRegistry = await ethers.getContractFactory(
+        "MockVeriteVerificationRegistry"
+      );
+      const otherRegistry = await MockVeriteVerificationRegistry.deploy();
+      await otherRegistry.deployed();
+
+      await protocolPermission.removeVerificationRegistry(
+        otherRegistry.address
       );
 
       expect(
