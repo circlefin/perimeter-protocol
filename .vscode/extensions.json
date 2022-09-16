@@ -1,3 +1,6 @@
 {
-  "recommendations": ["NomicFoundation.hardhat-solidity"]
+  "recommendations": [
+    "NomicFoundation.hardhat-solidity",
+    "hbenl.vscode-mocha-test-adapter"
+  ]
 }
