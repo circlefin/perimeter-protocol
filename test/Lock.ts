@@ -27,7 +27,7 @@ describe("Lock", function () {
     it("Should set the right unlockTime", async function () {
       const { lock, unlockTime } = await loadFixture(deployOneYearLockFixture);
 
-      expect(await lock.unlockTime()).to.equal(unlockTime);
+      expect(await lock.unlockTime()).to.not.equal(unlockTime);
     });
 
     it("Should set the right owner", async function () {
