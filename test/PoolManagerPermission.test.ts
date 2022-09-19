@@ -33,7 +33,7 @@ describe("PoolManagerPermission", () => {
   }
 
   describe("isAllowed()", () => {
-    describe("without verification registries", () => {
+    describe("without a verification registry", () => {
       it("returns false if the address is not in the allow list", async () => {
         const { poolManagerPermission, otherAccount } = await loadFixture(
           deployFixture
@@ -57,7 +57,7 @@ describe("PoolManagerPermission", () => {
       });
     });
 
-    describe("with verification registries", () => {
+    describe("with a verification registry", () => {
       it("returns true if the address is on an allowList, even if not present in a VerificationRegistry", async () => {
         const {
           poolManagerPermission,
@@ -66,7 +66,7 @@ describe("PoolManagerPermission", () => {
         } = await loadFixture(deployFixture);
 
         await poolManagerPermission.allow(otherAccount.getAddress());
-        await poolManagerPermission.addVerificationRegistry(
+        await poolManagerPermission.setVerificationRegistry(
           mockVeriteVerificationRegistry.address
         );
 
@@ -87,40 +87,7 @@ describe("PoolManagerPermission", () => {
           true
         );
 
-        await poolManagerPermission.addVerificationRegistry(
-          mockVeriteVerificationRegistry.address
-        );
-
-        expect(
-          await poolManagerPermission.isAllowed(otherAccount.getAddress())
-        ).to.equal(true);
-      });
-
-      it("returns true if the address is is in any supported registry", async () => {
-        const {
-          poolManagerPermission,
-          mockVeriteVerificationRegistry,
-          otherAccount
-        } = await loadFixture(deployFixture);
-
-        // Deploy a new registry
-        const MockVeriteVerificationRegistry = await ethers.getContractFactory(
-          "MockVeriteVerificationRegistry"
-        );
-        const emptyRegistry = await MockVeriteVerificationRegistry.deploy();
-        await emptyRegistry.deployed();
-
-        // Add the empty registry to the list first
-        await poolManagerPermission.addVerificationRegistry(
-          emptyRegistry.address
-        );
-
-        mockVeriteVerificationRegistry.setVerified(
-          otherAccount.getAddress(),
-          true
-        );
-
-        await poolManagerPermission.addVerificationRegistry(
+        await poolManagerPermission.setVerificationRegistry(
           mockVeriteVerificationRegistry.address
         );
 
@@ -136,7 +103,7 @@ describe("PoolManagerPermission", () => {
           otherAccount
         } = await loadFixture(deployFixture);
 
-        await poolManagerPermission.addVerificationRegistry(
+        await poolManagerPermission.setVerificationRegistry(
           mockVeriteVerificationRegistry.address
         );
 
@@ -227,7 +194,7 @@ describe("PoolManagerPermission", () => {
     });
   });
 
-  describe("addVerificationRegistry()", () => {
+  describe("setVerificationRegistry()", () => {
     it("adds a registry to the registry list", async () => {
       const {
         poolManagerPermission,
@@ -240,7 +207,7 @@ describe("PoolManagerPermission", () => {
         true
       );
 
-      await poolManagerPermission.addVerificationRegistry(
+      await poolManagerPermission.setVerificationRegistry(
         mockVeriteVerificationRegistry.address
       );
 
@@ -250,23 +217,23 @@ describe("PoolManagerPermission", () => {
     });
 
     describe("events", () => {
-      it("emits an VerificationRegistryListUpdated event upon success", async () => {
+      it("emits an VerificationRegistrySet event upon success", async () => {
         const { poolManagerPermission, mockVeriteVerificationRegistry } =
           await loadFixture(deployFixture);
 
         expect(
-          await poolManagerPermission.addVerificationRegistry(
+          await poolManagerPermission.setVerificationRegistry(
             mockVeriteVerificationRegistry.address
           )
         )
-          .to.emit(poolManagerPermission, "VerificationRegistryListUpdated")
+          .to.emit(poolManagerPermission, "VerificationRegistrySet")
           .withArgs(mockVeriteVerificationRegistry, true);
       });
     });
   });
 
   describe("removeVerificationRegistry()", () => {
-    it("removes a registry from the registry list", async () => {
+    it("removes the registry", async () => {
       const {
         poolManagerPermission,
         mockVeriteVerificationRegistry,
@@ -278,13 +245,11 @@ describe("PoolManagerPermission", () => {
         true
       );
 
-      await poolManagerPermission.addVerificationRegistry(
+      await poolManagerPermission.setVerificationRegistry(
         mockVeriteVerificationRegistry.address
       );
 
-      await poolManagerPermission.removeVerificationRegistry(
-        mockVeriteVerificationRegistry.address
-      );
+      await poolManagerPermission.removeVerificationRegistry();
 
       expect(
         await poolManagerPermission.isAllowed(otherAccount.getAddress())
@@ -298,7 +263,7 @@ describe("PoolManagerPermission", () => {
         otherAccount
       } = await loadFixture(deployFixture);
 
-      await poolManagerPermission.addVerificationRegistry(
+      await poolManagerPermission.setVerificationRegistry(
         mockVeriteVerificationRegistry.address
       );
 
@@ -309,9 +274,7 @@ describe("PoolManagerPermission", () => {
       const otherRegistry = await MockVeriteVerificationRegistry.deploy();
       await otherRegistry.deployed();
 
-      await poolManagerPermission.removeVerificationRegistry(
-        otherRegistry.address
-      );
+      await poolManagerPermission.removeVerificationRegistry();
 
       expect(
         await poolManagerPermission.isAllowed(otherAccount.getAddress())
@@ -319,16 +282,12 @@ describe("PoolManagerPermission", () => {
     });
 
     describe("events", () => {
-      it("emits an VerificationRegistryListUpdated event upon success", async () => {
+      it("emits an VerificationRegistryRemoved event upon success", async () => {
         const { poolManagerPermission, mockVeriteVerificationRegistry } =
           await loadFixture(deployFixture);
 
-        expect(
-          await poolManagerPermission.removeVerificationRegistry(
-            mockVeriteVerificationRegistry.address
-          )
-        )
-          .to.emit(poolManagerPermission, "VerificationRegistryListUpdated")
+        expect(await poolManagerPermission.removeVerificationRegistry())
+          .to.emit(poolManagerPermission, "VerificationRegistryRemoved")
           .withArgs(mockVeriteVerificationRegistry, false);
       });
     });

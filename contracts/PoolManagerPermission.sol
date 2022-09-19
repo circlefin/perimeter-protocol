@@ -26,7 +26,7 @@ contract PoolManagerPermission is IPoolManagerPermission {
      * @dev An array of Verification Registries which are used to determine
      * whether an address is allowed as a Pool Manager
      */
-    address[] private _verificationRegistries;
+    address private _verificationRegistry;
 
     /**
      * @dev Emitted when an address is added or removed from the allow list.
@@ -34,14 +34,14 @@ contract PoolManagerPermission is IPoolManagerPermission {
     event AllowListUpdated(address indexed addr, bool isAllowed);
 
     /**
-     * @dev Emitted when a Verification Registry is added or removed.
+     * @dev Emitted when a Verification Registry is set.
      */
-    event VerificationRegistryListUpdated(address addr, bool isAdded);
+    event VerificationRegistrySet(address addr);
 
     /**
-     * @dev Emitted when a Verification is performed
+     * @dev Emitted when a Verification Registry is removed.
      */
-    event VerificationPerformed(address addr, bool isAllowed);
+    event VerificationRegistryRemoved();
 
     /**
      * @dev Modifier that checks that the caller account has the Operator role.
@@ -60,14 +60,9 @@ contract PoolManagerPermission is IPoolManagerPermission {
             return true;
         }
 
-        for (uint256 i = 0; i < _verificationRegistries.length; i++) {
-            if (
-                IVerificationRegistry(_verificationRegistries[i]).isVerified(
-                    addr
-                )
-            ) {
-                return true;
-            }
+        if (address(_verificationRegistry) != address(0)) {
+            return
+                IVerificationRegistry(_verificationRegistry).isVerified(addr);
         }
 
         return false;
@@ -98,40 +93,28 @@ contract PoolManagerPermission is IPoolManagerPermission {
     }
 
     /**
-     * @dev Adds a Verification Registry to the list of registries used to
-     * determine whether an address is allowed as a Pool Manager
-     * @param registry The address of the Verification Registry to add
+     * @dev Sets the Verification Registry to be used to determine whether an
+     * address is allowed as a Pool Manager
+     * @param registry The address of the Verification Registry to set
      *
      * Emits a {VerificationRegistryListUpdated} event.
      */
-    function addVerificationRegistry(address registry) external onlyOperator {
-        _verificationRegistries.push(registry);
+    function setVerificationRegistry(address registry) external onlyOperator {
+        _verificationRegistry = registry;
 
-        emit VerificationRegistryListUpdated(registry, true);
+        emit VerificationRegistrySet(registry);
     }
 
     /**
-     * @dev Removes a Verification Registry from the list of registries used to
-     * determine whether an address is allowed as a Pool Manager
-     * @param registry The address of the Verification Registry to remove
+     * @dev Removes the Verification Registry, if one is set. This is equivalent
+     * of disabling the use of a Verification Registry when checking if a Pool
+     * Manager is allowed.
      *
-     * Emits a {VerificationRegistryListUpdated} event.
+     * Emits a {VerificationRegistryRemoved} event.
      */
-    function removeVerificationRegistry(address registry)
-        external
-        onlyOperator
-    {
-        for (uint256 i = 0; i < _verificationRegistries.length; i++) {
-            if (_verificationRegistries[i] == registry) {
-                // Remove the item from the array
-                _verificationRegistries[i] = _verificationRegistries[
-                    _verificationRegistries.length - 1
-                ];
-                _verificationRegistries.pop();
+    function removeVerificationRegistry() external onlyOperator {
+        _verificationRegistry = address(0);
 
-                emit VerificationRegistryListUpdated(registry, false);
-                return;
-            }
-        }
+        emit VerificationRegistryRemoved();
     }
 }
