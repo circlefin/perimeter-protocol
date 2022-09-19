@@ -1,14 +1,16 @@
 import { ethers } from "hardhat";
 
 async function main() {
-  const ProtocolPermission = await ethers.getContractFactory(
-    "ProtocolPermission"
+  const PoolManagerPermission = await ethers.getContractFactory(
+    "PoolManagerPermission"
   );
-  const protocolPermission = await ProtocolPermission.deploy();
+  const poolManagerPermission = await PoolManagerPermission.deploy();
 
-  await protocolPermission.deployed();
+  await poolManagerPermission.deployed();
 
-  console.log(`ProtocolPermission deployed to ${protocolPermission.address}`);
+  console.log(
+    `PoolManagerPermission deployed to ${poolManagerPermission.address}`
+  );
 }
 
 // We recommend this pattern to be able to use async/await everywhere

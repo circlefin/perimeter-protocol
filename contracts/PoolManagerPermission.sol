@@ -1,18 +1,22 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "./interfaces/IProtocolPermission.sol";
+import "./interfaces/IPoolManagerPermission.sol";
 import "./interfaces/IVerificationRegistry.sol";
 
 /**
- * @title The ProtocolPermission contract
- * @dev Implementation of the {IProtocolPermission} interface.
+ * @title The PoolManagerPermission contract
+ * @dev Implementation of the {IPoolManagerPermission} interface.
  *
  * This implementation implements a basic Allow-List of addresses, which can
  * be managed only by the contract owner.
  */
-contract ProtocolPermission is Ownable, IProtocolPermission {
+contract PoolManagerPermission is IPoolManagerPermission {
+    /**
+     * @dev The Protocol ServiceConfiguration contract
+     */
+    address private _serviceConfiguration;
+
     /**
      * @dev A mapping of addresses to whether they are allowed as a Pool Manager
      */
@@ -32,11 +36,24 @@ contract ProtocolPermission is Ownable, IProtocolPermission {
     /**
      * @dev Emitted when a Verification Registry is added or removed.
      */
-    event VerificationRegistryListUpdated(address addr, bool isAllowed);
+    event VerificationRegistryListUpdated(address addr, bool isAdded);
+
+    /**
+     * @dev Emitted when a Verification is performed
+     */
+    event VerificationPerformed(address addr, bool isAllowed);
+
+    /**
+     * @dev Modifier that checks that the caller account has the Operator role.
+     * NOTE: This is stubbed out temporarily.
+     */
+    modifier onlyOperator() {
+        _;
+    }
 
     /**
      * @dev Checks against an allowList to see if the given address is allowed.
-     * @inheritdoc IProtocolPermission
+     * @inheritdoc IPoolManagerPermission
      */
     function isAllowed(address addr) external view returns (bool) {
         if (_allowList[addr]) {
@@ -57,15 +74,27 @@ contract ProtocolPermission is Ownable, IProtocolPermission {
     }
 
     /**
-     * @dev Adds or removes an address from the allowList.
-     * @param addr The address to add or remove
+     * @dev Adds an address to the allowList.
+     * @param addr The address to add
      *
      * Emits an {AllowListUpdated} event.
      */
-    function setAllowed(address addr, bool allow) external onlyOwner {
-        _allowList[addr] = allow;
+    function allow(address addr) external onlyOperator {
+        _allowList[addr] = true;
 
-        emit AllowListUpdated(addr, allow);
+        emit AllowListUpdated(addr, true);
+    }
+
+    /**
+     * @dev Removes an address from the allowList.
+     * @param addr The address to remove
+     *
+     * Emits an {AllowListUpdated} event.
+     */
+    function remove(address addr) external onlyOperator {
+        delete _allowList[addr];
+
+        emit AllowListUpdated(addr, false);
     }
 
     /**
@@ -75,7 +104,7 @@ contract ProtocolPermission is Ownable, IProtocolPermission {
      *
      * Emits a {VerificationRegistryListUpdated} event.
      */
-    function addVerificationRegistry(address registry) external onlyOwner {
+    function addVerificationRegistry(address registry) external onlyOperator {
         _verificationRegistries.push(registry);
 
         emit VerificationRegistryListUpdated(registry, true);
@@ -88,7 +117,10 @@ contract ProtocolPermission is Ownable, IProtocolPermission {
      *
      * Emits a {VerificationRegistryListUpdated} event.
      */
-    function removeVerificationRegistry(address registry) external onlyOwner {
+    function removeVerificationRegistry(address registry)
+        external
+        onlyOperator
+    {
         for (uint256 i = 0; i < _verificationRegistries.length; i++) {
             if (_verificationRegistries[i] == registry) {
                 // Remove the item from the array

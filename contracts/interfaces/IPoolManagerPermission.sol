@@ -2,10 +2,9 @@
 pragma solidity ^0.8.16;
 
 /**
- * @title The most basic interface that a Protocol Permission contract must
- * implement.
+ * @title The interface for controlling permissions for Pool Managers
  */
-interface IProtocolPermission {
+interface IPoolManagerPermission {
     /**
      * @dev Check if an address is allowed as a Pool Manager
      * @param addr The address to verify
