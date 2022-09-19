@@ -23,7 +23,7 @@ contract PoolManagerPermission is IPoolManagerPermission {
     mapping(address => bool) private _allowList;
 
     /**
-     * @dev An array of Verification Registries which are used to determine
+     * @dev The address of the Verification Registry which is used to determine
      * whether an address is allowed as a Pool Manager
      */
     address private _verificationRegistry;
