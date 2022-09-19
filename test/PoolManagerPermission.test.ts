@@ -160,9 +160,7 @@ describe("PoolManagerPermission", () => {
           poolManagerPermission
             .connect(otherAccount)
             .allow(otherAccount.getAddress())
-        ).to.be.revertedWith(
-          "PoolManagerPermission: caller is not an operator"
-        );
+        ).to.be.revertedWith("ServiceConfiguration: caller is not an operator");
       });
     });
 
@@ -215,9 +213,7 @@ describe("PoolManagerPermission", () => {
           poolManagerPermission
             .connect(otherAccount)
             .remove(otherAccount.getAddress())
-        ).to.be.revertedWith(
-          "PoolManagerPermission: caller is not an operator"
-        );
+        ).to.be.revertedWith("ServiceConfiguration: caller is not an operator");
       });
     });
 
@@ -268,9 +264,7 @@ describe("PoolManagerPermission", () => {
           poolManagerPermission
             .connect(otherAccount)
             .setVerificationRegistry(otherAccount.getAddress())
-        ).to.be.revertedWith(
-          "PoolManagerPermission: caller is not an operator"
-        );
+        ).to.be.revertedWith("ServiceConfiguration: caller is not an operator");
       });
     });
 
@@ -349,9 +343,7 @@ describe("PoolManagerPermission", () => {
           poolManagerPermission
             .connect(otherAccount)
             .removeVerificationRegistry()
-        ).to.be.revertedWith(
-          "PoolManagerPermission: caller is not an operator"
-        );
+        ).to.be.revertedWith("ServiceConfiguration: caller is not an operator");
       });
     });
 
