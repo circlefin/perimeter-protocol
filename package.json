@@ -3,7 +3,9 @@
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint .",
-    "test": "npx hardhat test"
+    "test": "npx hardhat test",
+    "test:coverage": "npx hardhat coverage",
+    "test:gas": "REPORT_GAS=true npx hardhat test"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^2.0.0",
