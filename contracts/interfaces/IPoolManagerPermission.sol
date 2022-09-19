@@ -1,0 +1,14 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.16;
+
+/**
+ * @title The interface for controlling permissions for Pool Managers
+ */
+interface IPoolManagerPermission {
+    /**
+     * @dev Check if an address is allowed as a Pool Manager
+     * @param addr The address to verify
+     * @return whether the address is allowed as a Pool Manager
+     */
+    function isAllowed(address addr) external view returns (bool);
+}

@@ -7,6 +7,9 @@
     "test:coverage": "npx hardhat coverage",
     "test:gas": "REPORT_GAS=true npx hardhat test"
   },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.7.3"
+  },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^2.0.0",
     "@typescript-eslint/eslint-plugin": "^5.36.2",
