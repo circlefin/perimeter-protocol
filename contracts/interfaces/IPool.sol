@@ -9,7 +9,7 @@ import "../PoolConfigurableSettings.sol";
 /**
  * @title The interface for liquidity pools.
  */
-interface IPool {
+interface IPool is IERC4626 {
     /**
      * @dev Emitted when the pool transitions a lifecycle state.
      */
