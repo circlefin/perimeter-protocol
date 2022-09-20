@@ -6,8 +6,7 @@ pragma solidity ^0.8.16;
  */
 struct PoolConfigurableSettings {
     uint256 maxCapacity;
-    uint256 poolEndDate;
-    uint256 lateFee;
+    uint256 endDate;
     uint256 withdrawalFee;
     // TODO: add in Pool fees
 }
