@@ -18,6 +18,11 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     IPoolManagerPermission public _poolManagerPermission;
 
     /**
+     * @dev Emitted when an address is changed.
+     */
+    event AddressSet(bytes32 which, address addr);
+
+    /**
      * @dev Constructor for the contract, which sets up the default roles and
      * owners.
      */
@@ -31,16 +36,16 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
      */
     modifier onlyOperator() {
         require(
-            hasRole(
-                OPERATOR_ROLE,
-                msg.sender
-            ),
+            hasRole(OPERATOR_ROLE, msg.sender),
             "ServiceConfiguration: caller is not an operator"
         );
         _;
     }
 
-    function setPoolManagerPermission(IPoolManagerPermission poolManagerPermission) public onlyOperator {
+    function setPoolManagerPermission(
+        IPoolManagerPermission poolManagerPermission
+    ) public onlyOperator {
         _poolManagerPermission = poolManagerPermission;
+        emit AddressSet("POOL_MANAGER_PERMISSION", _poolManagerPermission);
     }
 }
