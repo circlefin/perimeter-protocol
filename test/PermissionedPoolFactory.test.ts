@@ -36,8 +36,12 @@ describe("PermissionedPoolFactory", () => {
     const PoolFactory = await ethers.getContractFactory(
       "PermissionedPoolFactory"
     );
-    const poolFactory = await PoolFactory.deploy(poolManagerPermission.address);
+    const poolFactory = await PoolFactory.deploy(serviceConfiguration.address);
     await poolFactory.deployed();
+
+    // Initialize ServiceConfiguration
+    const tx = await serviceConfiguration.setPoolManagerPermission(poolManagerPermission.address);
+    await tx.wait();
 
     return {
       poolFactory,
