@@ -82,7 +82,10 @@ describe("PoolManagerPermission", () => {
           otherAccount
         } = await loadFixture(deployFixture);
 
-        mockVeriteVerificationRegistry.setVerified(otherAccount.address, true);
+        await mockVeriteVerificationRegistry.setVerified(
+          otherAccount.address,
+          true
+        );
 
         await poolManagerPermission.setVerificationRegistry(
           mockVeriteVerificationRegistry.address
@@ -199,7 +202,10 @@ describe("PoolManagerPermission", () => {
         otherAccount
       } = await loadFixture(deployFixture);
 
-      mockVeriteVerificationRegistry.setVerified(otherAccount.address, true);
+      await mockVeriteVerificationRegistry.setVerified(
+        otherAccount.address,
+        true
+      );
 
       await poolManagerPermission.setVerificationRegistry(
         mockVeriteVerificationRegistry.address
@@ -234,7 +240,10 @@ describe("PoolManagerPermission", () => {
         otherAccount
       } = await loadFixture(deployFixture);
 
-      mockVeriteVerificationRegistry.setVerified(otherAccount.address, true);
+      await mockVeriteVerificationRegistry.setVerified(
+        otherAccount.address,
+        true
+      );
 
       await poolManagerPermission.setVerificationRegistry(
         mockVeriteVerificationRegistry.address
