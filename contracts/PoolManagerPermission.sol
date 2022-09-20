@@ -3,6 +3,7 @@ pragma solidity ^0.8.16;
 
 import "./interfaces/IPoolManagerPermission.sol";
 import "./interfaces/IVerificationRegistry.sol";
+import "./ServiceConfigurable.sol";
 
 /**
  * @title The PoolManagerPermission contract
@@ -11,12 +12,7 @@ import "./interfaces/IVerificationRegistry.sol";
  * This implementation implements a basic Allow-List of addresses, which can
  * be managed only by the contract owner.
  */
-contract PoolManagerPermission is IPoolManagerPermission {
-    /**
-     * @dev The Protocol ServiceConfiguration contract
-     */
-    address private _serviceConfiguration;
-
+contract PoolManagerPermission is ServiceConfigurable, IPoolManagerPermission {
     /**
      * @dev A mapping of addresses to whether they are allowed as a Pool Manager
      */
@@ -44,12 +40,11 @@ contract PoolManagerPermission is IPoolManagerPermission {
     event VerificationRegistryRemoved();
 
     /**
-     * @dev Modifier that checks that the caller account has the Operator role.
-     * NOTE: This is stubbed out temporarily.
+     * @dev Constructor for the contract, which sets the ServiceConfiguration.
      */
-    modifier onlyOperator() {
-        _;
-    }
+    constructor(address serviceConfiguration)
+        ServiceConfigurable(serviceConfiguration)
+    {}
 
     /**
      * @dev Checks against an allowList to see if the given address is allowed.

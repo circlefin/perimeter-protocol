@@ -8,13 +8,23 @@ describe("PoolManagerPermission", () => {
   // and reset Hardhat Network to that snapshot in every test.
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
-    const [otherAccount] = await ethers.getSigners();
+    const [operator, otherAccount] = await ethers.getSigners();
+
+    // Deploy the Service Configuration contract
+    const ServiceConfiguration = await ethers.getContractFactory(
+      "ServiceConfiguration",
+      operator
+    );
+    const serviceConfiguration = await ServiceConfiguration.deploy();
+    await serviceConfiguration.deployed();
 
     // Deploy the PoolManagerPermission contract
     const PoolManagerPermission = await ethers.getContractFactory(
       "PoolManagerPermission"
     );
-    const poolManagerPermission = await PoolManagerPermission.deploy();
+    const poolManagerPermission = await PoolManagerPermission.deploy(
+      serviceConfiguration.address
+    );
     await poolManagerPermission.deployed();
 
     // Deploy the MockVeriteVerificationRegistry contract
@@ -140,6 +150,20 @@ describe("PoolManagerPermission", () => {
       ).to.equal(true);
     });
 
+    describe("permissions", () => {
+      it("reverts if not called by the ServiceConfiguration Operator role", async () => {
+        const { poolManagerPermission, otherAccount } = await loadFixture(
+          deployFixture
+        );
+
+        await expect(
+          poolManagerPermission
+            .connect(otherAccount)
+            .allow(otherAccount.getAddress())
+        ).to.be.revertedWith("ServiceConfiguration: caller is not an operator");
+      });
+    });
+
     describe("events", () => {
       it("emits an AllowListUpdated event upon adding an address", async () => {
         const { poolManagerPermission, otherAccount } = await loadFixture(
@@ -179,6 +203,20 @@ describe("PoolManagerPermission", () => {
       ).to.equal(false);
     });
 
+    describe("permissions", () => {
+      it("reverts if not called by the ServiceConfiguration Operator role", async () => {
+        const { poolManagerPermission, otherAccount } = await loadFixture(
+          deployFixture
+        );
+
+        await expect(
+          poolManagerPermission
+            .connect(otherAccount)
+            .remove(otherAccount.getAddress())
+        ).to.be.revertedWith("ServiceConfiguration: caller is not an operator");
+      });
+    });
+
     describe("events", () => {
       it("emits an AllowListUpdated event upon removing an address", async () => {
         const { poolManagerPermission, otherAccount } = await loadFixture(
@@ -214,6 +252,20 @@ describe("PoolManagerPermission", () => {
       expect(
         await poolManagerPermission.isAllowed(otherAccount.getAddress())
       ).to.equal(true);
+    });
+
+    describe("permissions", () => {
+      it("reverts if not called by the ServiceConfiguration Operator role", async () => {
+        const { poolManagerPermission, otherAccount } = await loadFixture(
+          deployFixture
+        );
+
+        await expect(
+          poolManagerPermission
+            .connect(otherAccount)
+            .setVerificationRegistry(otherAccount.getAddress())
+        ).to.be.revertedWith("ServiceConfiguration: caller is not an operator");
+      });
     });
 
     describe("events", () => {
@@ -279,6 +331,20 @@ describe("PoolManagerPermission", () => {
       expect(
         await poolManagerPermission.isAllowed(otherAccount.getAddress())
       ).to.equal(false);
+    });
+
+    describe("permissions", () => {
+      it("reverts if not called by the ServiceConfiguration Operator role", async () => {
+        const { poolManagerPermission, otherAccount } = await loadFixture(
+          deployFixture
+        );
+
+        await expect(
+          poolManagerPermission
+            .connect(otherAccount)
+            .removeVerificationRegistry()
+        ).to.be.revertedWith("ServiceConfiguration: caller is not an operator");
+      });
     });
 
     describe("events", () => {
