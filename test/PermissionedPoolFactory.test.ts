@@ -49,12 +49,25 @@ describe("PermissionedPoolFactory", () => {
   }
 
   it("emits PoolCreated", async () => {
-    const { poolFactory, poolManagerPermission, operator, otherAccount } = await loadFixture(deployFixture);
+    const { poolFactory, poolManagerPermission, operator, otherAccount } =
+      await loadFixture(deployFixture);
 
     await poolManagerPermission.allow(otherAccount.getAddress());
 
-    await expect(poolFactory
-        .connect(otherAccount)
-        .createPool()).to.emit(poolFactory, "PoolCreated");
+    await expect(poolFactory.connect(otherAccount).createPool()).to.emit(
+      poolFactory,
+      "PoolCreated"
+    );
+  });
+
+  it("reverts if not called by a Pool Manager", async () => {
+    const { poolFactory, poolManagerPermission, operator, otherAccount } =
+      await loadFixture(deployFixture);
+
+    await poolManagerPermission.allow(otherAccount.getAddress());
+
+    await expect(
+      poolFactory.createPool()
+    ).to.be.revertedWith("PoolFactory: Not PM");
   });
 });

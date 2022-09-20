@@ -11,16 +11,26 @@ contract PermissionedPoolFactory is PoolFactory {
 
     IPoolManagerPermission private _permission;
 
-    constructor(address permission) {
-        _permission = IPoolManagerPermission(permission);
+    constructor(IPoolManagerPermission permission) {
+        _permission = permission;
+    }
+
+    /**
+     * @dev Check that `msg.sender` is a PoolManager.
+     */
+    modifier onlyPoolManager() {
+        require(
+            _permission.isAllowed(msg.sender),
+            "PoolFactory: Not PM"
+        );
+        _;
     }
 
     /**
      * @dev Creates a pool
      * @dev Emits `PoolCreated` event.
      */
-    function createPool() override public returns (address poolAddress) {
-        require(_permission.isAllowed(msg.sender), "Not allowed");
+    function createPool() override public onlyPoolManager returns (address poolAddress) {
         return super.createPool();
     }
 
