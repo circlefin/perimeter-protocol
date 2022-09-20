@@ -15,8 +15,6 @@ describe("PoolFactory", () => {
 
   it("emits PoolCreated", async () => {
     const { poolFactory } = await loadFixture(deployFixture);
-    await expect(poolFactory.createPool())
-      .to.emit(poolFactory, "PoolCreated");
+    await expect(poolFactory.createPool()).to.emit(poolFactory, "PoolCreated");
   });
-
 });

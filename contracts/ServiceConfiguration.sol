@@ -42,10 +42,17 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
         _;
     }
 
+    /**
+     * @dev Set the PoolManagerPermission contract.
+     * @dev Emits `AddressSet` event.
+     */
     function setPoolManagerPermission(
         IPoolManagerPermission poolManagerPermission
     ) public onlyOperator {
         _poolManagerPermission = poolManagerPermission;
-        emit AddressSet("POOL_MANAGER_PERMISSION", _poolManagerPermission);
+        emit AddressSet(
+            "POOL_MANAGER_PERMISSION",
+            address(_poolManagerPermission)
+        );
     }
 }

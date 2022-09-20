@@ -40,7 +40,9 @@ describe("PermissionedPoolFactory", () => {
     await poolFactory.deployed();
 
     // Initialize ServiceConfiguration
-    const tx = await serviceConfiguration.setPoolManagerPermission(poolManagerPermission.address);
+    const tx = await serviceConfiguration.setPoolManagerPermission(
+      poolManagerPermission.address
+    );
     await tx.wait();
 
     return {
@@ -53,7 +55,7 @@ describe("PermissionedPoolFactory", () => {
   }
 
   it("emits PoolCreated", async () => {
-    const { poolFactory, poolManagerPermission, operator, otherAccount } =
+    const { poolFactory, poolManagerPermission, otherAccount } =
       await loadFixture(deployFixture);
 
     await poolManagerPermission.allow(otherAccount.getAddress());
@@ -65,13 +67,13 @@ describe("PermissionedPoolFactory", () => {
   });
 
   it("reverts if not called by a Pool Manager", async () => {
-    const { poolFactory, poolManagerPermission, operator, otherAccount } =
+    const { poolFactory, poolManagerPermission, otherAccount } =
       await loadFixture(deployFixture);
 
     await poolManagerPermission.allow(otherAccount.getAddress());
 
-    await expect(
-      poolFactory.createPool()
-    ).to.be.revertedWith("PoolFactory: Not PM");
+    await expect(poolFactory.createPool()).to.be.revertedWith(
+      "PoolFactory: Not PM"
+    );
   });
 });

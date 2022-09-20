@@ -7,4 +7,5 @@ pragma solidity ^0.8.16;
  * Empty Pool contract.
  */
 contract Pool {
+
 }
