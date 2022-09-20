@@ -17,7 +17,7 @@ contract PoolFactory {
      * @dev Creates a pool
      * @dev Emits `PoolCreated` event.
      */
-    function createPool() external returns (address poolAddress) {
+    function createPool() virtual public returns (address poolAddress) {
         Pool pool = new Pool();
         address addr = address(pool);
         emit PoolCreated(addr);
