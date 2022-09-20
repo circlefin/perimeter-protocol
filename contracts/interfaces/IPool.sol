@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
-import "./IERC4246.sol";
+import "./IERC4626.sol";
 import "../PoolLifeCycleState.sol";
 import "../PoolWithdrawalPeriod.sol";
 import "../PoolConfigurableSettings.sol";
@@ -9,7 +9,7 @@ import "../PoolConfigurableSettings.sol";
 /**
  * @title The interface for liquidity pools.
  */
-interface IPool is IERC4626 {
+interface IPool {
     /**
      * @dev Emitted when the pool transitions a lifecycle state.
      */
@@ -57,11 +57,6 @@ interface IPool is IERC4626 {
         external
         view
         returns (PoolConfigurableSettings memory settings);
-
-    /**
-     * @dev The underlying liquidity asset for the pool.
-     */
-    function liquidityType() external view returns (address);
 
     /**
      * @dev The manager for the pool.
