@@ -3,3 +3,4 @@ package-lock.json
 typechain-types
 artifacts
 cache
+coverage
