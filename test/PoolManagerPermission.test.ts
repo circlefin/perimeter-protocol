@@ -50,7 +50,7 @@ describe("PoolManagerPermission", () => {
         );
 
         expect(
-          await poolManagerPermission.isAllowed(otherAccount.getAddress())
+          await poolManagerPermission.isAllowed(otherAccount.address)
         ).to.equal(false);
       });
 
@@ -59,10 +59,10 @@ describe("PoolManagerPermission", () => {
           deployFixture
         );
 
-        await poolManagerPermission.allow(otherAccount.getAddress());
+        await poolManagerPermission.allow(otherAccount.address);
 
         expect(
-          await poolManagerPermission.isAllowed(otherAccount.getAddress())
+          await poolManagerPermission.isAllowed(otherAccount.address)
         ).to.equal(true);
       });
     });
@@ -75,13 +75,13 @@ describe("PoolManagerPermission", () => {
           otherAccount
         } = await loadFixture(deployFixture);
 
-        await poolManagerPermission.allow(otherAccount.getAddress());
+        await poolManagerPermission.allow(otherAccount.address);
         await poolManagerPermission.setVerificationRegistry(
           mockVeriteVerificationRegistry.address
         );
 
         expect(
-          await poolManagerPermission.isAllowed(otherAccount.getAddress())
+          await poolManagerPermission.isAllowed(otherAccount.address)
         ).to.equal(true);
       });
 
@@ -92,8 +92,8 @@ describe("PoolManagerPermission", () => {
           otherAccount
         } = await loadFixture(deployFixture);
 
-        mockVeriteVerificationRegistry.setVerified(
-          otherAccount.getAddress(),
+        await mockVeriteVerificationRegistry.setVerified(
+          otherAccount.address,
           true
         );
 
@@ -102,7 +102,7 @@ describe("PoolManagerPermission", () => {
         );
 
         expect(
-          await poolManagerPermission.isAllowed(otherAccount.getAddress())
+          await poolManagerPermission.isAllowed(otherAccount.address)
         ).to.equal(true);
       });
 
@@ -118,7 +118,7 @@ describe("PoolManagerPermission", () => {
         );
 
         expect(
-          await poolManagerPermission.isAllowed(otherAccount.getAddress())
+          await poolManagerPermission.isAllowed(otherAccount.address)
         ).to.equal(false);
       });
     });
@@ -130,10 +130,10 @@ describe("PoolManagerPermission", () => {
         deployFixture
       );
 
-      await poolManagerPermission.allow(otherAccount.getAddress());
+      await poolManagerPermission.allow(otherAccount.address);
 
       expect(
-        await poolManagerPermission.isAllowed(otherAccount.getAddress())
+        await poolManagerPermission.isAllowed(otherAccount.address)
       ).to.equal(true);
     });
 
@@ -142,11 +142,11 @@ describe("PoolManagerPermission", () => {
         deployFixture
       );
 
-      await poolManagerPermission.allow(otherAccount.getAddress());
-      await poolManagerPermission.allow(otherAccount.getAddress());
+      await poolManagerPermission.allow(otherAccount.address);
+      await poolManagerPermission.allow(otherAccount.address);
 
       expect(
-        await poolManagerPermission.isAllowed(otherAccount.getAddress())
+        await poolManagerPermission.isAllowed(otherAccount.address)
       ).to.equal(true);
     });
 
@@ -170,9 +170,9 @@ describe("PoolManagerPermission", () => {
           deployFixture
         );
 
-        expect(await poolManagerPermission.allow(otherAccount.getAddress()))
+        expect(await poolManagerPermission.allow(otherAccount.address))
           .to.emit(poolManagerPermission, "AllowListUpdated")
-          .withArgs(otherAccount.getAddress(), true);
+          .withArgs(otherAccount.address, true);
       });
     });
   });
@@ -183,11 +183,11 @@ describe("PoolManagerPermission", () => {
         deployFixture
       );
 
-      await poolManagerPermission.remove(otherAccount.getAddress());
-      await poolManagerPermission.remove(otherAccount.getAddress());
+      await poolManagerPermission.remove(otherAccount.address);
+      await poolManagerPermission.remove(otherAccount.address);
 
       expect(
-        await poolManagerPermission.isAllowed(otherAccount.getAddress())
+        await poolManagerPermission.isAllowed(otherAccount.address)
       ).to.equal(false);
     });
 
@@ -196,10 +196,10 @@ describe("PoolManagerPermission", () => {
         deployFixture
       );
 
-      await poolManagerPermission.remove(otherAccount.getAddress());
+      await poolManagerPermission.remove(otherAccount.address);
 
       expect(
-        await poolManagerPermission.isAllowed(otherAccount.getAddress())
+        await poolManagerPermission.isAllowed(otherAccount.address)
       ).to.equal(false);
     });
 
@@ -223,11 +223,11 @@ describe("PoolManagerPermission", () => {
           deployFixture
         );
 
-        await poolManagerPermission.remove(otherAccount.getAddress());
+        await poolManagerPermission.remove(otherAccount.address);
 
-        expect(await poolManagerPermission.remove(otherAccount.getAddress()))
+        await expect(poolManagerPermission.remove(otherAccount.address))
           .to.emit(poolManagerPermission, "AllowListUpdated")
-          .withArgs(otherAccount.getAddress(), false);
+          .withArgs(otherAccount.address, false);
       });
     });
   });
@@ -240,8 +240,8 @@ describe("PoolManagerPermission", () => {
         otherAccount
       } = await loadFixture(deployFixture);
 
-      mockVeriteVerificationRegistry.setVerified(
-        otherAccount.getAddress(),
+      await mockVeriteVerificationRegistry.setVerified(
+        otherAccount.address,
         true
       );
 
@@ -250,7 +250,7 @@ describe("PoolManagerPermission", () => {
       );
 
       expect(
-        await poolManagerPermission.isAllowed(otherAccount.getAddress())
+        await poolManagerPermission.isAllowed(otherAccount.address)
       ).to.equal(true);
     });
 
@@ -273,13 +273,13 @@ describe("PoolManagerPermission", () => {
         const { poolManagerPermission, mockVeriteVerificationRegistry } =
           await loadFixture(deployFixture);
 
-        expect(
-          await poolManagerPermission.setVerificationRegistry(
+        await expect(
+          poolManagerPermission.setVerificationRegistry(
             mockVeriteVerificationRegistry.address
           )
         )
           .to.emit(poolManagerPermission, "VerificationRegistrySet")
-          .withArgs(mockVeriteVerificationRegistry, true);
+          .withArgs(mockVeriteVerificationRegistry.address);
       });
     });
   });
@@ -292,8 +292,8 @@ describe("PoolManagerPermission", () => {
         otherAccount
       } = await loadFixture(deployFixture);
 
-      mockVeriteVerificationRegistry.setVerified(
-        otherAccount.getAddress(),
+      await mockVeriteVerificationRegistry.setVerified(
+        otherAccount.address,
         true
       );
 
@@ -304,7 +304,7 @@ describe("PoolManagerPermission", () => {
       await poolManagerPermission.removeVerificationRegistry();
 
       expect(
-        await poolManagerPermission.isAllowed(otherAccount.getAddress())
+        await poolManagerPermission.isAllowed(otherAccount.address)
       ).to.equal(false);
     });
 
@@ -329,7 +329,7 @@ describe("PoolManagerPermission", () => {
       await poolManagerPermission.removeVerificationRegistry();
 
       expect(
-        await poolManagerPermission.isAllowed(otherAccount.getAddress())
+        await poolManagerPermission.isAllowed(otherAccount.address)
       ).to.equal(false);
     });
 
@@ -349,12 +349,11 @@ describe("PoolManagerPermission", () => {
 
     describe("events", () => {
       it("emits an VerificationRegistryRemoved event upon success", async () => {
-        const { poolManagerPermission, mockVeriteVerificationRegistry } =
-          await loadFixture(deployFixture);
+        const { poolManagerPermission } = await loadFixture(deployFixture);
 
-        expect(await poolManagerPermission.removeVerificationRegistry())
-          .to.emit(poolManagerPermission, "VerificationRegistryRemoved")
-          .withArgs(mockVeriteVerificationRegistry, false);
+        await expect(
+          poolManagerPermission.removeVerificationRegistry()
+        ).to.emit(poolManagerPermission, "VerificationRegistryRemoved");
       });
     });
   });
