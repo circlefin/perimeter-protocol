@@ -17,8 +17,14 @@ contract PoolFactory {
      * @dev Creates a pool
      * @dev Emits `PoolCreated` event.
      */
-    function createPool() external returns (address poolAddress) {
-        Pool pool = new Pool();
+    function createPool(
+        address liquidityAsset,
+        uint256 maxCapacity,
+        uint256 endDate,
+        uint256 withdrawalFee
+    ) external returns (address poolAddress) {
+        PoolConfigurableSettings memory settings = PoolConfigurableSettings(maxCapacity, endDate, withdrawalFee);
+        Pool pool = new Pool(liquidityAsset, msg.sender, settings, "ValyriaPoolToken", "VPT");
         address addr = address(pool);
         emit PoolCreated(addr);
         return addr;
