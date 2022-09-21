@@ -75,26 +75,26 @@ describe("Pool", () => {
 
   describe("Permissions", () => {
     describe("updatePoolCapacity", () => {
-      it("reverts if not called by PM", async () => {
+      it("reverts if not called by Pool Manager", async () => {
         const { pool, otherAccount } = await loadFixture(
           loadPoolFixture
         );
           
         await expect(
           pool.connect(otherAccount).updatePoolCapacity(1)
-        ).to.be.revertedWith("Pool: caller is not PM");
+        ).to.be.revertedWith("Pool: caller is not manager");
       });
     });
 
     describe("updatePoolEndDate", () => {
-      it("reverts if not called by PM", async () => {
+      it("reverts if not called by Pool Manager", async () => {
         const { pool, otherAccount } = await loadFixture(
           loadPoolFixture
         );
           
         await expect(
           pool.connect(otherAccount).updatePoolEndDate(1)
-        ).to.be.revertedWith("Pool: caller is not PM");
+        ).to.be.revertedWith("Pool: caller is not manager");
       });
     });
 
@@ -111,26 +111,26 @@ describe("Pool", () => {
     });
 
     describe("fundLoan", () => {
-      it("reverts if not called by PM", async () => {
+      it("reverts if not called by Pool Manager", async () => {
         const { pool, otherAccount } = await loadFixture(
           loadPoolFixture
         );
           
         await expect(
           pool.connect(otherAccount).fundLoan(otherAccount.address)
-        ).to.be.revertedWith("Pool: caller is not PM");
+        ).to.be.revertedWith("Pool: caller is not manager");
       });
     });
 
     describe("markLoanAsInDefault", () => {
-      it("reverts if not called by PM", async () => {
+      it("reverts if not called by Pool Manager", async () => {
         const { pool, otherAccount } = await loadFixture(
           loadPoolFixture
         );
           
         await expect(
           pool.connect(otherAccount).markLoanAsInDefault(otherAccount.address)
-        ).to.be.revertedWith("Pool: caller is not PM");
+        ).to.be.revertedWith("Pool: caller is not manager");
       });
     });
   });

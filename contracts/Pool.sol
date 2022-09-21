@@ -18,10 +18,10 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev Modifier that checks that the caller is the pool's manager.
      */
-    modifier onlyPM() {
+    modifier onlyManager() {
         require(
             _manager != address(0) && msg.sender == _manager,
-            "Pool: caller is not PM"
+            "Pool: caller is not manager"
         );
         _;
     }
@@ -87,14 +87,14 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
-     * @dev Updates the pool capacity. Can only be called by the PM.
+     * @dev Updates the pool capacity. Can only be called by the Pool Manager.
      */
-    function updatePoolCapacity(uint256) external onlyPM returns (uint256) {}
+    function updatePoolCapacity(uint256) external onlyManager returns (uint256) {}
 
     /**
-     * @dev Updates the pool end date. Can only be called by the PM.
+     * @dev Updates the pool end date. Can only be called by the Pool Manager.
      */
-    function updatePoolEndDate(uint256) external onlyPM returns (uint256) {}
+    function updatePoolEndDate(uint256) external onlyManager returns (uint256) {}
 
     /**
      * @dev Returns the withdrawal fee for a given withdrawal amount at the current block.
@@ -126,13 +126,13 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev Called by the pool manager, this transfers liquidity from the pool to a given loan.
      */
-    function fundLoan(address) external onlyPM {}
+    function fundLoan(address) external onlyManager {}
 
     /**
      * @dev Called by the pool manager, marks a loan as in default, updating pool accounting and allowing loan
      * collateral to be claimed.
      */
-    function markLoanAsInDefault(address) external onlyPM {}
+    function markLoanAsInDefault(address) external onlyManager {}
 
     /*//////////////////////////////////////////////////////////////
                         ERC-4246 Methods
