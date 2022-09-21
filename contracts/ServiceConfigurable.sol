@@ -29,7 +29,7 @@ abstract contract ServiceConfigurable {
             _serviceConfiguration._poolManagerPermission().isAllowed(
                 msg.sender
             ),
-            "PoolFactory: Not PM"
+            "ServiceConfiguration: caller is not a pool manager"
         );
         _;
     }

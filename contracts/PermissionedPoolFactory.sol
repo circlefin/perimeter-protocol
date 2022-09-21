@@ -3,14 +3,13 @@ pragma solidity ^0.8.16;
 
 import "./interfaces/IPoolManagerPermission.sol";
 import "./PoolFactory.sol";
-import "./ServiceConfigurable.sol";
 
 /**
  * @title PermissionedPoolFactory
  */
-contract PermissionedPoolFactory is ServiceConfigurable, PoolFactory {
+contract PermissionedPoolFactory is PoolFactory {
     constructor(address serviceConfiguration)
-        ServiceConfigurable(serviceConfiguration)
+        PoolFactory(serviceConfiguration)
     {}
 
     /**

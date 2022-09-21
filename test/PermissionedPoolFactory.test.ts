@@ -73,7 +73,7 @@ describe("PermissionedPoolFactory", () => {
     await poolManagerPermission.allow(otherAccount.getAddress());
 
     await expect(poolFactory.createPool()).to.be.revertedWith(
-      "PoolFactory: Not PM"
+      "ServiceConfiguration: caller is not a pool manager"
     );
   });
 });
