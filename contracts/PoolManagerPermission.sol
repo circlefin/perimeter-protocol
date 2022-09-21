@@ -47,7 +47,7 @@ contract PoolManagerPermission is ServiceConfigurable, IPoolManagerPermission {
     {}
 
     /**
-     * @dev Checks against an allowList to see if the given address is allowed.
+     * @dev Checks if the given address is allowed as a Pool Manager.
      * @inheritdoc IPoolManagerPermission
      */
     function isAllowed(address addr) external view returns (bool) {
