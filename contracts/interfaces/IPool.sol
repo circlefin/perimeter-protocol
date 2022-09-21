@@ -31,11 +31,6 @@ interface IPool is IERC4626 {
     event LoanMatured(address indexed loan);
 
     /**
-     * @dev Emitted when first loss is supplied to the pool.
-     */
-    event FirstLossProvided(address indexed supplier, uint256 amount);
-
-    /**
      * @dev Emitted when a withdrawal is requested.
      */
     event WithdrawalRequested(address indexed lender, uint256 amount);
@@ -69,12 +64,17 @@ interface IPool is IERC4626 {
     function firstLoss() external view returns (uint256);
 
     /**
-     * @dev Updates the pool capacity. Can only be called by the PM.
+     * @dev Supplies first-loss to the pool. Can only be called by the Pool Manager.
+     */
+    function supplyFirstLoss(uint256 amount) external;
+
+    /**
+     * @dev Updates the pool capacity. Can only be called by the Pool Manager.
      */
     function updatePoolCapacity(uint256) external returns (uint256);
 
     /**
-     * @dev Updates the pool end date. Can only be called by the PM.
+     * @dev Updates the pool end date. Can only be called by the Pool Manager.
      */
     function updatePoolEndDate(uint256) external returns (uint256);
 

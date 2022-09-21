@@ -7,7 +7,11 @@ import "./ServiceConfigurable.sol";
 /**
  * @title PoolFactory
  */
+<<<<<<< HEAD
 contract PoolFactory is ServiceConfigurable {
+=======
+contract PoolFactory {
+>>>>>>> a5552f3 (Lint)
     /**
      * @dev Emitted when a pool is created.
      */
@@ -27,10 +31,12 @@ contract PoolFactory is ServiceConfigurable {
         uint256 endDate,
         uint256 withdrawalFee
     ) public virtual returns (address poolAddress) {
+        uint256 firstLossInitialMinimum = 0; // TODO: take from ServiceConfig
         PoolConfigurableSettings memory settings = PoolConfigurableSettings(
             maxCapacity,
             endDate,
-            withdrawalFee
+            withdrawalFee,
+            firstLossInitialMinimum
         );
         Pool pool = new Pool(
             liquidityAsset,

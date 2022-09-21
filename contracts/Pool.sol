@@ -7,7 +7,9 @@ import "./PoolConfigurableSettings.sol";
 import "./PoolLifeCycleState.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./library/PoolLib.sol";
+import "./FirstLossLocker.sol";
 
 /**
  * @title Pool
@@ -15,6 +17,14 @@ import "./library/PoolLib.sol";
  * Mostly empty Pool contract.
  */
 contract Pool is IPool, ERC20 {
+    using SafeERC20 for IERC20;
+
+    PoolLifeCycleState private _poolLifeCycleState;
+    address private _manager;
+    IERC20 private _liquidityAsset;
+    PoolConfigurableSettings private _poolSettings;
+    FirstLossLocker private _firstLossLocker;
+
     /**
      * @dev Modifier that checks that the caller is the pool's manager.
      */
@@ -34,24 +44,39 @@ contract Pool is IPool, ERC20 {
         _;
     }
 
-    PoolLifeCycleState private _poolLifeCycleState;
-    address private _manager;
-    IERC20 private _liquidityAsset;
-    PoolConfigurableSettings private _poolSettings;
+    /**
+     * @dev Modifier that checks that the pool is Initialized or Active
+     */
+    modifier poolInitializedOrActive() {
+        require(
+            _poolLifeCycleState == PoolLifeCycleState.Active ||
+                _poolLifeCycleState == PoolLifeCycleState.Initialized,
+            "Pool: invalid pool state"
+        );
+        _;
+    }
 
-    uint256 private _firstLoss;
-
+    /**
+     * @dev Constructor for Pool
+     * @param liquidityAsset asset held by the poo
+     * @param poolManager manager of the pool
+     * @param poolSettings configurable settings for the pool
+     * @param tokenName Name used for issued pool tokens
+     * @param tokenSymbol Symbol used for issued pool tokens
+     */
     constructor(
         address liquidityAsset,
         address poolManager,
-        PoolConfigurableSettings memory _settings,
+        PoolConfigurableSettings memory poolSettings,
         string memory tokenName,
         string memory tokenSymbol
     ) ERC20(tokenName, tokenSymbol) {
         _liquidityAsset = IERC20(liquidityAsset);
-        _poolSettings = _settings;
+        _poolSettings = poolSettings;
         _manager = poolManager;
         _poolLifeCycleState = PoolLifeCycleState.Initialized;
+
+        _firstLossLocker = new FirstLossLocker(address(this), liquidityAsset);
     }
 
     /**
@@ -83,27 +108,48 @@ contract Pool is IPool, ERC20 {
      * @dev The current amount of first loss available to the pool
      */
     function firstLoss() external view override returns (uint256) {
-        return _firstLoss;
+        return _liquidityAsset.balanceOf(address(_firstLossLocker));
+    }
+
+    /**
+     * @dev Supplies first-loss to the pool. Can only be called by the Pool Manager.
+     */
+    function supplyFirstLoss(uint256 amount)
+        external
+        onlyManager
+        poolInitializedOrActive
+    {
+        _poolLifeCycleState = PoolLib.executeFirstLossContribution(
+            address(_liquidityAsset),
+            amount,
+            address(_firstLossLocker),
+            _poolLifeCycleState,
+            _poolSettings.firstLossInitialMinimum
+        );
     }
 
     /**
      * @dev Updates the pool capacity. Can only be called by the Pool Manager.
      */
-    function updatePoolCapacity(uint256) external onlyManager returns (uint256) {}
+    function updatePoolCapacity(uint256)
+        external
+        onlyManager
+        returns (uint256)
+    {}
 
     /**
      * @dev Updates the pool end date. Can only be called by the Pool Manager.
      */
-    function updatePoolEndDate(uint256) external onlyManager returns (uint256) {}
+    function updatePoolEndDate(uint256)
+        external
+        onlyManager
+        returns (uint256)
+    {}
 
     /**
      * @dev Returns the withdrawal fee for a given withdrawal amount at the current block.
      */
-    function feeForWithdrawalRequest(uint256)
-        external
-        view
-        returns (uint256)
-    {
+    function feeForWithdrawalRequest(uint256) external view returns (uint256) {
         return 0;
     }
 
