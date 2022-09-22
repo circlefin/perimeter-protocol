@@ -22,6 +22,19 @@ abstract contract ServiceConfigurable {
     }
 
     /**
+     * @dev Check that `msg.sender` is a PoolManager.
+     */
+    modifier onlyPoolManager() {
+        require(
+            _serviceConfiguration._poolManagerPermission().isAllowed(
+                msg.sender
+            ),
+            "ServiceConfiguration: caller is not a pool manager"
+        );
+        _;
+    }
+
+    /**
      * @dev Modifier that checks that the caller account has the Operator role.
      */
     modifier onlyOperator() {

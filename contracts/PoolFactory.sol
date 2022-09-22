@@ -2,16 +2,20 @@
 pragma solidity ^0.8.16;
 
 import "./Pool.sol";
+import "./ServiceConfigurable.sol";
 
 /**
  * @title PoolFactory
  */
-contract PoolFactory {
-
+contract PoolFactory is ServiceConfigurable {
     /**
      * @dev Emitted when a pool is created.
      */
     event PoolCreated(address indexed addr);
+
+    constructor(address serviceConfiguration)
+        ServiceConfigurable(serviceConfiguration)
+    {}
 
     /**
      * @dev Creates a pool
@@ -22,12 +26,21 @@ contract PoolFactory {
         uint256 maxCapacity,
         uint256 endDate,
         uint256 withdrawalFee
-    ) external returns (address poolAddress) {
-        PoolConfigurableSettings memory settings = PoolConfigurableSettings(maxCapacity, endDate, withdrawalFee);
-        Pool pool = new Pool(liquidityAsset, msg.sender, settings, "ValyriaPoolToken", "VPT");
+    ) public virtual returns (address poolAddress) {
+        PoolConfigurableSettings memory settings = PoolConfigurableSettings(
+            maxCapacity,
+            endDate,
+            withdrawalFee
+        );
+        Pool pool = new Pool(
+            liquidityAsset,
+            msg.sender,
+            settings,
+            "ValyriaPoolToken",
+            "VPT"
+        );
         address addr = address(pool);
         emit PoolCreated(addr);
         return addr;
     }
-
 }
