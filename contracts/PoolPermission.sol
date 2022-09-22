@@ -2,6 +2,7 @@
 pragma solidity ^0.8.16;
 
 import "./interfaces/IPoolPermission.sol";
+import "./ServiceConfigurable.sol";
 
 /**
  * @title The PoolPermission contract
@@ -10,7 +11,7 @@ import "./interfaces/IPoolPermission.sol";
  * This implementation implements a basic Allow-List of addresses, which can
  * be managed only by the contract owner.
  */
-contract PoolPermission is IPoolPermission {
+contract PoolPermission is ServiceConfigurable, IPoolPermission {
     /**
      * @dev A mapping of addresses to whether they are allowed as a Lender
      */
@@ -32,11 +33,11 @@ contract PoolPermission is IPoolPermission {
     event AllowedBorrowerListUpdated(address indexed addr, bool isAllowed);
 
     /**
-     *
+     * The constructor for the PoolPermission contract
      */
-    modifier onlyPoolManager() {
-        _;
-    }
+    constructor(address serviceConfiguration)
+        ServiceConfigurable(serviceConfiguration)
+    {}
 
     /**
      * @dev Checks if the given address is allowed as a Lender.
