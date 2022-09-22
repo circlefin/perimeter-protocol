@@ -16,12 +16,18 @@ contract PermissionedPoolFactory is PoolFactory {
      * @dev Creates a pool
      * @dev Emits `PoolCreated` event.
      */
-    function createPool()
-        public
-        override
-        onlyPoolManager
-        returns (address poolAddress)
-    {
-        return super.createPool();
+    function createPool(
+        address liquidityAsset,
+        uint256 maxCapacity,
+        uint256 endDate,
+        uint256 withdrawalFee
+    ) public override onlyPoolManager returns (address poolAddress) {
+        return
+            super.createPool(
+                liquidityAsset,
+                maxCapacity,
+                endDate,
+                withdrawalFee
+            );
     }
 }

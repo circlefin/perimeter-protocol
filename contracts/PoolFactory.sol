@@ -21,8 +21,24 @@ contract PoolFactory is ServiceConfigurable {
      * @dev Creates a pool
      * @dev Emits `PoolCreated` event.
      */
-    function createPool() public virtual returns (address poolAddress) {
-        Pool pool = new Pool();
+    function createPool(
+        address liquidityAsset,
+        uint256 maxCapacity,
+        uint256 endDate,
+        uint256 withdrawalFee
+    ) public virtual returns (address poolAddress) {
+        PoolConfigurableSettings memory settings = PoolConfigurableSettings(
+            maxCapacity,
+            endDate,
+            withdrawalFee
+        );
+        Pool pool = new Pool(
+            liquidityAsset,
+            msg.sender,
+            settings,
+            "ValyriaPoolToken",
+            "VPT"
+        );
         address addr = address(pool);
         emit PoolCreated(addr);
         return addr;

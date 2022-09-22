@@ -3,6 +3,8 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 
 describe("PoolFactory", () => {
+  const MOCK_LIQUIDITY_ADDRESS = "0x0000000000000000000000000000000000000001";
+
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
     const [operator] = await ethers.getSigners();
@@ -43,6 +45,9 @@ describe("PoolFactory", () => {
 
   it("emits PoolCreated", async () => {
     const { poolFactory } = await loadFixture(deployFixture);
-    await expect(poolFactory.createPool()).to.emit(poolFactory, "PoolCreated");
+
+    await expect(
+      poolFactory.createPool(MOCK_LIQUIDITY_ADDRESS, 0, 0, 0)
+    ).to.emit(poolFactory, "PoolCreated");
   });
 });

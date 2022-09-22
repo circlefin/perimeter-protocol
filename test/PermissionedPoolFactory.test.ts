@@ -3,6 +3,8 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 
 describe("PermissionedPoolFactory", () => {
+  const MOCK_LIQUIDITY_ADDRESS = "0x0000000000000000000000000000000000000001";
+
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
     const [operator, otherAccount] = await ethers.getSigners();
@@ -60,10 +62,11 @@ describe("PermissionedPoolFactory", () => {
 
     await poolManagerPermission.allow(otherAccount.getAddress());
 
-    await expect(poolFactory.connect(otherAccount).createPool()).to.emit(
-      poolFactory,
-      "PoolCreated"
-    );
+    await expect(
+      poolFactory
+        .connect(otherAccount)
+        .createPool(MOCK_LIQUIDITY_ADDRESS, 0, 0, 0)
+    ).to.emit(poolFactory, "PoolCreated");
   });
 
   it("reverts if not called by a Pool Manager", async () => {
@@ -72,8 +75,8 @@ describe("PermissionedPoolFactory", () => {
 
     await poolManagerPermission.allow(otherAccount.getAddress());
 
-    await expect(poolFactory.createPool()).to.be.revertedWith(
-      "ServiceConfiguration: caller is not a pool manager"
-    );
+    await expect(
+      poolFactory.createPool(MOCK_LIQUIDITY_ADDRESS, 0, 0, 0)
+    ).to.be.revertedWith("ServiceConfiguration: caller is not a pool manager");
   });
 });
