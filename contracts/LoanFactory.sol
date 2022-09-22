@@ -21,9 +21,13 @@ contract LoanFactory is ServiceConfigurable {
      * @dev Creates a Loan
      * @dev Emits `LoanCreated` event.
      */
-    function createLoan() public virtual returns (address LoanAddress) {
-        Loan Loan = new Loan();
-        address addr = address(Loan);
+    function createLoan(address pool)
+        public
+        virtual
+        returns (address LoanAddress)
+    {
+        Loan loan = new Loan(msg.sender, pool);
+        address addr = address(loan);
         emit LoanCreated(addr);
         return addr;
     }
