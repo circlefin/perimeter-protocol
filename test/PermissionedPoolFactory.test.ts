@@ -17,14 +17,14 @@ describe("PermissionedPoolFactory", () => {
     const serviceConfiguration = await ServiceConfiguration.deploy();
     await serviceConfiguration.deployed();
 
-    // Deploy the PoolManagerPermission contract
-    const PoolManagerPermission = await ethers.getContractFactory(
-      "PoolManagerPermission"
+    // Deploy the PoolManagerAccessControl contract
+    const PoolManagerAccessControl = await ethers.getContractFactory(
+      "PoolManagerAccessControl"
     );
-    const poolManagerPermission = await PoolManagerPermission.deploy(
+    const poolManagerAccessControl = await PoolManagerAccessControl.deploy(
       serviceConfiguration.address
     );
-    await poolManagerPermission.deployed();
+    await poolManagerAccessControl.deployed();
 
     // Deploy the MockVeriteVerificationRegistry contract
     const MockVeriteVerificationRegistry = await ethers.getContractFactory(
@@ -42,14 +42,14 @@ describe("PermissionedPoolFactory", () => {
     await poolFactory.deployed();
 
     // Initialize ServiceConfiguration
-    const tx = await serviceConfiguration.setPoolManagerPermission(
-      poolManagerPermission.address
+    const tx = await serviceConfiguration.setPoolManagerAccessControl(
+      poolManagerAccessControl.address
     );
     await tx.wait();
 
     return {
       poolFactory,
-      poolManagerPermission,
+      poolManagerAccessControl,
       mockVeriteVerificationRegistry,
       operator,
       otherAccount
@@ -57,10 +57,10 @@ describe("PermissionedPoolFactory", () => {
   }
 
   it("emits PoolCreated", async () => {
-    const { poolFactory, poolManagerPermission, otherAccount } =
+    const { poolFactory, poolManagerAccessControl, otherAccount } =
       await loadFixture(deployFixture);
 
-    await poolManagerPermission.allow(otherAccount.getAddress());
+    await poolManagerAccessControl.allow(otherAccount.getAddress());
 
     await expect(
       poolFactory
@@ -70,10 +70,10 @@ describe("PermissionedPoolFactory", () => {
   });
 
   it("reverts if not called by a Pool Manager", async () => {
-    const { poolFactory, poolManagerPermission, otherAccount } =
+    const { poolFactory, poolManagerAccessControl, otherAccount } =
       await loadFixture(deployFixture);
 
-    await poolManagerPermission.allow(otherAccount.getAddress());
+    await poolManagerAccessControl.allow(otherAccount.getAddress());
 
     await expect(
       poolFactory.createPool(MOCK_LIQUIDITY_ADDRESS, 0, 0, 0)

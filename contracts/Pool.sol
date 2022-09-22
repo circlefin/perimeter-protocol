@@ -2,7 +2,6 @@
 pragma solidity ^0.8.16;
 
 import "./interfaces/IPool.sol";
-import "./ServiceConfigurable.sol";
 import "./PoolConfigurableSettings.sol";
 import "./PoolLifeCycleState.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -89,21 +88,25 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev Updates the pool capacity. Can only be called by the Pool Manager.
      */
-    function updatePoolCapacity(uint256) external onlyManager returns (uint256) {}
+    function updatePoolCapacity(uint256)
+        external
+        onlyManager
+        returns (uint256)
+    {}
 
     /**
      * @dev Updates the pool end date. Can only be called by the Pool Manager.
      */
-    function updatePoolEndDate(uint256) external onlyManager returns (uint256) {}
+    function updatePoolEndDate(uint256)
+        external
+        onlyManager
+        returns (uint256)
+    {}
 
     /**
      * @dev Returns the withdrawal fee for a given withdrawal amount at the current block.
      */
-    function feeForWithdrawalRequest(uint256)
-        external
-        view
-        returns (uint256)
-    {
+    function feeForWithdrawalRequest(uint256) external view returns (uint256) {
         return 0;
     }
 

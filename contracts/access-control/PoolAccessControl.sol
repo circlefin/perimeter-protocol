@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
-import "./interfaces/IPoolPermission.sol";
-import "./ServiceConfigurable.sol";
+import "./interfaces/IPoolAccessControl.sol";
+import "../ServiceConfigurable.sol";
 
 /**
- * @title The PoolPermission contract
- * @dev Implementation of the {IPoolPermission} interface.
+ * @title The PoolAccessControl contract
+ * @dev Implementation of the {IPoolAccessControl} interface.
  *
  * This implementation implements a basic Allow-List of addresses, which can
- * be managed only by the contract owner.
+ * be managed only by the Pool Manager.
  */
-contract PoolPermission is ServiceConfigurable, IPoolPermission {
+contract PoolAccessControl is ServiceConfigurable, IPoolAccessControl {
     /**
      * @dev A mapping of addresses to whether they are allowed as a Lender
      */
@@ -33,7 +33,7 @@ contract PoolPermission is ServiceConfigurable, IPoolPermission {
     event AllowedBorrowerListUpdated(address indexed addr, bool isAllowed);
 
     /**
-     * The constructor for the PoolPermission contract
+     * The constructor for the PoolAccessControl contract
      */
     constructor(address serviceConfiguration)
         ServiceConfigurable(serviceConfiguration)
@@ -41,7 +41,7 @@ contract PoolPermission is ServiceConfigurable, IPoolPermission {
 
     /**
      * @dev Checks if the given address is allowed as a Lender.
-     * @inheritdoc IPoolPermission
+     * @inheritdoc IPoolAccessControl
      */
     function isValidLender(address addr) external view returns (bool) {
         return _allowedLenders[addr];
@@ -49,7 +49,7 @@ contract PoolPermission is ServiceConfigurable, IPoolPermission {
 
     /**
      * @dev Checks if the given address is allowed as a Borrower.
-     * @inheritdoc IPoolPermission
+     * @inheritdoc IPoolAccessControl
      */
     function isValidBorrower(address addr) external view returns (bool) {
         return _allowedBorrowers[addr];

@@ -26,7 +26,7 @@ abstract contract ServiceConfigurable {
      */
     modifier onlyPoolManager() {
         require(
-            _serviceConfiguration._poolManagerPermission().isAllowed(
+            _serviceConfiguration._poolManagerAccessControl().isAllowed(
                 msg.sender
             ),
             "ServiceConfiguration: caller is not a pool manager"
