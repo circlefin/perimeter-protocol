@@ -7,7 +7,7 @@ describe("PoolLib", () => {
     const FIRST_LOSS_AMOUNT = 100;
 
     async function deployFixture() {
-        const [caller, firstLossLocker] = await ethers.getSigners();
+        const [caller, firstLossVault] = await ethers.getSigners();
 
         const PoolLib = await ethers.getContractFactory("PoolLib");
         const poolLib = await PoolLib.deploy();
@@ -29,7 +29,7 @@ describe("PoolLib", () => {
         await liquidityAsset.connect(caller).approve(poolLibWrapper.address, FIRST_LOSS_AMOUNT)
 
         return {
-            poolLibWrapper, caller, firstLossLocker, liquidityAsset
+            poolLibWrapper, caller, firstLossVault, liquidityAsset
         };
     }
 
@@ -50,63 +50,63 @@ describe("PoolLib", () => {
             ).to.be.revertedWith("Pool: 0 address");
         });
 
-        it("transfers liquidity to locker", async () => {
-            const { poolLibWrapper, liquidityAsset, firstLossLocker } = await loadFixture(
+        it("transfers liquidity to vault", async () => {
+            const { poolLibWrapper, liquidityAsset, firstLossVault } = await loadFixture(
                 deployFixture
             );
 
-            // Confirm locker is empty 
-            expect(await liquidityAsset.balanceOf(firstLossLocker.address)).to.equal(0);
+            // Confirm vault is empty 
+            expect(await liquidityAsset.balanceOf(firstLossVault.address)).to.equal(0);
 
             expect(await poolLibWrapper.executeFirstLossContribution(
                 liquidityAsset.address,
                 FIRST_LOSS_AMOUNT,
-                firstLossLocker.address,
+                firstLossVault.address,
                 0,
                 0
             )).to.emit(poolLibWrapper, "FirstLossSupplied");
 
-            // Check balance of locker 
-            expect(await liquidityAsset.balanceOf(firstLossLocker.address)).to.equal(FIRST_LOSS_AMOUNT);
+            // Check balance of vault 
+            expect(await liquidityAsset.balanceOf(firstLossVault.address)).to.equal(FIRST_LOSS_AMOUNT);
         });
 
         it("graduates PoolLifeCycleState if threshold is met, and initial state is Initialized", async () => {
-            const { poolLibWrapper, liquidityAsset, firstLossLocker } = await loadFixture(
+            const { poolLibWrapper, liquidityAsset, firstLossVault } = await loadFixture(
                 deployFixture
             );
 
             expect(await poolLibWrapper.executeFirstLossContribution(
                 liquidityAsset.address,
                 FIRST_LOSS_AMOUNT,
-                firstLossLocker.address,
+                firstLossVault.address,
                 0,
                 FIRST_LOSS_AMOUNT // minimum required first loss
             )).to.emit(poolLibWrapper, "LifeCycleStateTransition");
         });
 
         it("does not graduate PoolLifeCycleState if threshold is not met, and initial state is Initialized", async () => {
-            const { poolLibWrapper, liquidityAsset, firstLossLocker } = await loadFixture(
+            const { poolLibWrapper, liquidityAsset, firstLossVault } = await loadFixture(
                 deployFixture
             );
 
             expect(await poolLibWrapper.executeFirstLossContribution(
                 liquidityAsset.address,
                 FIRST_LOSS_AMOUNT,
-                firstLossLocker.address,
+                firstLossVault.address,
                 0,
                 FIRST_LOSS_AMOUNT - 1
             )).to.not.emit(poolLibWrapper, "LifeCycleStateTransition");
         });
 
         it("does not graduate PoolLifeCycleState if not in Initialized", async () => {
-            const { poolLibWrapper, liquidityAsset, firstLossLocker } = await loadFixture(
+            const { poolLibWrapper, liquidityAsset, firstLossVault } = await loadFixture(
                 deployFixture
             );
 
             expect(await poolLibWrapper.executeFirstLossContribution(
                 liquidityAsset.address,
                 FIRST_LOSS_AMOUNT,
-                firstLossLocker.address,
+                firstLossVault.address,
                 1, // Already active
                 FIRST_LOSS_AMOUNT
             )).to.not.emit(poolLibWrapper, "LifeCycleStateTransition");

@@ -2,8 +2,8 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
-describe("FirstLossLocker", () => {
-  const LOCKER_BALANCE = ethers.BigNumber.from(100);
+describe("FirstLossVault", () => {
+  const VAULT_BALANCE = ethers.BigNumber.from(100);
 
   async function deployFixture() {
     const [liquidityProvider, pool, otherAccount] = await ethers.getSigners();
@@ -12,17 +12,17 @@ describe("FirstLossLocker", () => {
     const liquidityAsset = await LiquidityAsset.deploy("Test Coin", "TC");
     await liquidityAsset.deployed();
 
-    const FirstLossLocker = await ethers.getContractFactory("FirstLossLocker");
-    const firstLossLocker = await FirstLossLocker.deploy(
+    const FirstLossVault = await ethers.getContractFactory("FirstLossVault");
+    const firstLossVault = await FirstLossVault.deploy(
       pool.address,
       liquidityAsset.address
     );
-    await firstLossLocker.deployed();
+    await firstLossVault.deployed();
 
-    await liquidityAsset.mint(firstLossLocker.address, LOCKER_BALANCE);
+    await liquidityAsset.mint(firstLossVault.address, VAULT_BALANCE);
 
     return {
-      firstLossLocker,
+      firstLossVault,
       liquidityProvider,
       pool,
       liquidityAsset,
@@ -32,23 +32,23 @@ describe("FirstLossLocker", () => {
 
   describe("Deployment", async () => {
     it("sets the pool", async () => {
-      const { firstLossLocker, pool } = await loadFixture(deployFixture);
+      const { firstLossVault, pool } = await loadFixture(deployFixture);
 
-      expect(await firstLossLocker.pool()).to.equal(pool.address);
+      expect(await firstLossVault.pool()).to.equal(pool.address);
     });
 
     it("sets the liquidity asset", async () => {
-      const { firstLossLocker, liquidityAsset } = await loadFixture(
+      const { firstLossVault, liquidityAsset } = await loadFixture(
         deployFixture
       );
 
-      expect(await firstLossLocker.asset()).to.equal(liquidityAsset.address);
+      expect(await firstLossVault.asset()).to.equal(liquidityAsset.address);
     });
   });
 
   describe("withdraw()", async () => {
     it("pool manager can withdrawn amounts", async () => {
-      const { firstLossLocker, liquidityAsset, pool } = await loadFixture(
+      const { firstLossVault, liquidityAsset, pool } = await loadFixture(
         deployFixture
       );
 
@@ -58,7 +58,7 @@ describe("FirstLossLocker", () => {
       const poolBalancePrior = await liquidityAsset.balanceOf(pool.address);
 
       // Pull funds from locker
-      await firstLossLocker
+      await firstLossVault
         .connect(pool)
         .withdraw(amountToWithdraw, pool.address);
 
@@ -70,13 +70,13 @@ describe("FirstLossLocker", () => {
 
   describe("Permissions", async () => {
     it("only pool manager can withdraw", async () => {
-      const { firstLossLocker, pool, otherAccount } = await loadFixture(
+      const { firstLossVault, pool, otherAccount } = await loadFixture(
         deployFixture
       );
 
       await expect(
-        firstLossLocker.connect(otherAccount).withdraw(50, pool.address)
-      ).to.be.revertedWith("FirstLossLocker: caller not pool");
+        firstLossVault.connect(otherAccount).withdraw(50, pool.address)
+      ).to.be.revertedWith("FirstLossVault: caller not pool");
     });
   });
 });

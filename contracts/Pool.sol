@@ -9,7 +9,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./library/PoolLib.sol";
-import "./FirstLossLocker.sol";
+import "./FirstLossVault.sol";
 
 /**
  * @title Pool
@@ -23,7 +23,7 @@ contract Pool is IPool, ERC20 {
     address private _manager;
     IERC20 private _liquidityAsset;
     PoolConfigurableSettings private _poolSettings;
-    FirstLossLocker private _firstLossLocker;
+    FirstLossVault private _firstLossVault;
 
     /**
      * @dev Modifier that checks that the caller is the pool's manager.
@@ -76,7 +76,7 @@ contract Pool is IPool, ERC20 {
         _manager = poolManager;
         _poolLifeCycleState = PoolLifeCycleState.Initialized;
 
-        _firstLossLocker = new FirstLossLocker(address(this), liquidityAsset);
+        _firstLossVault = new FirstLossVault(address(this), liquidityAsset);
     }
 
     /**
@@ -108,7 +108,7 @@ contract Pool is IPool, ERC20 {
      * @dev The current amount of first loss available to the pool
      */
     function firstLoss() external view override returns (uint256) {
-        return _liquidityAsset.balanceOf(address(_firstLossLocker));
+        return _liquidityAsset.balanceOf(address(_firstLossVault));
     }
 
     /**
@@ -122,7 +122,7 @@ contract Pool is IPool, ERC20 {
         _poolLifeCycleState = PoolLib.executeFirstLossContribution(
             address(_liquidityAsset),
             amount,
-            address(_firstLossLocker),
+            address(_firstLossVault),
             _poolLifeCycleState,
             _poolSettings.firstLossInitialMinimum
         );

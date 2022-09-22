@@ -22,7 +22,7 @@ library PoolLib {
     event FirstLossSupplied(address indexed supplier, uint256 amount);
 
     /**
-     * @dev Transfers first loss to the locker.
+     * @dev Transfers first loss to the vault.
      * @param liquidityAsset Pool liquidity asset
      * @param amount Amount of first loss being contributed
      * @param currentState Lifecycle state of the pool
@@ -32,15 +32,15 @@ library PoolLib {
     function executeFirstLossContribution(
         address liquidityAsset,
         uint256 amount,
-        address firstLossLocker,
+        address firstLossVault,
         PoolLifeCycleState currentState,
         uint256 minFirstLossRequired
     ) external returns (PoolLifeCycleState newState) {
-        require(firstLossLocker != address(0), "Pool: 0 address");
+        require(firstLossVault != address(0), "Pool: 0 address");
 
         IERC20(liquidityAsset).safeTransferFrom(
             msg.sender,
-            firstLossLocker,
+            firstLossVault,
             amount
         );
         newState = currentState;
@@ -49,7 +49,7 @@ library PoolLib {
         if (
             currentState == PoolLifeCycleState.Initialized &&
             (amount >= minFirstLossRequired ||
-                IERC20(liquidityAsset).balanceOf(address(firstLossLocker)) >=
+                IERC20(liquidityAsset).balanceOf(address(firstLossVault)) >=
                 minFirstLossRequired)
         ) {
             newState = PoolLifeCycleState.Active;

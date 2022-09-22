@@ -11,14 +11,14 @@ contract PoolLibTestWrapper {
     function executeFirstLossContribution(
         address liquidityAsset,
         uint256 amount,
-        address firstLossLocker,
+        address firstLossVault,
         PoolLifeCycleState currentState,
         uint256 minFirstLossRequired
     ) external {
         PoolLib.executeFirstLossContribution(
             liquidityAsset,
             amount,
-            firstLossLocker,
+            firstLossVault,
             currentState,
             minFirstLossRequired
         );
