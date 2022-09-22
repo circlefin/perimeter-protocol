@@ -7,11 +7,7 @@ import "./ServiceConfigurable.sol";
 /**
  * @title PoolFactory
  */
-<<<<<<< HEAD
 contract PoolFactory is ServiceConfigurable {
-=======
-contract PoolFactory {
->>>>>>> a5552f3 (Lint)
     /**
      * @dev Emitted when a pool is created.
      */
