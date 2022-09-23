@@ -25,6 +25,12 @@ interface ILoan {
         bytes data;
     }
 
+    function state() external view returns (ILoanLifeCycleState);
+
+    function borrower() external returns (address);
+
+    function pool() external view returns (address);
+
     function cancelRequested() external returns (ILoanLifeCycleState);
 
     function cancelCollateralized() external returns (ILoanLifeCycleState);
