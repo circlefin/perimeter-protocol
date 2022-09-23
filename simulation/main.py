@@ -3,6 +3,7 @@ from datetime import datetime
 import os
 import csv
 import uuid
+import argparse
 
 @dataclass
 class Loan:
@@ -182,11 +183,18 @@ def run_simulation(simulation):
         if len(pool.matured_loans) == len(loan_schedule.loans_by_start_date):
             pool.close(time)
             break
-    
-    print(pool.lender_payouts)
-    print(pool.liquidity)
 
+    return pool.lender_payouts, pool.liquidity
+    
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Run a simulation.')
+    parser.add_argument('simulation', metavar='s', type=int, nargs=1, help='simulation number to run')
+    
+    simulation = parser.parse_args().simulation[0]
+    print(f'Running simulation {simulation}...')
     print("-----------------")
-    run_simulation(2)
+    lender_payouts, liquidity = run_simulation(simulation)
+    for lender_id, payout in sorted(lender_payouts.items(), key=lambda e: e[0]):
+        print(f'Lender ID: {lender_id}, payout: {payout}')
     print("-----------------")
+    print(f'Remaining pool liquidity: {liquidity}')
