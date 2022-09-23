@@ -70,8 +70,9 @@ describe("Loan", () => {
 
       // Connect as borrower
       loan = loan.connect(borrower);
-
       expect(await loan.state()).to.equal(0);
+
+      // Cancel
       await expect(loan.cancelRequested()).not.to.be.reverted;
       expect(await loan.state()).to.equal(2);
     });
@@ -82,6 +83,82 @@ describe("Loan", () => {
       await expect(loan.connect(other).cancelRequested()).to.be.revertedWith(
         "Loan: caller is not borrower"
       );
+    });
+  });
+
+  describe("cancelCollateralized", () => {
+    it("transitions Loan to canceled state", async () => {
+      const fixture = await loadFixture(deployFixture);
+      let { loan } = fixture;
+      const { borrower } = fixture;
+
+      // Connect as borrower
+      loan = loan.connect(borrower);
+      expect(await loan.state()).to.equal(0);
+
+      // Post collateral
+      await expect(loan.postFungibleCollateral()).not.to.be.reverted;
+      expect(await loan.state()).to.equal(1);
+
+      // Cancel
+      await expect(loan.cancelCollateralized()).not.to.be.reverted;
+      expect(await loan.state()).to.equal(2);
+    });
+
+    it("reverts if not called by the borrower", async () => {
+      const { loan, other } = await loadFixture(deployFixture);
+
+      await expect(
+        loan.connect(other).cancelCollateralized()
+      ).to.be.revertedWith("Loan: caller is not borrower");
+    });
+  });
+
+  describe("postFungibleCollateral", () => {
+    it("transitions Loan to canceled state", async () => {
+      const fixture = await loadFixture(deployFixture);
+      let { loan } = fixture;
+      const { borrower } = fixture;
+
+      // Connect as borrower
+      loan = loan.connect(borrower);
+      expect(await loan.state()).to.equal(0);
+
+      // Post collateral
+      await expect(loan.postFungibleCollateral()).not.to.be.reverted;
+      expect(await loan.state()).to.equal(1);
+    });
+
+    it("reverts if not called by the borrower", async () => {
+      const { loan, other } = await loadFixture(deployFixture);
+
+      await expect(
+        loan.connect(other).postFungibleCollateral()
+      ).to.be.revertedWith("Loan: caller is not borrower");
+    });
+  });
+
+  describe("postNonFungibleCollateral", () => {
+    it("transitions Loan to canceled state", async () => {
+      const fixture = await loadFixture(deployFixture);
+      let { loan } = fixture;
+      const { borrower } = fixture;
+
+      // Connect as borrower
+      loan = loan.connect(borrower);
+      expect(await loan.state()).to.equal(0);
+
+      // Post collateral
+      await expect(loan.postNonFungibleCollateral()).not.to.be.reverted;
+      expect(await loan.state()).to.equal(1);
+    });
+
+    it("reverts if not called by the borrower", async () => {
+      const { loan, other } = await loadFixture(deployFixture);
+
+      await expect(
+        loan.connect(other).postNonFungibleCollateral()
+      ).to.be.revertedWith("Loan: caller is not borrower");
     });
   });
 
