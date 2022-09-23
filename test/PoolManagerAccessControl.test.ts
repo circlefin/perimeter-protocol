@@ -2,7 +2,7 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
-describe("PoolManagerPermission", () => {
+describe("PoolManagerAccessControl", () => {
   // We define a fixture to reuse the same setup in every test.
   // We use loadFixture to run this setup once, snapshot that state,
   // and reset Hardhat Network to that snapshot in every test.
@@ -18,14 +18,14 @@ describe("PoolManagerPermission", () => {
     const serviceConfiguration = await ServiceConfiguration.deploy();
     await serviceConfiguration.deployed();
 
-    // Deploy the PoolManagerPermission contract
-    const PoolManagerPermission = await ethers.getContractFactory(
-      "PoolManagerPermission"
+    // Deploy the PoolManagerAccessControl contract
+    const PoolManagerAccessControl = await ethers.getContractFactory(
+      "PoolManagerAccessControl"
     );
-    const poolManagerPermission = await PoolManagerPermission.deploy(
+    const poolManagerAccessControl = await PoolManagerAccessControl.deploy(
       serviceConfiguration.address
     );
-    await poolManagerPermission.deployed();
+    await poolManagerAccessControl.deployed();
 
     // Deploy the MockVeriteVerificationRegistry contract
     const MockVeriteVerificationRegistry = await ethers.getContractFactory(
@@ -36,7 +36,7 @@ describe("PoolManagerPermission", () => {
     await mockVeriteVerificationRegistry.deployed();
 
     return {
-      poolManagerPermission,
+      poolManagerAccessControl,
       mockVeriteVerificationRegistry,
       otherAccount
     };
@@ -45,24 +45,24 @@ describe("PoolManagerPermission", () => {
   describe("isAllowed()", () => {
     describe("without a verification registry", () => {
       it("returns false if the address is not in the allow list", async () => {
-        const { poolManagerPermission, otherAccount } = await loadFixture(
+        const { poolManagerAccessControl, otherAccount } = await loadFixture(
           deployFixture
         );
 
         expect(
-          await poolManagerPermission.isAllowed(otherAccount.address)
+          await poolManagerAccessControl.isAllowed(otherAccount.address)
         ).to.equal(false);
       });
 
       it("returns true if the address is on the allow list", async () => {
-        const { poolManagerPermission, otherAccount } = await loadFixture(
+        const { poolManagerAccessControl, otherAccount } = await loadFixture(
           deployFixture
         );
 
-        await poolManagerPermission.allow(otherAccount.address);
+        await poolManagerAccessControl.allow(otherAccount.address);
 
         expect(
-          await poolManagerPermission.isAllowed(otherAccount.address)
+          await poolManagerAccessControl.isAllowed(otherAccount.address)
         ).to.equal(true);
       });
     });
@@ -70,24 +70,24 @@ describe("PoolManagerPermission", () => {
     describe("with a verification registry", () => {
       it("returns true if the address is on an allowList, even if not present in a VerificationRegistry", async () => {
         const {
-          poolManagerPermission,
+          poolManagerAccessControl,
           mockVeriteVerificationRegistry,
           otherAccount
         } = await loadFixture(deployFixture);
 
-        await poolManagerPermission.allow(otherAccount.address);
-        await poolManagerPermission.setVerificationRegistry(
+        await poolManagerAccessControl.allow(otherAccount.address);
+        await poolManagerAccessControl.setVerificationRegistry(
           mockVeriteVerificationRegistry.address
         );
 
         expect(
-          await poolManagerPermission.isAllowed(otherAccount.address)
+          await poolManagerAccessControl.isAllowed(otherAccount.address)
         ).to.equal(true);
       });
 
       it("returns true if the address is not in the allowList but is in the registry", async () => {
         const {
-          poolManagerPermission,
+          poolManagerAccessControl,
           mockVeriteVerificationRegistry,
           otherAccount
         } = await loadFixture(deployFixture);
@@ -97,28 +97,28 @@ describe("PoolManagerPermission", () => {
           true
         );
 
-        await poolManagerPermission.setVerificationRegistry(
+        await poolManagerAccessControl.setVerificationRegistry(
           mockVeriteVerificationRegistry.address
         );
 
         expect(
-          await poolManagerPermission.isAllowed(otherAccount.address)
+          await poolManagerAccessControl.isAllowed(otherAccount.address)
         ).to.equal(true);
       });
 
       it("returns false if the address is not in the allowList and not in the registry", async () => {
         const {
-          poolManagerPermission,
+          poolManagerAccessControl,
           mockVeriteVerificationRegistry,
           otherAccount
         } = await loadFixture(deployFixture);
 
-        await poolManagerPermission.setVerificationRegistry(
+        await poolManagerAccessControl.setVerificationRegistry(
           mockVeriteVerificationRegistry.address
         );
 
         expect(
-          await poolManagerPermission.isAllowed(otherAccount.address)
+          await poolManagerAccessControl.isAllowed(otherAccount.address)
         ).to.equal(false);
       });
     });
@@ -126,38 +126,38 @@ describe("PoolManagerPermission", () => {
 
   describe("allow()", () => {
     it("adds an address to the allowList", async () => {
-      const { poolManagerPermission, otherAccount } = await loadFixture(
+      const { poolManagerAccessControl, otherAccount } = await loadFixture(
         deployFixture
       );
 
-      await poolManagerPermission.allow(otherAccount.address);
+      await poolManagerAccessControl.allow(otherAccount.address);
 
       expect(
-        await poolManagerPermission.isAllowed(otherAccount.address)
+        await poolManagerAccessControl.isAllowed(otherAccount.address)
       ).to.equal(true);
     });
 
     it("succeeds if the address is already in the allowList", async () => {
-      const { poolManagerPermission, otherAccount } = await loadFixture(
+      const { poolManagerAccessControl, otherAccount } = await loadFixture(
         deployFixture
       );
 
-      await poolManagerPermission.allow(otherAccount.address);
-      await poolManagerPermission.allow(otherAccount.address);
+      await poolManagerAccessControl.allow(otherAccount.address);
+      await poolManagerAccessControl.allow(otherAccount.address);
 
       expect(
-        await poolManagerPermission.isAllowed(otherAccount.address)
+        await poolManagerAccessControl.isAllowed(otherAccount.address)
       ).to.equal(true);
     });
 
     describe("permissions", () => {
       it("reverts if not called by the ServiceConfiguration Operator role", async () => {
-        const { poolManagerPermission, otherAccount } = await loadFixture(
+        const { poolManagerAccessControl, otherAccount } = await loadFixture(
           deployFixture
         );
 
         await expect(
-          poolManagerPermission
+          poolManagerAccessControl
             .connect(otherAccount)
             .allow(otherAccount.getAddress())
         ).to.be.revertedWith("ServiceConfiguration: caller is not an operator");
@@ -166,12 +166,12 @@ describe("PoolManagerPermission", () => {
 
     describe("events", () => {
       it("emits an AllowListUpdated event upon adding an address", async () => {
-        const { poolManagerPermission, otherAccount } = await loadFixture(
+        const { poolManagerAccessControl, otherAccount } = await loadFixture(
           deployFixture
         );
 
-        expect(await poolManagerPermission.allow(otherAccount.address))
-          .to.emit(poolManagerPermission, "AllowListUpdated")
+        expect(await poolManagerAccessControl.allow(otherAccount.address))
+          .to.emit(poolManagerAccessControl, "AllowListUpdated")
           .withArgs(otherAccount.address, true);
       });
     });
@@ -179,38 +179,38 @@ describe("PoolManagerPermission", () => {
 
   describe("remove()", () => {
     it("removes an address from the allowList", async () => {
-      const { poolManagerPermission, otherAccount } = await loadFixture(
+      const { poolManagerAccessControl, otherAccount } = await loadFixture(
         deployFixture
       );
 
-      await poolManagerPermission.remove(otherAccount.address);
-      await poolManagerPermission.remove(otherAccount.address);
+      await poolManagerAccessControl.remove(otherAccount.address);
+      await poolManagerAccessControl.remove(otherAccount.address);
 
       expect(
-        await poolManagerPermission.isAllowed(otherAccount.address)
+        await poolManagerAccessControl.isAllowed(otherAccount.address)
       ).to.equal(false);
     });
 
     it("succeeds if the address is not in the allowList", async () => {
-      const { poolManagerPermission, otherAccount } = await loadFixture(
+      const { poolManagerAccessControl, otherAccount } = await loadFixture(
         deployFixture
       );
 
-      await poolManagerPermission.remove(otherAccount.address);
+      await poolManagerAccessControl.remove(otherAccount.address);
 
       expect(
-        await poolManagerPermission.isAllowed(otherAccount.address)
+        await poolManagerAccessControl.isAllowed(otherAccount.address)
       ).to.equal(false);
     });
 
     describe("permissions", () => {
       it("reverts if not called by the ServiceConfiguration Operator role", async () => {
-        const { poolManagerPermission, otherAccount } = await loadFixture(
+        const { poolManagerAccessControl, otherAccount } = await loadFixture(
           deployFixture
         );
 
         await expect(
-          poolManagerPermission
+          poolManagerAccessControl
             .connect(otherAccount)
             .remove(otherAccount.getAddress())
         ).to.be.revertedWith("ServiceConfiguration: caller is not an operator");
@@ -219,14 +219,14 @@ describe("PoolManagerPermission", () => {
 
     describe("events", () => {
       it("emits an AllowListUpdated event upon removing an address", async () => {
-        const { poolManagerPermission, otherAccount } = await loadFixture(
+        const { poolManagerAccessControl, otherAccount } = await loadFixture(
           deployFixture
         );
 
-        await poolManagerPermission.remove(otherAccount.address);
+        await poolManagerAccessControl.remove(otherAccount.address);
 
-        await expect(poolManagerPermission.remove(otherAccount.address))
-          .to.emit(poolManagerPermission, "AllowListUpdated")
+        await expect(poolManagerAccessControl.remove(otherAccount.address))
+          .to.emit(poolManagerAccessControl, "AllowListUpdated")
           .withArgs(otherAccount.address, false);
       });
     });
@@ -235,7 +235,7 @@ describe("PoolManagerPermission", () => {
   describe("setVerificationRegistry()", () => {
     it("adds a registry to the registry list", async () => {
       const {
-        poolManagerPermission,
+        poolManagerAccessControl,
         mockVeriteVerificationRegistry,
         otherAccount
       } = await loadFixture(deployFixture);
@@ -245,23 +245,23 @@ describe("PoolManagerPermission", () => {
         true
       );
 
-      await poolManagerPermission.setVerificationRegistry(
+      await poolManagerAccessControl.setVerificationRegistry(
         mockVeriteVerificationRegistry.address
       );
 
       expect(
-        await poolManagerPermission.isAllowed(otherAccount.address)
+        await poolManagerAccessControl.isAllowed(otherAccount.address)
       ).to.equal(true);
     });
 
     describe("permissions", () => {
       it("reverts if not called by the ServiceConfiguration Operator role", async () => {
-        const { poolManagerPermission, otherAccount } = await loadFixture(
+        const { poolManagerAccessControl, otherAccount } = await loadFixture(
           deployFixture
         );
 
         await expect(
-          poolManagerPermission
+          poolManagerAccessControl
             .connect(otherAccount)
             .setVerificationRegistry(otherAccount.getAddress())
         ).to.be.revertedWith("ServiceConfiguration: caller is not an operator");
@@ -270,15 +270,15 @@ describe("PoolManagerPermission", () => {
 
     describe("events", () => {
       it("emits an VerificationRegistrySet event upon success", async () => {
-        const { poolManagerPermission, mockVeriteVerificationRegistry } =
+        const { poolManagerAccessControl, mockVeriteVerificationRegistry } =
           await loadFixture(deployFixture);
 
         await expect(
-          poolManagerPermission.setVerificationRegistry(
+          poolManagerAccessControl.setVerificationRegistry(
             mockVeriteVerificationRegistry.address
           )
         )
-          .to.emit(poolManagerPermission, "VerificationRegistrySet")
+          .to.emit(poolManagerAccessControl, "VerificationRegistrySet")
           .withArgs(mockVeriteVerificationRegistry.address);
       });
     });
@@ -287,7 +287,7 @@ describe("PoolManagerPermission", () => {
   describe("removeVerificationRegistry()", () => {
     it("removes the registry", async () => {
       const {
-        poolManagerPermission,
+        poolManagerAccessControl,
         mockVeriteVerificationRegistry,
         otherAccount
       } = await loadFixture(deployFixture);
@@ -297,25 +297,25 @@ describe("PoolManagerPermission", () => {
         true
       );
 
-      await poolManagerPermission.setVerificationRegistry(
+      await poolManagerAccessControl.setVerificationRegistry(
         mockVeriteVerificationRegistry.address
       );
 
-      await poolManagerPermission.removeVerificationRegistry();
+      await poolManagerAccessControl.removeVerificationRegistry();
 
       expect(
-        await poolManagerPermission.isAllowed(otherAccount.address)
+        await poolManagerAccessControl.isAllowed(otherAccount.address)
       ).to.equal(false);
     });
 
     it("silently succeeds when removing an address that is not present", async () => {
       const {
-        poolManagerPermission,
+        poolManagerAccessControl,
         mockVeriteVerificationRegistry,
         otherAccount
       } = await loadFixture(deployFixture);
 
-      await poolManagerPermission.setVerificationRegistry(
+      await poolManagerAccessControl.setVerificationRegistry(
         mockVeriteVerificationRegistry.address
       );
 
@@ -326,21 +326,21 @@ describe("PoolManagerPermission", () => {
       const otherRegistry = await MockVeriteVerificationRegistry.deploy();
       await otherRegistry.deployed();
 
-      await poolManagerPermission.removeVerificationRegistry();
+      await poolManagerAccessControl.removeVerificationRegistry();
 
       expect(
-        await poolManagerPermission.isAllowed(otherAccount.address)
+        await poolManagerAccessControl.isAllowed(otherAccount.address)
       ).to.equal(false);
     });
 
     describe("permissions", () => {
       it("reverts if not called by the ServiceConfiguration Operator role", async () => {
-        const { poolManagerPermission, otherAccount } = await loadFixture(
+        const { poolManagerAccessControl, otherAccount } = await loadFixture(
           deployFixture
         );
 
         await expect(
-          poolManagerPermission
+          poolManagerAccessControl
             .connect(otherAccount)
             .removeVerificationRegistry()
         ).to.be.revertedWith("ServiceConfiguration: caller is not an operator");
@@ -349,11 +349,11 @@ describe("PoolManagerPermission", () => {
 
     describe("events", () => {
       it("emits an VerificationRegistryRemoved event upon success", async () => {
-        const { poolManagerPermission } = await loadFixture(deployFixture);
+        const { poolManagerAccessControl } = await loadFixture(deployFixture);
 
         await expect(
-          poolManagerPermission.removeVerificationRegistry()
-        ).to.emit(poolManagerPermission, "VerificationRegistryRemoved");
+          poolManagerAccessControl.removeVerificationRegistry()
+        ).to.emit(poolManagerAccessControl, "VerificationRegistryRemoved");
       });
     });
   });

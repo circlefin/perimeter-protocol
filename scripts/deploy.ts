@@ -1,15 +1,15 @@
 import { ethers } from "hardhat";
 
 async function main() {
-  const PoolManagerPermission = await ethers.getContractFactory(
-    "PoolManagerPermission"
+  const PoolManagerAccessControl = await ethers.getContractFactory(
+    "PoolManagerAccessControl"
   );
-  const poolManagerPermission = await PoolManagerPermission.deploy();
+  const poolManagerAccessControl = await PoolManagerAccessControl.deploy();
 
-  await poolManagerPermission.deployed();
+  await poolManagerAccessControl.deployed();
 
   console.log(
-    `PoolManagerPermission deployed to ${poolManagerPermission.address}`
+    `PoolManagerAccessControl deployed to ${poolManagerAccessControl.address}`
   );
 }
 

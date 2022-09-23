@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
-import "./interfaces/IPoolManagerPermission.sol";
+import "./interfaces/IPoolManagerAccessControl.sol";
 import "./PoolFactory.sol";
 
 /**

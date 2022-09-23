@@ -1,18 +1,21 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
-import "./interfaces/IPoolManagerPermission.sol";
+import "./interfaces/IPoolManagerAccessControl.sol";
 import "./interfaces/IVerificationRegistry.sol";
 import "./ServiceConfigurable.sol";
 
 /**
- * @title The PoolManagerPermission contract
- * @dev Implementation of the {IPoolManagerPermission} interface.
+ * @title The PoolManagerAccessControl contract
+ * @dev Implementation of the {IPoolManagerAccessControl} interface.
  *
  * This implementation implements a basic Allow-List of addresses, which can
  * be managed only by the contract owner.
  */
-contract PoolManagerPermission is ServiceConfigurable, IPoolManagerPermission {
+contract PoolManagerAccessControl is
+    ServiceConfigurable,
+    IPoolManagerAccessControl
+{
     /**
      * @dev A mapping of addresses to whether they are allowed as a Pool Manager
      */
@@ -48,7 +51,7 @@ contract PoolManagerPermission is ServiceConfigurable, IPoolManagerPermission {
 
     /**
      * @dev Checks against an allowList to see if the given address is allowed.
-     * @inheritdoc IPoolManagerPermission
+     * @inheritdoc IPoolManagerAccessControl
      */
     function isAllowed(address addr) external view returns (bool) {
         if (_allowList[addr]) {
