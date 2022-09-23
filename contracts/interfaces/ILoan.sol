@@ -24,4 +24,14 @@ interface ILoan {
         uint256 _tokenId;
         bytes data;
     }
+
+    function cancelRequested() external returns (ILoanLifeCycleState);
+
+    function cancelCollateralized() external returns (ILoanLifeCycleState);
+
+    function postFungibleCollateral() external returns (ILoanLifeCycleState);
+
+    function postNonFungibleCollateral() external returns (ILoanLifeCycleState);
+
+    function fund() external returns (ILoanLifeCycleState);
 }

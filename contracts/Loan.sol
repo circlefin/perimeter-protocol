@@ -9,26 +9,17 @@ import "./interfaces/ILoan.sol";
  * Empty Loan contract.
  */
 contract Loan is ILoan {
-    enum LoanLifecycleState {
-        Requested,
-        Collateralized,
-        Canceled,
-        Defaulted,
-        Funded,
-        Matured
-    }
-
-    LoanLifecycleState public state = LoanLifecycleState.Requested;
+    ILoanLifeCycleState public state = ILoanLifeCycleState.Requested;
     address public immutable borrower;
-    address public immutable pool;
+    address private immutable pool;
 
     /**
      * @dev Modifier that requires the Loan be in the given `state_`
      */
-    modifier atLoanLifecycleState(LoanLifecycleState state_) {
+    modifier atState(ILoanLifeCycleState state_) {
         require(
             state == state_,
-            "Loan: FunctionInvalidAtThisLoanLifecycleState"
+            "Loan: FunctionInvalidAtThisILoanLifeCycleState"
         );
         _;
     }
@@ -54,15 +45,15 @@ contract Loan is ILoan {
      */
     modifier onlyActiveLoan() {
         require(
-            state != LoanLifecycleState.Canceled,
+            state != ILoanLifeCycleState.Canceled,
             "Loan: loan is in terminal state"
         );
         require(
-            state != LoanLifecycleState.Defaulted,
+            state != ILoanLifeCycleState.Defaulted,
             "Loan: loan is in terminal state"
         );
         require(
-            state != LoanLifecycleState.Matured,
+            state != ILoanLifeCycleState.Matured,
             "Loan: loan is in terminal state"
         );
         _;
@@ -79,9 +70,11 @@ contract Loan is ILoan {
     function cancelRequested()
         external
         onlyBorrower
-        atLoanLifecycleState(LoanLifecycleState.Requested)
+        atState(ILoanLifeCycleState.Requested)
+        returns (ILoanLifeCycleState)
     {
-        state = LoanLifecycleState.Canceled;
+        state = ILoanLifeCycleState.Canceled;
+        return state;
     }
 
     /**
@@ -90,10 +83,12 @@ contract Loan is ILoan {
     function cancelCollateralized()
         external
         onlyBorrower
-        atLoanLifecycleState(LoanLifecycleState.Collateralized)
+        atState(ILoanLifeCycleState.Collateralized)
+        returns (ILoanLifeCycleState)
     {
         // TODO: return collateral
-        state = LoanLifecycleState.Canceled;
+        state = ILoanLifeCycleState.Canceled;
+        return state;
     }
 
     /**
@@ -104,9 +99,11 @@ contract Loan is ILoan {
         onlyBorrower
         onlyActiveLoan
         onlyBorrower
+        returns (ILoanLifeCycleState)
     {
         // TODO: post the collateral
-        state = LoanLifecycleState.Collateralized;
+        state = ILoanLifeCycleState.Collateralized;
+        return state;
     }
 
     /**
@@ -117,9 +114,11 @@ contract Loan is ILoan {
         onlyBorrower
         onlyActiveLoan
         onlyBorrower
+        returns (ILoanLifeCycleState)
     {
         // TODO: post the collateral
-        state = LoanLifecycleState.Collateralized;
+        state = ILoanLifeCycleState.Collateralized;
+        return state;
     }
 
     /**
@@ -129,11 +128,11 @@ contract Loan is ILoan {
     function fund()
         external
         onlyPool
-        atLoanLifecycleState(LoanLifecycleState.Collateralized)
-        returns (LoanLifecycleState)
+        atState(ILoanLifeCycleState.Collateralized)
+        returns (ILoanLifeCycleState)
     {
         // TODO: fund the loan
-        state = LoanLifecycleState.Funded;
+        state = ILoanLifeCycleState.Funded;
         return state;
     }
 }
