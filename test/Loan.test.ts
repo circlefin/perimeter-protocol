@@ -17,7 +17,14 @@ describe("Loan", () => {
     const serviceConfiguration = await ServiceConfiguration.deploy();
     await serviceConfiguration.deployed();
 
-    const PoolFactory = await ethers.getContractFactory("PoolFactory");
+    const PoolLib = await ethers.getContractFactory("PoolLib");
+    const poolLib = await PoolLib.deploy();
+
+    const PoolFactory = await ethers.getContractFactory("PoolFactory", {
+      libraries: {
+        PoolLib: poolLib.address
+      }
+    });
     const poolFactory = await PoolFactory.deploy(serviceConfiguration.address);
     await poolFactory.deployed();
 
@@ -32,7 +39,11 @@ describe("Loan", () => {
     // Extract its address from the PoolCreated event
     const poolCreatedEvent = findEventByName(tx1Receipt, "PoolCreated");
     const poolAddress = poolCreatedEvent?.args?.[0];
-    const Pool = await ethers.getContractFactory("Pool");
+    const Pool = await ethers.getContractFactory("Pool", {
+      libraries: {
+        PoolLib: poolLib.address
+      }
+    });
     const pool = Pool.attach(poolAddress);
 
     // Create the Loan
