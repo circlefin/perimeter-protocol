@@ -9,16 +9,16 @@ import "./interfaces/ILoan.sol";
  * Empty Loan contract.
  */
 contract Loan is ILoan {
-    ILoanLifeCycleState public state = ILoanLifeCycleState.Requested;
-    address public immutable borrower;
-    address public immutable pool;
+    ILoanLifeCycleState private _state = ILoanLifeCycleState.Requested;
+    address private immutable _borrower;
+    address private immutable _pool;
 
     /**
      * @dev Modifier that requires the Loan be in the given `state_`
      */
-    modifier atState(ILoanLifeCycleState state_) {
+    modifier atState(ILoanLifeCycleState state) {
         require(
-            state == state_,
+            _state == state,
             "Loan: FunctionInvalidAtThisILoanLifeCycleState"
         );
         _;
@@ -28,7 +28,7 @@ contract Loan is ILoan {
      * @dev Modifier that requires `msg.sender` to be the pool. Loan assumes the pool has performed access checks
      */
     modifier onlyPool() {
-        require(msg.sender == pool, "Loan: caller is not pool");
+        require(msg.sender == _pool, "Loan: caller is not pool");
         _;
     }
 
@@ -36,7 +36,7 @@ contract Loan is ILoan {
      * @dev Modifier that requires `msg.sender` be the borrower.
      */
     modifier onlyBorrower() {
-        require(msg.sender == borrower, "Loan: caller is not borrower");
+        require(msg.sender == _borrower, "Loan: caller is not borrower");
         _;
     }
 
@@ -45,23 +45,23 @@ contract Loan is ILoan {
      */
     modifier onlyActiveLoan() {
         require(
-            state != ILoanLifeCycleState.Canceled,
+            _state != ILoanLifeCycleState.Canceled,
             "Loan: loan is in terminal state"
         );
         require(
-            state != ILoanLifeCycleState.Defaulted,
+            _state != ILoanLifeCycleState.Defaulted,
             "Loan: loan is in terminal state"
         );
         require(
-            state != ILoanLifeCycleState.Matured,
+            _state != ILoanLifeCycleState.Matured,
             "Loan: loan is in terminal state"
         );
         _;
     }
 
-    constructor(address borrower_, address pool_) {
-        borrower = borrower_;
-        pool = pool_;
+    constructor(address borrower, address pool) {
+        _borrower = borrower;
+        _pool = pool;
     }
 
     /**
@@ -73,8 +73,8 @@ contract Loan is ILoan {
         atState(ILoanLifeCycleState.Requested)
         returns (ILoanLifeCycleState)
     {
-        state = ILoanLifeCycleState.Canceled;
-        return state;
+        _state = ILoanLifeCycleState.Canceled;
+        return _state;
     }
 
     /**
@@ -87,8 +87,8 @@ contract Loan is ILoan {
         returns (ILoanLifeCycleState)
     {
         // TODO: return collateral
-        state = ILoanLifeCycleState.Canceled;
-        return state;
+        _state = ILoanLifeCycleState.Canceled;
+        return _state;
     }
 
     /**
@@ -101,8 +101,8 @@ contract Loan is ILoan {
         returns (ILoanLifeCycleState)
     {
         // TODO: post the collateral
-        state = ILoanLifeCycleState.Collateralized;
-        return state;
+        _state = ILoanLifeCycleState.Collateralized;
+        return _state;
     }
 
     /**
@@ -115,8 +115,8 @@ contract Loan is ILoan {
         returns (ILoanLifeCycleState)
     {
         // TODO: post the collateral
-        state = ILoanLifeCycleState.Collateralized;
-        return state;
+        _state = ILoanLifeCycleState.Collateralized;
+        return _state;
     }
 
     /**
@@ -130,7 +130,19 @@ contract Loan is ILoan {
         returns (ILoanLifeCycleState)
     {
         // TODO: fund the loan
-        state = ILoanLifeCycleState.Funded;
-        return state;
+        _state = ILoanLifeCycleState.Funded;
+        return _state;
+    }
+
+    function state() external view returns (ILoanLifeCycleState) {
+        return _state;
+    }
+
+    function borrower() external view returns (address) {
+        return _borrower;
+    }
+
+    function pool() external view returns (address) {
+        return _pool;
     }
 }
