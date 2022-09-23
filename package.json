@@ -2,6 +2,7 @@
   "name": "hardhat-project",
   "scripts": {
     "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "lint": "run-s lint:ts lint:solidity",
     "lint:ts": "eslint .",
     "lint:solidity": "solhint contracts/**/*.sol",
