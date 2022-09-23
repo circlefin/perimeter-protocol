@@ -16,9 +16,9 @@ contract Loan is ILoan {
     /**
      * @dev Modifier that requires the Loan be in the given `state_`
      */
-    modifier atState(ILoanLifeCycleState state_) {
+    modifier atState(ILoanLifeCycleState state) {
         require(
-            _state == state_,
+            _state == state,
             "Loan: FunctionInvalidAtThisILoanLifeCycleState"
         );
         _;
@@ -59,9 +59,9 @@ contract Loan is ILoan {
         _;
     }
 
-    constructor(address borrower_, address pool_) {
-        _borrower = borrower_;
-        _pool = pool_;
+    constructor(address borrower, address pool) {
+        _borrower = borrower;
+        _pool = pool;
     }
 
     /**
