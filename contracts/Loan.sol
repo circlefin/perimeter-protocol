@@ -11,7 +11,7 @@ import "./interfaces/ILoan.sol";
 contract Loan is ILoan {
     ILoanLifeCycleState public state = ILoanLifeCycleState.Requested;
     address public immutable borrower;
-    address private immutable pool;
+    address public immutable pool;
 
     /**
      * @dev Modifier that requires the Loan be in the given `state_`

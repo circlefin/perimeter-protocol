@@ -55,9 +55,10 @@ describe("Loan", () => {
 
   describe("after initialization", () => {
     it("is initialized!", async () => {
-      const { loan, borrower } = await loadFixture(deployFixture);
+      const { loan, pool, borrower } = await loadFixture(deployFixture);
       expect(await loan.state()).to.equal(0);
       expect(await loan.borrower()).to.equal(borrower.address);
+      expect(await loan.pool()).to.equal(pool.address);
     });
   });
 
