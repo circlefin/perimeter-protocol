@@ -34,9 +34,18 @@ describe("PermissionedPoolFactory", () => {
       await MockVeriteVerificationRegistry.deploy();
     await mockVeriteVerificationRegistry.deployed();
 
+    // Deploy library for linking
+    const PoolLib = await ethers.getContractFactory("PoolLib");
+    const poolLib = await PoolLib.deploy();
+
     // Deploy the PermissionedPoolFactory
     const PoolFactory = await ethers.getContractFactory(
-      "PermissionedPoolFactory"
+      "PermissionedPoolFactory",
+      {
+        libraries: {
+          PoolLib: poolLib.address
+        }
+      }
     );
     const poolFactory = await PoolFactory.deploy(serviceConfiguration.address);
     await poolFactory.deployed();
