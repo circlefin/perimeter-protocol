@@ -98,7 +98,6 @@ contract Loan is ILoan {
         external
         onlyBorrower
         onlyActiveLoan
-        onlyBorrower
         returns (ILoanLifeCycleState)
     {
         // TODO: post the collateral
@@ -113,7 +112,6 @@ contract Loan is ILoan {
         external
         onlyBorrower
         onlyActiveLoan
-        onlyBorrower
         returns (ILoanLifeCycleState)
     {
         // TODO: post the collateral
