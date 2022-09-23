@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
+import "./interfaces/ILoan.sol";
 import "./interfaces/IPool.sol";
 import "./ServiceConfigurable.sol";
 import "./PoolConfigurableSettings.sol";
@@ -126,7 +127,10 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev Called by the pool manager, this transfers liquidity from the pool to a given loan.
      */
-    function fundLoan(address) external onlyManager {}
+    function fundLoan(address addr) external onlyManager {
+        ILoan loan = ILoan(addr);
+        loan.fund();
+    }
 
     /**
      * @dev Called by the pool manager, marks a loan as in default, updating pool accounting and allowing loan
