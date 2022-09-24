@@ -4,6 +4,7 @@ import os
 import csv
 import uuid
 import argparse
+from decimal import *
 
 @dataclass
 class Loan:
@@ -41,7 +42,7 @@ class Pool:
 
     def __init__(self):
         self.liquidity = 0
-        self.defaults = 0 
+        self.defaults = 0
         self.active_loans = [] 
         self.matured_loans = []
 
@@ -55,14 +56,14 @@ class Pool:
         if self.liquidity == 0 and len(self.active_loans) == 0:
             tokens = liquidity_amount
         else:
-            tokens = self._liquidity_to_token_rate(time) * liquidity_amount
+            tokens = float(self._liquidity_to_token_rate(time) * Decimal(liquidity_amount))
 
         self.liquidity += liquidity_amount
         self._mint(lender_id, tokens)
         return tokens 
 
-    def withdraw(self, lender_id, token_amount):
-        liquidity = (1 / self.liquidity_to_token_rate()) * token_amount
+    def withdraw(self, lender_id, token_amount, time):
+        liquidity = float((Decimal(1) / self._liquidity_to_token_rate(time)) * Decimal(token_amount))
         assert(self.liquidity >= liquidity, "Not enough liquidity")
 
         self.liquidity -= liquidity
@@ -87,11 +88,7 @@ class Pool:
     def close(self, time):
         for lender_id, token_balance in self.pool_token_balances.items():
             if not token_balance: continue 
-
-            liquidity = (1 / self._liquidity_to_token_rate(time)) * token_balance
-            self.lender_payouts[lender_id] = liquidity
-            self._burn(lender_id, token_balance)
-            self.liquidity -= liquidity
+            self.lender_payouts[lender_id] = self.withdraw(lender_id, token_balance, time)
 
     def _burn(self, lender_id, amount):
         assert(self.pool_token_supply >= amount, "Not enough tokens in circulation")
@@ -104,7 +101,7 @@ class Pool:
         self.pool_token_supply += amount
 
     def _liquidity_to_token_rate(self, time):
-        return self.pool_token_supply / self._nav(time)
+        return Decimal(self.pool_token_supply) / Decimal(self._nav(time))
 
     def _nav(self, time):
         outstanding_principals = sum([each.principal for each in self.active_loans]) 
