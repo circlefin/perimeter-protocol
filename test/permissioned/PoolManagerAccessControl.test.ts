@@ -93,9 +93,7 @@ describe("PoolManagerAccessControl", () => {
           poolManagerAccessControl
             .connect(otherAccount)
             .allow(otherAccount.getAddress())
-        ).to.be.revertedWith(
-          "PoolManagerAccessControl: caller is not an operator"
-        );
+        ).to.be.revertedWith("caller is not an operator");
       });
     });
 
@@ -148,9 +146,7 @@ describe("PoolManagerAccessControl", () => {
           poolManagerAccessControl
             .connect(otherAccount)
             .remove(otherAccount.getAddress())
-        ).to.be.revertedWith(
-          "PoolManagerAccessControl: caller is not an operator"
-        );
+        ).to.be.revertedWith("caller is not an operator");
       });
     });
 

@@ -33,7 +33,7 @@ contract PoolManagerAccessControl is IPoolManagerAccessControl {
     modifier onlyOperator() {
         require(
             _serviceConfiguration.isOperator(msg.sender),
-            "PoolManagerAccessControl: caller is not an operator"
+            "caller is not an operator"
         );
         _;
     }

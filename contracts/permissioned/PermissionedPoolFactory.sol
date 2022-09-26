@@ -31,7 +31,7 @@ contract PermissionedPoolFactory is PoolFactory {
             _serviceConfiguration.poolManagerAccessControl().isAllowed(
                 msg.sender
             ),
-            "ServiceConfiguration: caller is not a pool manager"
+            "caller is not a pool manager"
         );
         _;
     }

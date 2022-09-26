@@ -81,6 +81,6 @@ describe("PermissionedPoolFactory", () => {
 
     await expect(
       poolFactory.createPool(MOCK_LIQUIDITY_ADDRESS, 0, 0, 0)
-    ).to.be.revertedWith("ServiceConfiguration: caller is not a pool manager");
+    ).to.be.revertedWith("caller is not a pool manager");
   });
 });

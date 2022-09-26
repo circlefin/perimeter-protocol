@@ -10,27 +10,25 @@ import "./PoolAccessControl.sol";
  */
 contract PermissionedPool is Pool {
     /**
-     *
+     * @dev The reference to the access control contract
      */
     IPoolAccessControl private _poolAccessControl;
 
     /**
-     *
+     * @dev a modifier to only allow valid lenders to perform an action
      */
     modifier onlyValidLender() {
         require(
             _poolAccessControl.isValidLender(msg.sender),
-            "PermissionedPool: caller is not a valid lender"
+            "caller is not a valid lender"
         );
         _;
     }
 
     /**
-     * @dev Constructor for Pool
-     * @param liquidityAsset asset held by the poo
-     * @param poolManager manager of the pool
-     * @param tokenName Name used for issued pool tokens
-     * @param tokenSymbol Symbol used for issued pool tokens
+     * @dev The constructor for the PermissionedPool contract. It calls the
+     * constructor of the Pool contract and then creates a new instance of the
+     * PoolAccessControl contract.
      */
     constructor(
         address liquidityAsset,
@@ -45,12 +43,10 @@ contract PermissionedPool is Pool {
     /**
      * @inheritdoc Pool
      */
-    function deposit(uint256 assets, address receiver)
-        external
-        override
-        onlyValidLender
-        returns (uint256 shares)
-    {
+    function deposit(
+        uint256, /* assets */
+        address /* receiver */
+    ) external view override onlyValidLender returns (uint256 shares) {
         return 0;
     }
 
@@ -58,10 +54,10 @@ contract PermissionedPool is Pool {
      * @inheritdoc Pool
      */
     function withdraw(
-        uint256 assets,
-        address receiver,
-        address owner
-    ) external override onlyValidLender returns (uint256 shares) {
+        uint256, /* assets */
+        address, /* receiver */
+        address /* owner */
+    ) external view override onlyValidLender returns (uint256 shares) {
         return 0;
     }
 
@@ -69,10 +65,10 @@ contract PermissionedPool is Pool {
      * @inheritdoc Pool
      */
     function redeem(
-        uint256 shares,
-        address receiver,
-        address owner
-    ) external override onlyValidLender returns (uint256 assets) {
+        uint256, /* shares */
+        address, /* receiver */
+        address /* owner */
+    ) external view override onlyValidLender returns (uint256 assets) {
         return 0;
     }
 }
