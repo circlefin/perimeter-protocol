@@ -4,6 +4,7 @@ pragma solidity ^0.8.16;
 import "./interfaces/IPoolManagerAccessControl.sol";
 import "./interfaces/IPermissionedServiceConfiguration.sol";
 import "../PoolFactory.sol";
+import "./PermissionedPool.sol";
 
 /**
  * @title PermissionedPoolFactory
@@ -36,8 +37,7 @@ contract PermissionedPoolFactory is PoolFactory {
     }
 
     /**
-     * @dev Creates a pool
-     * @dev Emits `PoolCreated` event.
+     * @inheritdoc PoolFactory
      */
     function createPool(
         address liquidityAsset,
@@ -45,12 +45,22 @@ contract PermissionedPoolFactory is PoolFactory {
         uint256 endDate,
         uint256 withdrawalFee
     ) public override onlyVerifiedPoolManager returns (address poolAddress) {
-        return
-            super.createPool(
-                liquidityAsset,
-                maxCapacity,
-                endDate,
-                withdrawalFee
-            );
+        uint256 firstLossInitialMinimum = 0; // TODO: take from ServiceConfig
+        PoolConfigurableSettings memory settings = PoolConfigurableSettings(
+            maxCapacity,
+            endDate,
+            withdrawalFee,
+            firstLossInitialMinimum
+        );
+        Pool pool = new PermissionedPool(
+            liquidityAsset,
+            msg.sender,
+            settings,
+            "ValyriaPoolToken",
+            "VPT"
+        );
+        address addr = address(pool);
+        emit PoolCreated(addr);
+        return addr;
     }
 }

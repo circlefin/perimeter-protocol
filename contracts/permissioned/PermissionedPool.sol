@@ -3,6 +3,7 @@ pragma solidity ^0.8.16;
 
 import "../Pool.sol";
 import "./interfaces/IPoolAccessControl.sol";
+import "./PoolAccessControl.sol";
 
 /**
  * @title PermissionedPool
@@ -36,10 +37,9 @@ contract PermissionedPool is Pool {
         address poolManager,
         PoolConfigurableSettings memory poolSettings,
         string memory tokenName,
-        string memory tokenSymbol,
-        IPoolAccessControl poolAccessControl
+        string memory tokenSymbol
     ) Pool(liquidityAsset, poolManager, poolSettings, tokenName, tokenSymbol) {
-        _poolAccessControl = poolAccessControl;
+        _poolAccessControl = new PoolAccessControl(address(this));
     }
 
     /**

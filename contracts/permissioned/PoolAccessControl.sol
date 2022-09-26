@@ -19,11 +19,6 @@ contract PoolAccessControl is IPoolAccessControl {
     IPool private _pool;
 
     /**
-     * @dev Reference to the PermissionedServiceConfiguration contract
-     */
-    IPermissionedServiceConfiguration private _serviceConfiguration;
-
-    /**
      * @dev A mapping of addresses to whether they are allowed as a Lender
      */
     mapping(address => bool) private _allowedLenders;
@@ -44,11 +39,8 @@ contract PoolAccessControl is IPoolAccessControl {
     /**
      * The constructor for the PoolAccessControl contract
      */
-    constructor(address serviceConfiguration, IPool pool) {
-        _serviceConfiguration = IPermissionedServiceConfiguration(
-            serviceConfiguration
-        );
-        _pool = pool;
+    constructor(address pool) {
+        _pool = IPool(pool);
     }
 
     /**
