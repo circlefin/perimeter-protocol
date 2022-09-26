@@ -2,8 +2,8 @@
 pragma solidity ^0.8.16;
 
 import "./interfaces/IPoolManagerAccessControl.sol";
-import "./interfaces/IVerificationRegistry.sol";
-import "./ServiceConfigurable.sol";
+import "../interfaces/IVerificationRegistry.sol";
+import "../ServiceConfigurable.sol";
 
 /**
  * @title The PoolManagerAccessControl contract

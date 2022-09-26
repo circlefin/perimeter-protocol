@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "./interfaces/IPoolManagerAccessControl.sol";
+import "./permissioned/interfaces/IPoolManagerAccessControl.sol";
 import "./interfaces/IServiceConfiguration.sol";
 
 /**

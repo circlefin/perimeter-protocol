@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 import "./interfaces/IPoolManagerAccessControl.sol";
-import "./PoolFactory.sol";
+import "../PoolFactory.sol";
 
 /**
  * @title PermissionedPoolFactory
