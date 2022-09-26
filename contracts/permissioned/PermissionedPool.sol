@@ -1,0 +1,78 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.16;
+
+import "../Pool.sol";
+import "./interfaces/IPoolAccessControl.sol";
+
+/**
+ * @title PermissionedPool
+ */
+contract PermissionedPool is Pool {
+    /**
+     *
+     */
+    IPoolAccessControl private _poolAccessControl;
+
+    /**
+     *
+     */
+    modifier onlyValidLender() {
+        require(
+            _poolAccessControl.isValidLender(msg.sender),
+            "PermissionedPool: caller is not a valid lender"
+        );
+        _;
+    }
+
+    /**
+     * @dev Constructor for Pool
+     * @param liquidityAsset asset held by the poo
+     * @param poolManager manager of the pool
+     * @param tokenName Name used for issued pool tokens
+     * @param tokenSymbol Symbol used for issued pool tokens
+     */
+    constructor(
+        address liquidityAsset,
+        address poolManager,
+        PoolConfigurableSettings memory poolSettings,
+        string memory tokenName,
+        string memory tokenSymbol,
+        IPoolAccessControl poolAccessControl
+    ) Pool(liquidityAsset, poolManager, poolSettings, tokenName, tokenSymbol) {
+        _poolAccessControl = poolAccessControl;
+    }
+
+    /**
+     * @inheritdoc Pool
+     */
+    function deposit(uint256 assets, address receiver)
+        external
+        override
+        onlyValidLender
+        returns (uint256 shares)
+    {
+        return 0;
+    }
+
+    /**
+     * @inheritdoc Pool
+     */
+    function withdraw(
+        uint256 assets,
+        address receiver,
+        address owner
+    ) external override onlyValidLender returns (uint256 shares) {
+        return 0;
+    }
+
+    /**
+     * @inheritdoc Pool
+     */
+    function redeem(
+        uint256 shares,
+        address receiver,
+        address owner
+    ) external override onlyValidLender returns (uint256 assets) {
+        return 0;
+    }
+}

@@ -17,23 +17,6 @@ describe("PoolFactory", () => {
     const serviceConfiguration = await ServiceConfiguration.deploy();
     await serviceConfiguration.deployed();
 
-    // Deploy the PoolManagerAccessControl contract
-    const PoolManagerAccessControl = await ethers.getContractFactory(
-      "PoolManagerAccessControl"
-    );
-    const poolManagerAccessControl = await PoolManagerAccessControl.deploy(
-      serviceConfiguration.address
-    );
-    await poolManagerAccessControl.deployed();
-
-    // Deploy the MockVeriteVerificationRegistry contract
-    const MockVeriteVerificationRegistry = await ethers.getContractFactory(
-      "MockVeriteVerificationRegistry"
-    );
-    const mockVeriteVerificationRegistry =
-      await MockVeriteVerificationRegistry.deploy();
-    await mockVeriteVerificationRegistry.deployed();
-
     const PoolLib = await ethers.getContractFactory("PoolLib");
     const poolLib = await PoolLib.deploy();
 

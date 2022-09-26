@@ -2,7 +2,6 @@
 pragma solidity ^0.8.16;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "./permissioned/interfaces/IPoolManagerAccessControl.sol";
 import "./interfaces/IServiceConfiguration.sol";
 
 /**
@@ -14,8 +13,6 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
      * @dev The Operator Role
      */
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
-
-    IPoolManagerAccessControl public _poolManagerAccessControl;
 
     /**
      * @dev Emitted when an address is changed.
@@ -43,16 +40,9 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     }
 
     /**
-     * @dev Set the PoolManagerAccessControl contract.
-     * @dev Emits `AddressSet` event.
+     * @dev Check that `msg.sender` is an Operator.
      */
-    function setPoolManagerAccessControl(
-        IPoolManagerAccessControl poolManagerAccessControl
-    ) public onlyOperator {
-        _poolManagerAccessControl = poolManagerAccessControl;
-        emit AddressSet(
-            "POOL_MANAGER_PERMISSION",
-            address(_poolManagerAccessControl)
-        );
+    function isOperator(address addr) external view returns (bool) {
+        return hasRole(OPERATOR_ROLE, addr);
     }
 }

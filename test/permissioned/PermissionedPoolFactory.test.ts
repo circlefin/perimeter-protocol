@@ -10,29 +10,22 @@ describe("PermissionedPoolFactory", () => {
     const [operator, otherAccount] = await ethers.getSigners();
 
     // Deploy the Service Configuration contract
-    const ServiceConfiguration = await ethers.getContractFactory(
-      "ServiceConfiguration",
+    const PermissionedServiceConfiguration = await ethers.getContractFactory(
+      "PermissionedServiceConfiguration",
       operator
     );
-    const serviceConfiguration = await ServiceConfiguration.deploy();
-    await serviceConfiguration.deployed();
+    const permissionedServiceConfiguration =
+      await PermissionedServiceConfiguration.deploy();
+    await permissionedServiceConfiguration.deployed();
 
     // Deploy the PoolManagerAccessControl contract
     const PoolManagerAccessControl = await ethers.getContractFactory(
       "PoolManagerAccessControl"
     );
     const poolManagerAccessControl = await PoolManagerAccessControl.deploy(
-      serviceConfiguration.address
+      permissionedServiceConfiguration.address
     );
     await poolManagerAccessControl.deployed();
-
-    // Deploy the MockVeriteVerificationRegistry contract
-    const MockVeriteVerificationRegistry = await ethers.getContractFactory(
-      "MockVeriteVerificationRegistry"
-    );
-    const mockVeriteVerificationRegistry =
-      await MockVeriteVerificationRegistry.deploy();
-    await mockVeriteVerificationRegistry.deployed();
 
     // Deploy library for linking
     const PoolLib = await ethers.getContractFactory("PoolLib");
@@ -47,19 +40,21 @@ describe("PermissionedPoolFactory", () => {
         }
       }
     );
-    const poolFactory = await PoolFactory.deploy(serviceConfiguration.address);
+    const poolFactory = await PoolFactory.deploy(
+      permissionedServiceConfiguration.address
+    );
     await poolFactory.deployed();
 
     // Initialize ServiceConfiguration
-    const tx = await serviceConfiguration.setPoolManagerAccessControl(
-      poolManagerAccessControl.address
-    );
+    const tx =
+      await permissionedServiceConfiguration.setPoolManagerAccessControl(
+        poolManagerAccessControl.address
+      );
     await tx.wait();
 
     return {
       poolFactory,
       poolManagerAccessControl,
-      mockVeriteVerificationRegistry,
       operator,
       otherAccount
     };

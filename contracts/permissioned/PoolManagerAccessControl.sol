@@ -2,8 +2,7 @@
 pragma solidity ^0.8.16;
 
 import "./interfaces/IPoolManagerAccessControl.sol";
-import "../interfaces/IVerificationRegistry.sol";
-import "../ServiceConfigurable.sol";
+import "./interfaces/IPermissionedServiceConfiguration.sol";
 
 /**
  * @title The PoolManagerAccessControl contract
@@ -12,20 +11,16 @@ import "../ServiceConfigurable.sol";
  * This implementation implements a basic Allow-List of addresses, which can
  * be managed only by the contract owner.
  */
-contract PoolManagerAccessControl is
-    ServiceConfigurable,
-    IPoolManagerAccessControl
-{
+contract PoolManagerAccessControl is IPoolManagerAccessControl {
+    /**
+     * @dev Reference to the PermissionedServiceConfiguration contract
+     */
+    IPermissionedServiceConfiguration private _serviceConfiguration;
+
     /**
      * @dev A mapping of addresses to whether they are allowed as a Pool Manager
      */
     mapping(address => bool) private _allowList;
-
-    /**
-     * @dev The address of the Verification Registry which is used to determine
-     * whether an address is allowed as a Pool Manager
-     */
-    address private _verificationRegistry;
 
     /**
      * @dev Emitted when an address is added or removed from the allow list.
@@ -33,37 +28,31 @@ contract PoolManagerAccessControl is
     event AllowListUpdated(address indexed addr, bool isAllowed);
 
     /**
-     * @dev Emitted when a Verification Registry is set.
+     * @dev Modifier that checks that the caller account has the Operator role.
      */
-    event VerificationRegistrySet(address addr);
-
-    /**
-     * @dev Emitted when a Verification Registry is removed.
-     */
-    event VerificationRegistryRemoved();
+    modifier onlyOperator() {
+        require(
+            _serviceConfiguration.isOperator(msg.sender),
+            "PoolManagerAccessControl: caller is not an operator"
+        );
+        _;
+    }
 
     /**
      * @dev Constructor for the contract, which sets the ServiceConfiguration.
      */
-    constructor(address serviceConfiguration)
-        ServiceConfigurable(serviceConfiguration)
-    {}
+    constructor(address serviceConfiguration) {
+        _serviceConfiguration = IPermissionedServiceConfiguration(
+            serviceConfiguration
+        );
+    }
 
     /**
      * @dev Checks against an allowList to see if the given address is allowed.
      * @inheritdoc IPoolManagerAccessControl
      */
     function isAllowed(address addr) external view returns (bool) {
-        if (_allowList[addr]) {
-            return true;
-        }
-
-        if (address(_verificationRegistry) != address(0)) {
-            return
-                IVerificationRegistry(_verificationRegistry).isVerified(addr);
-        }
-
-        return false;
+        return _allowList[addr];
     }
 
     /**
@@ -88,31 +77,5 @@ contract PoolManagerAccessControl is
         delete _allowList[addr];
 
         emit AllowListUpdated(addr, false);
-    }
-
-    /**
-     * @dev Sets the Verification Registry to be used to determine whether an
-     * address is allowed as a Pool Manager
-     * @param registry The address of the Verification Registry to set
-     *
-     * Emits a {VerificationRegistryListUpdated} event.
-     */
-    function setVerificationRegistry(address registry) external onlyOperator {
-        _verificationRegistry = registry;
-
-        emit VerificationRegistrySet(registry);
-    }
-
-    /**
-     * @dev Removes the Verification Registry, if one is set. This is equivalent
-     * of disabling the use of a Verification Registry when checking if a Pool
-     * Manager is allowed.
-     *
-     * Emits a {VerificationRegistryRemoved} event.
-     */
-    function removeVerificationRegistry() external onlyOperator {
-        _verificationRegistry = address(0);
-
-        emit VerificationRegistryRemoved();
     }
 }
