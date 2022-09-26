@@ -41,6 +41,15 @@ interface IPool is IERC4626 {
     event PoolSettingsUpdated(PoolConfigurableSettings settings);
 
     /**
+     * @dev Data type storing collected accounting values
+     */
+    struct Accountings {
+        uint256 defaultsTotal;
+        uint256 activeLoanPrincipals;
+        uint256 totalDeposits;
+    }
+
+    /**
      * @dev Returns the current pool lifecycle state.
      */
     function lifeCycleState() external view returns (PoolLifeCycleState);
@@ -62,6 +71,11 @@ interface IPool is IERC4626 {
      * @dev The amount of first loss available to the pool.
      */
     function firstLoss() external view returns (uint256);
+
+    /**
+     * @dev The pool accounting variables;
+     */
+    function accountings() external view returns (Accountings memory);
 
     /**
      * @dev Supplies first-loss to the pool. Can only be called by the Pool Manager.
