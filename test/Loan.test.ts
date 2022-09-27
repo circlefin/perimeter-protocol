@@ -70,6 +70,14 @@ describe("Loan", () => {
     const collateralAsset = await CollateralAsset.deploy("Test Coin", "TC");
     await collateralAsset.deployed();
 
+    const NftAsset = await ethers.getContractFactory("MockERC721");
+    const nftAsset = await NftAsset.deploy(
+      "Valyria NFT",
+      "VAL",
+      "http://example.com/"
+    );
+    await nftAsset.deployed();
+
     await collateralAsset.mint(borrower.address, 1_000_000);
 
     return {
@@ -78,6 +86,7 @@ describe("Loan", () => {
       operator,
       borrower,
       collateralAsset,
+      nftAsset,
       other
     };
   }
@@ -193,25 +202,37 @@ describe("Loan", () => {
   });
 
   describe("postNonFungibleCollateral", () => {
-    it("transitions Loan to canceled state", async () => {
+    it("transitions Loan to collateralized state", async () => {
       const fixture = await loadFixture(deployFixture);
       let { loan } = fixture;
-      const { borrower } = fixture;
+      const { borrower, nftAsset } = fixture;
 
       // Connect as borrower
       loan = loan.connect(borrower);
       expect(await loan.state()).to.equal(0);
 
+      await nftAsset.mint(borrower.address);
+      const tokenId = await nftAsset.tokenOfOwnerByIndex(borrower.address, 0);
+      await nftAsset.connect(borrower).approve(loan.address, tokenId);
+
+      // Collateral vault will start with no asset
+      let balanceOf = await nftAsset.balanceOf(await loan._collateralVault());
+      expect(balanceOf).to.equal(0);
+
       // Post collateral
-      await expect(loan.postNonFungibleCollateral()).not.to.be.reverted;
+      await expect(loan.postNonFungibleCollateral(nftAsset.address, tokenId))
+        .not.to.be.reverted;
       expect(await loan.state()).to.equal(1);
+
+      balanceOf = await nftAsset.balanceOf(await loan._collateralVault());
+      expect(balanceOf).to.equal(1);
     });
 
     it("reverts if not called by the borrower", async () => {
-      const { loan, other } = await loadFixture(deployFixture);
+      const { loan, other, nftAsset } = await loadFixture(deployFixture);
 
       await expect(
-        loan.connect(other).postNonFungibleCollateral()
+        loan.connect(other).postNonFungibleCollateral(nftAsset.address, 0)
       ).to.be.revertedWith("Loan: caller is not borrower");
     });
   });
