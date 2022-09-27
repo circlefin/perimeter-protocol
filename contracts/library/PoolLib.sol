@@ -145,6 +145,16 @@ library PoolLib {
                 : 0;
     }
 
+    /**
+     * @dev Executes a deposit into the pool
+     * @param asset Pool liquidity asset
+     * @param vault Address of ERC4626 vault
+     * @param sharesReceiver Address of receiver of shares
+     * @param assets Amount of assets being deposited
+     * @param shares Amount of shares being minted
+     * @param maxDeposit Max allowed deposit into the pool
+     * @return The amount of shares being minted
+     */
     function executeDeposit(
         address asset,
         address vault,
