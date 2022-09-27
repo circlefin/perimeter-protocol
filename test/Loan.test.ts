@@ -1,7 +1,6 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { LoanLib__factory } from "../typechain-types";
 
 describe("Loan", () => {
   const MOCK_LIQUIDITY_ADDRESS = "0x0000000000000000000000000000000000000001";

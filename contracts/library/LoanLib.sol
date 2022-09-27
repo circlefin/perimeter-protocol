@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.16;
+
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -17,10 +20,15 @@ library LoanLib {
     function postFungibleCollateral(
         address collateralVault,
         address asset,
-        uint256 amount
+        uint256 amount,
+        ILoanLifeCycleState state
     ) external returns (ILoanLifeCycleState) {
         IERC20(asset).safeTransferFrom(msg.sender, collateralVault, amount);
         emit PostedCollateral(asset, amount);
-        return ILoanLifeCycleState.Collateralized;
+        if (state == ILoanLifeCycleState.Requested) {
+            return ILoanLifeCycleState.Collateralized;
+        } else {
+            return state;
+        }
     }
 }
