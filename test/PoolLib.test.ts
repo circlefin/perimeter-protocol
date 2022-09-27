@@ -216,6 +216,9 @@ describe("PoolLib", () => {
       expect(await liquidityAsset.balanceOf(poolLibWrapper.address)).to.equal(
         depositAmount
       );
+
+      // Check that shares were minted
+      expect(await poolLibWrapper.balanceOf(caller.address)).to.equal(5);
     });
   });
 

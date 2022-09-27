@@ -292,9 +292,9 @@ contract Pool is IPool, ERC20 {
             receiver,
             assets,
             this.previewDeposit(assets),
-            this.maxDeposit(receiver)
+            this.maxDeposit(receiver),
+            _mint
         );
-        _mint(receiver, shares);
     }
 
     /**

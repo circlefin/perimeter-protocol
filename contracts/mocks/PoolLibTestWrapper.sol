@@ -2,12 +2,13 @@
 pragma solidity ^0.8.16;
 
 import "../library/PoolLib.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /**
  * @title PoolLibTestWrapper
  * @dev Wrapper around PoolLib to facilitate testing.
  */
-contract PoolLibTestWrapper {
+contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
     event LifeCycleStateTransition(PoolLifeCycleState state);
     event FirstLossSupplied(address indexed supplier, uint256 amount);
     event Deposit(
@@ -90,7 +91,8 @@ contract PoolLibTestWrapper {
                 sharesReceiver,
                 assets,
                 shares,
-                maxDeposit
+                maxDeposit,
+                _mint
             );
     }
 }

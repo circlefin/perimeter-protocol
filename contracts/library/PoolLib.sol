@@ -153,6 +153,7 @@ library PoolLib {
      * @param assets Amount of assets being deposited
      * @param shares Amount of shares being minted
      * @param maxDeposit Max allowed deposit into the pool
+     * @param mint A pointer to the mint function
      * @return The amount of shares being minted
      */
     function executeDeposit(
@@ -161,12 +162,14 @@ library PoolLib {
         address sharesReceiver,
         uint256 assets,
         uint256 shares,
-        uint256 maxDeposit
-    ) external returns (uint256) {
+        uint256 maxDeposit,
+        function(address, uint256) mint
+    ) internal returns (uint256) {
         require(shares > 0, "Pool: 0 deposit not allowed");
         require(assets <= maxDeposit, "Pool: Exceeds max deposit");
 
         IERC20(asset).safeTransferFrom(msg.sender, vault, assets);
+        mint(sharesReceiver, shares);
         emit Deposit(msg.sender, sharesReceiver, assets, shares);
         return shares;
     }
