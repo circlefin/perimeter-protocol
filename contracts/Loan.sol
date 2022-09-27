@@ -2,6 +2,9 @@
 pragma solidity ^0.8.16;
 
 import "./interfaces/ILoan.sol";
+import "./CollateralVault.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title Loan
@@ -9,9 +12,17 @@ import "./interfaces/ILoan.sol";
  * Empty Loan contract.
  */
 contract Loan is ILoan {
+    using SafeERC20 for IERC20;
+
     ILoanLifeCycleState private _state = ILoanLifeCycleState.Requested;
     address private immutable _borrower;
     address private immutable _pool;
+    CollateralVault public immutable _collateralVault;
+
+    /**
+     * @dev Emitted when collateral is posted to the loan.
+     */
+    event PostedCollateral(address asset, uint256 amount);
 
     /**
      * @dev Modifier that requires the Loan be in the given `state_`
@@ -62,6 +73,7 @@ contract Loan is ILoan {
     constructor(address borrower, address pool) {
         _borrower = borrower;
         _pool = pool;
+        _collateralVault = new CollateralVault(address(this));
     }
 
     /**
@@ -94,14 +106,19 @@ contract Loan is ILoan {
     /**
      * @dev Post ERC20 tokens as collateral
      */
-    function postFungibleCollateral()
+    function postFungibleCollateral(address asset, uint256 amount)
         external
         onlyBorrower
         onlyActiveLoan
         returns (ILoanLifeCycleState)
     {
-        // TODO: post the collateral
         _state = ILoanLifeCycleState.Collateralized;
+        IERC20(asset).safeTransferFrom(
+            msg.sender,
+            address(_collateralVault),
+            amount
+        );
+        emit PostedCollateral(asset, amount);
         return _state;
     }
 

@@ -35,7 +35,9 @@ interface ILoan {
 
     function cancelCollateralized() external returns (ILoanLifeCycleState);
 
-    function postFungibleCollateral() external returns (ILoanLifeCycleState);
+    function postFungibleCollateral(address asset, uint256 amount)
+        external
+        returns (ILoanLifeCycleState);
 
     function postNonFungibleCollateral() external returns (ILoanLifeCycleState);
 
