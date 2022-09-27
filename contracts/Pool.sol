@@ -3,7 +3,6 @@ pragma solidity ^0.8.16;
 
 import "./interfaces/ILoan.sol";
 import "./interfaces/IPool.sol";
-import "./PoolConfigurableSettings.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -21,7 +20,7 @@ contract Pool is IPool, ERC20 {
     IPoolLifeCycleState private _poolLifeCycleState;
     address private _manager;
     IERC20 private _liquidityAsset;
-    PoolConfigurableSettings private _poolSettings;
+    IPoolConfigurableSettings private _poolSettings;
     FirstLossVault private _firstLossVault;
     IPoolAccountings private _accountings;
 
@@ -47,7 +46,7 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev Modifier that checks that the pool is Initialized or Active
      */
-    modifier poolInitializedOrActive() {
+    modifier atInitializedOrActiveState() {
         require(
             _poolLifeCycleState == IPoolLifeCycleState.Active ||
                 _poolLifeCycleState == IPoolLifeCycleState.Initialized,
@@ -78,7 +77,7 @@ contract Pool is IPool, ERC20 {
     constructor(
         address liquidityAsset,
         address poolManager,
-        PoolConfigurableSettings memory poolSettings,
+        IPoolConfigurableSettings memory poolSettings,
         string memory tokenName,
         string memory tokenSymbol
     ) ERC20(tokenName, tokenSymbol) {
@@ -103,7 +102,7 @@ contract Pool is IPool, ERC20 {
     function settings()
         external
         view
-        returns (PoolConfigurableSettings memory settings)
+        returns (IPoolConfigurableSettings memory settings)
     {
         return _poolSettings;
     }
@@ -135,7 +134,7 @@ contract Pool is IPool, ERC20 {
     function supplyFirstLoss(uint256 amount)
         external
         onlyManager
-        poolInitializedOrActive
+        atInitializedOrActiveState
     {
         _poolLifeCycleState = PoolLib.executeFirstLossContribution(
             address(_liquidityAsset),
@@ -177,9 +176,9 @@ contract Pool is IPool, ERC20 {
     function nextWithdrawalWindow(uint256)
         external
         view
-        returns (PoolWithdrawalPeriod memory)
+        returns (IPoolWithdrawalPeriod memory)
     {
-        return PoolWithdrawalPeriod(0, 0);
+        return IPoolWithdrawalPeriod(0, 0);
     }
 
     /**

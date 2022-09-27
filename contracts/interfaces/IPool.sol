@@ -2,9 +2,6 @@
 pragma solidity ^0.8.16;
 
 import "./IERC4626.sol";
-import "../PoolLifeCycleState.sol";
-import "../PoolWithdrawalPeriod.sol";
-import "../PoolConfigurableSettings.sol";
 
 /**
 <<<<<<< HEAD
@@ -22,6 +19,25 @@ enum IPoolLifeCycleState {
     Paused,
     Closed
 >>>>>>> f4ec574 (Move PoolLifecycleState)
+}
+
+/**
+ * @title The various configurable settings that customize Pool behavior.
+ */
+struct IPoolConfigurableSettings {
+    uint256 maxCapacity; // amount
+    uint256 endDate; // epoch seconds
+    uint256 withdrawalFee; // bips
+    uint256 firstLossInitialMinimum; // amount
+    // TODO: add in Pool fees
+}
+
+/**
+ * @title Contains the start and enddate of a given withdrawal period.
+ */
+struct IPoolWithdrawalPeriod {
+    uint256 start;
+    uint256 end;
 }
 
 /**
@@ -56,7 +72,7 @@ interface IPool is IERC4626 {
     /**
      * @dev Emitted when pool settings are updated.
      */
-    event PoolSettingsUpdated(PoolConfigurableSettings settings);
+    event PoolSettingsUpdated(IPoolConfigurableSettings settings);
 
     /**
      * @dev Returns the current pool lifecycle state.
@@ -69,7 +85,7 @@ interface IPool is IERC4626 {
     function settings()
         external
         view
-        returns (PoolConfigurableSettings memory settings);
+        returns (IPoolConfigurableSettings memory settings);
 
     /**
      * @dev The manager for the pool.
@@ -112,7 +128,7 @@ interface IPool is IERC4626 {
     function nextWithdrawalWindow(uint256)
         external
         view
-        returns (PoolWithdrawalPeriod memory);
+        returns (IPoolWithdrawalPeriod memory);
 
     /**
      * @dev Submits a withdrawal request, incurring a fee.
