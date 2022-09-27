@@ -72,8 +72,8 @@ describe("Loan", () => {
 
     const NftAsset = await ethers.getContractFactory("MockERC721");
     const nftAsset = await NftAsset.deploy(
-      "Bored Ape",
-      "BAYC",
+      "Valyria NFT",
+      "VAL",
       "http://example.com/"
     );
     await nftAsset.deployed();
