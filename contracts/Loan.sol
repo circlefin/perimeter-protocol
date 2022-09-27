@@ -116,14 +116,19 @@ contract Loan is ILoan {
     /**
      * @dev Post ERC721 tokens as collateral
      */
-    function postNonFungibleCollateral()
+    function postNonFungibleCollateral(address asset, uint256 tokenId)
         external
         onlyBorrower
         onlyActiveLoan
         returns (ILoanLifeCycleState)
     {
         // TODO: post the collateral
-        _state = ILoanLifeCycleState.Collateralized;
+        _state = LoanLib.postNonFungibleCollateral(
+            address(_collateralVault),
+            asset,
+            tokenId,
+            _state
+        );
         return _state;
     }
 

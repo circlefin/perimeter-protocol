@@ -39,7 +39,9 @@ interface ILoan {
         external
         returns (ILoanLifeCycleState);
 
-    function postNonFungibleCollateral() external returns (ILoanLifeCycleState);
+    function postNonFungibleCollateral(address asset, uint256 tokenId)
+        external
+        returns (ILoanLifeCycleState);
 
     function fund() external returns (ILoanLifeCycleState);
 }
