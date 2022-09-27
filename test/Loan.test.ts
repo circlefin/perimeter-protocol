@@ -20,6 +20,9 @@ describe("Loan", () => {
     const PoolLib = await ethers.getContractFactory("PoolLib");
     const poolLib = await PoolLib.deploy();
 
+    const LoanLib = await ethers.getContractFactory("LoanLib");
+    const loanLib = await LoanLib.deploy();
+
     const PoolFactory = await ethers.getContractFactory("PoolFactory", {
       libraries: {
         PoolLib: poolLib.address
@@ -28,7 +31,11 @@ describe("Loan", () => {
     const poolFactory = await PoolFactory.deploy(serviceConfiguration.address);
     await poolFactory.deployed();
 
-    const LoanFactory = await ethers.getContractFactory("LoanFactory");
+    const LoanFactory = await ethers.getContractFactory("LoanFactory", {
+      libraries: {
+        LoanLib: loanLib.address
+      }
+    });
     const loanFactory = await LoanFactory.deploy(serviceConfiguration.address);
     await loanFactory.deployed();
 
@@ -52,14 +59,25 @@ describe("Loan", () => {
 
     const loanCreatedEvent = findEventByName(tx2Receipt, "LoanCreated");
     const loanAddress = loanCreatedEvent?.args?.[0];
-    const Loan = await ethers.getContractFactory("Loan");
+    const Loan = await ethers.getContractFactory("Loan", {
+      libraries: {
+        LoanLib: loanLib.address
+      }
+    });
     const loan = Loan.attach(loanAddress);
+
+    const CollateralAsset = await ethers.getContractFactory("MockERC20");
+    const collateralAsset = await CollateralAsset.deploy("Test Coin", "TC");
+    await collateralAsset.deployed();
+
+    await collateralAsset.mint(borrower.address, 1_000_000);
 
     return {
       pool,
       loan,
       operator,
       borrower,
+      collateralAsset,
       other
     };
   }
@@ -101,14 +119,16 @@ describe("Loan", () => {
     it("transitions Loan to canceled state", async () => {
       const fixture = await loadFixture(deployFixture);
       let { loan } = fixture;
-      const { borrower } = fixture;
+      const { borrower, collateralAsset } = fixture;
 
       // Connect as borrower
       loan = loan.connect(borrower);
       expect(await loan.state()).to.equal(0);
 
       // Post collateral
-      await expect(loan.postFungibleCollateral()).not.to.be.reverted;
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await expect(loan.postFungibleCollateral(collateralAsset.address, 100))
+        .not.to.be.reverted;
       expect(await loan.state()).to.equal(1);
 
       // Cancel
@@ -129,22 +149,45 @@ describe("Loan", () => {
     it("transitions Loan to canceled state", async () => {
       const fixture = await loadFixture(deployFixture);
       let { loan } = fixture;
-      const { borrower } = fixture;
+      const { borrower, collateralAsset } = fixture;
 
       // Connect as borrower
       loan = loan.connect(borrower);
       expect(await loan.state()).to.equal(0);
 
       // Post collateral
-      await expect(loan.postFungibleCollateral()).not.to.be.reverted;
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await expect(loan.postFungibleCollateral(collateralAsset.address, 100))
+        .not.to.be.reverted;
+      expect(await loan.state()).to.equal(1);
+
+      //
+      const collateralVault = await loan._collateralVault();
+      expect(await collateralAsset.balanceOf(collateralVault)).to.equal(100);
+    });
+
+    it("emits PostedCollateral event", async () => {
+      const fixture = await loadFixture(deployFixture);
+      const { borrower, loan, collateralAsset } = fixture;
+
+      // Post collateral
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      expect(
+        await loan
+          .connect(borrower)
+          .postFungibleCollateral(collateralAsset.address, 100)
+      )
+        .to.emit(loan, "PostedCollateral")
+        .withArgs(collateralAsset.address, 100);
       expect(await loan.state()).to.equal(1);
     });
 
     it("reverts if not called by the borrower", async () => {
-      const { loan, other } = await loadFixture(deployFixture);
+      const { loan, collateralAsset, other } = await loadFixture(deployFixture);
 
+      await collateralAsset.connect(other).approve(loan.address, 100);
       await expect(
-        loan.connect(other).postFungibleCollateral()
+        loan.connect(other).postFungibleCollateral(collateralAsset.address, 100)
       ).to.be.revertedWith("Loan: caller is not borrower");
     });
   });
@@ -177,13 +220,15 @@ describe("Loan", () => {
     it("transitions Loan to Funded state", async () => {
       const fixture = await loadFixture(deployFixture);
       let { loan } = fixture;
-      const { borrower, pool } = fixture;
+      const { borrower, collateralAsset, pool } = fixture;
 
       // Connect as borrower
       loan = loan.connect(borrower);
 
       expect(await loan.state()).to.equal(0);
-      await expect(loan.postFungibleCollateral()).not.to.be.reverted;
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await expect(loan.postFungibleCollateral(collateralAsset.address, 100))
+        .not.to.be.reverted;
       expect(await loan.state()).to.equal(1);
       await expect(pool.fundLoan(loan.address)).not.to.be.reverted;
       expect(await loan.state()).to.equal(4);
@@ -200,11 +245,17 @@ describe("Loan", () => {
     });
 
     it("reverts if not called by the pool", async () => {
-      const { loan, borrower, other } = await loadFixture(deployFixture);
+      const { loan, borrower, collateralAsset, other } = await loadFixture(
+        deployFixture
+      );
 
       expect(await loan.state()).to.equal(0);
-      await expect(loan.connect(borrower).postFungibleCollateral()).not.to.be
-        .reverted;
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await expect(
+        loan
+          .connect(borrower)
+          .postFungibleCollateral(collateralAsset.address, 100)
+      ).not.to.be.reverted;
       expect(await loan.state()).to.equal(1);
 
       await expect(loan.connect(other).fund()).to.be.revertedWith(
