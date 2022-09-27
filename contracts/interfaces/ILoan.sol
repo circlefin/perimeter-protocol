@@ -4,16 +4,16 @@ pragma solidity ^0.8.16;
 /**
  * @title The protocol Loan
  */
-interface ILoan {
-    enum ILoanLifeCycleState {
-        Requested,
-        Collateralized,
-        Canceled,
-        Defaulted,
-        Funded,
-        Matured
-    }
+enum ILoanLifeCycleState {
+    Requested,
+    Collateralized,
+    Canceled,
+    Defaulted,
+    Funded,
+    Matured
+}
 
+interface ILoan {
     struct ILoanFungibleCollateral {
         address asset;
         uint256 amount;

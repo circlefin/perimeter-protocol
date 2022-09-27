@@ -1,6 +1,7 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { LoanLib__factory } from "../typechain-types";
 
 describe("Loan", () => {
   const MOCK_LIQUIDITY_ADDRESS = "0x0000000000000000000000000000000000000001";
@@ -20,6 +21,9 @@ describe("Loan", () => {
     const PoolLib = await ethers.getContractFactory("PoolLib");
     const poolLib = await PoolLib.deploy();
 
+    const LoanLib = await ethers.getContractFactory("LoanLib");
+    const loanLib = await LoanLib.deploy();
+
     const PoolFactory = await ethers.getContractFactory("PoolFactory", {
       libraries: {
         PoolLib: poolLib.address
@@ -28,7 +32,11 @@ describe("Loan", () => {
     const poolFactory = await PoolFactory.deploy(serviceConfiguration.address);
     await poolFactory.deployed();
 
-    const LoanFactory = await ethers.getContractFactory("LoanFactory");
+    const LoanFactory = await ethers.getContractFactory("LoanFactory", {
+      libraries: {
+        LoanLib: loanLib.address
+      }
+    });
     const loanFactory = await LoanFactory.deploy(serviceConfiguration.address);
     await loanFactory.deployed();
 
@@ -52,7 +60,11 @@ describe("Loan", () => {
 
     const loanCreatedEvent = findEventByName(tx2Receipt, "LoanCreated");
     const loanAddress = loanCreatedEvent?.args?.[0];
-    const Loan = await ethers.getContractFactory("Loan");
+    const Loan = await ethers.getContractFactory("Loan", {
+      libraries: {
+        LoanLib: loanLib.address
+      }
+    });
     const loan = Loan.attach(loanAddress);
 
     const CollateralAsset = await ethers.getContractFactory("MockERC20");
@@ -161,8 +173,8 @@ describe("Loan", () => {
 
       // Post collateral
       await collateralAsset.connect(borrower).approve(loan.address, 100);
-      await expect(
-        loan
+      expect(
+        await loan
           .connect(borrower)
           .postFungibleCollateral(collateralAsset.address, 100)
       )
