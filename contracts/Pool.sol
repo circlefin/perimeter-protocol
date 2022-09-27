@@ -88,7 +88,6 @@ contract Pool is IPool, ERC20 {
         _manager = poolManager;
         _poolLifeCycleState = PoolLifeCycleState.Initialized;
         _firstLossVault = new FirstLossVault(address(this), liquidityAsset);
-        _accountings = Accountings(0, 0, 0);
     }
 
     /**
