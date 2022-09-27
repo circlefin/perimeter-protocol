@@ -130,14 +130,9 @@ describe("PoolLib", () => {
 
   describe("calculateNav()", async () => {
     it("deducts withdrawals from total assets", async () => {
-      const { poolLibWrapper } = await loadFixture(
-        deployFixture
-      );
+      const { poolLibWrapper } = await loadFixture(deployFixture);
 
-      expect(await poolLibWrapper.calculateNav(
-        100,
-        25
-      )).to.equal(75);
+      expect(await poolLibWrapper.calculateNav(100, 25)).to.equal(75);
     });
   });
 
@@ -149,11 +144,13 @@ describe("PoolLib", () => {
 
       liquidityAsset.mint(poolLibWrapper.address, 200);
 
-      expect(await poolLibWrapper.calculateTotalAssets(
-        liquidityAsset.address,
-        poolLibWrapper.address,
-        50
-      )).to.equal(250);
+      expect(
+        await poolLibWrapper.calculateTotalAssets(
+          liquidityAsset.address,
+          poolLibWrapper.address,
+          50
+        )
+      ).to.equal(250);
     });
   });
 
@@ -163,14 +160,16 @@ describe("PoolLib", () => {
         deployFixture
       );
 
-      await expect(poolLibWrapper.executeDeposit(
-        liquidityAsset.address,
-        poolLibWrapper.address,
-        caller.address,
-        10,
-        0,
-        10
-      )).to.be.revertedWith("Pool: 0 deposit not allowed");
+      await expect(
+        poolLibWrapper.executeDeposit(
+          liquidityAsset.address,
+          poolLibWrapper.address,
+          caller.address,
+          10,
+          0,
+          10
+        )
+      ).to.be.revertedWith("Pool: 0 deposit not allowed");
     });
 
     it("reverts deposit exceeds maximum allowed deposit", async () => {
@@ -178,14 +177,16 @@ describe("PoolLib", () => {
         deployFixture
       );
 
-      await expect(poolLibWrapper.executeDeposit(
-        liquidityAsset.address,
-        poolLibWrapper.address,
-        caller.address,
-        10,
-        5,
-        9 // max
-      )).to.be.revertedWith("Pool: Exceeds max deposit");
+      await expect(
+        poolLibWrapper.executeDeposit(
+          liquidityAsset.address,
+          poolLibWrapper.address,
+          caller.address,
+          10,
+          5,
+          9 // max
+        )
+      ).to.be.revertedWith("Pool: Exceeds max deposit");
     });
 
     it("transfers deposited assets to the vault", async () => {
@@ -196,95 +197,88 @@ describe("PoolLib", () => {
       const callerBalancePrior = await liquidityAsset.balanceOf(caller.address);
       const depositAmount = 10;
 
-      await expect(poolLibWrapper.executeDeposit(
-        liquidityAsset.address,
-        poolLibWrapper.address,
-        caller.address,
-        depositAmount,
-        5,
-        10
-      )).to.emit(poolLibWrapper, "Deposit");
+      await expect(
+        poolLibWrapper.executeDeposit(
+          liquidityAsset.address,
+          poolLibWrapper.address,
+          caller.address,
+          depositAmount,
+          5,
+          10
+        )
+      ).to.emit(poolLibWrapper, "Deposit");
 
       // Check that caller lost deposited amount
-      expect(await liquidityAsset.balanceOf(caller.address)).to.equal(callerBalancePrior.sub(depositAmount));
+      expect(await liquidityAsset.balanceOf(caller.address)).to.equal(
+        callerBalancePrior.sub(depositAmount)
+      );
       // Check that pool received it
-      expect(await liquidityAsset.balanceOf(poolLibWrapper.address)).to.equal(depositAmount);
+      expect(await liquidityAsset.balanceOf(poolLibWrapper.address)).to.equal(
+        depositAmount
+      );
     });
   });
 
   describe("calculateMaxDeposit()", async () => {
     it("returns 0 if pool is not in active state", async () => {
-      const { poolLibWrapper } = await loadFixture(
-        deployFixture
-      );
+      const { poolLibWrapper } = await loadFixture(deployFixture);
 
-      const maxCapacity = 1000
-      const poolAssets = 500
+      const maxCapacity = 1000;
+      const poolAssets = 500;
 
       // check states 0, 2, 3 (except for state == 1, aka active)
       let poolStatesNotAllowingDeposits = [0, 2, 3];
-      poolStatesNotAllowingDeposits.forEach(async poolState => {
-        expect(await poolLibWrapper.calculateMaxDeposit(
-          poolState,
-          maxCapacity,
-          poolAssets
-        )).to.equal(0);
+      poolStatesNotAllowingDeposits.forEach(async (poolState) => {
+        expect(
+          await poolLibWrapper.calculateMaxDeposit(
+            poolState,
+            maxCapacity,
+            poolAssets
+          )
+        ).to.equal(0);
       });
     });
 
     it("returns remaining pool capacity if pool is active", async () => {
-      const { poolLibWrapper } = await loadFixture(
-        deployFixture
-      );
+      const { poolLibWrapper } = await loadFixture(deployFixture);
 
-      const maxCapacity = 1000
-      const poolAssets = 500
+      const maxCapacity = 1000;
+      const poolAssets = 500;
       const activePoolState = 1;
 
-      expect(await poolLibWrapper.calculateMaxDeposit(
-        activePoolState,
-        maxCapacity,
-        poolAssets
-      )).to.equal(maxCapacity - poolAssets);
+      expect(
+        await poolLibWrapper.calculateMaxDeposit(
+          activePoolState,
+          maxCapacity,
+          poolAssets
+        )
+      ).to.equal(maxCapacity - poolAssets);
     });
   });
 
   describe("calculateAssetsToShares()", async () => {
     it("calculates 1:1 shares if token supply is zero", async () => {
-      const { poolLibWrapper } = await loadFixture(
-        deployFixture
-      );
+      const { poolLibWrapper } = await loadFixture(deployFixture);
 
-      expect(await poolLibWrapper.calculateAssetsToShares(
-        500,
-        0,
-        0
-      )).to.equal(500);
+      expect(await poolLibWrapper.calculateAssetsToShares(500, 0, 0)).to.equal(
+        500
+      );
     });
 
     it("calculates <1:1 if nav has increased in value", async () => {
-      const { poolLibWrapper } = await loadFixture(
-        deployFixture
-      );
+      const { poolLibWrapper } = await loadFixture(deployFixture);
 
-      expect(await poolLibWrapper.calculateAssetsToShares(
-        500,
-        500,
-        525
-      )).to.equal(476);
+      expect(
+        await poolLibWrapper.calculateAssetsToShares(500, 500, 525)
+      ).to.equal(476);
     });
 
     it("calculates >1:1 if nav has decreased in value", async () => {
-      const { poolLibWrapper } = await loadFixture(
-        deployFixture
-      );
+      const { poolLibWrapper } = await loadFixture(deployFixture);
 
-      expect(await poolLibWrapper.calculateAssetsToShares(
-        500,
-        500,
-        400
-      )).to.equal(625);
+      expect(
+        await poolLibWrapper.calculateAssetsToShares(500, 500, 400)
+      ).to.equal(625);
     });
   });
-
 });
