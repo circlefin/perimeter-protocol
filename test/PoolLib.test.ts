@@ -138,7 +138,7 @@ describe("PoolLib", () => {
 
   describe("calculateTotalAssets()", async () => {
     it("combines balance of vault with oustanding loan principals", async () => {
-      const { poolLibWrapper, liquidityAsset, caller } = await loadFixture(
+      const { poolLibWrapper, liquidityAsset } = await loadFixture(
         deployFixture
       );
 
@@ -227,7 +227,7 @@ describe("PoolLib", () => {
       const poolAssets = 500;
 
       // check states 0, 2, 3 (except for state == 1, aka active)
-      let poolStatesNotAllowingDeposits = [0, 2, 3];
+      const poolStatesNotAllowingDeposits = [0, 2, 3];
       poolStatesNotAllowingDeposits.forEach(async (poolState) => {
         expect(
           await poolLibWrapper.calculateMaxDeposit(
