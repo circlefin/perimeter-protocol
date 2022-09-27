@@ -7,6 +7,14 @@ import "../PoolWithdrawalPeriod.sol";
 import "../PoolConfigurableSettings.sol";
 
 /**
+ * @title Data type storing collected accounting statistics
+ */
+struct IPoolAccountings {
+    uint256 defaultsTotal;
+    uint256 activeLoanPrincipals;
+}
+
+/**
  * @title The interface for liquidity pools.
  */
 interface IPool is IERC4626 {
@@ -41,15 +49,6 @@ interface IPool is IERC4626 {
     event PoolSettingsUpdated(PoolConfigurableSettings settings);
 
     /**
-     * @dev Data type storing collected accounting values
-     */
-    struct Accountings {
-        uint256 defaultsTotal;
-        uint256 activeLoanPrincipals;
-        uint256 totalDeposits;
-    }
-
-    /**
      * @dev Returns the current pool lifecycle state.
      */
     function lifeCycleState() external view returns (PoolLifeCycleState);
@@ -75,7 +74,7 @@ interface IPool is IERC4626 {
     /**
      * @dev The pool accounting variables;
      */
-    function accountings() external view returns (Accountings memory);
+    function accountings() external view returns (IPoolAccountings memory);
 
     /**
      * @dev Supplies first-loss to the pool. Can only be called by the Pool Manager.

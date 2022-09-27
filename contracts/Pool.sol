@@ -24,7 +24,7 @@ contract Pool is IPool, ERC20 {
     IERC20 private _liquidityAsset;
     PoolConfigurableSettings private _poolSettings;
     FirstLossVault private _firstLossVault;
-    Accountings private _accountings;
+    IPoolAccountings private _accountings;
 
     /**
      * @dev Modifier that checks that the caller is the pool's manager.
@@ -125,7 +125,7 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev The pool accounting variables;
      */
-    function accountings() external view returns (Accountings memory) {
+    function accountings() external view returns (IPoolAccountings memory) {
         return _accountings;
     }
 
