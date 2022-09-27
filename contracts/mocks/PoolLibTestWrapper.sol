@@ -22,7 +22,7 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
         address liquidityAsset,
         uint256 amount,
         address firstLossVault,
-        PoolLifeCycleState currentState,
+        IPoolLifeCycleState currentState,
         uint256 minFirstLossRequired
     ) external {
         PoolLib.executeFirstLossContribution(

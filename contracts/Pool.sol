@@ -4,7 +4,6 @@ pragma solidity ^0.8.16;
 import "./interfaces/ILoan.sol";
 import "./interfaces/IPool.sol";
 import "./PoolConfigurableSettings.sol";
-import "./PoolLifeCycleState.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -19,7 +18,7 @@ import "./FirstLossVault.sol";
 contract Pool is IPool, ERC20 {
     using SafeERC20 for IERC20;
 
-    PoolLifeCycleState private _poolLifeCycleState;
+    IPoolLifeCycleState private _poolLifeCycleState;
     address private _manager;
     IERC20 private _liquidityAsset;
     PoolConfigurableSettings private _poolSettings;
@@ -50,8 +49,8 @@ contract Pool is IPool, ERC20 {
      */
     modifier poolInitializedOrActive() {
         require(
-            _poolLifeCycleState == PoolLifeCycleState.Active ||
-                _poolLifeCycleState == PoolLifeCycleState.Initialized,
+            _poolLifeCycleState == IPoolLifeCycleState.Active ||
+                _poolLifeCycleState == IPoolLifeCycleState.Initialized,
             "Pool: invalid pool state"
         );
         _;
@@ -86,14 +85,15 @@ contract Pool is IPool, ERC20 {
         _liquidityAsset = IERC20(liquidityAsset);
         _poolSettings = poolSettings;
         _manager = poolManager;
-        _poolLifeCycleState = PoolLifeCycleState.Initialized;
+        _poolLifeCycleState = IPoolLifeCycleState.Initialized;
+
         _firstLossVault = new FirstLossVault(address(this), liquidityAsset);
     }
 
     /**
      * @dev Returns the current pool lifecycle state.
      */
-    function lifeCycleState() external view returns (PoolLifeCycleState) {
+    function lifeCycleState() external view returns (IPoolLifeCycleState) {
         return _poolLifeCycleState;
     }
 

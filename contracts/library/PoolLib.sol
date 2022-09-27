@@ -4,8 +4,6 @@ pragma solidity ^0.8.16;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
-
-import "../PoolLifeCycleState.sol";
 import "../interfaces/IPool.sol";
 
 /**
@@ -20,7 +18,7 @@ library PoolLib {
     /**
      * @dev See IPool for event definition.
      */
-    event LifeCycleStateTransition(PoolLifeCycleState state);
+    event LifeCycleStateTransition(IPoolLifeCycleState state);
 
     /**
      * @dev Emitted when first loss is supplied to the pool.
@@ -49,9 +47,9 @@ library PoolLib {
         address liquidityAsset,
         uint256 amount,
         address firstLossVault,
-        PoolLifeCycleState currentState,
+        IPoolLifeCycleState currentState,
         uint256 minFirstLossRequired
-    ) external returns (PoolLifeCycleState newState) {
+    ) external returns (IPoolLifeCycleState newState) {
         require(firstLossVault != address(0), "Pool: 0 address");
 
         IERC20(liquidityAsset).safeTransferFrom(
@@ -63,12 +61,12 @@ library PoolLib {
 
         // Graduate pool state if needed
         if (
-            currentState == PoolLifeCycleState.Initialized &&
+            currentState == IPoolLifeCycleState.Initialized &&
             (amount >= minFirstLossRequired ||
                 IERC20(liquidityAsset).balanceOf(address(firstLossVault)) >=
                 minFirstLossRequired)
         ) {
-            newState = PoolLifeCycleState.Active;
+            newState = IPoolLifeCycleState.Active;
             emit LifeCycleStateTransition(newState);
         }
         emit FirstLossSupplied(msg.sender, amount);

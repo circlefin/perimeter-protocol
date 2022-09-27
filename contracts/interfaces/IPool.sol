@@ -7,11 +7,21 @@ import "../PoolWithdrawalPeriod.sol";
 import "../PoolConfigurableSettings.sol";
 
 /**
+<<<<<<< HEAD
  * @title Data type storing collected accounting statistics
  */
 struct IPoolAccountings {
     uint256 defaultsTotal;
     uint256 activeLoanPrincipals;
+=======
+ * @title Expresses the various states a pool can be in throughout its lifecycle.
+ */
+enum IPoolLifeCycleState {
+    Initialized,
+    Active,
+    Paused,
+    Closed
+>>>>>>> f4ec574 (Move PoolLifecycleState)
 }
 
 /**
@@ -21,7 +31,7 @@ interface IPool is IERC4626 {
     /**
      * @dev Emitted when the pool transitions a lifecycle state.
      */
-    event LifeCycleStateTransition(PoolLifeCycleState state);
+    event LifeCycleStateTransition(IPoolLifeCycleState state);
 
     /**
      * @dev Emitted when a loan is funded from the pool.
@@ -51,7 +61,7 @@ interface IPool is IERC4626 {
     /**
      * @dev Returns the current pool lifecycle state.
      */
-    function lifeCycleState() external view returns (PoolLifeCycleState);
+    function lifeCycleState() external view returns (IPoolLifeCycleState);
 
     /**
      * @dev The current configurable pool settings.
