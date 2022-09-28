@@ -5,6 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "../interfaces/IPool.sol";
+import "../FirstLossVault.sol";
 
 /**
  * @title Collection of functions used by the Pool
@@ -21,9 +22,22 @@ library PoolLib {
     event LifeCycleStateTransition(IPoolLifeCycleState state);
 
     /**
-     * @dev Emitted when first loss is supplied to the pool.
+     * @dev Emitted when first loss is deposited to the pool.
      */
-    event FirstLossSupplied(address indexed supplier, uint256 amount);
+    event FirstLossDeposited(
+        address indexed caller,
+        address indexed spender,
+        uint256 amount
+    );
+
+    /**
+     * @dev Emitted when first loss is withdrawn from the pool.
+     */
+    event FirstLossWithdrawn(
+        address indexed caller,
+        address indexed receiver,
+        uint256 amount
+    );
 
     /**
      * @dev See IERC4626 for event definition.
@@ -43,8 +57,9 @@ library PoolLib {
      * @param minFirstLossRequired The minimum amount of first loss the pool needs to become active
      * @return newState The updated Pool lifecycle state
      */
-    function executeFirstLossContribution(
+    function executeFirstLossDeposit(
         address liquidityAsset,
+        address spender,
         uint256 amount,
         address firstLossVault,
         IPoolLifeCycleState currentState,
@@ -53,7 +68,7 @@ library PoolLib {
         require(firstLossVault != address(0), "Pool: 0 address");
 
         IERC20(liquidityAsset).safeTransferFrom(
-            msg.sender,
+            spender,
             firstLossVault,
             amount
         );
@@ -69,7 +84,27 @@ library PoolLib {
             newState = IPoolLifeCycleState.Active;
             emit LifeCycleStateTransition(newState);
         }
-        emit FirstLossSupplied(msg.sender, amount);
+        emit FirstLossDeposited(msg.sender, spender, amount);
+    }
+
+    /**
+     * @dev Withdraws first loss capital. Can only be called by the Pool manager under certain conditions.
+     * @param amount Amount of first loss being withdrawn
+     * @param withdrawReceiver Where the liquidity should be withdrawn to
+     * @param firstLossVault Vault holding first loss
+     * @return newState The updated Pool lifecycle state
+     */
+    function executeFirstLossWithdraw(
+        uint256 amount,
+        address withdrawReceiver,
+        address firstLossVault
+    ) external returns (uint256) {
+        require(firstLossVault != address(0), "Pool: 0 address");
+        require(withdrawReceiver != address(0), "Pool: 0 address");
+
+        FirstLossVault(firstLossVault).withdraw(amount, withdrawReceiver);
+        emit FirstLossWithdrawn(msg.sender, withdrawReceiver, amount);
+        return amount;
     }
 
     /**

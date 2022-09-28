@@ -6,7 +6,7 @@ describe("PoolLib", () => {
   const FIRST_LOSS_AMOUNT = 100;
 
   async function deployFixture() {
-    const [caller, firstLossVault] = await ethers.getSigners();
+    const [caller, otherAccount] = await ethers.getSigners();
 
     const PoolLib = await ethers.getContractFactory("PoolLib");
     const poolLib = await PoolLib.deploy();
@@ -27,6 +27,13 @@ describe("PoolLib", () => {
     const liquidityAsset = await LiquidityAsset.deploy("Test Coin", "TC");
     await liquidityAsset.deployed();
 
+    const FirstLossVault = await ethers.getContractFactory("FirstLossVault");
+    const firstLossVault = await FirstLossVault.deploy(
+      poolLibWrapper.address,
+      liquidityAsset.address
+    );
+    await liquidityAsset.deployed();
+
     await liquidityAsset.mint(caller.address, FIRST_LOSS_AMOUNT);
     await liquidityAsset
       .connect(caller)
@@ -36,29 +43,33 @@ describe("PoolLib", () => {
       poolLibWrapper,
       caller,
       firstLossVault,
-      liquidityAsset
+      liquidityAsset,
+      otherAccount
     };
   }
 
-  describe("executeFirstLossContribution()", async () => {
+  describe("executeFirstLossDeposit()", async () => {
     it("guards against transfers to null address", async () => {
-      const { poolLibWrapper, liquidityAsset } = await loadFixture(
+      const { poolLibWrapper, liquidityAsset, caller } = await loadFixture(
         deployFixture
       );
 
       await expect(
-        poolLibWrapper.executeFirstLossContribution(
-          liquidityAsset.address,
-          FIRST_LOSS_AMOUNT,
-          ethers.constants.AddressZero,
-          0,
-          0
-        )
+        poolLibWrapper
+          .connect(caller)
+          .executeFirstLossDeposit(
+            liquidityAsset.address,
+            caller.address,
+            FIRST_LOSS_AMOUNT,
+            ethers.constants.AddressZero,
+            0,
+            0
+          )
       ).to.be.revertedWith("Pool: 0 address");
     });
 
     it("transfers liquidity to vault", async () => {
-      const { poolLibWrapper, liquidityAsset, firstLossVault } =
+      const { poolLibWrapper, liquidityAsset, firstLossVault, caller } =
         await loadFixture(deployFixture);
 
       // Confirm vault is empty
@@ -67,14 +78,57 @@ describe("PoolLib", () => {
       );
 
       expect(
-        await poolLibWrapper.executeFirstLossContribution(
-          liquidityAsset.address,
-          FIRST_LOSS_AMOUNT,
-          firstLossVault.address,
-          0,
-          0
-        )
-      ).to.emit(poolLibWrapper, "FirstLossSupplied");
+        await poolLibWrapper
+          .connect(caller)
+          .executeFirstLossDeposit(
+            liquidityAsset.address,
+            caller.address,
+            FIRST_LOSS_AMOUNT,
+            firstLossVault.address,
+            0,
+            0
+          )
+      ).to.emit(poolLibWrapper, "FirstLossDeposited");
+
+      // Check balance of vault
+      expect(await liquidityAsset.balanceOf(firstLossVault.address)).to.equal(
+        FIRST_LOSS_AMOUNT
+      );
+    });
+
+    it("transfers liquidity to vault from a supplier", async () => {
+      const {
+        poolLibWrapper,
+        liquidityAsset,
+        firstLossVault,
+        caller,
+        otherAccount
+      } = await loadFixture(deployFixture);
+
+      // Transfer caller balance to another account
+      const callerBalance = await liquidityAsset.balanceOf(caller.address);
+      await liquidityAsset
+        .connect(caller)
+        .transfer(otherAccount.address, callerBalance);
+      expect(await liquidityAsset.balanceOf(caller.address)).to.equal(0);
+
+      // Make approval from otherAccount
+      await liquidityAsset
+        .connect(otherAccount)
+        .approve(poolLibWrapper.address, callerBalance);
+
+      expect(
+        await poolLibWrapper
+          .connect(caller)
+          .executeFirstLossDeposit(
+            liquidityAsset.address,
+            otherAccount.address,
+            FIRST_LOSS_AMOUNT,
+            firstLossVault.address,
+            0,
+            0
+          )
+      ).to.emit(poolLibWrapper, "FirstLossDeposited");
 
       // Check balance of vault
       expect(await liquidityAsset.balanceOf(firstLossVault.address)).to.equal(
@@ -83,12 +137,13 @@ describe("PoolLib", () => {
     });
 
     it("graduates PoolLifeCycleState if threshold is met, and initial state is Initialized", async () => {
-      const { poolLibWrapper, liquidityAsset, firstLossVault } =
+      const { poolLibWrapper, liquidityAsset, firstLossVault, caller } =
         await loadFixture(deployFixture);
 
       expect(
-        await poolLibWrapper.executeFirstLossContribution(
+        await poolLibWrapper.connect(caller).executeFirstLossDeposit(
           liquidityAsset.address,
+          caller.address,
           FIRST_LOSS_AMOUNT,
           firstLossVault.address,
           0,
@@ -98,12 +153,13 @@ describe("PoolLib", () => {
     });
 
     it("does not graduate PoolLifeCycleState if threshold is not met, and initial state is Initialized", async () => {
-      const { poolLibWrapper, liquidityAsset, firstLossVault } =
+      const { poolLibWrapper, liquidityAsset, firstLossVault, caller } =
         await loadFixture(deployFixture);
 
       expect(
-        await poolLibWrapper.executeFirstLossContribution(
+        await poolLibWrapper.executeFirstLossDeposit(
           liquidityAsset.address,
+          caller.address,
           FIRST_LOSS_AMOUNT,
           firstLossVault.address,
           0,
@@ -113,18 +169,48 @@ describe("PoolLib", () => {
     });
 
     it("does not graduate PoolLifeCycleState if not in Initialized", async () => {
-      const { poolLibWrapper, liquidityAsset, firstLossVault } =
+      const { poolLibWrapper, liquidityAsset, firstLossVault, caller } =
         await loadFixture(deployFixture);
 
       expect(
-        await poolLibWrapper.executeFirstLossContribution(
+        await poolLibWrapper.executeFirstLossDeposit(
           liquidityAsset.address,
+          caller.address,
           FIRST_LOSS_AMOUNT,
           firstLossVault.address,
           1, // Already active
           FIRST_LOSS_AMOUNT
         )
       ).to.not.emit(poolLibWrapper, "LifeCycleStateTransition");
+    });
+  });
+
+  describe("executeFirstLossWithdraw()", async () => {
+    it("transfers funds to receiver address", async () => {
+      const { poolLibWrapper, liquidityAsset, firstLossVault, otherAccount } =
+        await loadFixture(deployFixture);
+
+      // Load up vault
+      const withdrawAmount = 1000;
+      await liquidityAsset.mint(firstLossVault.address, withdrawAmount);
+
+      // Check balance prior
+      const receiverBalancePrior = await liquidityAsset.balanceOf(
+        otherAccount.address
+      );
+
+      expect(
+        await poolLibWrapper.executeFirstLossWithdraw(
+          withdrawAmount,
+          otherAccount.address,
+          firstLossVault.address
+        )
+      ).to.emit(poolLibWrapper, "FirstLossWithdrawal");
+
+      // Check balance after
+      expect(await liquidityAsset.balanceOf(otherAccount.address)).to.equal(
+        receiverBalancePrior.add(withdrawAmount)
+      );
     });
   });
 

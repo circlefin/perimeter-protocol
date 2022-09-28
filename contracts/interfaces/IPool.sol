@@ -104,9 +104,16 @@ interface IPool is IERC4626 {
     function accountings() external view returns (IPoolAccountings memory);
 
     /**
-     * @dev Supplies first-loss to the pool. Can only be called by the Pool Manager.
+     * @dev Deposits first-loss to the pool. Can only be called by the Pool Manager.
      */
-    function supplyFirstLoss(uint256 amount) external;
+    function depositFirstLoss(uint256 amount, address spender) external;
+
+    /**
+     * @dev Withdraws first-loss to the pool. Can only be called by the Pool Manager.
+     */
+    function withdrawFirstLoss(uint256 amount, address receiver)
+        external
+        returns (uint256);
 
     /**
      * @dev Updates the pool capacity. Can only be called by the Pool Manager.

@@ -6,7 +6,7 @@ import "./interfaces/IPool.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./library/PoolLib.sol";
+import "./libraries/PoolLib.sol";
 import "./FirstLossVault.sol";
 
 /**
@@ -135,14 +135,15 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev Supplies first-loss to the pool. Can only be called by the Pool Manager.
      */
-    function supplyFirstLoss(uint256 amount)
+    function depositFirstLoss(uint256 amount, address spender)
         external
         onlyManager
         atInitializedOrActiveState
     {
         IPoolLifeCycleState poolLifeCycleState = PoolLib
-            .executeFirstLossContribution(
+            .executeFirstLossDeposit(
                 address(_liquidityAsset),
+                spender,
                 amount,
                 address(_firstLossVault),
                 _poolLifeCycleState,
@@ -150,6 +151,23 @@ contract Pool is IPool, ERC20 {
             );
 
         _setPoolLifeCycleState(poolLifeCycleState);
+    }
+
+    /**
+     * @dev inheritdoc IPool
+     */
+    function withdrawFirstLoss(uint256 amount, address receiver)
+        external
+        onlyManager
+        atState(IPoolLifeCycleState.Closed)
+        returns (uint256)
+    {
+        return
+            PoolLib.executeFirstLossWithdraw(
+                amount,
+                receiver,
+                address(_firstLossVault)
+            );
     }
 
     /**
