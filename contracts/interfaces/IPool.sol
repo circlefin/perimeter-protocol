@@ -109,7 +109,7 @@ interface IPool is IERC4626 {
     function depositFirstLoss(uint256 amount, address spender) external;
 
     /**
-     * @dev Withdraws first-loss to the pool. Can only be called by the Pool Manager.
+     * @dev Withdraws first-loss from the pool. Can only be called by the Pool Manager.
      */
     function withdrawFirstLoss(uint256 amount, address receiver)
         external
