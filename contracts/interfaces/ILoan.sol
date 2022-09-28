@@ -21,7 +21,11 @@ struct ILoanFungibleCollateral {
 struct ILoanNonFungibleCollateral {
     address asset;
     uint256 tokenId;
-    bytes data;
+}
+
+struct ILoanNonFungibleCollateralWithData {
+    address asset;
+    uint256 tokenId;
 }
 
 interface ILoan {
@@ -47,6 +51,11 @@ interface ILoan {
     function postNonFungibleCollateral(address asset, uint256 tokenId)
         external
         returns (ILoanLifeCycleState);
+
+    function nonFungibleCollateral()
+        external
+        view
+        returns (ILoanNonFungibleCollateral[] memory);
 
     function fund() external returns (ILoanLifeCycleState);
 }

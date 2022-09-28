@@ -244,6 +244,10 @@ describe("Loan", () => {
         .not.to.be.reverted;
       expect(await loan.state()).to.equal(1);
 
+      const c = await loan.nonFungibleCollateral();
+      expect(c[0][0]).to.equal(nftAsset.address);
+      expect(c[0][1]).to.equal(tokenId);
+
       balanceOf = await nftAsset.balanceOf(await loan._collateralVault());
       expect(balanceOf).to.equal(1);
     });
