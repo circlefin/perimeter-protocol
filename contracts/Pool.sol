@@ -230,9 +230,7 @@ contract Pool is IPool, ERC20 {
      * will also update the _poolLifeCycleStateTimestamp variable
      */
     function _setPoolLifeCycleState(IPoolLifeCycleState state) internal {
-        if (
-            state == IPoolLifeCycleState.Active && _poolLifeCycleState != state
-        ) {
+        if (_poolLifeCycleState != state) {
             _poolLifeCycleStateTimestamp = block.timestamp;
         }
 
