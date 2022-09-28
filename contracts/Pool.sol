@@ -201,7 +201,7 @@ contract Pool is IPool, ERC20 {
     function markLoanAsInDefault(address) external onlyManager {}
 
     /*//////////////////////////////////////////////////////////////
-                        ERC-4246 Methods
+                        ERC-4626 Methods
     //////////////////////////////////////////////////////////////*/
 
     /**
