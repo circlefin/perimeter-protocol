@@ -15,7 +15,7 @@ contract Loan is ILoan {
     address private immutable _borrower;
     address private immutable _pool;
     CollateralVault public immutable _collateralVault;
-    ILoanFungibleCollateral[] private _fungibleCollateral;
+    address[] private _fungibleCollateral;
     ILoanNonFungibleCollateral[] private _nonFungibleCollateral;
 
     /**
@@ -120,11 +120,7 @@ contract Loan is ILoan {
         return _state;
     }
 
-    function fungibleCollateral()
-        external
-        view
-        returns (ILoanFungibleCollateral[] memory)
-    {
+    function fungibleCollateral() external view returns (address[] memory) {
         return _fungibleCollateral;
     }
 

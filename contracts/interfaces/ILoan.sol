@@ -13,17 +13,7 @@ enum ILoanLifeCycleState {
     Matured
 }
 
-struct ILoanFungibleCollateral {
-    address asset;
-    uint256 amount;
-}
-
 struct ILoanNonFungibleCollateral {
-    address asset;
-    uint256 tokenId;
-}
-
-struct ILoanNonFungibleCollateralWithData {
     address asset;
     uint256 tokenId;
 }
@@ -43,10 +33,7 @@ interface ILoan {
         external
         returns (ILoanLifeCycleState);
 
-    function fungibleCollateral()
-        external
-        view
-        returns (ILoanFungibleCollateral[] memory);
+    function fungibleCollateral() external view returns (address[] memory);
 
     function postNonFungibleCollateral(address asset, uint256 tokenId)
         external

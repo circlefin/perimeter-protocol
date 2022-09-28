@@ -29,7 +29,7 @@ library LoanLib {
         address asset,
         uint256 amount,
         ILoanLifeCycleState state,
-        ILoanFungibleCollateral[] storage collateral
+        address[] storage collateral
     ) external returns (ILoanLifeCycleState) {
         // Transfer collateral
         IERC20(asset).safeTransferFrom(msg.sender, collateralVault, amount);
@@ -37,15 +37,13 @@ library LoanLib {
         // Keep track of collateral
         bool found = false;
         for (uint256 i = 0; i < collateral.length; i++) {
-            ILoanFungibleCollateral storage c = collateral[i];
-            if (c.asset == asset) {
-                c.amount += amount;
+            if (collateral[i] == asset) {
                 found = true;
                 break;
             }
         }
         if (!found) {
-            collateral.push(ILoanFungibleCollateral(asset, amount));
+            collateral.push(asset);
         }
 
         // Emit event
@@ -65,15 +63,16 @@ library LoanLib {
     function withdrawFungibleCollateral(
         CollateralVault collateralVault,
         ILoanLifeCycleState state,
-        ILoanFungibleCollateral[] storage collateral
+        address[] storage collateral
     ) external returns (ILoanLifeCycleState) {
         for (uint256 i = 0; i < collateral.length; i++) {
-            ILoanFungibleCollateral storage c = collateral[i];
-            if (c.amount == 0) {
-                continue;
-            }
-            collateralVault.withdraw(c.asset, c.amount, msg.sender);
-            c.amount = 0;
+            address addr = collateral[i];
+            collateralVault.withdraw(
+                addr,
+                IERC20(addr).balanceOf(address(collateralVault)),
+                msg.sender
+            );
+            // TODO clear array
         }
         return ILoanLifeCycleState.Canceled;
     }

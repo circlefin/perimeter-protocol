@@ -164,8 +164,7 @@ describe("Loan", () => {
         -100
       );
       const c = await loan.fungibleCollateral();
-      expect(c[0][0]).to.equal(collateralAsset.address);
-      expect(c[0][1]).to.equal(0);
+      expect(c[0]).to.equal(collateralAsset.address);
       expect(await loan.state()).to.equal(2);
     });
 
@@ -196,8 +195,7 @@ describe("Loan", () => {
 
       // Record the collateral
       let c = await loan.fungibleCollateral();
-      expect(c[0][0]).to.equal(collateralAsset.address);
-      expect(c[0][1]).to.equal(100);
+      expect(c[0]).to.equal(collateralAsset.address);
       expect(c.length).to.equal(1);
 
       // Collateral will be in the vault
@@ -211,8 +209,7 @@ describe("Loan", () => {
 
       // Recorded collateral will be updated (not two records)
       c = await loan.fungibleCollateral();
-      expect(c[0][0]).to.equal(collateralAsset.address);
-      expect(c[0][1]).to.equal(200);
+      expect(c[0]).to.equal(collateralAsset.address);
       expect(c.length).to.equal(1);
 
       // Collateral will be in the vault
