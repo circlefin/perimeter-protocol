@@ -207,4 +207,33 @@ describe("Pool", () => {
       });
     });
   });
+
+  describe("transfer()", async () => {
+    it("transfers are disabled", async () => {
+      const { pool, poolManager, otherAccount } = await loadFixture(
+        loadPoolFixture
+      );
+
+      pool.mint(10, poolManager.address);
+      await expect(
+        pool.connect(poolManager).transfer(otherAccount.address, 10)
+      ).to.be.revertedWith("Pool: transfers disabled");
+    });
+  });
+
+  describe("transferFrom()", async () => {
+    it("transfers are disabled", async () => {
+      const { pool, poolManager, otherAccount } = await loadFixture(
+        loadPoolFixture
+      );
+
+      pool.mint(10, poolManager.address);
+      pool.connect(poolManager).approve(otherAccount.address, 10);
+      await expect(
+        pool
+          .connect(otherAccount)
+          .transferFrom(poolManager.address, otherAccount.address, 10)
+      ).to.be.revertedWith("Pool: transfers disabled");
+    });
+  });
 });

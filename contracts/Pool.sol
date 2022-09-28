@@ -419,4 +419,19 @@ contract Pool is IPool, ERC20 {
     ) external virtual returns (uint256 assets) {
         return 0;
     }
+
+    /*//////////////////////////////////////////////////////////////
+                            ERC-20 Overrides
+    //////////////////////////////////////////////////////////////*/
+
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256
+    ) internal virtual override {
+        require(
+            to == address(0) || from == address(0),
+            "Pool: transfers disabled"
+        );
+    }
 }
