@@ -74,6 +74,24 @@ library LoanLib {
             );
             // TODO clear array
         }
+        // TODO: wrong state
+        return ILoanLifeCycleState.Canceled;
+    }
+
+    /**
+     * @dev get NFTs back
+     */
+    function withdrawNonFungibleCollateral(
+        CollateralVault collateralVault,
+        ILoanLifeCycleState state,
+        ILoanNonFungibleCollateral[] storage collateral
+    ) external returns (ILoanLifeCycleState) {
+        for (uint256 i = 0; i < collateral.length; i++) {
+            ILoanNonFungibleCollateral memory c = collateral[i];
+            // TODO clear array
+            collateralVault.withdrawERC721(c.asset, c.tokenId, msg.sender);
+        }
+        // TODO: wrong state
         return ILoanLifeCycleState.Canceled;
     }
 
