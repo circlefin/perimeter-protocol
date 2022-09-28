@@ -219,6 +219,15 @@ describe("Pool", () => {
         pool.connect(poolManager).transfer(otherAccount.address, 10)
       ).to.be.revertedWith("Pool: transfers disabled");
     });
+
+    it("transfer to zero address is denied", async () => {
+      const { pool, poolManager } = await loadFixture(loadPoolFixture);
+
+      pool.mint(10, poolManager.address);
+      await expect(
+        pool.connect(poolManager).transfer(ethers.constants.AddressZero, 10)
+      ).to.be.revertedWith("ERC20: transfer to the zero address");
+    });
   });
 
   describe("transferFrom()", async () => {
@@ -234,6 +243,20 @@ describe("Pool", () => {
           .connect(otherAccount)
           .transferFrom(poolManager.address, otherAccount.address, 10)
       ).to.be.revertedWith("Pool: transfers disabled");
+    });
+
+    it("transfer to zero address is denied", async () => {
+      const { pool, poolManager, otherAccount } = await loadFixture(
+        loadPoolFixture
+      );
+
+      pool.mint(10, poolManager.address);
+      pool.connect(poolManager).approve(otherAccount.address, 10);
+      await expect(
+        pool
+          .connect(otherAccount)
+          .transferFrom(poolManager.address, ethers.constants.AddressZero, 10)
+      ).to.be.revertedWith("ERC20: transfer to the zero address");
     });
   });
 });

@@ -427,8 +427,9 @@ contract Pool is IPool, ERC20 {
     function _beforeTokenTransfer(
         address from,
         address to,
-        uint256
+        uint256 amount
     ) internal virtual override {
+        super._beforeTokenTransfer(from, to, amount);
         require(
             to == address(0) || from == address(0),
             "Pool: transfers disabled"
