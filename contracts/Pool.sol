@@ -24,6 +24,7 @@ contract Pool is IPool, ERC20 {
     IERC20 private _liquidityAsset;
     PoolConfigurableSettings private _poolSettings;
     FirstLossVault private _firstLossVault;
+    IPoolAccountings private _accountings;
 
     /**
      * @dev Modifier that checks that the caller is the pool's manager.
@@ -57,6 +58,17 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
+     * @dev Modifier that checks that the pool is Initialized or Active
+     */
+    modifier atState(PoolLifeCycleState state) {
+        require(
+            _poolLifeCycleState == state,
+            "Pool: FunctionInvalidAtThisLifeCycleState"
+        );
+        _;
+    }
+
+    /**
      * @dev Constructor for Pool
      * @param liquidityAsset asset held by the poo
      * @param poolManager manager of the pool
@@ -75,7 +87,6 @@ contract Pool is IPool, ERC20 {
         _poolSettings = poolSettings;
         _manager = poolManager;
         _poolLifeCycleState = PoolLifeCycleState.Initialized;
-
         _firstLossVault = new FirstLossVault(address(this), liquidityAsset);
     }
 
@@ -109,6 +120,13 @@ contract Pool is IPool, ERC20 {
      */
     function firstLoss() external view override returns (uint256) {
         return _liquidityAsset.balanceOf(address(_firstLossVault));
+    }
+
+    /**
+     * @dev The pool accounting variables;
+     */
+    function accountings() external view returns (IPoolAccountings memory) {
+        return _accountings;
     }
 
     /**
@@ -195,7 +213,17 @@ contract Pool is IPool, ERC20 {
         view
         override
         returns (uint256)
-    {}
+    {
+        return
+            PoolLib.calculateAssetsToShares(
+                assets,
+                this.totalSupply(),
+                PoolLib.calculateNav(
+                    this.totalAssets(),
+                    _accountings.defaultsTotal
+                )
+            );
+    }
 
     /**
      * @dev Calculates the amount of assets that would be exchanged by the vault for the amount of shares provided.
@@ -218,7 +246,14 @@ contract Pool is IPool, ERC20 {
         override
         returns (uint256)
     {
-        return 0;
+        // TODO: check permissions on receiver AND sender to see if they are elligible to deposit and receive shares, respectively.
+        // Per EIP 4626, this MUST include both user and global-specific limits, resulting in a 0 maximum if a deposit is not allowed.
+        return
+            PoolLib.calculateMaxDeposit(
+                _poolLifeCycleState,
+                _poolSettings.maxCapacity,
+                this.totalAssets()
+            );
     }
 
     /**
@@ -230,7 +265,38 @@ contract Pool is IPool, ERC20 {
         override
         returns (uint256)
     {
-        return 0;
+        return
+            PoolLib.calculateAssetsToShares(
+                assets,
+                this.totalSupply(),
+                PoolLib.calculateNav(
+                    this.totalAssets(),
+                    _accountings.defaultsTotal
+                )
+            );
+    }
+
+    /**
+     * @dev Deposits assets of underlying tokens into the vault and grants ownership of shares to receiver.
+     * Emits a {Deposit} event.
+     */
+    function deposit(uint256 assets, address receiver)
+        external
+        virtual
+        override
+        atState(PoolLifeCycleState.Active)
+        returns (uint256 shares)
+    {
+        // TODO: check lender ACLs for both msg.sender and receiver
+        shares = PoolLib.executeDeposit(
+            this.asset(),
+            address(this),
+            receiver,
+            assets,
+            this.previewDeposit(assets),
+            this.maxDeposit(receiver),
+            _mint
+        );
     }
 
     /**
@@ -311,19 +377,12 @@ contract Pool is IPool, ERC20 {
      * @dev Calculate the total amount of underlying assets held by the vault.
      */
     function totalAssets() external view returns (uint256) {
-        return 0;
-    }
-
-    /**
-     * @dev Deposits assets of underlying tokens into the vault and grants ownership of shares to receiver.
-     * Emits a {Deposit} event.
-     */
-    function deposit(uint256 assets, address receiver)
-        external
-        virtual
-        returns (uint256 shares)
-    {
-        return 0;
+        return
+            PoolLib.calculateTotalAssets(
+                address(_liquidityAsset),
+                address(this),
+                _accountings.activeLoanPrincipals
+            );
     }
 
     /**
