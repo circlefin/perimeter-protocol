@@ -46,7 +46,7 @@ contract PermissionedPool is Pool {
     function deposit(
         uint256, /* assets */
         address /* receiver */
-    ) external view override onlyValidLender returns (uint256 shares) {
+    ) external override onlyValidLender returns (uint256 shares) {
         return 0;
     }
 
@@ -57,7 +57,7 @@ contract PermissionedPool is Pool {
         uint256, /* assets */
         address, /* receiver */
         address /* owner */
-    ) external view override onlyValidLender returns (uint256 shares) {
+    ) external override onlyValidLender returns (uint256 shares) {
         return 0;
     }
 
@@ -68,7 +68,7 @@ contract PermissionedPool is Pool {
         uint256, /* shares */
         address, /* receiver */
         address /* owner */
-    ) external view override onlyValidLender returns (uint256 assets) {
+    ) external override onlyValidLender returns (uint256 assets) {
         return 0;
     }
 }

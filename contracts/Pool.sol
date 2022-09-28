@@ -282,6 +282,8 @@ contract Pool is IPool, ERC20 {
      */
     function deposit(uint256 assets, address receiver)
         external
+        virtual
+        override
         atState(PoolLifeCycleState.Active)
         returns (uint256 shares)
     {
