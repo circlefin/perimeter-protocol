@@ -3,8 +3,6 @@ pragma solidity ^0.8.16;
 
 import "./interfaces/ILoan.sol";
 import "./interfaces/IPool.sol";
-import "./PoolConfigurableSettings.sol";
-import "./PoolLifeCycleState.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -19,10 +17,10 @@ import "./FirstLossVault.sol";
 contract Pool is IPool, ERC20 {
     using SafeERC20 for IERC20;
 
-    PoolLifeCycleState private _poolLifeCycleState;
+    IPoolLifeCycleState private _poolLifeCycleState;
     address private _manager;
     IERC20 private _liquidityAsset;
-    PoolConfigurableSettings private _poolSettings;
+    IPoolConfigurableSettings private _poolSettings;
     FirstLossVault private _firstLossVault;
     IPoolAccountings private _accountings;
 
@@ -48,10 +46,10 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev Modifier that checks that the pool is Initialized or Active
      */
-    modifier poolInitializedOrActive() {
+    modifier atInitializedOrActiveState() {
         require(
-            _poolLifeCycleState == PoolLifeCycleState.Active ||
-                _poolLifeCycleState == PoolLifeCycleState.Initialized,
+            _poolLifeCycleState == IPoolLifeCycleState.Active ||
+                _poolLifeCycleState == IPoolLifeCycleState.Initialized,
             "Pool: invalid pool state"
         );
         _;
@@ -60,7 +58,7 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev Modifier that checks that the pool is Initialized or Active
      */
-    modifier atState(PoolLifeCycleState state) {
+    modifier atState(IPoolLifeCycleState state) {
         require(
             _poolLifeCycleState == state,
             "Pool: FunctionInvalidAtThisLifeCycleState"
@@ -79,21 +77,22 @@ contract Pool is IPool, ERC20 {
     constructor(
         address liquidityAsset,
         address poolManager,
-        PoolConfigurableSettings memory poolSettings,
+        IPoolConfigurableSettings memory poolSettings,
         string memory tokenName,
         string memory tokenSymbol
     ) ERC20(tokenName, tokenSymbol) {
         _liquidityAsset = IERC20(liquidityAsset);
         _poolSettings = poolSettings;
         _manager = poolManager;
-        _poolLifeCycleState = PoolLifeCycleState.Initialized;
+        _poolLifeCycleState = IPoolLifeCycleState.Initialized;
+
         _firstLossVault = new FirstLossVault(address(this), liquidityAsset);
     }
 
     /**
      * @dev Returns the current pool lifecycle state.
      */
-    function lifeCycleState() external view returns (PoolLifeCycleState) {
+    function lifeCycleState() external view returns (IPoolLifeCycleState) {
         return _poolLifeCycleState;
     }
 
@@ -103,7 +102,7 @@ contract Pool is IPool, ERC20 {
     function settings()
         external
         view
-        returns (PoolConfigurableSettings memory settings)
+        returns (IPoolConfigurableSettings memory settings)
     {
         return _poolSettings;
     }
@@ -135,7 +134,7 @@ contract Pool is IPool, ERC20 {
     function supplyFirstLoss(uint256 amount)
         external
         onlyManager
-        poolInitializedOrActive
+        atInitializedOrActiveState
     {
         _poolLifeCycleState = PoolLib.executeFirstLossContribution(
             address(_liquidityAsset),
@@ -177,9 +176,9 @@ contract Pool is IPool, ERC20 {
     function nextWithdrawalWindow(uint256)
         external
         view
-        returns (PoolWithdrawalPeriod memory)
+        returns (IPoolWithdrawalPeriod memory)
     {
-        return PoolWithdrawalPeriod(0, 0);
+        return IPoolWithdrawalPeriod(0, 0);
     }
 
     /**
@@ -284,7 +283,7 @@ contract Pool is IPool, ERC20 {
         external
         virtual
         override
-        atState(PoolLifeCycleState.Active)
+        atState(IPoolLifeCycleState.Active)
         returns (uint256 shares)
     {
         // TODO: check lender ACLs for both msg.sender and receiver

@@ -33,7 +33,7 @@ contract PoolFactory {
         uint256 withdrawalFee
     ) public virtual returns (address poolAddress) {
         uint256 firstLossInitialMinimum = 0; // TODO: take from ServiceConfig
-        PoolConfigurableSettings memory settings = PoolConfigurableSettings(
+        IPoolConfigurableSettings memory settings = IPoolConfigurableSettings(
             maxCapacity,
             endDate,
             withdrawalFee,

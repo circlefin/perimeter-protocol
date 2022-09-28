@@ -2,9 +2,6 @@
 pragma solidity ^0.8.16;
 
 import "./IERC4626.sol";
-import "../PoolLifeCycleState.sol";
-import "../PoolWithdrawalPeriod.sol";
-import "../PoolConfigurableSettings.sol";
 
 /**
  * @title Data type storing collected accounting statistics
@@ -15,13 +12,42 @@ struct IPoolAccountings {
 }
 
 /**
+ * @title Expresses the various states a pool can be in throughout its lifecycle.
+ */
+enum IPoolLifeCycleState {
+    Initialized,
+    Active,
+    Paused,
+    Closed
+}
+
+/**
+ * @title The various configurable settings that customize Pool behavior.
+ */
+struct IPoolConfigurableSettings {
+    uint256 maxCapacity; // amount
+    uint256 endDate; // epoch seconds
+    uint256 withdrawalFee; // bips
+    uint256 firstLossInitialMinimum; // amount
+    // TODO: add in Pool fees
+}
+
+/**
+ * @title Contains the start and enddate of a given withdrawal period.
+ */
+struct IPoolWithdrawalPeriod {
+    uint256 start;
+    uint256 end;
+}
+
+/**
  * @title The interface for liquidity pools.
  */
 interface IPool is IERC4626 {
     /**
      * @dev Emitted when the pool transitions a lifecycle state.
      */
-    event LifeCycleStateTransition(PoolLifeCycleState state);
+    event LifeCycleStateTransition(IPoolLifeCycleState state);
 
     /**
      * @dev Emitted when a loan is funded from the pool.
@@ -46,12 +72,12 @@ interface IPool is IERC4626 {
     /**
      * @dev Emitted when pool settings are updated.
      */
-    event PoolSettingsUpdated(PoolConfigurableSettings settings);
+    event PoolSettingsUpdated(IPoolConfigurableSettings settings);
 
     /**
      * @dev Returns the current pool lifecycle state.
      */
-    function lifeCycleState() external view returns (PoolLifeCycleState);
+    function lifeCycleState() external view returns (IPoolLifeCycleState);
 
     /**
      * @dev The current configurable pool settings.
@@ -59,7 +85,7 @@ interface IPool is IERC4626 {
     function settings()
         external
         view
-        returns (PoolConfigurableSettings memory settings);
+        returns (IPoolConfigurableSettings memory settings);
 
     /**
      * @dev The manager for the pool.
@@ -102,7 +128,7 @@ interface IPool is IERC4626 {
     function nextWithdrawalWindow(uint256)
         external
         view
-        returns (PoolWithdrawalPeriod memory);
+        returns (IPoolWithdrawalPeriod memory);
 
     /**
      * @dev Submits a withdrawal request, incurring a fee.
