@@ -2,20 +2,25 @@
 pragma solidity ^0.8.16;
 
 import "./Pool.sol";
-import "./ServiceConfigurable.sol";
+import "./interfaces/IServiceConfiguration.sol";
 
 /**
  * @title PoolFactory
  */
-contract PoolFactory is ServiceConfigurable {
+contract PoolFactory {
+    /**
+     * @dev Reference to the ServiceConfiguration contract
+     */
+    IServiceConfiguration private _serviceConfiguration;
+
     /**
      * @dev Emitted when a pool is created.
      */
     event PoolCreated(address indexed addr);
 
-    constructor(address serviceConfiguration)
-        ServiceConfigurable(serviceConfiguration)
-    {}
+    constructor(address serviceConfiguration) {
+        _serviceConfiguration = IServiceConfiguration(serviceConfiguration);
+    }
 
     /**
      * @dev Creates a pool

@@ -1,15 +1,14 @@
 import { ethers } from "hardhat";
 
 async function main() {
-  const PoolManagerPermission = await ethers.getContractFactory(
-    "PoolManagerPermission"
+  const ServiceConfiguration = await ethers.getContractFactory(
+    "ServiceConfiguration"
   );
-  const poolManagerPermission = await PoolManagerPermission.deploy();
-
-  await poolManagerPermission.deployed();
+  const serviceConfiguration = await ServiceConfiguration.deploy();
+  await serviceConfiguration.deployed();
 
   console.log(
-    `PoolManagerPermission deployed to ${poolManagerPermission.address}`
+    `ServiceConfiguration deployed to ${serviceConfiguration.address}`
   );
 }
 

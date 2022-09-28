@@ -3,7 +3,6 @@ pragma solidity ^0.8.16;
 
 import "./interfaces/ILoan.sol";
 import "./interfaces/IPool.sol";
-import "./ServiceConfigurable.sol";
 import "./PoolConfigurableSettings.sol";
 import "./PoolLifeCycleState.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -321,6 +320,7 @@ contract Pool is IPool, ERC20 {
      */
     function deposit(uint256 assets, address receiver)
         external
+        virtual
         returns (uint256 shares)
     {
         return 0;
@@ -345,7 +345,7 @@ contract Pool is IPool, ERC20 {
         uint256 assets,
         address receiver,
         address owner
-    ) external returns (uint256 shares) {
+    ) external virtual returns (uint256 shares) {
         return 0;
     }
 
@@ -357,7 +357,7 @@ contract Pool is IPool, ERC20 {
         uint256 shares,
         address receiver,
         address owner
-    ) external returns (uint256 assets) {
+    ) external virtual returns (uint256 assets) {
         return 0;
     }
 }
