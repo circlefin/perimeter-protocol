@@ -40,6 +40,7 @@ library LoanLib {
             if (c.asset == asset) {
                 c.amount += amount;
                 found = true;
+                break;
             }
         }
         if (!found) {
