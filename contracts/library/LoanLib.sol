@@ -27,10 +27,19 @@ library LoanLib {
         address collateralVault,
         address asset,
         uint256 amount,
-        ILoanLifeCycleState state
+        ILoanLifeCycleState state,
+        ILoanFungibleCollateral[] storage collateral
     ) external returns (ILoanLifeCycleState) {
+        // Transfer collateral
         IERC20(asset).safeTransferFrom(msg.sender, collateralVault, amount);
+
+        // Keep track of collateral
+        collateral.push(ILoanFungibleCollateral(asset, amount));
+
+        // Emit event
         emit PostedCollateral(asset, amount);
+
+        // Determine state
         if (state == ILoanLifeCycleState.Requested) {
             return ILoanLifeCycleState.Collateralized;
         } else {

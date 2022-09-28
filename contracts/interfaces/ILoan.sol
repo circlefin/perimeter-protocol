@@ -39,6 +39,11 @@ interface ILoan {
         external
         returns (ILoanLifeCycleState);
 
+    function fungibleCollateral()
+        external
+        view
+        returns (ILoanFungibleCollateral[] memory);
+
     function postNonFungibleCollateral(address asset, uint256 tokenId)
         external
         returns (ILoanLifeCycleState);

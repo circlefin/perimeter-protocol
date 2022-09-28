@@ -15,6 +15,7 @@ contract Loan is ILoan {
     address private immutable _borrower;
     address private immutable _pool;
     CollateralVault public immutable _collateralVault;
+    ILoanFungibleCollateral[] private _fungibleCollateral;
 
     /**
      * @dev Modifier that requires the Loan be in the given `state_`
@@ -108,9 +109,18 @@ contract Loan is ILoan {
             address(_collateralVault),
             asset,
             amount,
-            _state
+            _state,
+            _fungibleCollateral
         );
         return _state;
+    }
+
+    function fungibleCollateral()
+        external
+        view
+        returns (ILoanFungibleCollateral[] memory)
+    {
+        return _fungibleCollateral;
     }
 
     /**

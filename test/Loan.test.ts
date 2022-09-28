@@ -155,7 +155,7 @@ describe("Loan", () => {
   });
 
   describe("postFungibleCollateral", () => {
-    it("transitions Loan to canceled state", async () => {
+    it("transitions Loan to collateralized state", async () => {
       const fixture = await loadFixture(deployFixture);
       let { loan } = fixture;
       const { borrower, collateralAsset } = fixture;
@@ -169,6 +169,11 @@ describe("Loan", () => {
       await expect(loan.postFungibleCollateral(collateralAsset.address, 100))
         .not.to.be.reverted;
       expect(await loan.state()).to.equal(1);
+
+      const c = await loan.fungibleCollateral();
+      expect(c[0][0]).to.equal(collateralAsset.address);
+      expect(c[0][1]).to.equal(100);
+      expect(c.length).to.equal(1);
 
       //
       const collateralVault = await loan._collateralVault();
