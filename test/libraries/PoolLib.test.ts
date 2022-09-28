@@ -27,17 +27,17 @@ describe("PoolLib", () => {
     const liquidityAsset = await LiquidityAsset.deploy("Test Coin", "TC");
     await liquidityAsset.deployed();
 
+    await liquidityAsset.mint(caller.address, FIRST_LOSS_AMOUNT);
+    await liquidityAsset
+      .connect(caller)
+      .approve(poolLibWrapper.address, FIRST_LOSS_AMOUNT);
+
     const FirstLossVault = await ethers.getContractFactory("FirstLossVault");
     const firstLossVault = await FirstLossVault.deploy(
       poolLibWrapper.address,
       liquidityAsset.address
     );
-    await liquidityAsset.deployed();
-
-    await liquidityAsset.mint(caller.address, FIRST_LOSS_AMOUNT);
-    await liquidityAsset
-      .connect(caller)
-      .approve(poolLibWrapper.address, FIRST_LOSS_AMOUNT);
+    await firstLossVault.deployed();
 
     return {
       poolLibWrapper,
