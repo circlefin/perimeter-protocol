@@ -34,7 +34,17 @@ library LoanLib {
         IERC20(asset).safeTransferFrom(msg.sender, collateralVault, amount);
 
         // Keep track of collateral
-        collateral.push(ILoanFungibleCollateral(asset, amount));
+        bool found = false;
+        for (uint256 i = 0; i < collateral.length; i++) {
+            ILoanFungibleCollateral storage c = collateral[i];
+            if (c.asset == asset) {
+                c.amount += amount;
+                found = true;
+            }
+        }
+        if (!found) {
+            collateral.push(ILoanFungibleCollateral(asset, amount));
+        }
 
         // Emit event
         emit PostedCollateral(asset, amount);

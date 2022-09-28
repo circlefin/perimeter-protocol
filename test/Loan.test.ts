@@ -170,14 +170,29 @@ describe("Loan", () => {
         .not.to.be.reverted;
       expect(await loan.state()).to.equal(1);
 
-      const c = await loan.fungibleCollateral();
+      // Record the collateral
+      let c = await loan.fungibleCollateral();
       expect(c[0][0]).to.equal(collateralAsset.address);
       expect(c[0][1]).to.equal(100);
       expect(c.length).to.equal(1);
 
-      //
+      // Collateral will be in the vault
       const collateralVault = await loan._collateralVault();
       expect(await collateralAsset.balanceOf(collateralVault)).to.equal(100);
+
+      // Post collateral again
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await expect(loan.postFungibleCollateral(collateralAsset.address, 100))
+        .not.to.be.reverted;
+
+      // Recorded collateral will be updated (not two records)
+      c = await loan.fungibleCollateral();
+      expect(c[0][0]).to.equal(collateralAsset.address);
+      expect(c[0][1]).to.equal(200);
+      expect(c.length).to.equal(1);
+
+      // Collateral will be in the vault
+      expect(await collateralAsset.balanceOf(collateralVault)).to.equal(200);
     });
 
     it("emits PostedCollateral event", async () => {
