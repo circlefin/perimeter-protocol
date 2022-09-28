@@ -9,7 +9,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
  * @dev Wrapper around PoolLib to facilitate testing.
  */
 contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
-    event LifeCycleStateTransition(PoolLifeCycleState state);
+    event LifeCycleStateTransition(IPoolLifeCycleState state);
     event FirstLossSupplied(address indexed supplier, uint256 amount);
     event Deposit(
         address indexed caller,
@@ -64,7 +64,7 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
     }
 
     function calculateMaxDeposit(
-        PoolLifeCycleState poolLifeCycleState,
+        IPoolLifeCycleState poolLifeCycleState,
         uint256 poolMaxCapacity,
         uint256 totalAssets
     ) external pure returns (uint256) {

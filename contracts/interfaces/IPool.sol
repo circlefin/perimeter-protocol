@@ -4,13 +4,14 @@ pragma solidity ^0.8.16;
 import "./IERC4626.sol";
 
 /**
-<<<<<<< HEAD
  * @title Data type storing collected accounting statistics
  */
 struct IPoolAccountings {
     uint256 defaultsTotal;
     uint256 activeLoanPrincipals;
-=======
+}
+
+/**
  * @title Expresses the various states a pool can be in throughout its lifecycle.
  */
 enum IPoolLifeCycleState {
@@ -18,7 +19,6 @@ enum IPoolLifeCycleState {
     Active,
     Paused,
     Closed
->>>>>>> f4ec574 (Move PoolLifecycleState)
 }
 
 /**

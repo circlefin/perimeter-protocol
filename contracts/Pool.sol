@@ -58,7 +58,7 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev Modifier that checks that the pool is Initialized or Active
      */
-    modifier atState(PoolLifeCycleState state) {
+    modifier atState(IPoolLifeCycleState state) {
         require(
             _poolLifeCycleState == state,
             "Pool: FunctionInvalidAtThisLifeCycleState"
@@ -283,7 +283,7 @@ contract Pool is IPool, ERC20 {
         external
         virtual
         override
-        atState(PoolLifeCycleState.Active)
+        atState(IPoolLifeCycleState.Active)
         returns (uint256 shares)
     {
         // TODO: check lender ACLs for both msg.sender and receiver

@@ -133,12 +133,12 @@ library PoolLib {
      * @return Max deposit allowed
      */
     function calculateMaxDeposit(
-        PoolLifeCycleState poolLifeCycleState,
+        IPoolLifeCycleState poolLifeCycleState,
         uint256 poolMaxCapacity,
         uint256 totalAssets
     ) external pure returns (uint256) {
         return
-            poolLifeCycleState == PoolLifeCycleState.Active
+            poolLifeCycleState == IPoolLifeCycleState.Active
                 ? poolMaxCapacity - totalAssets
                 : 0;
     }
