@@ -136,12 +136,33 @@ describe("Loan", () => {
 
       // Post collateral
       await collateralAsset.connect(borrower).approve(loan.address, 100);
-      await expect(loan.postFungibleCollateral(collateralAsset.address, 100))
-        .not.to.be.reverted;
+      const tx = loan.postFungibleCollateral(collateralAsset.address, 100);
+      await expect(tx).not.to.be.reverted;
+      await expect(tx).to.changeTokenBalance(
+        collateralAsset,
+        borrower.address,
+        -100
+      );
+      await expect(tx).to.changeTokenBalance(
+        collateralAsset,
+        await loan._collateralVault(),
+        +100
+      );
       expect(await loan.state()).to.equal(1);
 
       // Cancel
-      await expect(loan.cancelCollateralized()).not.to.be.reverted;
+      const tx2 = loan.cancelCollateralized();
+      await expect(tx2).not.to.be.reverted;
+      await expect(tx2).to.changeTokenBalance(
+        collateralAsset,
+        borrower.address,
+        +100
+      );
+      await expect(tx2).to.changeTokenBalance(
+        collateralAsset,
+        await loan._collateralVault(),
+        -100
+      );
       expect(await loan.state()).to.equal(2);
     });
 

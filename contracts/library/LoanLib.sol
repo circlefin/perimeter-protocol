@@ -6,6 +6,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 import "../interfaces/ILoan.sol";
+import "../CollateralVault.sol";
 
 library LoanLib {
     using SafeERC20 for IERC20;
@@ -56,6 +57,25 @@ library LoanLib {
         } else {
             return state;
         }
+    }
+
+    /**
+     * @dev get Collateral back
+     */
+    function withdrawFungibleCollateral(
+        CollateralVault collateralVault,
+        ILoanLifeCycleState state,
+        ILoanFungibleCollateral[] storage collateral
+    ) external returns (ILoanLifeCycleState) {
+        for (uint256 i = 0; i < collateral.length; i++) {
+            ILoanFungibleCollateral storage c = collateral[i];
+            if (c.amount == 0) {
+                continue;
+            }
+            collateralVault.withdraw(c.asset, c.amount, msg.sender);
+            c.amount = 0;
+        }
+        return ILoanLifeCycleState.Canceled;
     }
 
     /**

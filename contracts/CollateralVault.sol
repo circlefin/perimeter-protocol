@@ -18,4 +18,16 @@ contract CollateralVault is ERC721Holder {
     constructor(address loan) {
         _loan = loan;
     }
+
+    /**
+     * @dev Allows withdrawal of funds held by vault.
+     */
+    function withdraw(
+        address asset,
+        uint256 amount,
+        address receiver
+    ) external onlyLoan {
+        require(receiver != address(0), "CollateralVault: 0 address");
+        IERC20(asset).safeTransfer(receiver, amount);
+    }
 }
