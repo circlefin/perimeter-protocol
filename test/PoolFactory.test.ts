@@ -37,7 +37,7 @@ describe("PoolFactory", () => {
     const { poolFactory } = await loadFixture(deployFixture);
 
     await expect(
-      poolFactory.createPool(MOCK_LIQUIDITY_ADDRESS, 0, 0, 0)
+      poolFactory.createPool(MOCK_LIQUIDITY_ADDRESS, 0, 0, 0, 0)
     ).to.emit(poolFactory, "PoolCreated");
   });
 });

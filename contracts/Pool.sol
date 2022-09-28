@@ -211,6 +211,20 @@ contract Pool is IPool, ERC20 {
                     Withdrawal Request Methods
     //////////////////////////////////////////////////////////////*/
 
+    function currentWithdrawWindowIndex() external view returns (uint256) {
+        if (_poolLifeCycleState != IPoolLifeCycleState.Active) {
+            return 0;
+        }
+
+        return
+            (block.timestamp - _poolLifeCycleStateTimestamp) /
+            _poolSettings.withdrawWindowDurationSeconds;
+    }
+
+    function nextWithdrawWindowIndex() external view returns (uint256) {
+        return 0;
+    }
+
     /**
      * @dev Set the pool lifecycle state. If the state changes, this method
      * will also update the _poolLifeCycleStateTimestamp variable
