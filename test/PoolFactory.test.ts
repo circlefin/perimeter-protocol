@@ -33,11 +33,19 @@ describe("PoolFactory", () => {
     };
   }
 
-  it("emits PoolCreated", async () => {
+  it("reverts if given a zero withdraw window", async () => {
     const { poolFactory } = await loadFixture(deployFixture);
 
     await expect(
       poolFactory.createPool(MOCK_LIQUIDITY_ADDRESS, 0, 0, 0, 0)
+    ).to.be.revertedWith("PoolFactory: Invalid duration");
+  });
+
+  it("emits PoolCreated", async () => {
+    const { poolFactory } = await loadFixture(deployFixture);
+
+    await expect(
+      poolFactory.createPool(MOCK_LIQUIDITY_ADDRESS, 0, 0, 0, 1)
     ).to.emit(poolFactory, "PoolCreated");
   });
 });

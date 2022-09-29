@@ -45,7 +45,7 @@ describe("Loan", () => {
       0,
       0,
       0,
-      0
+      1
     );
     const tx1Receipt = await tx1.wait();
 

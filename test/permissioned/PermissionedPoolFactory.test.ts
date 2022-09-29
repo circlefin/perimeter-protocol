@@ -69,7 +69,7 @@ describe("PermissionedPoolFactory", () => {
     await expect(
       poolFactory
         .connect(otherAccount)
-        .createPool(MOCK_LIQUIDITY_ADDRESS, 0, 0, 0, 0)
+        .createPool(MOCK_LIQUIDITY_ADDRESS, 0, 0, 0, 1)
     ).to.emit(poolFactory, "PoolCreated");
   });
 
@@ -80,7 +80,7 @@ describe("PermissionedPoolFactory", () => {
     await poolManagerAccessControl.allow(otherAccount.getAddress());
 
     await expect(
-      poolFactory.createPool(MOCK_LIQUIDITY_ADDRESS, 0, 0, 0, 0)
+      poolFactory.createPool(MOCK_LIQUIDITY_ADDRESS, 0, 0, 0, 1)
     ).to.be.revertedWith("caller is not a pool manager");
   });
 });
