@@ -30,6 +30,11 @@ contract Pool is IPool, ERC20 {
     uint256 public poolActivatedAt;
 
     /**
+     * @dev a mapping of addresses to their withdraw requests
+     */
+    mapping(address => mapping(uint256 => uint256)) private _withdrawRequests;
+
+    /**
      * @dev Modifier that checks that the caller is the pool's manager.
      */
     modifier onlyManager() {
@@ -68,6 +73,14 @@ contract Pool is IPool, ERC20 {
             _poolLifeCycleState == state,
             "Pool: FunctionInvalidAtThisLifeCycleState"
         );
+        _;
+    }
+
+    /**
+     * @dev Modifier to check that the pool has ever been activated
+     */
+    modifier onlyActivatedPool() {
+        require(poolActivatedAt > 0, "Pool: PoolNotActive");
         _;
     }
 
@@ -217,9 +230,12 @@ contract Pool is IPool, ERC20 {
      * @dev Returns the next withdrawal window timestamp, at which a withdrawal
      * could be completed.
      */
-    function currentWithdrawWindowTimestamp() external view returns (uint256) {
-        require(poolActivatedAt > 0, "Pool: PoolNotActive");
-
+    function currentWithdrawWindowTimestamp()
+        external
+        view
+        onlyActivatedPool
+        returns (uint256)
+    {
         uint256 timestamp = poolActivatedAt +
             (_currentWithdrawWindowIndex() *
                 _poolSettings.withdrawWindowDurationSeconds);
@@ -235,7 +251,12 @@ contract Pool is IPool, ERC20 {
      * @dev Returns the next withdrawal window timestamp, at which a withdrawal
      * could be completed.
      */
-    function nextWithdrawWindowTimestamp() external view returns (uint256) {
+    function nextWithdrawWindowTimestamp()
+        external
+        view
+        onlyActivatedPool
+        returns (uint256)
+    {
         return
             this.currentWithdrawWindowTimestamp() +
             _poolSettings.withdrawWindowDurationSeconds;
@@ -244,7 +265,19 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev Submits a withdrawal request, incurring a fee.
      */
-    function requestWithdrawal(uint256) external view onlyLender {}
+    function requestWithdraw(uint256 amount)
+        external
+        onlyActivatedPool
+        onlyLender
+    {
+        require(balanceOf(msg.sender) >= amount, "Pool: InsufficientBalance");
+
+        _withdrawRequests[msg.sender][
+            _currentWithdrawWindowIndex() + 1
+        ] = amount;
+
+        emit WithdrawRequested(msg.sender, amount);
+    }
 
     function _currentWithdrawWindowIndex() internal view returns (uint256) {
         // If the pool has not yet been activated, the withdrawal window

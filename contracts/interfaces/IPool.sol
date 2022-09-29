@@ -68,7 +68,7 @@ interface IPool is IERC4626 {
     /**
      * @dev Emitted when a withdrawal is requested.
      */
-    event WithdrawalRequested(address indexed lender, uint256 amount);
+    event WithdrawRequested(address indexed lender, uint256 amount);
 
     /**
      * @dev Emitted when pool settings are updated.
@@ -144,7 +144,7 @@ interface IPool is IERC4626 {
     /**
      * @dev Submits a withdrawal request, incurring a fee.
      */
-    function requestWithdrawal(uint256) external view;
+    function requestWithdraw(uint256) external;
 
     /**
      * @dev Called by the pool manager, this transfers liquidity from the pool to a given loan.
