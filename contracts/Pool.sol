@@ -9,6 +9,8 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import "./libraries/PoolLib.sol";
 import "./FirstLossVault.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @title Pool
  *
@@ -272,7 +274,7 @@ contract Pool is IPool, ERC20 {
             PoolLib.calculateAssetsToShares(
                 assets,
                 this.totalSupply(),
-                PoolLib.calculateNav(
+                PoolLib.calculateNavAggregate(
                     this.totalAssets(),
                     _accountings.defaultsTotal
                 )
@@ -288,20 +290,27 @@ contract Pool is IPool, ERC20 {
         override
         returns (uint256)
     {
-        return 0;
+        return
+            PoolLib.calculateSharesToAssets(
+                shares,
+                totalSupply(),
+                PoolLib.calculateNavAggregate(
+                    this.totalAssets(),
+                    _accountings.defaultsTotal
+                )
+            );
     }
 
     /**
      * @dev Calculates the maximum amount of underlying assets that can be deposited in a single deposit call by the receiver.
      */
-    function maxDeposit(address receiver)
-        external
+    function maxDeposit(address)
+        public
         view
+        virtual
         override
         returns (uint256)
     {
-        // TODO: check permissions on receiver AND sender to see if they are elligible to deposit and receive shares, respectively.
-        // Per EIP 4626, this MUST include both user and global-specific limits, resulting in a 0 maximum if a deposit is not allowed.
         return
             PoolLib.calculateMaxDeposit(
                 _poolLifeCycleState,
@@ -319,15 +328,7 @@ contract Pool is IPool, ERC20 {
         override
         returns (uint256)
     {
-        return
-            PoolLib.calculateAssetsToShares(
-                assets,
-                this.totalSupply(),
-                PoolLib.calculateNav(
-                    this.totalAssets(),
-                    _accountings.defaultsTotal
-                )
-            );
+        return this.convertToShares(assets);
     }
 
     /**
@@ -335,13 +336,12 @@ contract Pool is IPool, ERC20 {
      * Emits a {Deposit} event.
      */
     function deposit(uint256 assets, address receiver)
-        external
+        public
         virtual
         override
         atState(IPoolLifeCycleState.Active)
         returns (uint256 shares)
     {
-        // TODO: check lender ACLs for both msg.sender and receiver
         shares = PoolLib.executeDeposit(
             this.asset(),
             address(this),
@@ -357,12 +357,13 @@ contract Pool is IPool, ERC20 {
      * @dev Returns the maximum amount of shares that can be minted in a single mint call by the receiver.
      */
     function maxMint(address receiver)
-        external
+        public
         view
+        virtual
         override
         returns (uint256)
     {
-        return 0;
+        return this.previewDeposit(this.maxDeposit(receiver));
     }
 
     /**
@@ -372,9 +373,33 @@ contract Pool is IPool, ERC20 {
         external
         view
         override
-        returns (uint256)
+        returns (uint256 assets)
     {
-        return 0;
+        return this.convertToAssets(shares);
+    }
+
+    /**
+     * @dev Mints exactly shares vault shares to receiver by depositing assets of underlying tokens.
+     * Emits a {Deposit} event.
+     */
+    function mint(uint256 shares, address receiver)
+        public
+        virtual
+        override
+        atState(IPoolLifeCycleState.Active)
+        returns (uint256 assets)
+    {
+        assets = this.previewMint(shares);
+        console.log(assets);
+        PoolLib.executeDeposit(
+            this.asset(),
+            address(this),
+            receiver,
+            assets,
+            this.previewDeposit(assets),
+            this.maxDeposit(receiver),
+            _mint
+        );
     }
 
     /**
@@ -437,17 +462,6 @@ contract Pool is IPool, ERC20 {
                 address(this),
                 _accountings.activeLoanPrincipals
             );
-    }
-
-    /**
-     * @dev Mints exactly shares vault shares to receiver by depositing assets of underlying tokens.
-     * Emits a {Deposit} event.
-     */
-    function mint(uint256 shares, address receiver)
-        external
-        returns (uint256 assets)
-    {
-        return 0;
     }
 
     /**

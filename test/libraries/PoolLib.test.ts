@@ -214,11 +214,11 @@ describe("PoolLib", () => {
     });
   });
 
-  describe("calculateNav()", async () => {
+  describe("calculateNavAggregate()", async () => {
     it("deducts withdrawals from total assets", async () => {
       const { poolLibWrapper } = await loadFixture(deployFixture);
 
-      expect(await poolLibWrapper.calculateNav(100, 25)).to.equal(75);
+      expect(await poolLibWrapper.calculateNavAggregate(100, 25)).to.equal(75);
     });
   });
 
@@ -347,6 +347,32 @@ describe("PoolLib", () => {
 
   describe("calculateAssetsToShares()", async () => {
     it("calculates 1:1 shares if token supply is zero", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      expect(await poolLibWrapper.calculateAssetsToShares(500, 0, 0)).to.equal(
+        500
+      );
+    });
+
+    it("calculates <1:1 if nav has increased in value", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      expect(
+        await poolLibWrapper.calculateAssetsToShares(500, 500, 525)
+      ).to.equal(476);
+    });
+
+    it("calculates >1:1 if nav has decreased in value", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      expect(
+        await poolLibWrapper.calculateAssetsToShares(500, 500, 400)
+      ).to.equal(625);
+    });
+  });
+
+  describe("calculateSharesToAssets()", async () => {
+    it("calculates 1:1 assets if token supply is zero", async () => {
       const { poolLibWrapper } = await loadFixture(deployFixture);
 
       expect(await poolLibWrapper.calculateAssetsToShares(500, 0, 0)).to.equal(

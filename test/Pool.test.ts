@@ -144,6 +144,57 @@ describe("Pool", () => {
     });
   });
 
+  describe("mint()", async () => {
+    it("mint cannot be called if pool is initialized", async () => {
+      const { pool, otherAccount } = await loadFixture(loadPoolFixture);
+
+      expect(await pool.lifeCycleState()).to.equal(0); // initialized
+
+      await expect(
+        pool.connect(otherAccount).mint(100, otherAccount.address)
+      ).to.be.revertedWith("Pool: FunctionInvalidAtThisLifeCycleState");
+    });
+
+    it("minting mints shares to receiver", async () => {
+      const { pool, otherAccount, liquidityAsset, poolManager } =
+        await loadFixture(loadPoolFixture);
+
+      const { firstLossInitialMinimum } = await pool.settings();
+
+      // First loss must be provided for deposits to open
+      await liquidityAsset
+        .connect(poolManager)
+        .approve(pool.address, firstLossInitialMinimum);
+
+      // Contribute first loss
+      await pool
+        .connect(poolManager)
+        .depositFirstLoss(
+          DEFAULT_POOL_SETTINGS.firstLossInitialMinimum,
+          poolManager.address
+        );
+
+      // Provide capital to lender
+      const depositAmount = 1000;
+      await liquidityAsset.mint(otherAccount.address, depositAmount);
+
+      // Approve the deposit
+      await liquidityAsset
+        .connect(otherAccount)
+        .approve(pool.address, depositAmount);
+
+      // Deposit
+      await expect(
+        pool.connect(otherAccount).mint(depositAmount, otherAccount.address)
+      ).to.emit(pool, "Deposit");
+
+      // Check that shares were received, 1:1 to the liquidity as first lender
+      expect(await pool.balanceOf(otherAccount.address)).to.equal(
+        depositAmount
+      );
+    });
+  });
+
   describe("Permissions", () => {
     describe("updatePoolCapacity()", () => {
       it("reverts if not called by Pool Manager", async () => {
