@@ -230,7 +230,9 @@ contract Pool is IPool, ERC20 {
     //////////////////////////////////////////////////////////////*/
 
     function currentWithdrawWindowIndex() external view returns (uint256) {
-        if (_poolLifeCycleState != IPoolLifeCycleState.Active) {
+        // If the pool has not yet been activated, the withdrawal window
+        // does not start.
+        if (_poolLifeCycleState == IPoolLifeCycleState.Initialized) {
             return 0;
         }
 
@@ -250,9 +252,9 @@ contract Pool is IPool, ERC20 {
     function _setPoolLifeCycleState(IPoolLifeCycleState state) internal {
         if (_poolLifeCycleState != state) {
             _poolLifeCycleStateTimestamp = block.timestamp;
+            _poolLifeCycleState = state;
+            emit LifeCycleStateTransition(state);
         }
-
-        _poolLifeCycleState = state;
     }
 
     /*//////////////////////////////////////////////////////////////

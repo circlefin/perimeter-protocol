@@ -33,6 +33,11 @@ contract PoolFactory {
         uint256 withdrawalFee,
         uint256 withdrawWindowDurationSeconds
     ) public virtual returns (address poolAddress) {
+        require(
+            withdrawWindowDurationSeconds > 0,
+            "PoolFactory: Invalid duration"
+        );
+
         uint256 firstLossInitialMinimum = 0; // TODO: take from ServiceConfig
         IPoolConfigurableSettings memory settings = IPoolConfigurableSettings(
             maxCapacity,

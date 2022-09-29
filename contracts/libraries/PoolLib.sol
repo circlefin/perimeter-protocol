@@ -17,12 +17,7 @@ library PoolLib {
     uint256 constant RAY = 10**27;
 
     /**
-     * @dev See IPool for event definition.
-     */
-    event LifeCycleStateTransition(IPoolLifeCycleState state);
-
-    /**
-     * @dev Emitted when first loss is deposited to the pool.
+     * @dev Emitted when first loss is supplied to the pool.
      */
     event FirstLossDeposited(
         address indexed caller,
@@ -82,7 +77,6 @@ library PoolLib {
                 minFirstLossRequired)
         ) {
             newState = IPoolLifeCycleState.Active;
-            emit LifeCycleStateTransition(newState);
         }
         emit FirstLossDeposited(msg.sender, spender, amount);
     }
