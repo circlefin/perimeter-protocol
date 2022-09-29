@@ -58,6 +58,26 @@ library LoanLib {
     }
 
     /**
+     * @dev Post ERC721 tokens as collateral
+     */
+    function postNonFungibleCollateral(
+        address collateralVault,
+        address asset,
+        uint256 tokenId,
+        ILoanLifeCycleState state,
+        ILoanNonFungibleCollateral[] storage collateral
+    ) external returns (ILoanLifeCycleState) {
+        IERC721(asset).safeTransferFrom(msg.sender, collateralVault, tokenId);
+        collateral.push(ILoanNonFungibleCollateral(asset, tokenId));
+        emit PostedNonFungibleCollateral(asset, tokenId);
+        if (state == ILoanLifeCycleState.Requested) {
+            return ILoanLifeCycleState.Collateralized;
+        } else {
+            return state;
+        }
+    }
+
+    /**
      * @dev Withdraw ERC20 collateral
      */
     function withdrawFungibleCollateral(
@@ -94,26 +114,6 @@ library LoanLib {
 
         for (uint256 i = 0; i < collateral.length; i++) {
             collateral.pop();
-        }
-    }
-
-    /**
-     * @dev Post ERC721 tokens as collateral
-     */
-    function postNonFungibleCollateral(
-        address collateralVault,
-        address asset,
-        uint256 tokenId,
-        ILoanLifeCycleState state,
-        ILoanNonFungibleCollateral[] storage collateral
-    ) external returns (ILoanLifeCycleState) {
-        IERC721(asset).safeTransferFrom(msg.sender, collateralVault, tokenId);
-        collateral.push(ILoanNonFungibleCollateral(asset, tokenId));
-        emit PostedNonFungibleCollateral(asset, tokenId);
-        if (state == ILoanLifeCycleState.Requested) {
-            return ILoanLifeCycleState.Collateralized;
-        } else {
-            return state;
         }
     }
 }
