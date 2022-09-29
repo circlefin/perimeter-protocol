@@ -41,9 +41,11 @@ interface ILoan {
 
     function state() external view returns (ILoanLifeCycleState);
 
-    function borrower() external returns (address);
+    function borrower() external view returns (address);
 
     function pool() external view returns (address);
+
+    function dropDeadTimestamp() external view returns (uint256);
 
     function cancelRequested() external returns (ILoanLifeCycleState);
 
