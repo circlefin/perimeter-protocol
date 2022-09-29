@@ -3,12 +3,10 @@ pragma solidity ^0.8.16;
 
 import "./interfaces/ILoan.sol";
 import "./interfaces/IPool.sol";
-import "./PoolConfigurableSettings.sol";
-import "./PoolLifeCycleState.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./library/PoolLib.sol";
+import "./libraries/PoolLib.sol";
 import "./FirstLossVault.sol";
 
 /**
@@ -19,12 +17,17 @@ import "./FirstLossVault.sol";
 contract Pool is IPool, ERC20 {
     using SafeERC20 for IERC20;
 
-    PoolLifeCycleState private _poolLifeCycleState;
+    IPoolLifeCycleState private _poolLifeCycleState;
     address private _manager;
     IERC20 private _liquidityAsset;
-    PoolConfigurableSettings private _poolSettings;
+    IPoolConfigurableSettings private _poolSettings;
     FirstLossVault private _firstLossVault;
     IPoolAccountings private _accountings;
+
+    /**
+     * @dev a timestamp of when the pool was first put in this state
+     */
+    uint256 private _poolLifeCycleStateTimestamp;
 
     /**
      * @dev Modifier that checks that the caller is the pool's manager.
@@ -48,10 +51,10 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev Modifier that checks that the pool is Initialized or Active
      */
-    modifier poolInitializedOrActive() {
+    modifier atInitializedOrActiveState() {
         require(
-            _poolLifeCycleState == PoolLifeCycleState.Active ||
-                _poolLifeCycleState == PoolLifeCycleState.Initialized,
+            _poolLifeCycleState == IPoolLifeCycleState.Active ||
+                _poolLifeCycleState == IPoolLifeCycleState.Initialized,
             "Pool: invalid pool state"
         );
         _;
@@ -60,7 +63,7 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev Modifier that checks that the pool is Initialized or Active
      */
-    modifier atState(PoolLifeCycleState state) {
+    modifier atState(IPoolLifeCycleState state) {
         require(
             _poolLifeCycleState == state,
             "Pool: FunctionInvalidAtThisLifeCycleState"
@@ -79,21 +82,21 @@ contract Pool is IPool, ERC20 {
     constructor(
         address liquidityAsset,
         address poolManager,
-        PoolConfigurableSettings memory poolSettings,
+        IPoolConfigurableSettings memory poolSettings,
         string memory tokenName,
         string memory tokenSymbol
     ) ERC20(tokenName, tokenSymbol) {
         _liquidityAsset = IERC20(liquidityAsset);
         _poolSettings = poolSettings;
         _manager = poolManager;
-        _poolLifeCycleState = PoolLifeCycleState.Initialized;
         _firstLossVault = new FirstLossVault(address(this), liquidityAsset);
+        _setPoolLifeCycleState(IPoolLifeCycleState.Initialized);
     }
 
     /**
      * @dev Returns the current pool lifecycle state.
      */
-    function lifeCycleState() external view returns (PoolLifeCycleState) {
+    function lifeCycleState() external view returns (IPoolLifeCycleState) {
         return _poolLifeCycleState;
     }
 
@@ -103,7 +106,7 @@ contract Pool is IPool, ERC20 {
     function settings()
         external
         view
-        returns (PoolConfigurableSettings memory settings)
+        returns (IPoolConfigurableSettings memory settings)
     {
         return _poolSettings;
     }
@@ -132,18 +135,39 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev Supplies first-loss to the pool. Can only be called by the Pool Manager.
      */
-    function supplyFirstLoss(uint256 amount)
+    function depositFirstLoss(uint256 amount, address spender)
         external
         onlyManager
-        poolInitializedOrActive
+        atInitializedOrActiveState
     {
-        _poolLifeCycleState = PoolLib.executeFirstLossContribution(
-            address(_liquidityAsset),
-            amount,
-            address(_firstLossVault),
-            _poolLifeCycleState,
-            _poolSettings.firstLossInitialMinimum
-        );
+        IPoolLifeCycleState poolLifeCycleState = PoolLib
+            .executeFirstLossDeposit(
+                address(_liquidityAsset),
+                spender,
+                amount,
+                address(_firstLossVault),
+                _poolLifeCycleState,
+                _poolSettings.firstLossInitialMinimum
+            );
+
+        _setPoolLifeCycleState(poolLifeCycleState);
+    }
+
+    /**
+     * @dev inheritdoc IPool
+     */
+    function withdrawFirstLoss(uint256 amount, address receiver)
+        external
+        onlyManager
+        atState(IPoolLifeCycleState.Closed)
+        returns (uint256)
+    {
+        return
+            PoolLib.executeFirstLossWithdraw(
+                amount,
+                receiver,
+                address(_firstLossVault)
+            );
     }
 
     /**
@@ -177,9 +201,9 @@ contract Pool is IPool, ERC20 {
     function nextWithdrawalWindow(uint256)
         external
         view
-        returns (PoolWithdrawalPeriod memory)
+        returns (IPoolWithdrawalPeriod memory)
     {
-        return PoolWithdrawalPeriod(0, 0);
+        return IPoolWithdrawalPeriod(0, 0);
     }
 
     /**
@@ -202,7 +226,37 @@ contract Pool is IPool, ERC20 {
     function markLoanAsInDefault(address) external onlyManager {}
 
     /*//////////////////////////////////////////////////////////////
-                        ERC-4246 Methods
+                    Withdrawal Request Methods
+    //////////////////////////////////////////////////////////////*/
+
+    function currentWithdrawWindowIndex() external view returns (uint256) {
+        if (_poolLifeCycleState != IPoolLifeCycleState.Active) {
+            return 0;
+        }
+
+        return
+            (block.timestamp - _poolLifeCycleStateTimestamp) /
+            _poolSettings.withdrawWindowDurationSeconds;
+    }
+
+    function nextWithdrawWindowIndex() external view returns (uint256) {
+        return 0;
+    }
+
+    /**
+     * @dev Set the pool lifecycle state. If the state changes, this method
+     * will also update the _poolLifeCycleStateTimestamp variable
+     */
+    function _setPoolLifeCycleState(IPoolLifeCycleState state) internal {
+        if (_poolLifeCycleState != state) {
+            _poolLifeCycleStateTimestamp = block.timestamp;
+        }
+
+        _poolLifeCycleState = state;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        ERC-4626 Methods
     //////////////////////////////////////////////////////////////*/
 
     /**
@@ -284,7 +338,7 @@ contract Pool is IPool, ERC20 {
         external
         virtual
         override
-        atState(PoolLifeCycleState.Active)
+        atState(IPoolLifeCycleState.Active)
         returns (uint256 shares)
     {
         // TODO: check lender ACLs for both msg.sender and receiver
@@ -418,5 +472,21 @@ contract Pool is IPool, ERC20 {
         address owner
     ) external virtual returns (uint256 assets) {
         return 0;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            ERC-20 Overrides
+    //////////////////////////////////////////////////////////////*/
+
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual override {
+        super._beforeTokenTransfer(from, to, amount);
+        require(
+            to == address(0) || from == address(0),
+            "Pool: transfers disabled"
+        );
     }
 }

@@ -40,7 +40,13 @@ describe("Loan", () => {
     await loanFactory.deployed();
 
     // Create a pool
-    const tx1 = await poolFactory.createPool(MOCK_LIQUIDITY_ADDRESS, 0, 0, 0);
+    const tx1 = await poolFactory.createPool(
+      MOCK_LIQUIDITY_ADDRESS,
+      0,
+      0,
+      0,
+      0
+    );
     const tx1Receipt = await tx1.wait();
 
     // Extract its address from the PoolCreated event

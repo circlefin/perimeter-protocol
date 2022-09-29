@@ -1,51 +1,23 @@
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import {
+  deployActivePool,
+  deployPool,
+  DEFAULT_POOL_SETTINGS
+} from "./support/pool";
 
 describe("Pool", () => {
-  const POOL_SETTINGS = {
-    maxCapacity: 10_000_000,
-    endDate: 2524611601, // Jan 1, 2050
-    withdrawalFee: 50, // bips,
-    firstLossInitialMinimum: 100_000
-  };
-
-  async function deployLiquidityAssetFixture() {
-    const LiquidityAsset = await ethers.getContractFactory("MockERC20");
-    const liquidityAsset = await LiquidityAsset.deploy("Test Coin", "TC");
-
-    await liquidityAsset.deployed();
-    return {
-      liquidityAsset
-    };
-  }
-
   async function loadPoolFixture() {
     const [poolManager, otherAccount] = await ethers.getSigners();
-    const { liquidityAsset } = await deployLiquidityAssetFixture();
+    const { pool, liquidityAsset } = await deployPool(poolManager);
 
-    const PoolLib = await ethers.getContractFactory("PoolLib");
-    const poolLib = await PoolLib.deploy();
+    return { pool, liquidityAsset, poolManager, otherAccount };
+  }
 
-    const Pool = await ethers.getContractFactory("Pool", {
-      libraries: {
-        PoolLib: poolLib.address
-      }
-    });
-
-    const pool = await Pool.deploy(
-      liquidityAsset.address,
-      poolManager.address,
-      POOL_SETTINGS,
-      "Valyria PoolToken",
-      "VPT"
-    );
-    await pool.deployed();
-
-    await liquidityAsset.mint(
-      poolManager.address,
-      POOL_SETTINGS.firstLossInitialMinimum
-    );
+  async function loadActivePoolFixture() {
+    const [poolManager, otherAccount] = await ethers.getSigners();
+    const { pool, liquidityAsset } = await deployActivePool(poolManager);
 
     return { pool, liquidityAsset, poolManager, otherAccount };
   }
@@ -66,21 +38,30 @@ describe("Pool", () => {
     it("sets the pool settings", async () => {
       const { pool } = await loadFixture(loadPoolFixture);
 
-      const { endDate, maxCapacity, withdrawalFee } = await pool.settings();
+      const {
+        endDate,
+        maxCapacity,
+        withdrawalFee,
+        withdrawWindowDurationSeconds
+      } = await pool.settings();
 
-      expect(endDate).to.equal(POOL_SETTINGS.endDate);
-      expect(maxCapacity).to.equal(POOL_SETTINGS.maxCapacity);
-      expect(withdrawalFee).to.equal(POOL_SETTINGS.withdrawalFee);
+      expect(endDate).to.equal(DEFAULT_POOL_SETTINGS.endDate);
+      expect(maxCapacity).to.equal(DEFAULT_POOL_SETTINGS.maxCapacity);
+      expect(withdrawalFee).to.equal(DEFAULT_POOL_SETTINGS.withdrawalFee);
+      expect(withdrawWindowDurationSeconds).to.equal(
+        DEFAULT_POOL_SETTINGS.withdrawWindowDurationSeconds
+      );
     });
   });
 
-  describe("supplyFirstLoss", async () => {
-    it("first loss can be supplied and transitions lifecycle state", async () => {
+  describe("depositFirstLoss()", async () => {
+    it("first loss can be deposited and transitions lifecycle state", async () => {
       const { pool, poolManager, liquidityAsset } = await loadFixture(
         loadPoolFixture
       );
 
-      const firstLossAmount = POOL_SETTINGS.firstLossInitialMinimum;
+      const { firstLossInitialMinimum: firstLossAmount } =
+        await pool.settings();
 
       // Grant allowance
       await liquidityAsset
@@ -89,14 +70,26 @@ describe("Pool", () => {
 
       // Contribute first loss
       expect(
-        await pool.connect(poolManager).supplyFirstLoss(firstLossAmount)
-      ).to.emit(pool.address, "FirstLossSupplied");
+        await pool
+          .connect(poolManager)
+          .depositFirstLoss(firstLossAmount, poolManager.address)
+      ).to.emit(pool.address, "FirstLossDeposited");
 
       // Check balance
       expect(await pool.firstLoss()).to.equal(firstLossAmount);
 
       // Check lifecycle
       expect(await pool.lifeCycleState()).to.equal(1); // Enum values are treated as ints
+    });
+  });
+
+  describe("withdrawFirstLoss()", async () => {
+    it("reverts if pool is not closed", async () => {
+      const { pool, poolManager } = await loadFixture(loadPoolFixture);
+
+      await expect(
+        pool.connect(poolManager).withdrawFirstLoss(10, poolManager.address)
+      ).to.be.revertedWith("Pool: FunctionInvalidAtThisLifeCycleState");
     });
   });
 
@@ -115,15 +108,20 @@ describe("Pool", () => {
       const { pool, otherAccount, liquidityAsset, poolManager } =
         await loadFixture(loadPoolFixture);
 
+      const { firstLossInitialMinimum } = await pool.settings();
+
       // First loss must be provided for deposits to open
       await liquidityAsset
         .connect(poolManager)
-        .approve(pool.address, POOL_SETTINGS.firstLossInitialMinimum);
+        .approve(pool.address, firstLossInitialMinimum);
 
       // Contribute first loss
       await pool
         .connect(poolManager)
-        .supplyFirstLoss(POOL_SETTINGS.firstLossInitialMinimum);
+        .depositFirstLoss(
+          DEFAULT_POOL_SETTINGS.firstLossInitialMinimum,
+          poolManager.address
+        );
 
       // Provide capital to lender
       const depositAmount = 1000;
@@ -147,7 +145,7 @@ describe("Pool", () => {
   });
 
   describe("Permissions", () => {
-    describe("updatePoolCapacity", () => {
+    describe("updatePoolCapacity()", () => {
       it("reverts if not called by Pool Manager", async () => {
         const { pool, otherAccount } = await loadFixture(loadPoolFixture);
 
@@ -157,7 +155,7 @@ describe("Pool", () => {
       });
     });
 
-    describe("updatePoolEndDate", () => {
+    describe("updatePoolEndDate()", () => {
       it("reverts if not called by Pool Manager", async () => {
         const { pool, otherAccount } = await loadFixture(loadPoolFixture);
 
@@ -167,7 +165,7 @@ describe("Pool", () => {
       });
     });
 
-    describe("requestWithdrawal", () => {
+    describe("requestWithdrawal()", () => {
       it("reverts if not called by lender", async () => {
         const { pool, otherAccount } = await loadFixture(loadPoolFixture);
 
@@ -177,7 +175,7 @@ describe("Pool", () => {
       });
     });
 
-    describe("fundLoan", () => {
+    describe("fundLoan()", () => {
       it("reverts if not called by Pool Manager", async () => {
         const { pool, otherAccount } = await loadFixture(loadPoolFixture);
 
@@ -187,7 +185,7 @@ describe("Pool", () => {
       });
     });
 
-    describe("markLoanAsInDefault", () => {
+    describe("markLoanAsInDefault()", () => {
       it("reverts if not called by Pool Manager", async () => {
         const { pool, otherAccount } = await loadFixture(loadPoolFixture);
 
@@ -197,13 +195,129 @@ describe("Pool", () => {
       });
     });
 
-    describe("supplyFirstLoss", () => {
+    describe("depositFirstLoss()", () => {
       it("reverts if not called by Pool Manager", async () => {
         const { pool, otherAccount } = await loadFixture(loadPoolFixture);
 
         await expect(
-          pool.connect(otherAccount).supplyFirstLoss(100)
+          pool.connect(otherAccount).depositFirstLoss(100, otherAccount.address)
         ).to.be.revertedWith("Pool: caller is not manager");
+      });
+    });
+
+    describe("withdrawFirstLoss()", () => {
+      it("reverts if not called by Pool Manager", async () => {
+        const { pool, otherAccount } = await loadFixture(loadPoolFixture);
+
+        await expect(
+          pool
+            .connect(otherAccount)
+            .withdrawFirstLoss(100, otherAccount.address)
+        ).to.be.revertedWith("Pool: caller is not manager");
+      });
+    });
+  });
+
+  describe("transfer()", async () => {
+    it("transfers are disabled", async () => {
+      const { pool, poolManager, otherAccount } = await loadFixture(
+        loadPoolFixture
+      );
+
+      pool.mint(10, poolManager.address);
+      await expect(
+        pool.connect(poolManager).transfer(otherAccount.address, 10)
+      ).to.be.revertedWith("Pool: transfers disabled");
+    });
+
+    it("transfer to zero address is denied", async () => {
+      const { pool, poolManager } = await loadFixture(loadPoolFixture);
+
+      pool.mint(10, poolManager.address);
+      await expect(
+        pool.connect(poolManager).transfer(ethers.constants.AddressZero, 10)
+      ).to.be.revertedWith("ERC20: transfer to the zero address");
+    });
+  });
+
+  describe("transferFrom()", async () => {
+    it("transfers are disabled", async () => {
+      const { pool, poolManager, otherAccount } = await loadFixture(
+        loadPoolFixture
+      );
+
+      pool.mint(10, poolManager.address);
+      pool.connect(poolManager).approve(otherAccount.address, 10);
+      await expect(
+        pool
+          .connect(otherAccount)
+          .transferFrom(poolManager.address, otherAccount.address, 10)
+      ).to.be.revertedWith("Pool: transfers disabled");
+    });
+
+    it("transfer to zero address is denied", async () => {
+      const { pool, poolManager, otherAccount } = await loadFixture(
+        loadPoolFixture
+      );
+
+      pool.mint(10, poolManager.address);
+      pool.connect(poolManager).approve(otherAccount.address, 10);
+      await expect(
+        pool
+          .connect(otherAccount)
+          .transferFrom(poolManager.address, ethers.constants.AddressZero, 10)
+      ).to.be.revertedWith("ERC20: transfer to the zero address");
+    });
+  });
+
+  describe("Withdrawal Requests", () => {
+    describe("currentWithdrawWindowIndex()", () => {
+      it("returns 0 if the pool is not active", async () => {
+        const { pool } = await loadFixture(loadPoolFixture);
+
+        expect(await pool.currentWithdrawWindowIndex()).to.equal(0);
+      });
+
+      it("returns 0 if the pool has not reached it's first withdrawal window", async () => {
+        const { pool } = await loadFixture(loadActivePoolFixture);
+
+        expect(await pool.currentWithdrawWindowIndex()).to.equal(0);
+      });
+
+      it("returns 0 if the pool is one second before the first withdrawal window", async () => {
+        const { pool } = await loadFixture(loadActivePoolFixture);
+
+        const { withdrawWindowDurationSeconds } = await pool.settings();
+        await time.increase(withdrawWindowDurationSeconds.toNumber() - 1);
+
+        expect(await pool.currentWithdrawWindowIndex()).to.equal(0);
+      });
+
+      it("returns 1 if the pool reached it's first withdraw window", async () => {
+        const { pool } = await loadFixture(loadActivePoolFixture);
+
+        const { withdrawWindowDurationSeconds } = await pool.settings();
+        await time.increase(withdrawWindowDurationSeconds.toNumber());
+
+        expect(await pool.currentWithdrawWindowIndex()).to.equal(1);
+      });
+
+      it("returns 1 if the pool is past it's first withdraw window", async () => {
+        const { pool } = await loadFixture(loadActivePoolFixture);
+
+        const { withdrawWindowDurationSeconds } = await pool.settings();
+        await time.increase(withdrawWindowDurationSeconds.toNumber() + 1);
+
+        expect(await pool.currentWithdrawWindowIndex()).to.equal(1);
+      });
+
+      it("returns 2 if the pool reached it's second withdraw window", async () => {
+        const { pool } = await loadFixture(loadActivePoolFixture);
+
+        const { withdrawWindowDurationSeconds } = await pool.settings();
+        await time.increase(withdrawWindowDurationSeconds.toNumber() * 2);
+
+        expect(await pool.currentWithdrawWindowIndex()).to.equal(2);
       });
     });
   });

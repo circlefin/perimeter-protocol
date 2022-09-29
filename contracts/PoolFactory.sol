@@ -30,14 +30,16 @@ contract PoolFactory {
         address liquidityAsset,
         uint256 maxCapacity,
         uint256 endDate,
-        uint256 withdrawalFee
+        uint256 withdrawalFee,
+        uint256 withdrawWindowDurationSeconds
     ) public virtual returns (address poolAddress) {
         uint256 firstLossInitialMinimum = 0; // TODO: take from ServiceConfig
-        PoolConfigurableSettings memory settings = PoolConfigurableSettings(
+        IPoolConfigurableSettings memory settings = IPoolConfigurableSettings(
             maxCapacity,
             endDate,
             withdrawalFee,
-            firstLossInitialMinimum
+            firstLossInitialMinimum,
+            withdrawWindowDurationSeconds
         );
         Pool pool = new Pool(
             liquidityAsset,
