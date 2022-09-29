@@ -9,8 +9,6 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import "./libraries/PoolLib.sol";
 import "./FirstLossVault.sol";
 
-import "hardhat/console.sol";
-
 /**
  * @title Pool
  *
@@ -390,7 +388,6 @@ contract Pool is IPool, ERC20 {
         returns (uint256 assets)
     {
         assets = this.previewMint(shares);
-        console.log(assets);
         PoolLib.executeDeposit(
             this.asset(),
             address(this),
