@@ -40,31 +40,35 @@ class Loan:
 class Pool: 
 
     def __init__(self):
-        self.liquidity = 0
-        self.defaults = 0
+        self.liquidity = Decimal(0)
+        self.defaults = Decimal(0)
         self.active_loans = [] 
         self.matured_loans = []
         self.defaulted_loans = []
 
         self.pool_token_balances = {}
-        self.pool_token_supply = 0
+        self.pool_token_supply = Decimal(0)
 
         self.payment_count_by_loan_id = {}
         self.lender_payouts = {}
 
-    def lend(self, lender_id, liquidity_amount, time):
+    def deposit(self, lender_id, liquidity_amount, time):
+        getcontext().rounding = ROUND_UP
+
         if self.liquidity == 0 and len(self.active_loans) == 0:
-            tokens = liquidity_amount
+            tokens = Decimal(liquidity_amount)
         else:
             tokens = Decimal(self._liquidity_to_token_rate(time) * Decimal(liquidity_amount))
 
-        self.liquidity += liquidity_amount
+        self.liquidity += Decimal(liquidity_amount)
         self._mint(lender_id, tokens)
         return tokens 
 
     def withdraw(self, lender_id, token_amount, time):
-        liquidity = float((Decimal(1) / self._liquidity_to_token_rate(time)) * Decimal(token_amount))
-        print(f'Lender ID {lender_id}, liquidity {liquidity}, pool liquidity {self.liquidity}')
+        getcontext().rounding = ROUND_DOWN
+
+        liquidity = Decimal((Decimal(1) / self._liquidity_to_token_rate(time)) * Decimal(token_amount))
+        # print(f'Lender ID {lender_id}, liquidity {liquidity}, pool liquidity {self.liquidity}')
         assert self.liquidity >= liquidity, "Not enough liquidity"
 
         self.liquidity -= liquidity
@@ -74,11 +78,11 @@ class Pool:
     def make_payment(self, loan: Loan):
         assert loan in self.active_loans, "Loan not active, can't make payment"
 
-        self.liquidity += loan.payment 
+        self.liquidity += Decimal(loan.payment) 
         self.payment_count_by_loan_id[loan.loan_id] = self.payment_count_by_loan_id.get(loan.loan_id, 0) + 1
         if (self.payment_count_by_loan_id[loan.loan_id] == loan.number_payments):
             # paypack principal 
-            self.liquidity += loan.principal
+            self.liquidity += Decimal(loan.principal)
             # loan matures 
             self.matured_loans.append(loan)
             self.active_loans.remove(loan)
@@ -86,7 +90,7 @@ class Pool:
     def fund_loan(self, loan: Loan):
         assert self.liquidity >= loan.principal, "Not enough liquidity to fund loan"
         self.active_loans.append(loan)
-        self.liquidity -= loan.principal
+        self.liquidity -= Decimal(loan.principal)
 
     def mark_loan_in_default(self, loan_id: int):
         matching_loan = None 
@@ -99,7 +103,7 @@ class Pool:
 
         self.active_loans.remove(matching_loan)
         self.defaulted_loans.append(matching_loan)
-        self.defaults += matching_loan.principal
+        self.defaults += Decimal(matching_loan.principal)
 
     def close(self, time):
         for lender_id, token_balance in self.pool_token_balances.items():
@@ -110,27 +114,27 @@ class Pool:
         assert self.pool_token_supply >= amount, "Not enough tokens in circulation"
         assert self.pool_token_balances[lender_id] >= amount, "Not enough tokens in balance" 
 
-        self.pool_token_supply -= amount 
-        self.pool_token_balances[lender_id] -= amount
+        self.pool_token_supply -= Decimal(amount) 
+        self.pool_token_balances[lender_id] -= Decimal(amount)
 
     def _mint(self, lender_id, amount):
-        self.pool_token_balances[lender_id] = self.pool_token_balances.get(lender_id, 0) + amount 
-        self.pool_token_supply += amount
+        self.pool_token_balances[lender_id] = Decimal(self.pool_token_balances.get(lender_id, 0)) + Decimal(amount) 
+        self.pool_token_supply += Decimal(amount)
 
     def _liquidity_to_token_rate(self, time):
         return Decimal(self.pool_token_supply) / Decimal(self._nav(time))
 
     def _nav(self, time):
-        outstanding_principals = sum([each.principal for each in self.active_loans]) 
+        outstanding_principals = sum([Decimal(each.principal) for each in self.active_loans]) 
         accrued_interest = 0 
         for each in self.active_loans:
             period = each.current_payment_period(time)
             if not period: continue 
 
             period_start, period_end = period
-            accrued_interest += (time - period_start) * each.payment / (period_end - period_start)
+            accrued_interest += Decimal(time - period_start) * Decimal(each.payment) / Decimal(period_end - period_start)
 
-        return self.liquidity + outstanding_principals + accrued_interest
+        return self.liquidity + outstanding_principals + accrued_interest - self.defaults
 
 @dataclass 
 class LoanSchedule:
@@ -193,7 +197,7 @@ def run_simulation(simulation):
         for each in lender_schedule.deposits_by_date_and_id:
             lender_id, deposit_time, amount = each
             if deposit_time == time:
-                pool.lend(lender_id, amount, time)
+                pool.deposit(lender_id, amount, time)
             else:
                 continue
 
@@ -225,6 +229,8 @@ def run_simulation(simulation):
     return pool.lender_payouts, pool.liquidity
     
 if __name__ == "__main__":
+    getcontext().prec = 20
+
     parser = argparse.ArgumentParser(description='Run a simulation.')
     parser.add_argument('simulation', metavar='s', type=int, nargs=1, help='simulation number to run')
     
