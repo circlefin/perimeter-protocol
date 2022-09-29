@@ -1,8 +1,9 @@
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
 describe("Loan", () => {
+  const SEVEN_DAYS = 6 * 60 * 60 * 24;
   const MOCK_LIQUIDITY_ADDRESS = "0x0000000000000000000000000000000000000001";
 
   async function deployFixture() {
@@ -60,7 +61,9 @@ describe("Loan", () => {
     const pool = Pool.attach(poolAddress);
 
     // Create the Loan
-    const tx2 = await loanFactory.connect(borrower).createLoan(poolAddress);
+    const tx2 = await loanFactory
+      .connect(borrower)
+      .createLoan(poolAddress, Math.floor(Date.now() / 1000) + SEVEN_DAYS);
     const tx2Receipt = await tx2.wait();
 
     const loanCreatedEvent = findEventByName(tx2Receipt, "LoanCreated");
@@ -156,6 +159,9 @@ describe("Loan", () => {
       );
       expect(await loan.state()).to.equal(1);
 
+      // Advance time to drop dead timestamp
+      await time.increaseTo(await loan.dropDeadTimestamp());
+
       // Cancel
       const tx2 = loan.cancelCollateralized();
       await expect(tx2).not.to.be.reverted;
@@ -178,6 +184,22 @@ describe("Loan", () => {
       const c721 = await loan.nonFungibleCollateral();
       expect(c721.length).to.equal(0);
       expect(await loan.state()).to.equal(2);
+    });
+
+    it("reverts if the drop dead date hasn't been hit", async () => {
+      const fixture = await loadFixture(deployFixture);
+      let { loan } = fixture;
+      const { borrower, collateralAsset } = fixture;
+
+      // Connect as borrower
+      loan = loan.connect(borrower);
+      expect(await loan.state()).to.equal(0);
+
+      // Post collateral
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await loan.postFungibleCollateral(collateralAsset.address, 100);
+      const tx2 = loan.cancelCollateralized();
+      await expect(tx2).to.be.revertedWith("Loan: Drop dead date not met");
     });
 
     it("reverts if not called by the borrower", async () => {

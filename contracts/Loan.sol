@@ -17,6 +17,7 @@ contract Loan is ILoan {
     CollateralVault public immutable _collateralVault;
     address[] private _fungibleCollateral;
     ILoanNonFungibleCollateral[] private _nonFungibleCollateral;
+    uint256 private _dropDeadTimestamp;
 
     /**
      * @dev Modifier that requires the Loan be in the given `state_`
@@ -64,10 +65,15 @@ contract Loan is ILoan {
         _;
     }
 
-    constructor(address borrower, address pool) {
+    constructor(
+        address borrower,
+        address pool,
+        uint256 dropDeadTimestamp
+    ) {
         _borrower = borrower;
         _pool = pool;
         _collateralVault = new CollateralVault(address(this));
+        _dropDeadTimestamp = dropDeadTimestamp;
     }
 
     /**
@@ -92,6 +98,10 @@ contract Loan is ILoan {
         atState(ILoanLifeCycleState.Collateralized)
         returns (ILoanLifeCycleState)
     {
+        require(
+            _dropDeadTimestamp < block.timestamp,
+            "Loan: Drop dead date not met"
+        );
         LoanLib.withdrawFungibleCollateral(
             _collateralVault,
             _fungibleCollateral
@@ -180,5 +190,9 @@ contract Loan is ILoan {
 
     function pool() external view returns (address) {
         return _pool;
+    }
+
+    function dropDeadTimestamp() external view returns (uint256) {
+        return _dropDeadTimestamp;
     }
 }

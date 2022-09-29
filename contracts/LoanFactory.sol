@@ -26,12 +26,12 @@ contract LoanFactory {
      * @dev Creates a Loan
      * @dev Emits `LoanCreated` event.
      */
-    function createLoan(address pool)
+    function createLoan(address pool, uint256 dropDeadDate)
         public
         virtual
         returns (address LoanAddress)
     {
-        Loan loan = new Loan(msg.sender, pool);
+        Loan loan = new Loan(msg.sender, pool, dropDeadDate);
         address addr = address(loan);
         emit LoanCreated(addr);
         return addr;
