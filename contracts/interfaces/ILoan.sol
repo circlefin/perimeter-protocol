@@ -19,6 +19,26 @@ struct ILoanNonFungibleCollateral {
 }
 
 interface ILoan {
+    /**
+     * @dev Emitted when collateral is posted to the loan.
+     */
+    event PostedCollateral(address asset, uint256 amount);
+
+    /**
+     * @dev Emitted when collateral is posted to the loan.
+     */
+    event PostedNonFungibleCollateral(address asset, uint256 tokenId);
+
+    /**
+     * @dev Emitted when collateral is withdrawn from the loan.
+     */
+    event WithdrewCollateral(address asset, uint256 amount);
+
+    /**
+     * @dev Emitted when collateral is posted to the loan.
+     */
+    event WithdrewNonFungibleCollateral(address asset, uint256 tokenId);
+
     function state() external view returns (ILoanLifeCycleState);
 
     function borrower() external returns (address);

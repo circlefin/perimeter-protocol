@@ -163,6 +163,10 @@ describe("Loan", () => {
         await loan._collateralVault(),
         -100
       );
+      await expect(tx2)
+        .to.emit(loan, "WithdrewCollateral")
+        .withArgs(collateralAsset.address, 100);
+
       const c20 = await loan.fungibleCollateral();
       expect(c20.length).to.equal(0);
       const c721 = await loan.nonFungibleCollateral();

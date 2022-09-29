@@ -22,6 +22,16 @@ library LoanLib {
     event PostedNonFungibleCollateral(address asset, uint256 tokenId);
 
     /**
+     * @dev Emitted when collateral is withdrawn from the loan.
+     */
+    event WithdrewCollateral(address asset, uint256 amount);
+
+    /**
+     * @dev Emitted when collateral is posted to the loan.
+     */
+    event WithdrewNonFungibleCollateral(address asset, uint256 tokenId);
+
+    /**
      * @dev Post ERC20 tokens as collateral
      */
     function postFungibleCollateral(
@@ -86,12 +96,10 @@ library LoanLib {
         address[] storage collateral
     ) external {
         for (uint256 i = 0; i < collateral.length; i++) {
-            address addr = collateral[i];
-            collateralVault.withdraw(
-                addr,
-                IERC20(addr).balanceOf(address(collateralVault)),
-                msg.sender
-            );
+            address asset = collateral[i];
+            uint256 amount = IERC20(asset).balanceOf(address(collateralVault));
+            collateralVault.withdraw(asset, amount, msg.sender);
+            emit WithdrewCollateral(asset, amount);
         }
 
         for (uint256 i = 0; i < collateral.length; i++) {
@@ -109,7 +117,10 @@ library LoanLib {
     ) external {
         for (uint256 i = 0; i < collateral.length; i++) {
             ILoanNonFungibleCollateral memory c = collateral[i];
-            collateralVault.withdrawERC721(c.asset, c.tokenId, msg.sender);
+            address asset = c.asset;
+            uint256 tokenId = c.tokenId;
+            collateralVault.withdrawERC721(asset, tokenId, msg.sender);
+            emit WithdrewNonFungibleCollateral(asset, tokenId);
         }
 
         for (uint256 i = 0; i < collateral.length; i++) {
