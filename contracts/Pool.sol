@@ -250,9 +250,9 @@ contract Pool is IPool, ERC20 {
     function _setPoolLifeCycleState(IPoolLifeCycleState state) internal {
         if (_poolLifeCycleState != state) {
             _poolLifeCycleStateTimestamp = block.timestamp;
+            _poolLifeCycleState = state;
+            emit LifeCycleStateTransition(state);
         }
-
-        _poolLifeCycleState = state;
     }
 
     /*//////////////////////////////////////////////////////////////
