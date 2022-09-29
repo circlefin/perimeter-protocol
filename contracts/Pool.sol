@@ -25,6 +25,11 @@ contract Pool is IPool, ERC20 {
     IPoolAccountings private _accountings;
 
     /**
+     * @dev a timestamp of when the pool was first put in this state
+     */
+    uint256 private _poolLifeCycleStateTimestamp;
+
+    /**
      * @dev Modifier that checks that the caller is the pool's manager.
      */
     modifier onlyManager() {
@@ -84,9 +89,8 @@ contract Pool is IPool, ERC20 {
         _liquidityAsset = IERC20(liquidityAsset);
         _poolSettings = poolSettings;
         _manager = poolManager;
-        _poolLifeCycleState = IPoolLifeCycleState.Initialized;
-
         _firstLossVault = new FirstLossVault(address(this), liquidityAsset);
+        _setPoolLifeCycleState(IPoolLifeCycleState.Initialized);
     }
 
     /**
@@ -136,13 +140,16 @@ contract Pool is IPool, ERC20 {
         onlyManager
         atInitializedOrActiveState
     {
-        _poolLifeCycleState = PoolLib.executeFirstLossContribution(
-            address(_liquidityAsset),
-            amount,
-            address(_firstLossVault),
-            _poolLifeCycleState,
-            _poolSettings.firstLossInitialMinimum
-        );
+        IPoolLifeCycleState poolLifeCycleState = PoolLib
+            .executeFirstLossContribution(
+                address(_liquidityAsset),
+                amount,
+                address(_firstLossVault),
+                _poolLifeCycleState,
+                _poolSettings.firstLossInitialMinimum
+            );
+
+        _setPoolLifeCycleState(poolLifeCycleState);
     }
 
     /**
@@ -201,7 +208,37 @@ contract Pool is IPool, ERC20 {
     function markLoanAsInDefault(address) external onlyManager {}
 
     /*//////////////////////////////////////////////////////////////
-                        ERC-4246 Methods
+                    Withdrawal Request Methods
+    //////////////////////////////////////////////////////////////*/
+
+    function currentWithdrawWindowIndex() external view returns (uint256) {
+        if (_poolLifeCycleState != IPoolLifeCycleState.Active) {
+            return 0;
+        }
+
+        return
+            (block.timestamp - _poolLifeCycleStateTimestamp) /
+            _poolSettings.withdrawWindowDurationSeconds;
+    }
+
+    function nextWithdrawWindowIndex() external view returns (uint256) {
+        return 0;
+    }
+
+    /**
+     * @dev Set the pool lifecycle state. If the state changes, this method
+     * will also update the _poolLifeCycleStateTimestamp variable
+     */
+    function _setPoolLifeCycleState(IPoolLifeCycleState state) internal {
+        if (_poolLifeCycleState != state) {
+            _poolLifeCycleStateTimestamp = block.timestamp;
+        }
+
+        _poolLifeCycleState = state;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        ERC-4626 Methods
     //////////////////////////////////////////////////////////////*/
 
     /**

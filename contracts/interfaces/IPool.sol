@@ -29,6 +29,7 @@ struct IPoolConfigurableSettings {
     uint256 endDate; // epoch seconds
     uint256 withdrawalFee; // bips
     uint256 firstLossInitialMinimum; // amount
+    uint256 withdrawWindowDurationSeconds; // seconds (e.g. 30 days)
     // TODO: add in Pool fees
 }
 
