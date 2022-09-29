@@ -270,54 +270,90 @@ describe("Pool", () => {
     });
   });
 
-  describe("Withdrawal Requests", () => {
-    describe("currentWithdrawWindowIndex()", () => {
-      it("returns 0 if the pool is not active", async () => {
+  describe.only("Withdrawal Requests", () => {
+    describe("currentWithdrawWindowTimestamp() and nextWithdrawWindowTimestamp()", () => {
+      it("reverts if the pool is not active", async () => {
         const { pool } = await loadFixture(loadPoolFixture);
 
-        expect(await pool.currentWithdrawWindowIndex()).to.equal(0);
+        await expect(pool.currentWithdrawWindowTimestamp()).to.be.rejectedWith(
+          "Pool: PoolNotActive"
+        );
+        await expect(pool.nextWithdrawWindowTimestamp()).to.be.rejectedWith(
+          "Pool: PoolNotActive"
+        );
       });
 
-      it("returns 0 if the pool has not reached it's first withdrawal window", async () => {
+      it("returns the pool activated date if the pool has not reached it's first withdrawal window", async () => {
         const { pool } = await loadFixture(loadActivePoolFixture);
-
-        expect(await pool.currentWithdrawWindowIndex()).to.equal(0);
-      });
-
-      it("returns 0 if the pool is one second before the first withdrawal window", async () => {
-        const { pool } = await loadFixture(loadActivePoolFixture);
-
         const { withdrawWindowDurationSeconds } = await pool.settings();
-        await time.increase(withdrawWindowDurationSeconds.toNumber() - 1);
+        const activatedAt = await pool.poolActivatedAt();
 
-        expect(await pool.currentWithdrawWindowIndex()).to.equal(0);
+        expect(await pool.currentWithdrawWindowTimestamp()).to.equal(
+          activatedAt
+        );
+        expect(await pool.nextWithdrawWindowTimestamp()).to.equal(
+          activatedAt.add(withdrawWindowDurationSeconds)
+        );
       });
 
-      it("returns 1 if the pool reached it's first withdraw window", async () => {
+      it("returns the pool activated date if the pool is one second before the first withdrawal window", async () => {
         const { pool } = await loadFixture(loadActivePoolFixture);
-
         const { withdrawWindowDurationSeconds } = await pool.settings();
-        await time.increase(withdrawWindowDurationSeconds.toNumber());
+        const activatedAt = await pool.poolActivatedAt();
 
-        expect(await pool.currentWithdrawWindowIndex()).to.equal(1);
+        await time.increase(withdrawWindowDurationSeconds.sub(1));
+
+        expect(await pool.currentWithdrawWindowTimestamp()).to.equal(
+          activatedAt
+        );
+        expect(await pool.nextWithdrawWindowTimestamp()).to.equal(
+          activatedAt.add(withdrawWindowDurationSeconds)
+        );
       });
 
-      it("returns 1 if the pool is past it's first withdraw window", async () => {
+      it("returns the correct date if the pool reached it's first withdraw window", async () => {
         const { pool } = await loadFixture(loadActivePoolFixture);
-
         const { withdrawWindowDurationSeconds } = await pool.settings();
-        await time.increase(withdrawWindowDurationSeconds.toNumber() + 1);
+        const activatedAt = await pool.poolActivatedAt();
 
-        expect(await pool.currentWithdrawWindowIndex()).to.equal(1);
+        await time.increase(withdrawWindowDurationSeconds);
+
+        expect(await pool.currentWithdrawWindowTimestamp()).to.equal(
+          activatedAt.add(withdrawWindowDurationSeconds)
+        );
+        expect(await pool.nextWithdrawWindowTimestamp()).to.equal(
+          activatedAt.add(withdrawWindowDurationSeconds.mul(2))
+        );
       });
 
-      it("returns 2 if the pool reached it's second withdraw window", async () => {
+      it("returns the correct date if the pool is past it's first withdraw window", async () => {
         const { pool } = await loadFixture(loadActivePoolFixture);
-
         const { withdrawWindowDurationSeconds } = await pool.settings();
-        await time.increase(withdrawWindowDurationSeconds.toNumber() * 2);
+        const activatedAt = await pool.poolActivatedAt();
 
-        expect(await pool.currentWithdrawWindowIndex()).to.equal(2);
+        await time.increase(withdrawWindowDurationSeconds.add(1));
+
+        expect(await pool.currentWithdrawWindowTimestamp()).to.equal(
+          activatedAt.add(withdrawWindowDurationSeconds)
+        );
+        expect(await pool.nextWithdrawWindowTimestamp()).to.equal(
+          activatedAt.add(withdrawWindowDurationSeconds.mul(2))
+        );
+      });
+
+      it("returns the correct date if the pool reached it's second withdraw window", async () => {
+        const { pool } = await loadFixture(loadActivePoolFixture);
+        const { withdrawWindowDurationSeconds } = await pool.settings();
+        const activatedAt = await pool.poolActivatedAt();
+
+        await time.increase(withdrawWindowDurationSeconds.mul(2));
+
+        expect(await pool.currentWithdrawWindowTimestamp()).to.equal(
+          activatedAt.add(withdrawWindowDurationSeconds.mul(2))
+        );
+        expect(await pool.nextWithdrawWindowTimestamp()).to.equal(
+          activatedAt.add(withdrawWindowDurationSeconds.mul(3))
+        );
       });
     });
   });

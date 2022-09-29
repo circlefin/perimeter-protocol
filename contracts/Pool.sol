@@ -217,18 +217,28 @@ contract Pool is IPool, ERC20 {
      * @dev Returns the next withdrawal window timestamp, at which a withdrawal
      * could be completed.
      */
-    function nextWithdrawWindowTimestamp(uint256)
-        external
-        view
-        returns (uint256)
-    {
-        require(_poolActivatedAt > 0, "Pool: PoolNotActive");
+    function currentWithdrawWindowTimestamp() external view returns (uint256) {
+        require(poolActivatedAt > 0, "Pool: PoolNotActive");
 
-        uint256 nextIndex = _currentWithdrawWindowIndex() + 1;
+        uint256 timestamp = poolActivatedAt +
+            (_currentWithdrawWindowIndex() *
+                _poolSettings.withdrawWindowDurationSeconds);
 
+        if (timestamp > _poolSettings.endDate) {
+            return _poolSettings.endDate;
+        }
+
+        return timestamp;
+    }
+
+    /**
+     * @dev Returns the next withdrawal window timestamp, at which a withdrawal
+     * could be completed.
+     */
+    function nextWithdrawWindowTimestamp() external view returns (uint256) {
         return
-            _poolActivatedAt +
-            (nextIndex * _poolSettings.withdrawWindowDurationSeconds);
+            this.currentWithdrawWindowTimestamp() +
+            _poolSettings.withdrawWindowDurationSeconds;
     }
 
     /**
