@@ -73,7 +73,7 @@ describe("Pool", () => {
         await pool
           .connect(poolManager)
           .depositFirstLoss(firstLossAmount, poolManager.address)
-      ).to.emit(pool.address, "FirstLossSupplied");
+      ).to.emit(pool.address, "FirstLossDeposited");
 
       // Check balance
       expect(await pool.firstLoss()).to.equal(firstLossAmount);
@@ -119,7 +119,7 @@ describe("Pool", () => {
       await pool
         .connect(poolManager)
         .depositFirstLoss(
-          POOL_SETTINGS.firstLossInitialMinimum,
+          DEFAULT_POOL_SETTINGS.firstLossInitialMinimum,
           poolManager.address
         );
 

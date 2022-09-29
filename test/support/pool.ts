@@ -60,7 +60,9 @@ export async function deployActivePool(
     .connect(poolManager)
     .approve(pool.address, firstLossInitialMinimum);
 
-  await pool.connect(poolManager).supplyFirstLoss(firstLossInitialMinimum);
+  await pool
+    .connect(poolManager)
+    .depositFirstLoss(firstLossInitialMinimum, poolManager.address);
 
   return { pool, liquidityAsset };
 }
