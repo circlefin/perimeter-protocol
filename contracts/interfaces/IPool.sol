@@ -131,12 +131,12 @@ interface IPool is IERC4626 {
     function feeForWithdrawalRequest(uint256) external view returns (uint256);
 
     /**
-     * @dev Returns the next withdrawal window, at which a withdrawal could be completed.
+     * @dev Returns the next withdrawal window timestamp.
      */
-    function nextWithdrawalWindow(uint256)
+    function nextWithdrawWindowTimestamp(uint256)
         external
         view
-        returns (IPoolWithdrawalPeriod memory);
+        returns (uint256);
 
     /**
      * @dev Submits a withdrawal request, incurring a fee.

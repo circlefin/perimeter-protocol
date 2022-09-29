@@ -25,9 +25,9 @@ contract Pool is IPool, ERC20 {
     IPoolAccountings private _accountings;
 
     /**
-     * @dev a timestamp of when the pool was first put in this state
+     * @dev a timestamp of when the pool was first put into the Actie state
      */
-    uint256 private _poolLifeCycleStateTimestamp;
+    uint256 public poolActivatedAt;
 
     /**
      * @dev Modifier that checks that the caller is the pool's manager.
@@ -196,22 +196,6 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
-     * @dev Returns the next withdrawal window, at which a withdrawal could be completed.
-     */
-    function nextWithdrawalWindow(uint256)
-        external
-        view
-        returns (IPoolWithdrawalPeriod memory)
-    {
-        return IPoolWithdrawalPeriod(0, 0);
-    }
-
-    /**
-     * @dev Submits a withdrawal request, incurring a fee.
-     */
-    function requestWithdrawal(uint256) external view onlyLender {}
-
-    /**
      * @dev Called by the pool manager, this transfers liquidity from the pool to a given loan.
      */
     function fundLoan(address addr) external onlyManager {
@@ -229,7 +213,30 @@ contract Pool is IPool, ERC20 {
                     Withdrawal Request Methods
     //////////////////////////////////////////////////////////////*/
 
-    function currentWithdrawWindowIndex() external view returns (uint256) {
+    /**
+     * @dev Returns the next withdrawal window timestamp, at which a withdrawal
+     * could be completed.
+     */
+    function nextWithdrawWindowTimestamp(uint256)
+        external
+        view
+        returns (uint256)
+    {
+        require(_poolActivatedAt > 0, "Pool: PoolNotActive");
+
+        uint256 nextIndex = _currentWithdrawWindowIndex() + 1;
+
+        return
+            _poolActivatedAt +
+            (nextIndex * _poolSettings.withdrawWindowDurationSeconds);
+    }
+
+    /**
+     * @dev Submits a withdrawal request, incurring a fee.
+     */
+    function requestWithdrawal(uint256) external view onlyLender {}
+
+    function _currentWithdrawWindowIndex() internal view returns (uint256) {
         // If the pool has not yet been activated, the withdrawal window
         // does not start.
         if (_poolLifeCycleState == IPoolLifeCycleState.Initialized) {
@@ -237,21 +244,20 @@ contract Pool is IPool, ERC20 {
         }
 
         return
-            (block.timestamp - _poolLifeCycleStateTimestamp) /
+            (block.timestamp - poolActivatedAt) /
             _poolSettings.withdrawWindowDurationSeconds;
-    }
-
-    function nextWithdrawWindowIndex() external view returns (uint256) {
-        return 0;
     }
 
     /**
      * @dev Set the pool lifecycle state. If the state changes, this method
-     * will also update the _poolLifeCycleStateTimestamp variable
+     * will also update the poolActivatedAt variable
      */
     function _setPoolLifeCycleState(IPoolLifeCycleState state) internal {
         if (_poolLifeCycleState != state) {
-            _poolLifeCycleStateTimestamp = block.timestamp;
+            if (state == IPoolLifeCycleState.Active && poolActivatedAt == 0) {
+                poolActivatedAt = block.timestamp;
+            }
+
             _poolLifeCycleState = state;
             emit LifeCycleStateTransition(state);
         }
