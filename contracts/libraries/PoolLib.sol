@@ -200,4 +200,47 @@ library PoolLib {
         emit Deposit(msg.sender, sharesReceiver, assets, shares);
         return shares;
     }
+
+    /*//////////////////////////////////////////////////////////////
+                    Withdrawal Request Methods
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Calculate the current withdraw window index
+     */
+    function currentWithdrawWindowIndex(
+        IPoolLifeCycleState lifeCycleState,
+        uint256 activatedAt,
+        uint256 withdrawalWindowDuration
+    ) internal view returns (uint256) {
+        if (lifeCycleState != IPoolLifeCycleState.Active) {
+            return 0;
+        }
+        return (block.timestamp - activatedAt) / withdrawalWindowDuration;
+    }
+
+    /**
+     * @dev Calculate the current withdraw window timestamp, meaning all
+     * withdraw requests for a timestamp earlier than this are able to
+     * withdraw immediately.
+     */
+    function calculateCurrentWithdrawWindowTimestamp(
+        IPoolLifeCycleState lifeCycleState,
+        uint256 activatedAt,
+        uint256 withdrawalWindowDuration,
+        uint256 poolEndDate
+    ) internal view returns (uint256) {
+        uint256 index = currentWithdrawWindowIndex(
+            lifeCycleState,
+            activatedAt,
+            withdrawalWindowDuration
+        );
+        uint256 timestamp = activatedAt + (index * withdrawalWindowDuration);
+
+        if (timestamp > poolEndDate) {
+            return poolEndDate;
+        }
+
+        return timestamp;
+    }
 }

@@ -236,15 +236,13 @@ contract Pool is IPool, ERC20 {
         onlyActivatedPool
         returns (uint256)
     {
-        uint256 timestamp = poolActivatedAt +
-            (_currentWithdrawWindowIndex() *
-                _poolSettings.withdrawWindowDurationSeconds);
-
-        if (timestamp > _poolSettings.endDate) {
-            return _poolSettings.endDate;
-        }
-
-        return timestamp;
+        return
+            PoolLib.calculateCurrentWithdrawWindowTimestamp(
+                _poolLifeCycleState,
+                poolActivatedAt,
+                _poolSettings.withdrawWindowDurationSeconds,
+                _poolSettings.endDate
+            );
     }
 
     /**
@@ -272,23 +270,15 @@ contract Pool is IPool, ERC20 {
     {
         require(balanceOf(msg.sender) >= amount, "Pool: InsufficientBalance");
 
-        _withdrawRequests[msg.sender][
-            _currentWithdrawWindowIndex() + 1
-        ] = amount;
+        uint256 withdrawWindowIndex = PoolLib.currentWithdrawWindowIndex(
+            _poolLifeCycleState,
+            poolActivatedAt,
+            _poolSettings.withdrawWindowDurationSeconds
+        );
+
+        _withdrawRequests[msg.sender][withdrawWindowIndex + 1] = amount;
 
         emit WithdrawRequested(msg.sender, amount);
-    }
-
-    function _currentWithdrawWindowIndex() internal view returns (uint256) {
-        // If the pool has not yet been activated, the withdrawal window
-        // does not start.
-        if (_poolLifeCycleState == IPoolLifeCycleState.Initialized) {
-            return 0;
-        }
-
-        return
-            (block.timestamp - poolActivatedAt) /
-            _poolSettings.withdrawWindowDurationSeconds;
     }
 
     /**
