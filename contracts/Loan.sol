@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 import "./interfaces/ILoan.sol";
-import "./library/LoanLib.sol";
+import "./libraries/LoanLib.sol";
 import "./CollateralVault.sol";
 
 /**

@@ -54,8 +54,8 @@ describe("Pool", () => {
     });
   });
 
-  describe("supplyFirstLoss", async () => {
-    it("first loss can be supplied and transitions lifecycle state", async () => {
+  describe("depositFirstLoss()", async () => {
+    it("first loss can be deposited and transitions lifecycle state", async () => {
       const { pool, poolManager, liquidityAsset } = await loadFixture(
         loadPoolFixture
       );
@@ -70,14 +70,26 @@ describe("Pool", () => {
 
       // Contribute first loss
       expect(
-        await pool.connect(poolManager).supplyFirstLoss(firstLossAmount)
-      ).to.emit(pool.address, "FirstLossSupplied");
+        await pool
+          .connect(poolManager)
+          .depositFirstLoss(firstLossAmount, poolManager.address)
+      ).to.emit(pool.address, "FirstLossDeposited");
 
       // Check balance
       expect(await pool.firstLoss()).to.equal(firstLossAmount);
 
       // Check lifecycle
       expect(await pool.lifeCycleState()).to.equal(1); // Enum values are treated as ints
+    });
+  });
+
+  describe("withdrawFirstLoss()", async () => {
+    it("reverts if pool is not closed", async () => {
+      const { pool, poolManager } = await loadFixture(loadPoolFixture);
+
+      await expect(
+        pool.connect(poolManager).withdrawFirstLoss(10, poolManager.address)
+      ).to.be.revertedWith("Pool: FunctionInvalidAtThisLifeCycleState");
     });
   });
 
@@ -104,7 +116,12 @@ describe("Pool", () => {
         .approve(pool.address, firstLossInitialMinimum);
 
       // Contribute first loss
-      await pool.connect(poolManager).supplyFirstLoss(firstLossInitialMinimum);
+      await pool
+        .connect(poolManager)
+        .depositFirstLoss(
+          DEFAULT_POOL_SETTINGS.firstLossInitialMinimum,
+          poolManager.address
+        );
 
       // Provide capital to lender
       const depositAmount = 1000;
@@ -128,7 +145,7 @@ describe("Pool", () => {
   });
 
   describe("Permissions", () => {
-    describe("updatePoolCapacity", () => {
+    describe("updatePoolCapacity()", () => {
       it("reverts if not called by Pool Manager", async () => {
         const { pool, otherAccount } = await loadFixture(loadPoolFixture);
 
@@ -138,7 +155,7 @@ describe("Pool", () => {
       });
     });
 
-    describe("updatePoolEndDate", () => {
+    describe("updatePoolEndDate()", () => {
       it("reverts if not called by Pool Manager", async () => {
         const { pool, otherAccount } = await loadFixture(loadPoolFixture);
 
@@ -148,7 +165,7 @@ describe("Pool", () => {
       });
     });
 
-    describe("requestWithdrawal", () => {
+    describe("requestWithdrawal()", () => {
       it("reverts if not called by lender", async () => {
         const { pool, otherAccount } = await loadFixture(loadPoolFixture);
 
@@ -158,7 +175,7 @@ describe("Pool", () => {
       });
     });
 
-    describe("fundLoan", () => {
+    describe("fundLoan()", () => {
       it("reverts if not called by Pool Manager", async () => {
         const { pool, otherAccount } = await loadFixture(loadPoolFixture);
 
@@ -168,7 +185,7 @@ describe("Pool", () => {
       });
     });
 
-    describe("markLoanAsInDefault", () => {
+    describe("markLoanAsInDefault()", () => {
       it("reverts if not called by Pool Manager", async () => {
         const { pool, otherAccount } = await loadFixture(loadPoolFixture);
 
@@ -178,12 +195,24 @@ describe("Pool", () => {
       });
     });
 
-    describe("supplyFirstLoss", () => {
+    describe("depositFirstLoss()", () => {
       it("reverts if not called by Pool Manager", async () => {
         const { pool, otherAccount } = await loadFixture(loadPoolFixture);
 
         await expect(
-          pool.connect(otherAccount).supplyFirstLoss(100)
+          pool.connect(otherAccount).depositFirstLoss(100, otherAccount.address)
+        ).to.be.revertedWith("Pool: caller is not manager");
+      });
+    });
+
+    describe("withdrawFirstLoss()", () => {
+      it("reverts if not called by Pool Manager", async () => {
+        const { pool, otherAccount } = await loadFixture(loadPoolFixture);
+
+        await expect(
+          pool
+            .connect(otherAccount)
+            .withdrawFirstLoss(100, otherAccount.address)
         ).to.be.revertedWith("Pool: caller is not manager");
       });
     });

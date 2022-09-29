@@ -18,7 +18,7 @@ contract FirstLossVault {
     /**
      * @dev Modifier restricting access to pool
      */
-    modifier isPool() {
+    modifier onlyPool() {
         require(msg.sender == _pool, "FirstLossVault: caller not pool");
         _;
     }
@@ -50,7 +50,7 @@ contract FirstLossVault {
     /**
      * @dev Allows withdrawal of funds held by vault.
      */
-    function withdraw(uint256 amount, address receiver) external isPool {
+    function withdraw(uint256 amount, address receiver) external onlyPool {
         require(receiver != address(0), "FirstLossVault: 0 address");
         _asset.safeTransfer(receiver, amount);
     }

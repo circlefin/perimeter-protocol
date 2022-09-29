@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
-import "../library/PoolLib.sol";
+import "../libraries/PoolLib.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /**
@@ -10,7 +10,16 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
  */
 contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
     event LifeCycleStateTransition(IPoolLifeCycleState state);
-    event FirstLossSupplied(address indexed supplier, uint256 amount);
+    event FirstLossDeposited(
+        address indexed caller,
+        address indexed supplier,
+        uint256 amount
+    );
+    event FirstLossWithdrawn(
+        address indexed caller,
+        address indexed receiver,
+        uint256 amount
+    );
     event Deposit(
         address indexed caller,
         address indexed owner,
@@ -18,20 +27,35 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
         uint256 shares
     );
 
-    function executeFirstLossContribution(
+    function executeFirstLossDeposit(
         address liquidityAsset,
+        address spender,
         uint256 amount,
         address firstLossVault,
         IPoolLifeCycleState currentState,
         uint256 minFirstLossRequired
     ) external {
-        PoolLib.executeFirstLossContribution(
+        PoolLib.executeFirstLossDeposit(
             liquidityAsset,
+            spender,
             amount,
             firstLossVault,
             currentState,
             minFirstLossRequired
         );
+    }
+
+    function executeFirstLossWithdraw(
+        uint256 amount,
+        address withdrawReceiver,
+        address firstLossVault
+    ) external returns (uint256) {
+        return
+            PoolLib.executeFirstLossWithdraw(
+                amount,
+                withdrawReceiver,
+                firstLossVault
+            );
     }
 
     function calculateAssetsToShares(
