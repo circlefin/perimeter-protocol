@@ -58,13 +58,13 @@ library LoanLib {
     }
 
     /**
-     * @dev get Collateral back
+     * @dev Withdraw ERC20 collateral
      */
     function withdrawFungibleCollateral(
         CollateralVault collateralVault,
         ILoanLifeCycleState state,
         address[] storage collateral
-    ) external returns (ILoanLifeCycleState) {
+    ) external {
         for (uint256 i = 0; i < collateral.length; i++) {
             address addr = collateral[i];
             collateralVault.withdraw(
@@ -72,27 +72,29 @@ library LoanLib {
                 IERC20(addr).balanceOf(address(collateralVault)),
                 msg.sender
             );
-            // TODO clear array
         }
-        // TODO: wrong state
-        return ILoanLifeCycleState.Canceled;
+
+        for (uint256 i = 0; i < collateral.length; i++) {
+            collateral.pop();
+        }
     }
 
     /**
-     * @dev get NFTs back
+     * @dev Withdraw ERC721 collateral
      */
     function withdrawNonFungibleCollateral(
         CollateralVault collateralVault,
         ILoanLifeCycleState state,
         ILoanNonFungibleCollateral[] storage collateral
-    ) external returns (ILoanLifeCycleState) {
+    ) external {
         for (uint256 i = 0; i < collateral.length; i++) {
             ILoanNonFungibleCollateral memory c = collateral[i];
-            // TODO clear array
             collateralVault.withdrawERC721(c.asset, c.tokenId, msg.sender);
         }
-        // TODO: wrong state
-        return ILoanLifeCycleState.Canceled;
+
+        for (uint256 i = 0; i < collateral.length; i++) {
+            collateral.pop();
+        }
     }
 
     /**

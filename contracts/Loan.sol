@@ -92,17 +92,18 @@ contract Loan is ILoan {
         atState(ILoanLifeCycleState.Collateralized)
         returns (ILoanLifeCycleState)
     {
-        _state = LoanLib.withdrawFungibleCollateral(
+        LoanLib.withdrawFungibleCollateral(
             _collateralVault,
             _state,
             _fungibleCollateral
         );
-        _state = LoanLib.withdrawNonFungibleCollateral(
+        LoanLib.withdrawNonFungibleCollateral(
             _collateralVault,
             _state,
             _nonFungibleCollateral
         );
 
+        _state = ILoanLifeCycleState.Canceled;
         return _state;
     }
 

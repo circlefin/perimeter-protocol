@@ -163,8 +163,10 @@ describe("Loan", () => {
         await loan._collateralVault(),
         -100
       );
-      const c = await loan.fungibleCollateral();
-      expect(c[0]).to.equal(collateralAsset.address);
+      const c20 = await loan.fungibleCollateral();
+      expect(c20.length).to.equal(0);
+      const c721 = await loan.nonFungibleCollateral();
+      expect(c721.length).to.equal(0);
       expect(await loan.state()).to.equal(2);
     });
 
