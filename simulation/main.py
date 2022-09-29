@@ -52,6 +52,8 @@ class Pool:
         self.payment_count_by_loan_id = {}
         self.lender_payouts = {}
 
+        self.is_closed = False
+
     def deposit(self, lender_id, liquidity_amount, time):
         getcontext().rounding = ROUND_UP
 
@@ -67,7 +69,10 @@ class Pool:
     def withdraw(self, lender_id, token_amount, time):
         getcontext().rounding = ROUND_DOWN
 
-        liquidity = Decimal((Decimal(1) / self._liquidity_to_token_rate(time)) * Decimal(token_amount))
+        if self.is_closed:
+            liquidity = self.liquidity * token_amount / self.pool_token_supply
+        else:
+            liquidity = Decimal((Decimal(1) / self._liquidity_to_token_rate(time)) * Decimal(token_amount))
         # print(f'Lender ID {lender_id}, liquidity {liquidity}, pool liquidity {self.liquidity}')
         assert self.liquidity >= liquidity, "Not enough liquidity"
 
@@ -106,6 +111,7 @@ class Pool:
         self.defaults += Decimal(matching_loan.principal)
 
     def close(self, time):
+        self.is_closed = True
         for lender_id, token_balance in self.pool_token_balances.items():
             if not token_balance: continue 
             self.lender_payouts[lender_id] = self.withdraw(lender_id, token_balance, time)
