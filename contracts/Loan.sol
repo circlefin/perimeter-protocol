@@ -15,6 +15,8 @@ contract Loan is ILoan {
     address private immutable _borrower;
     address private immutable _pool;
     CollateralVault public immutable _collateralVault;
+    address[] private _fungibleCollateral;
+    ILoanNonFungibleCollateral[] private _nonFungibleCollateral;
 
     /**
      * @dev Modifier that requires the Loan be in the given `state_`
@@ -90,7 +92,15 @@ contract Loan is ILoan {
         atState(ILoanLifeCycleState.Collateralized)
         returns (ILoanLifeCycleState)
     {
-        // TODO: return collateral
+        LoanLib.withdrawFungibleCollateral(
+            _collateralVault,
+            _fungibleCollateral
+        );
+        LoanLib.withdrawNonFungibleCollateral(
+            _collateralVault,
+            _nonFungibleCollateral
+        );
+
         _state = ILoanLifeCycleState.Canceled;
         return _state;
     }
@@ -108,9 +118,14 @@ contract Loan is ILoan {
             address(_collateralVault),
             asset,
             amount,
-            _state
+            _state,
+            _fungibleCollateral
         );
         return _state;
+    }
+
+    function fungibleCollateral() external view returns (address[] memory) {
+        return _fungibleCollateral;
     }
 
     /**
@@ -122,14 +137,22 @@ contract Loan is ILoan {
         onlyActiveLoan
         returns (ILoanLifeCycleState)
     {
-        // TODO: post the collateral
         _state = LoanLib.postNonFungibleCollateral(
             address(_collateralVault),
             asset,
             tokenId,
-            _state
+            _state,
+            _nonFungibleCollateral
         );
         return _state;
+    }
+
+    function nonFungibleCollateral()
+        external
+        view
+        returns (ILoanNonFungibleCollateral[] memory)
+    {
+        return _nonFungibleCollateral;
     }
 
     /**

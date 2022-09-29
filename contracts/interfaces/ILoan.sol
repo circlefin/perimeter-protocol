@@ -13,17 +13,31 @@ enum ILoanLifeCycleState {
     Matured
 }
 
-interface ILoan {
-    struct ILoanFungibleCollateral {
-        address asset;
-        uint256 amount;
-    }
+struct ILoanNonFungibleCollateral {
+    address asset;
+    uint256 tokenId;
+}
 
-    struct ILoanNonFungibleCollateral {
-        address asset;
-        uint256 _tokenId;
-        bytes data;
-    }
+interface ILoan {
+    /**
+     * @dev Emitted when collateral is posted to the loan.
+     */
+    event PostedCollateral(address asset, uint256 amount);
+
+    /**
+     * @dev Emitted when collateral is posted to the loan.
+     */
+    event PostedNonFungibleCollateral(address asset, uint256 tokenId);
+
+    /**
+     * @dev Emitted when collateral is withdrawn from the loan.
+     */
+    event WithdrewCollateral(address asset, uint256 amount);
+
+    /**
+     * @dev Emitted when collateral is posted to the loan.
+     */
+    event WithdrewNonFungibleCollateral(address asset, uint256 tokenId);
 
     function state() external view returns (ILoanLifeCycleState);
 
@@ -39,9 +53,16 @@ interface ILoan {
         external
         returns (ILoanLifeCycleState);
 
+    function fungibleCollateral() external view returns (address[] memory);
+
     function postNonFungibleCollateral(address asset, uint256 tokenId)
         external
         returns (ILoanLifeCycleState);
+
+    function nonFungibleCollateral()
+        external
+        view
+        returns (ILoanNonFungibleCollateral[] memory);
 
     function fund() external returns (ILoanLifeCycleState);
 }
