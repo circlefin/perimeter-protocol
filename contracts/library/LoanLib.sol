@@ -92,7 +92,6 @@ library LoanLib {
      */
     function withdrawFungibleCollateral(
         CollateralVault collateralVault,
-        ILoanLifeCycleState state,
         address[] storage collateral
     ) external {
         for (uint256 i = 0; i < collateral.length; i++) {
@@ -112,7 +111,6 @@ library LoanLib {
      */
     function withdrawNonFungibleCollateral(
         CollateralVault collateralVault,
-        ILoanLifeCycleState state,
         ILoanNonFungibleCollateral[] storage collateral
     ) external {
         for (uint256 i = 0; i < collateral.length; i++) {

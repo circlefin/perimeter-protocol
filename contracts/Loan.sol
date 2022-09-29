@@ -94,12 +94,10 @@ contract Loan is ILoan {
     {
         LoanLib.withdrawFungibleCollateral(
             _collateralVault,
-            _state,
             _fungibleCollateral
         );
         LoanLib.withdrawNonFungibleCollateral(
             _collateralVault,
-            _state,
             _nonFungibleCollateral
         );
 
