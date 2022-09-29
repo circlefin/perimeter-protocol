@@ -2,13 +2,12 @@ from dataclasses import dataclass
 from datetime import datetime 
 import os
 import csv
-import uuid
 import argparse
 from decimal import *
 
 @dataclass
 class Loan:
-    uuid: str
+    loan_id: int
     principal: int
     payment: int
     number_payments: int 
@@ -45,6 +44,7 @@ class Pool:
         self.defaults = 0
         self.active_loans = [] 
         self.matured_loans = []
+        self.defaulted_loans = []
 
         self.pool_token_balances = {}
         self.pool_token_supply = 0
@@ -56,7 +56,7 @@ class Pool:
         if self.liquidity == 0 and len(self.active_loans) == 0:
             tokens = liquidity_amount
         else:
-            tokens = float(self._liquidity_to_token_rate(time) * Decimal(liquidity_amount))
+            tokens = Decimal(self._liquidity_to_token_rate(time) * Decimal(liquidity_amount))
 
         self.liquidity += liquidity_amount
         self._mint(lender_id, tokens)
@@ -64,16 +64,19 @@ class Pool:
 
     def withdraw(self, lender_id, token_amount, time):
         liquidity = float((Decimal(1) / self._liquidity_to_token_rate(time)) * Decimal(token_amount))
-        assert(self.liquidity >= liquidity, "Not enough liquidity")
+        print(f'Lender ID {lender_id}, liquidity {liquidity}, pool liquidity {self.liquidity}')
+        assert self.liquidity >= liquidity, "Not enough liquidity"
 
         self.liquidity -= liquidity
         self._burn(lender_id, token_amount)
         return liquidity
 
     def make_payment(self, loan: Loan):
+        assert loan in self.active_loans, "Loan not active, can't make payment"
+
         self.liquidity += loan.payment 
-        self.payment_count_by_loan_id[loan.uuid] = self.payment_count_by_loan_id.get(loan.uuid, 0) + 1
-        if (self.payment_count_by_loan_id[loan.uuid] == loan.number_payments):
+        self.payment_count_by_loan_id[loan.loan_id] = self.payment_count_by_loan_id.get(loan.loan_id, 0) + 1
+        if (self.payment_count_by_loan_id[loan.loan_id] == loan.number_payments):
             # paypack principal 
             self.liquidity += loan.principal
             # loan matures 
@@ -81,9 +84,22 @@ class Pool:
             self.active_loans.remove(loan)
 
     def fund_loan(self, loan: Loan):
-        assert(self.liquidity >= loan.principal, "Not enough liquidity to fund loan")
+        assert self.liquidity >= loan.principal, "Not enough liquidity to fund loan"
         self.active_loans.append(loan)
         self.liquidity -= loan.principal
+
+    def mark_loan_in_default(self, loan_id: int):
+        matching_loan = None 
+        for each in self.active_loans:
+            if each.loan_id == loan_id:
+                matching_loan = each 
+                break
+
+        assert matching_loan is not None, "Loan not active"
+
+        self.active_loans.remove(matching_loan)
+        self.defaulted_loans.append(matching_loan)
+        self.defaults += matching_loan.principal
 
     def close(self, time):
         for lender_id, token_balance in self.pool_token_balances.items():
@@ -91,8 +107,9 @@ class Pool:
             self.lender_payouts[lender_id] = self.withdraw(lender_id, token_balance, time)
 
     def _burn(self, lender_id, amount):
-        assert(self.pool_token_supply >= amount, "Not enough tokens in circulation")
-        assert(self.pool_token_balances[lender_id] >= amount, "Not enough tokens in balance")
+        assert self.pool_token_supply >= amount, "Not enough tokens in circulation"
+        assert self.pool_token_balances[lender_id] >= amount, "Not enough tokens in balance" 
+
         self.pool_token_supply -= amount 
         self.pool_token_balances[lender_id] -= amount
 
@@ -123,18 +140,22 @@ class LoanSchedule:
 class LenderSchedule:
     deposits_by_date_and_id: list[tuple[int, int, int]]
 
-def process_input(simulation) -> tuple[LoanSchedule, LenderSchedule]:
+@dataclass
+class DefaultSchedule:
+    defaults_by_loan_id_date: list[tuple[int, int]]
+
+def process_input(simulation) -> tuple[LoanSchedule, LenderSchedule, DefaultSchedule]:
     loan_schedule = []
     with open(f'simulations/{simulation}/loan_input.csv') as csvfile:        
         reader = csv.reader(csvfile)
         next(reader)
         for row in reader:
-            number_payments = int(row[2].strip())
-            interval = int(row[3].strip())
-            start = int(row[4].strip())
+            number_payments = int(row[3].strip())
+            interval = int(row[4].strip())
+            start = int(row[5].strip())
             end = start + number_payments * interval
 
-            loan = Loan(uuid.uuid4(), int(row[0].strip()), int(row[1].strip()), number_payments, start, end)
+            loan = Loan(int(row[0].strip()), int(row[1].strip()), int(row[2].strip()), number_payments, start, end)
             loan_schedule.append(
                 (start, loan)
             )
@@ -147,13 +168,22 @@ def process_input(simulation) -> tuple[LoanSchedule, LenderSchedule]:
             lender_schedule.append(
                 (int(row[0].strip()), int(row[1].strip()), int(row[2].strip()))
             )
+    
+    defaults_schedule = []
+    with open(f'simulations/{simulation}/default_input.csv') as csvfile:        
+        reader = csv.reader(csvfile)
+        next(reader)
+        for row in reader:
+            defaults_schedule.append(
+                (int(row[0].strip()), int(row[1].strip()))
+            )
 
-    return LoanSchedule(loan_schedule), LenderSchedule(lender_schedule)
+    return LoanSchedule(loan_schedule), LenderSchedule(lender_schedule), DefaultSchedule(defaults_schedule)
 
 def run_simulation(simulation):
-    assert(isinstance(simulation, int), "Simulation must be number")
+    assert isinstance(simulation, int), "Simulation must be number"
 
-    loan_schedule, lender_schedule = process_input(simulation)
+    loan_schedule, lender_schedule, defaults_schedule = process_input(simulation)
     pool = Pool()
 
     time = 0 
@@ -172,12 +202,23 @@ def run_simulation(simulation):
             start_time, loan = each 
             if start_time == time:
                 pool.fund_loan(loan)
+            elif loan in pool.defaulted_loans:
+                continue
             elif loan.payment_required(time):
                 pool.make_payment(loan)
-        
+
+        # process defaults 
+        for each in defaults_schedule.defaults_by_loan_id_date:
+            loan_id, default_time = each
+            if default_time == time:
+                pool.mark_loan_in_default(loan_id)
+
         time += 1
 
-        if len(pool.matured_loans) == len(loan_schedule.loans_by_start_date):
+        completed_loan_count = len(pool.matured_loans) + len(pool.defaulted_loans)
+        assert completed_loan_count <= len(loan_schedule.loans_by_start_date), "Too many loans!"
+
+        if completed_loan_count == len(loan_schedule.loans_by_start_date):
             pool.close(time)
             break
 
