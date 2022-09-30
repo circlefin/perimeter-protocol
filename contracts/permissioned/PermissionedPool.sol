@@ -26,6 +26,17 @@ contract PermissionedPool is Pool {
     }
 
     /**
+     * @dev a modifier to only allow valid lenders to perform an action
+     */
+    modifier onlyValidReceiver(address receiver) {
+        require(
+            _poolAccessControl.isValidLender(receiver),
+            "receiver is not a valid lender"
+        );
+        _;
+    }
+
+    /**
      * @dev The constructor for the PermissionedPool contract. It calls the
      * constructor of the Pool contract and then creates a new instance of the
      * PoolAccessControl contract.
@@ -43,11 +54,60 @@ contract PermissionedPool is Pool {
     /**
      * @inheritdoc Pool
      */
-    function deposit(
-        uint256, /* assets */
-        address /* receiver */
-    ) external override onlyValidLender returns (uint256 shares) {
-        return 0;
+    function maxDeposit(address receiver)
+        public
+        view
+        override
+        returns (uint256)
+    {
+        if (
+            !_poolAccessControl.isValidLender(msg.sender) ||
+            !_poolAccessControl.isValidLender(receiver)
+        ) {
+            return 0;
+        }
+
+        return super.maxDeposit(receiver);
+    }
+
+    /**
+     * @inheritdoc Pool
+     */
+    function deposit(uint256 assets, address receiver)
+        public
+        override
+        onlyValidLender
+        onlyValidReceiver(receiver)
+        returns (uint256 shares)
+    {
+        return super.deposit(assets, receiver);
+    }
+
+    /**
+     * @inheritdoc Pool
+     */
+    function maxMint(address receiver) public view override returns (uint256) {
+        if (
+            !_poolAccessControl.isValidLender(msg.sender) ||
+            !_poolAccessControl.isValidLender(receiver)
+        ) {
+            return 0;
+        }
+
+        return super.maxMint(receiver);
+    }
+
+    /**
+     * @inheritdoc Pool
+     */
+    function mint(uint256 shares, address receiver)
+        public
+        override
+        onlyValidLender
+        onlyValidReceiver(receiver)
+        returns (uint256)
+    {
+        return super.mint(shares, receiver);
     }
 
     /**

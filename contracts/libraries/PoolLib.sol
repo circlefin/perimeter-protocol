@@ -113,26 +113,46 @@ library PoolLib {
         uint256 sharesTotalSupply,
         uint256 nav
     ) external pure returns (uint256 shares) {
-        if (sharesTotalSupply == 0) {
+        if (nav == 0) {
             return assets;
         }
 
         // TODO: add in interest rate.
-        uint256 rate = (sharesTotalSupply * RAY).div(nav);
-        shares = (rate * assets).div(RAY);
+        uint256 rate = (sharesTotalSupply.mul(RAY)).div(nav);
+        shares = (rate.mul(assets)).div(RAY);
     }
 
     /**
-     * @dev Calculates the Pool Net Asset Value
+     * @dev Computes the exchange rate for converting shares to assets
+     * @param shares Amount of shares to exchange
+     * @param sharesTotalSupply Supply of Vault's ERC20 shares
+     * @param nav Pool NAV
+     * @return assets The amount of shares
+     */
+    function calculateSharesToAssets(
+        uint256 shares,
+        uint256 sharesTotalSupply,
+        uint256 nav
+    ) external pure returns (uint256 assets) {
+        if (sharesTotalSupply == 0) {
+            return shares;
+        }
+
+        // TODO: add in interest rate.
+        uint256 rate = (nav.mul(RAY)).div(sharesTotalSupply);
+        assets = (rate.mul(shares)).div(RAY);
+    }
+
+    /**
+     * @dev Calculates the Pool Net Asset Value in aggregate
      * @param totalVaultAssets Amount of total assets held by the Vault
      * @param defaultsTotal Total amount of defaulted loan amounts
      * @return nav Net Asset Value
      */
-    function calculateNav(uint256 totalVaultAssets, uint256 defaultsTotal)
-        external
-        pure
-        returns (uint256 nav)
-    {
+    function calculateNavAggregate(
+        uint256 totalVaultAssets,
+        uint256 defaultsTotal
+    ) external pure returns (uint256 nav) {
         // TODO: add in interest rate accruals
         nav = totalVaultAssets - defaultsTotal;
     }
