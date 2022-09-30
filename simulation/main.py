@@ -52,7 +52,10 @@ class Pool:
         self.payment_count_by_loan_id = {}
         self.lender_payouts = {}
 
-        self.is_closed = False
+        self.close_time = 0
+
+    def is_closed(self, time):
+        return time >= self.close_time
 
     def deposit(self, lender_id, liquidity_amount, time):
         getcontext().rounding = ROUND_UP
@@ -69,10 +72,7 @@ class Pool:
     def withdraw(self, lender_id, token_amount, time):
         getcontext().rounding = ROUND_DOWN
 
-        if self.is_closed:
-            liquidity = self.liquidity * token_amount / self.pool_token_supply
-        else:
-            liquidity = Decimal((Decimal(1) / self._liquidity_to_token_rate(time)) * Decimal(token_amount))
+        liquidity = Decimal((Decimal(1) / self._liquidity_to_token_rate(time)) * Decimal(token_amount))
         # print(f'Lender ID {lender_id}, liquidity {liquidity}, pool liquidity {self.liquidity}')
         assert self.liquidity >= liquidity, "Not enough liquidity"
 
@@ -111,7 +111,7 @@ class Pool:
         self.defaults += Decimal(matching_loan.principal)
 
     def close(self, time):
-        self.is_closed = True
+        self.close_time = time
         for lender_id, token_balance in self.pool_token_balances.items():
             if not token_balance: continue 
             self.lender_payouts[lender_id] = self.withdraw(lender_id, token_balance, time)
@@ -140,7 +140,7 @@ class Pool:
             period_start, period_end = period
             accrued_interest += Decimal(time - period_start) * Decimal(each.payment) / Decimal(period_end - period_start)
 
-        return self.liquidity + outstanding_principals + accrued_interest - self.defaults
+        return self.liquidity + outstanding_principals + accrued_interest - (self.defaults if not self.is_closed(time) else Decimal(0))
 
 @dataclass 
 class LoanSchedule:
