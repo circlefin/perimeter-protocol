@@ -306,10 +306,27 @@ contract Pool is IPool, ERC20 {
     }
 
     function requestedLenderWithdrawalTotal() external view returns (uint256) {
+        uint256 period = withdrawPeriod();
+
+        // Check if there's any new eligible shares need to be added, but
+        // has not yet been "cranked"
+        if (_globalWithdrawState.latestPeriod <= period) {
+            return 0;
+        }
+
         return _globalWithdrawState.requested;
     }
 
     function eligibleLenderWithdrawalTotal() external view returns (uint256) {
+        uint256 period = withdrawPeriod();
+
+        // Check if there's any new eligible shares need to be added, but
+        // has not yet been "cranked"
+        if (_globalWithdrawState.latestPeriod <= period) {
+            return
+                _globalWithdrawState.eligible + _globalWithdrawState.requested;
+        }
+
         return _globalWithdrawState.eligible;
     }
 
@@ -318,6 +335,14 @@ contract Pool is IPool, ERC20 {
         view
         returns (uint256)
     {
+        uint256 period = withdrawPeriod();
+
+        // Check if there's any new eligible shares need to be added, but
+        // has not yet been "cranked"
+        if (_withdrawState[lender].latestPeriod <= period) {
+            return 0;
+        }
+
         return _withdrawState[lender].requested;
     }
 
@@ -326,6 +351,16 @@ contract Pool is IPool, ERC20 {
         view
         returns (uint256)
     {
+        uint256 period = withdrawPeriod();
+
+        // Check if there's any new eligible shares need to be added, but
+        // has not yet been "cranked"
+        if (_withdrawState[lender].latestPeriod <= period) {
+            return
+                _withdrawState[lender].eligible +
+                _withdrawState[lender].requested;
+        }
+
         return _withdrawState[lender].eligible;
     }
 
