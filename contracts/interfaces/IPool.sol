@@ -29,16 +29,17 @@ struct IPoolConfigurableSettings {
     uint256 endDate; // epoch seconds
     uint256 withdrawalFee; // bips
     uint256 firstLossInitialMinimum; // amount
-    uint256 withdrawWindowDurationSeconds; // seconds (e.g. 30 days)
+    uint256 withdrawRequestPeriodDuration; // seconds (e.g. 30 days)
     // TODO: add in Pool fees
 }
 
 /**
- * @title Contains the start and enddate of a given withdrawal period.
+ * @dev contains withdraw request information
  */
-struct IPoolWithdrawalPeriod {
-    uint256 start;
-    uint256 end;
+struct IPoolWithdrawState {
+    uint256 requested;
+    uint256 eligible;
+    uint256 latestPeriod;
 }
 
 /**
@@ -129,17 +130,6 @@ interface IPool is IERC4626 {
      * @dev Returns the withdrawal fee for a given withdrawal amount at the current block.
      */
     function feeForWithdrawalRequest(uint256) external view returns (uint256);
-
-    /**
-     * @dev Returns the next withdrawal window timestamp, meaning any withdrawal
-     * requests for before this timestamp can be immediately withdrawn.
-     */
-    function currentWithdrawWindowTimestamp() external view returns (uint256);
-
-    /**
-     * @dev Returns the next withdrawal window timestamp.
-     */
-    function nextWithdrawWindowTimestamp() external view returns (uint256);
 
     /**
      * @dev Submits a withdrawal request, incurring a fee.

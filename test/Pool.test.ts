@@ -2,7 +2,6 @@ import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import {
-  deployActivePool,
   deployPool,
   DEFAULT_POOL_SETTINGS,
   depositToPool,
@@ -37,14 +36,14 @@ describe("Pool", () => {
         endDate,
         maxCapacity,
         withdrawalFee,
-        withdrawWindowDurationSeconds
+        withdrawRequestPeriodDuration
       } = await pool.settings();
 
       expect(endDate).to.equal(DEFAULT_POOL_SETTINGS.endDate);
       expect(maxCapacity).to.equal(DEFAULT_POOL_SETTINGS.maxCapacity);
       expect(withdrawalFee).to.equal(DEFAULT_POOL_SETTINGS.withdrawalFee);
-      expect(withdrawWindowDurationSeconds).to.equal(
-        DEFAULT_POOL_SETTINGS.withdrawWindowDurationSeconds
+      expect(withdrawRequestPeriodDuration).to.equal(
+        DEFAULT_POOL_SETTINGS.withdrawRequestPeriodDuration
       );
     });
   });
@@ -256,109 +255,35 @@ describe("Pool", () => {
   });
 
   describe("Withdrawal Requests", () => {
-    describe("currentWithdrawWindowTimestamp() and nextWithdrawWindowTimestamp()", () => {
-      it("reverts if the pool is not active", async () => {
+    describe("requestPeriod(), withdrawPeriod()", () => {
+      it("returns the first period when the pool is not yet initialized", async () => {
         const { pool } = await loadFixture(loadPoolFixture);
 
-        await expect(pool.currentWithdrawWindowTimestamp()).to.be.rejectedWith(
-          "Pool: PoolNotActive"
-        );
-        await expect(pool.nextWithdrawWindowTimestamp()).to.be.rejectedWith(
-          "Pool: PoolNotActive"
-        );
+        expect(await pool.requestPeriod()).to.equal(1);
+        expect(await pool.withdrawPeriod()).to.equal(0);
       });
 
-      it("returns the pool activated date if the pool has not reached it's first withdrawal window", async () => {
+      it("returns the first period when the pool is activated", async () => {
         const { pool, poolManager, liquidityAsset } = await loadFixture(
           loadPoolFixture
         );
         await activatePool(pool, poolManager, liquidityAsset);
 
-        const { withdrawWindowDurationSeconds } = await pool.settings();
-        const activatedAt = await pool.poolActivatedAt();
-
-        expect(await pool.currentWithdrawWindowTimestamp()).to.equal(
-          activatedAt
-        );
-        expect(await pool.nextWithdrawWindowTimestamp()).to.equal(
-          activatedAt.add(withdrawWindowDurationSeconds)
-        );
+        expect(await pool.requestPeriod()).to.equal(1);
+        expect(await pool.withdrawPeriod()).to.equal(0);
       });
 
-      it("returns the pool activated date if the pool is one second before the first withdrawal window", async () => {
+      it("returns the second period when the first period has ended", async () => {
         const { pool, poolManager, liquidityAsset } = await loadFixture(
           loadPoolFixture
         );
         await activatePool(pool, poolManager, liquidityAsset);
 
-        const { withdrawWindowDurationSeconds } = await pool.settings();
-        const activatedAt = await pool.poolActivatedAt();
+        const { withdrawRequestPeriodDuration } = await pool.settings();
+        await time.increase(withdrawRequestPeriodDuration);
 
-        await time.increase(withdrawWindowDurationSeconds.sub(1));
-
-        expect(await pool.currentWithdrawWindowTimestamp()).to.equal(
-          activatedAt
-        );
-        expect(await pool.nextWithdrawWindowTimestamp()).to.equal(
-          activatedAt.add(withdrawWindowDurationSeconds)
-        );
-      });
-
-      it("returns the correct date if the pool reached it's first withdraw window", async () => {
-        const { pool, poolManager, liquidityAsset } = await loadFixture(
-          loadPoolFixture
-        );
-        await activatePool(pool, poolManager, liquidityAsset);
-
-        const { withdrawWindowDurationSeconds } = await pool.settings();
-        const activatedAt = await pool.poolActivatedAt();
-
-        await time.increase(withdrawWindowDurationSeconds);
-
-        expect(await pool.currentWithdrawWindowTimestamp()).to.equal(
-          activatedAt.add(withdrawWindowDurationSeconds)
-        );
-        expect(await pool.nextWithdrawWindowTimestamp()).to.equal(
-          activatedAt.add(withdrawWindowDurationSeconds.mul(2))
-        );
-      });
-
-      it("returns the correct date if the pool is past it's first withdraw window", async () => {
-        const { pool, poolManager, liquidityAsset } = await loadFixture(
-          loadPoolFixture
-        );
-        await activatePool(pool, poolManager, liquidityAsset);
-
-        const { withdrawWindowDurationSeconds } = await pool.settings();
-        const activatedAt = await pool.poolActivatedAt();
-
-        await time.increase(withdrawWindowDurationSeconds.add(1));
-
-        expect(await pool.currentWithdrawWindowTimestamp()).to.equal(
-          activatedAt.add(withdrawWindowDurationSeconds)
-        );
-        expect(await pool.nextWithdrawWindowTimestamp()).to.equal(
-          activatedAt.add(withdrawWindowDurationSeconds.mul(2))
-        );
-      });
-
-      it("returns the correct date if the pool reached it's second withdraw window", async () => {
-        const { pool, poolManager, liquidityAsset } = await loadFixture(
-          loadPoolFixture
-        );
-        await activatePool(pool, poolManager, liquidityAsset);
-
-        const { withdrawWindowDurationSeconds } = await pool.settings();
-        const activatedAt = await pool.poolActivatedAt();
-
-        await time.increase(withdrawWindowDurationSeconds.mul(2));
-
-        expect(await pool.currentWithdrawWindowTimestamp()).to.equal(
-          activatedAt.add(withdrawWindowDurationSeconds.mul(2))
-        );
-        expect(await pool.nextWithdrawWindowTimestamp()).to.equal(
-          activatedAt.add(withdrawWindowDurationSeconds.mul(3))
-        );
+        expect(await pool.requestPeriod()).to.equal(2);
+        expect(await pool.withdrawPeriod()).to.equal(1);
       });
     });
 

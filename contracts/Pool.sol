@@ -25,14 +25,19 @@ contract Pool is IPool, ERC20 {
     IPoolAccountings private _accountings;
 
     /**
-     * @dev a timestamp of when the pool was first put into the Actie state
+     * @dev a timestamp of when the pool was first put into the Active state
      */
     uint256 public poolActivatedAt;
 
     /**
-     * @dev a mapping of addresses to their withdraw requests
+     * @dev Per-lender withdraw request information
      */
-    mapping(address => mapping(uint256 => uint256)) private _withdrawRequests;
+    mapping(address => IPoolWithdrawState) private _withdrawState;
+
+    /**
+     * @dev Aggregate withdraw request information
+     */
+    IPoolWithdrawState private _globalWithdrawState;
 
     /**
      * @dev Modifier that checks that the caller is the pool's manager.
@@ -227,37 +232,27 @@ contract Pool is IPool, ERC20 {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Returns the next withdrawal window timestamp, at which a withdrawal
-     * could be completed.
+     * @dev The withdraw period that we're requesting for (aka nextWithdrawPeriod)
      */
-    function currentWithdrawWindowTimestamp()
-        external
-        view
-        onlyActivatedPool
-        returns (uint256)
-    {
+    function requestPeriod() public view returns (uint256) {
         return
-            PoolLib.calculateCurrentWithdrawWindowTimestamp(
+            PoolLib.currentRequestPeriod(
                 _poolLifeCycleState,
                 poolActivatedAt,
-                _poolSettings.withdrawWindowDurationSeconds,
-                _poolSettings.endDate
+                _poolSettings.withdrawRequestPeriodDuration
             );
     }
 
     /**
-     * @dev Returns the next withdrawal window timestamp, at which a withdrawal
-     * could be completed.
+     * @dev The current withdraw period
      */
-    function nextWithdrawWindowTimestamp()
-        external
-        view
-        onlyActivatedPool
-        returns (uint256)
-    {
+    function withdrawPeriod() public view returns (uint256) {
         return
-            this.currentWithdrawWindowTimestamp() +
-            _poolSettings.withdrawWindowDurationSeconds;
+            PoolLib.currentWithdrawPeriod(
+                _poolLifeCycleState,
+                poolActivatedAt,
+                _poolSettings.withdrawRequestPeriodDuration
+            );
     }
 
     /**
@@ -268,17 +263,70 @@ contract Pool is IPool, ERC20 {
         onlyActivatedPool
         onlyLender
     {
+        // TODO: Calculate fees here
         require(balanceOf(msg.sender) >= amount, "Pool: InsufficientBalance");
 
-        uint256 withdrawWindowIndex = PoolLib.currentWithdrawWindowIndex(
-            _poolLifeCycleState,
-            poolActivatedAt,
-            _poolSettings.withdrawWindowDurationSeconds
-        );
+        uint256 period = requestPeriod();
 
-        _withdrawRequests[msg.sender][withdrawWindowIndex + 1] = amount;
+        // Update the lender's WithdrawState
+        if (
+            _withdrawState[msg.sender].latestPeriod > 0 &&
+            _withdrawState[msg.sender].latestPeriod <= period
+        ) {
+            _withdrawState[msg.sender].eligible =
+                _withdrawState[msg.sender].eligible +
+                _withdrawState[msg.sender].requested;
+            _withdrawState[msg.sender].requested = 0;
+        }
+
+        // Update the global withdraw state
+        if (
+            _globalWithdrawState.latestPeriod > 0 &&
+            _globalWithdrawState.latestPeriod <= period
+        ) {
+            _globalWithdrawState.eligible =
+                _globalWithdrawState.eligible +
+                _globalWithdrawState.requested;
+            _globalWithdrawState.requested = 0;
+        }
+
+        // Update the requested amount from the user
+        _withdrawState[msg.sender].requested =
+            _withdrawState[msg.sender].requested +
+            amount;
+        _withdrawState[msg.sender].latestPeriod = period;
+
+        // Update the global amount
+        _globalWithdrawState.requested =
+            _globalWithdrawState.requested +
+            amount;
+        _globalWithdrawState.latestPeriod = period;
 
         emit WithdrawRequested(msg.sender, amount);
+    }
+
+    function requestedLenderWithdrawalTotal() external view returns (uint256) {
+        return _globalWithdrawState.requested;
+    }
+
+    function eligibleLenderWithdrawalTotal() external view returns (uint256) {
+        return _globalWithdrawState.eligible;
+    }
+
+    function requestedLenderWithdrawalAmount(address lender)
+        external
+        view
+        returns (uint256)
+    {
+        return _withdrawState[lender].requested;
+    }
+
+    function eligibleLenderWithdrawalAmount(address lender)
+        external
+        view
+        returns (uint256)
+    {
+        return _withdrawState[lender].eligible;
     }
 
     /**
@@ -427,7 +475,18 @@ contract Pool is IPool, ERC20 {
         override
         returns (uint256)
     {
-        return 0;
+        // TODO: have to consider how much is available in the withdrawal pool
+        uint256 period = withdrawPeriod();
+
+        // Check if there's any new eligible shares need to be added, but
+        // has not yet been "cranked"
+        if (_withdrawState[owner].latestPeriod <= period) {
+            return
+                _withdrawState[owner].eligible +
+                _withdrawState[owner].requested;
+        }
+
+        return _withdrawState[owner].eligible;
     }
 
     /**

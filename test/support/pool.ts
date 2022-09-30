@@ -7,7 +7,7 @@ export const DEFAULT_POOL_SETTINGS = {
   endDate: 2524611601, // Jan 1, 2050
   withdrawalFee: 50, // bips,
   firstLossInitialMinimum: 100_000,
-  withdrawWindowDurationSeconds: 30 * 24 * 60 * 60 // 30 days
+  withdrawRequestPeriodDuration: 30 * 24 * 60 * 60 // 30 days
 };
 
 /**

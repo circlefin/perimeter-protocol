@@ -206,41 +206,35 @@ library PoolLib {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Calculate the current withdraw window index
+     * @dev The current withdrawal period.
      */
-    function currentWithdrawWindowIndex(
+    function currentWithdrawPeriod(
         IPoolLifeCycleState lifeCycleState,
         uint256 activatedAt,
         uint256 withdrawalWindowDuration
-    ) internal view returns (uint256) {
+    ) public view returns (uint256) {
         if (lifeCycleState != IPoolLifeCycleState.Active) {
             return 0;
         }
+
         return (block.timestamp - activatedAt) / withdrawalWindowDuration;
     }
 
     /**
-     * @dev Calculate the current withdraw window timestamp, meaning all
-     * withdraw requests for a timestamp earlier than this are able to
-     * withdraw immediately.
+     * @dev The current withdrawal request period. Withdrawal requests made
+     * made now are able to be withdrawn in the withdrawal period that matches
+     * this value.
      */
-    function calculateCurrentWithdrawWindowTimestamp(
+    function currentRequestPeriod(
         IPoolLifeCycleState lifeCycleState,
         uint256 activatedAt,
-        uint256 withdrawalWindowDuration,
-        uint256 poolEndDate
-    ) internal view returns (uint256) {
-        uint256 index = currentWithdrawWindowIndex(
-            lifeCycleState,
-            activatedAt,
-            withdrawalWindowDuration
-        );
-        uint256 timestamp = activatedAt + (index * withdrawalWindowDuration);
-
-        if (timestamp > poolEndDate) {
-            return poolEndDate;
-        }
-
-        return timestamp;
+        uint256 withdrawalWindowDuration
+    ) public view returns (uint256) {
+        return
+            currentWithdrawPeriod(
+                lifeCycleState,
+                activatedAt,
+                withdrawalWindowDuration
+            ) + 1;
     }
 }
