@@ -61,9 +61,11 @@ describe("Loan", () => {
     const pool = Pool.attach(poolAddress);
 
     // Create the Loan
-    const tx2 = await loanFactory
-      .connect(borrower)
-      .createLoan(poolAddress, Math.floor(Date.now() / 1000) + SEVEN_DAYS);
+    const tx2 = await loanFactory.createLoan(
+      borrower.address,
+      poolAddress,
+      Math.floor(Date.now() / 1000) + SEVEN_DAYS
+    );
     const tx2Receipt = await tx2.wait();
 
     const loanCreatedEvent = findEventByName(tx2Receipt, "LoanCreated");
