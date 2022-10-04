@@ -15,9 +15,19 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
     /**
+     * @dev Whether the protocol is paused.
+     */
+    bool public paused = false;
+
+    /**
      * @dev Emitted when an address is changed.
      */
     event AddressSet(bytes32 which, address addr);
+
+    /**
+     * @dev Emitted when the protocol is paused.
+     */
+    event ProtocolPaused(bool paused);
 
     /**
      * @dev Constructor for the contract, which sets up the default roles and
@@ -37,6 +47,11 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
             "ServiceConfiguration: caller is not an operator"
         );
         _;
+    }
+
+    function setPaused(bool paused_) public onlyOperator {
+        paused = paused_;
+        emit ProtocolPaused(paused);
     }
 
     /**
