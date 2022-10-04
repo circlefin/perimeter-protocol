@@ -42,6 +42,7 @@ contract LoanFactory {
             "LoanFactory: Protocol paused"
         );
         Loan loan = new Loan(
+            _serviceConfiguration,
             borrower,
             pool,
             duration,

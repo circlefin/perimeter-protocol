@@ -41,7 +41,7 @@ library LoanLib {
         IServiceConfiguration config,
         uint256 duration,
         uint256 paymentPeriod,
-        uint256 loanType,
+        ILoanType loanType,
         uint256 principal,
         address liquidityAsset
     ) external {

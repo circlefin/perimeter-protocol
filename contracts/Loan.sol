@@ -2,6 +2,7 @@
 pragma solidity ^0.8.16;
 
 import "./interfaces/ILoan.sol";
+import "./interfaces/IServiceConfiguration.sol";
 import "./libraries/LoanLib.sol";
 import "./CollateralVault.sol";
 
@@ -11,6 +12,7 @@ import "./CollateralVault.sol";
  * Empty Loan contract.
  */
 contract Loan is ILoan {
+    IServiceConfiguration _serviceConfiguration;
     ILoanLifeCycleState private _state = ILoanLifeCycleState.Requested;
     address private immutable _borrower;
     address private immutable _pool;
@@ -73,6 +75,7 @@ contract Loan is ILoan {
     }
 
     constructor(
+        IServiceConfiguration serviceConfiguration,
         address borrower,
         address pool,
         uint256 duration_,
@@ -83,6 +86,7 @@ contract Loan is ILoan {
         uint256 principal_,
         uint256 dropDeadTimestamp
     ) {
+        _serviceConfiguration = serviceConfiguration;
         _borrower = borrower;
         _pool = pool;
         _collateralVault = new CollateralVault(address(this));
@@ -93,6 +97,15 @@ contract Loan is ILoan {
         apr = apr_;
         liquidityAsset = liquidityAsset_;
         principal = principal_;
+
+        LoanLib.validateLoan(
+            serviceConfiguration,
+            duration,
+            paymentPeriod,
+            loanType,
+            principal,
+            liquidityAsset
+        );
     }
 
     /**

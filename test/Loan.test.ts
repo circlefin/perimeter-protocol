@@ -18,6 +18,8 @@ describe("Loan", () => {
     const serviceConfiguration = await ServiceConfiguration.deploy();
     await serviceConfiguration.deployed();
 
+    await serviceConfiguration.setLiquidityAsset(MOCK_LIQUIDITY_ADDRESS, true);
+
     const PoolLib = await ethers.getContractFactory("PoolLib");
     const poolLib = await PoolLib.deploy();
 
