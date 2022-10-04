@@ -24,7 +24,6 @@ contract Loan is ILoan {
     uint256 public apr;
     ILoanType public loanType;
     uint256 public principal;
-    uint256 public gracePeriod;
 
     /**
      * @dev Modifier that requires the Loan be in the given `state_`
