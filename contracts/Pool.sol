@@ -237,7 +237,6 @@ contract Pool is IPool, ERC20 {
     function requestPeriod() public view returns (uint256) {
         return
             PoolLib.currentRequestPeriod(
-                _poolLifeCycleState,
                 poolActivatedAt,
                 _poolSettings.withdrawRequestPeriodDuration
             );
@@ -249,7 +248,6 @@ contract Pool is IPool, ERC20 {
     function withdrawPeriod() public view returns (uint256) {
         return
             PoolLib.currentWithdrawPeriod(
-                _poolLifeCycleState,
                 poolActivatedAt,
                 _poolSettings.withdrawRequestPeriodDuration
             );

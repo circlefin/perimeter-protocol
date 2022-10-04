@@ -209,11 +209,10 @@ library PoolLib {
      * @dev The current withdrawal period.
      */
     function currentWithdrawPeriod(
-        IPoolLifeCycleState lifeCycleState,
         uint256 activatedAt,
         uint256 withdrawalWindowDuration
     ) public view returns (uint256) {
-        if (lifeCycleState != IPoolLifeCycleState.Active) {
+        if (activatedAt == 0) {
             return 0;
         }
 
@@ -226,15 +225,9 @@ library PoolLib {
      * this value.
      */
     function currentRequestPeriod(
-        IPoolLifeCycleState lifeCycleState,
         uint256 activatedAt,
         uint256 withdrawalWindowDuration
     ) public view returns (uint256) {
-        return
-            currentWithdrawPeriod(
-                lifeCycleState,
-                activatedAt,
-                withdrawalWindowDuration
-            ) + 1;
+        return currentWithdrawPeriod(activatedAt, withdrawalWindowDuration) + 1;
     }
 }
