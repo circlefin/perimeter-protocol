@@ -105,20 +105,20 @@ library PoolLib {
      * @dev Computes the exchange rate for converting assets to shares
      * @param assets Amount of assets to exchange
      * @param sharesTotalSupply Supply of Vault's ERC20 shares
-     * @param nav Pool NAV
+     * @param totalAssets Pool total assets
      * @return shares The amount of shares
      */
     function calculateAssetsToShares(
         uint256 assets,
         uint256 sharesTotalSupply,
-        uint256 nav
+        uint256 totalAssets
     ) external pure returns (uint256 shares) {
-        if (nav == 0) {
+        if (totalAssets == 0) {
             return assets;
         }
 
         // TODO: add in interest rate.
-        uint256 rate = (sharesTotalSupply.mul(RAY)).div(nav);
+        uint256 rate = (sharesTotalSupply.mul(RAY)).div(totalAssets);
         shares = (rate.mul(assets)).div(RAY);
     }
 
@@ -126,35 +126,21 @@ library PoolLib {
      * @dev Computes the exchange rate for converting shares to assets
      * @param shares Amount of shares to exchange
      * @param sharesTotalSupply Supply of Vault's ERC20 shares
-     * @param nav Pool NAV
+     * @param totalAssets Pool NAV
      * @return assets The amount of shares
      */
     function calculateSharesToAssets(
         uint256 shares,
         uint256 sharesTotalSupply,
-        uint256 nav
+        uint256 totalAssets
     ) external pure returns (uint256 assets) {
         if (sharesTotalSupply == 0) {
             return shares;
         }
 
         // TODO: add in interest rate.
-        uint256 rate = (nav.mul(RAY)).div(sharesTotalSupply);
+        uint256 rate = (totalAssets.mul(RAY)).div(sharesTotalSupply);
         assets = (rate.mul(shares)).div(RAY);
-    }
-
-    /**
-     * @dev Calculates the Pool Net Asset Value in aggregate
-     * @param totalVaultAssets Amount of total assets held by the Vault
-     * @param defaultsTotal Total amount of defaulted loan amounts
-     * @return nav Net Asset Value
-     */
-    function calculateNavAggregate(
-        uint256 totalVaultAssets,
-        uint256 defaultsTotal
-    ) external pure returns (uint256 nav) {
-        // TODO: add in interest rate accruals
-        nav = totalVaultAssets - defaultsTotal;
     }
 
     /**

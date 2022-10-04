@@ -265,7 +265,7 @@ contract Pool is IPool, ERC20 {
      * @dev Calculates the amount of shares that would be exchanged by the vault for the amount of assets provided.
      */
     function convertToShares(uint256 assets)
-        external
+        public
         view
         override
         returns (uint256)
@@ -273,11 +273,8 @@ contract Pool is IPool, ERC20 {
         return
             PoolLib.calculateAssetsToShares(
                 assets,
-                this.totalSupply(),
-                PoolLib.calculateNavAggregate(
-                    this.totalAssets(),
-                    _accountings.defaultsTotal
-                )
+                totalSupply(),
+                totalAssets()
             );
     }
 
@@ -294,10 +291,7 @@ contract Pool is IPool, ERC20 {
             PoolLib.calculateSharesToAssets(
                 shares,
                 totalSupply(),
-                PoolLib.calculateNavAggregate(
-                    this.totalAssets(),
-                    _accountings.defaultsTotal
-                )
+                totalAssets()
             );
     }
 
@@ -315,7 +309,7 @@ contract Pool is IPool, ERC20 {
             PoolLib.calculateMaxDeposit(
                 _poolLifeCycleState,
                 _poolSettings.maxCapacity,
-                this.totalAssets()
+                totalAssets()
             );
     }
 
@@ -323,12 +317,12 @@ contract Pool is IPool, ERC20 {
      * @dev Allows users to simulate the effects of their deposit at the current block.
      */
     function previewDeposit(uint256 assets)
-        external
+        public
         view
         override
         returns (uint256)
     {
-        return this.convertToShares(assets);
+        return convertToShares(assets);
     }
 
     /**
@@ -343,12 +337,12 @@ contract Pool is IPool, ERC20 {
         returns (uint256 shares)
     {
         shares = PoolLib.executeDeposit(
-            this.asset(),
+            asset(),
             address(this),
             receiver,
             assets,
-            this.previewDeposit(assets),
-            this.maxDeposit(receiver),
+            previewDeposit(assets),
+            maxDeposit(receiver),
             _mint
         );
     }
@@ -370,7 +364,7 @@ contract Pool is IPool, ERC20 {
      * @dev Allows users to simulate the effects of their mint at the current block.
      */
     function previewMint(uint256 shares)
-        external
+        public
         view
         override
         returns (uint256 assets)
@@ -389,14 +383,14 @@ contract Pool is IPool, ERC20 {
         atState(IPoolLifeCycleState.Active)
         returns (uint256 assets)
     {
-        assets = this.previewMint(shares);
+        assets = previewMint(shares);
         PoolLib.executeDeposit(
-            this.asset(),
+            asset(),
             address(this),
             receiver,
             assets,
-            this.previewDeposit(assets),
-            this.maxDeposit(receiver),
+            previewDeposit(assets),
+            maxDeposit(receiver),
             _mint
         );
     }
@@ -447,14 +441,14 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev Returns the address of the underlying ERC20 token "locked" by the vault.
      */
-    function asset() external view returns (address) {
+    function asset() public view returns (address) {
         return address(_liquidityAsset);
     }
 
     /**
      * @dev Calculate the total amount of underlying assets held by the vault.
      */
-    function totalAssets() external view returns (uint256) {
+    function totalAssets() public view returns (uint256) {
         return
             PoolLib.calculateTotalAssets(
                 address(_liquidityAsset),
