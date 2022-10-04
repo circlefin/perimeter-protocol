@@ -64,6 +64,9 @@ describe("Loan", () => {
     const tx2 = await loanFactory.createLoan(
       borrower.address,
       poolAddress,
+      180,
+      30,
+      500,
       Math.floor(Date.now() / 1000) + SEVEN_DAYS
     );
     const tx2Receipt = await tx2.wait();

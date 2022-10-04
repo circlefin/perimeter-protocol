@@ -18,6 +18,10 @@ contract Loan is ILoan {
     address[] private _fungibleCollateral;
     ILoanNonFungibleCollateral[] private _nonFungibleCollateral;
     uint256 private _dropDeadTimestamp;
+    uint256 public createdAt;
+    uint256 public duration;
+    uint256 public paymentPeriod;
+    uint256 public apr;
 
     /**
      * @dev Modifier that requires the Loan be in the given `state_`
@@ -68,12 +72,19 @@ contract Loan is ILoan {
     constructor(
         address borrower,
         address pool,
+        uint256 duration_,
+        uint256 paymentPeriod_,
+        uint256 apr_,
         uint256 dropDeadTimestamp
     ) {
         _borrower = borrower;
         _pool = pool;
         _collateralVault = new CollateralVault(address(this));
         _dropDeadTimestamp = dropDeadTimestamp;
+        createdAt = block.timestamp;
+        duration = duration_;
+        paymentPeriod = paymentPeriod_;
+        apr = apr_;
     }
 
     /**

@@ -67,4 +67,12 @@ interface ILoan {
         returns (ILoanNonFungibleCollateral[] memory);
 
     function fund() external returns (ILoanLifeCycleState);
+
+    function createdAt() external returns (uint256);
+
+    function duration() external returns (uint256);
+
+    function paymentPeriod() external returns (uint256);
+
+    function apr() external returns (uint256);
 }

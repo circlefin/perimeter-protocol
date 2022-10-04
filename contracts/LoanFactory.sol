@@ -26,16 +26,32 @@ contract LoanFactory {
      * @dev Creates a Loan
      * @dev Emits `LoanCreated` event.
      */
+    // Validate loan
+    // valid collateral -- can't really do this
+    // valid fundings
+    // payment interval > 0
+    // term of loan mod payment interval == 0
+    // requested amount is > 0
     function createLoan(
         address borrower,
         address pool,
+        uint256 duration,
+        uint256 paymentPeriod,
+        uint256 apr,
         uint256 dropDeadDate
     ) public virtual returns (address LoanAddress) {
         require(
             _serviceConfiguration.paused() == false,
             "LoanFactory: Protocol paused"
         );
-        Loan loan = new Loan(borrower, pool, dropDeadDate);
+        Loan loan = new Loan(
+            borrower,
+            pool,
+            duration,
+            paymentPeriod,
+            apr,
+            dropDeadDate
+        );
         address addr = address(loan);
         emit LoanCreated(addr);
         return addr;
