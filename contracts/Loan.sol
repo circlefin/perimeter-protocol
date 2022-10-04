@@ -12,21 +12,21 @@ import "./CollateralVault.sol";
  * Empty Loan contract.
  */
 contract Loan is ILoan {
-    IServiceConfiguration _serviceConfiguration;
+    IServiceConfiguration private immutable _serviceConfiguration;
     ILoanLifeCycleState private _state = ILoanLifeCycleState.Requested;
     address private immutable _borrower;
     address private immutable _pool;
     CollateralVault public immutable _collateralVault;
     address[] private _fungibleCollateral;
     ILoanNonFungibleCollateral[] private _nonFungibleCollateral;
-    uint256 private _dropDeadTimestamp;
-    uint256 public createdAt;
-    uint256 public duration;
-    uint256 public paymentPeriod;
-    uint256 public apr;
-    ILoanType public loanType;
-    uint256 public principal;
+    uint256 private immutable _dropDeadTimestamp;
+    uint256 public immutable createdAt;
+    uint256 public immutable duration;
+    uint256 public immutable paymentPeriod;
+    uint256 public immutable apr;
+    uint256 public immutable principal;
     address public immutable liquidityAsset;
+    ILoanType public immutable loanType = ILoanType.Fixed;
 
     /**
      * @dev Modifier that requires the Loan be in the given `state_`
