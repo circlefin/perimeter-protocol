@@ -31,6 +31,10 @@ contract LoanFactory {
         address pool,
         uint256 dropDeadDate
     ) public virtual returns (address LoanAddress) {
+        require(
+            _serviceConfiguration.paused() == false,
+            "LoanFactory: Protocol paused"
+        );
         Loan loan = new Loan(borrower, pool, dropDeadDate);
         address addr = address(loan);
         emit LoanCreated(addr);
