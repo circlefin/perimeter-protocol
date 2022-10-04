@@ -37,7 +37,9 @@ contract LoanFactory {
         address pool,
         uint256 duration,
         uint256 paymentPeriod,
+        ILoanType loanType,
         uint256 apr,
+        uint256 principal,
         uint256 dropDeadDate
     ) public virtual returns (address LoanAddress) {
         require(
@@ -49,7 +51,9 @@ contract LoanFactory {
             pool,
             duration,
             paymentPeriod,
+            loanType,
             apr,
+            principal,
             dropDeadDate
         );
         address addr = address(loan);
