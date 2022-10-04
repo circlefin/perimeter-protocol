@@ -68,6 +68,7 @@ describe("Loan", () => {
       30,
       0,
       500,
+      MOCK_LIQUIDITY_ADDRESS,
       1_000_000000,
       Math.floor(Date.now() / 1000) + SEVEN_DAYS
     );

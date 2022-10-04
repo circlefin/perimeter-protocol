@@ -19,6 +19,8 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
      */
     bool public paused = false;
 
+    mapping(address => bool) public isLiquidityAsset;
+
     /**
      * @dev Emitted when an address is changed.
      */

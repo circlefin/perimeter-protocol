@@ -13,4 +13,6 @@ interface IServiceConfiguration is IAccessControl {
     function isOperator(address addr) external view returns (bool);
 
     function paused() external view returns (bool);
+
+    function isLiquidityAsset(address addr) external view returns (bool);
 }

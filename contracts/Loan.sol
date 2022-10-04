@@ -24,6 +24,7 @@ contract Loan is ILoan {
     uint256 public apr;
     ILoanType public loanType;
     uint256 public principal;
+    address public immutable liquidityAsset;
 
     /**
      * @dev Modifier that requires the Loan be in the given `state_`
@@ -78,6 +79,7 @@ contract Loan is ILoan {
         uint256 paymentPeriod_,
         ILoanType loanType_,
         uint256 apr_,
+        address liquidityAsset_,
         uint256 principal_,
         uint256 dropDeadTimestamp
     ) {
@@ -89,6 +91,7 @@ contract Loan is ILoan {
         duration = duration_;
         paymentPeriod = paymentPeriod_;
         apr = apr_;
+        liquidityAsset = liquidityAsset_;
         principal = principal_;
     }
 

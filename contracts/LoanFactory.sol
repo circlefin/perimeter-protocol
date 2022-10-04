@@ -26,12 +26,6 @@ contract LoanFactory {
      * @dev Creates a Loan
      * @dev Emits `LoanCreated` event.
      */
-    // Validate loan
-    // valid collateral -- can't really do this
-    // valid fundings
-    // payment interval > 0
-    // term of loan mod payment interval == 0
-    // requested amount is > 0
     function createLoan(
         address borrower,
         address pool,
@@ -39,6 +33,7 @@ contract LoanFactory {
         uint256 paymentPeriod,
         ILoanType loanType,
         uint256 apr,
+        address liquidityAsset,
         uint256 principal,
         uint256 dropDeadDate
     ) public virtual returns (address LoanAddress) {
@@ -53,6 +48,7 @@ contract LoanFactory {
             paymentPeriod,
             loanType,
             apr,
+            liquidityAsset,
             principal,
             dropDeadDate
         );

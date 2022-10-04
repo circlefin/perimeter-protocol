@@ -7,6 +7,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import "../interfaces/ILoan.sol";
+import "../interfaces/IServiceConfiguration.sol";
 import "../CollateralVault.sol";
 
 library LoanLib {
@@ -37,10 +38,12 @@ library LoanLib {
      * @dev Validate Loan constructor arguments
      */
     function validateLoan(
+        IServiceConfiguration config,
         uint256 duration,
         uint256 paymentPeriod,
         uint256 loanType,
-        uint256 principal
+        uint256 principal,
+        address liquidityAsset
     ) external {
         require(duration > 0, "LoanLib: Duration cannot be zero");
         require(paymentPeriod > 0, "LoanLib: Payment period cannot be zero");
@@ -49,6 +52,11 @@ library LoanLib {
             "LoanLib: Duration not evenly divisible"
         );
         require(principal > 0, "LoanLib: Principal cannot be zero");
+
+        require(
+            config.isLiquidityAsset(liquidityAsset),
+            "LoanLib: Liquidity asset not allowed"
+        );
     }
 
     /**
