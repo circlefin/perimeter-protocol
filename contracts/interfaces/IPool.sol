@@ -29,16 +29,17 @@ struct IPoolConfigurableSettings {
     uint256 endDate; // epoch seconds
     uint256 withdrawalFee; // bips
     uint256 firstLossInitialMinimum; // amount
-    uint256 withdrawWindowDurationSeconds; // seconds (e.g. 30 days)
+    uint256 withdrawRequestPeriodDuration; // seconds (e.g. 30 days)
     // TODO: add in Pool fees
 }
 
 /**
- * @title Contains the start and enddate of a given withdrawal period.
+ * @dev contains withdraw request information
  */
-struct IPoolWithdrawalPeriod {
-    uint256 start;
-    uint256 end;
+struct IPoolWithdrawState {
+    uint256 requested;
+    uint256 eligible;
+    uint256 latestPeriod;
 }
 
 /**
@@ -68,7 +69,7 @@ interface IPool is IERC4626 {
     /**
      * @dev Emitted when a withdrawal is requested.
      */
-    event WithdrawalRequested(address indexed lender, uint256 amount);
+    event WithdrawRequested(address indexed lender, uint256 amount);
 
     /**
      * @dev Emitted when pool settings are updated.
@@ -131,17 +132,9 @@ interface IPool is IERC4626 {
     function feeForWithdrawalRequest(uint256) external view returns (uint256);
 
     /**
-     * @dev Returns the next withdrawal window, at which a withdrawal could be completed.
-     */
-    function nextWithdrawalWindow(uint256)
-        external
-        view
-        returns (IPoolWithdrawalPeriod memory);
-
-    /**
      * @dev Submits a withdrawal request, incurring a fee.
      */
-    function requestWithdrawal(uint256) external view;
+    function requestWithdraw(uint256) external;
 
     /**
      * @dev Called by the pool manager, this transfers liquidity from the pool to a given loan.

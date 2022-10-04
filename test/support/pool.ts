@@ -1,4 +1,5 @@
 import { ethers } from "hardhat";
+import { MockERC20, Pool } from "../../typechain-types";
 import { deployMockERC20 } from "./erc20";
 
 export const DEFAULT_POOL_SETTINGS = {
@@ -6,7 +7,7 @@ export const DEFAULT_POOL_SETTINGS = {
   endDate: 2524611601, // Jan 1, 2050
   withdrawalFee: 50, // bips,
   firstLossInitialMinimum: 100_000,
-  withdrawWindowDurationSeconds: 30 * 24 * 60 * 60 // 30 days
+  withdrawRequestPeriodDuration: 30 * 24 * 60 * 60 // 30 days
 };
 
 /**
@@ -47,12 +48,11 @@ export async function deployPool(
 /**
  * Deploy an "Active" Pool
  */
-export async function deployActivePool(
+export async function activatePool(
+  pool: Pool,
   poolManager: any,
-  poolSettings = DEFAULT_POOL_SETTINGS
+  liquidityAsset: MockERC20
 ) {
-  const { pool, liquidityAsset } = await deployPool(poolManager, poolSettings);
-
   const { firstLossInitialMinimum } = await pool.settings();
 
   // Grant allowance
@@ -65,4 +65,25 @@ export async function deployActivePool(
     .depositFirstLoss(firstLossInitialMinimum, poolManager.address);
 
   return { pool, liquidityAsset };
+}
+
+/**
+ *
+ */
+export async function depositToPool(
+  pool: Pool,
+  depositorAccount: any,
+  asset: MockERC20,
+  amount: number
+) {
+  // Provide capital to lender
+  await asset.mint(depositorAccount.address, amount);
+
+  // Approve the deposit
+  await asset.connect(depositorAccount).approve(pool.address, amount);
+
+  // Deposit
+  return pool
+    .connect(depositorAccount)
+    .deposit(amount, depositorAccount.address);
 }

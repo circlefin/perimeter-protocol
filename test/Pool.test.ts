@@ -2,22 +2,16 @@ import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import {
-  deployActivePool,
   deployPool,
-  DEFAULT_POOL_SETTINGS
+  DEFAULT_POOL_SETTINGS,
+  depositToPool,
+  activatePool
 } from "./support/pool";
 
 describe("Pool", () => {
   async function loadPoolFixture() {
     const [poolManager, otherAccount] = await ethers.getSigners();
     const { pool, liquidityAsset } = await deployPool(poolManager);
-
-    return { pool, liquidityAsset, poolManager, otherAccount };
-  }
-
-  async function loadActivePoolFixture() {
-    const [poolManager, otherAccount] = await ethers.getSigners();
-    const { pool, liquidityAsset } = await deployActivePool(poolManager);
 
     return { pool, liquidityAsset, poolManager, otherAccount };
   }
@@ -42,14 +36,14 @@ describe("Pool", () => {
         endDate,
         maxCapacity,
         withdrawalFee,
-        withdrawWindowDurationSeconds
+        withdrawRequestPeriodDuration
       } = await pool.settings();
 
       expect(endDate).to.equal(DEFAULT_POOL_SETTINGS.endDate);
       expect(maxCapacity).to.equal(DEFAULT_POOL_SETTINGS.maxCapacity);
       expect(withdrawalFee).to.equal(DEFAULT_POOL_SETTINGS.withdrawalFee);
-      expect(withdrawWindowDurationSeconds).to.equal(
-        DEFAULT_POOL_SETTINGS.withdrawWindowDurationSeconds
+      expect(withdrawRequestPeriodDuration).to.equal(
+        DEFAULT_POOL_SETTINGS.withdrawRequestPeriodDuration
       );
     });
   });
@@ -216,16 +210,6 @@ describe("Pool", () => {
       });
     });
 
-    describe("requestWithdrawal()", () => {
-      it("reverts if not called by lender", async () => {
-        const { pool, otherAccount } = await loadFixture(loadPoolFixture);
-
-        await expect(
-          pool.connect(otherAccount).requestWithdrawal(1)
-        ).to.be.revertedWith("Pool: caller is not a lender");
-      });
-    });
-
     describe("fundLoan()", () => {
       it("reverts if not called by Pool Manager", async () => {
         const { pool, otherAccount } = await loadFixture(loadPoolFixture);
@@ -322,53 +306,80 @@ describe("Pool", () => {
   });
 
   describe("Withdrawal Requests", () => {
-    describe("currentWithdrawWindowIndex()", () => {
-      it("returns 0 if the pool is not active", async () => {
+    describe("requestPeriod(), withdrawPeriod()", () => {
+      it("returns the first period when the pool is not yet initialized", async () => {
         const { pool } = await loadFixture(loadPoolFixture);
 
-        expect(await pool.currentWithdrawWindowIndex()).to.equal(0);
+        expect(await pool.requestPeriod()).to.equal(1);
+        expect(await pool.withdrawPeriod()).to.equal(0);
       });
 
-      it("returns 0 if the pool has not reached it's first withdrawal window", async () => {
-        const { pool } = await loadFixture(loadActivePoolFixture);
+      it("returns the first period when the pool is activated", async () => {
+        const { pool, poolManager, liquidityAsset } = await loadFixture(
+          loadPoolFixture
+        );
+        await activatePool(pool, poolManager, liquidityAsset);
 
-        expect(await pool.currentWithdrawWindowIndex()).to.equal(0);
+        expect(await pool.requestPeriod()).to.equal(1);
+        expect(await pool.withdrawPeriod()).to.equal(0);
       });
 
-      it("returns 0 if the pool is one second before the first withdrawal window", async () => {
-        const { pool } = await loadFixture(loadActivePoolFixture);
+      it("returns the second period when the first period has ended", async () => {
+        const { pool, poolManager, liquidityAsset } = await loadFixture(
+          loadPoolFixture
+        );
+        await activatePool(pool, poolManager, liquidityAsset);
 
-        const { withdrawWindowDurationSeconds } = await pool.settings();
-        await time.increase(withdrawWindowDurationSeconds.toNumber() - 1);
+        const { withdrawRequestPeriodDuration } = await pool.settings();
+        await time.increase(withdrawRequestPeriodDuration);
 
-        expect(await pool.currentWithdrawWindowIndex()).to.equal(0);
+        expect(await pool.requestPeriod()).to.equal(2);
+        expect(await pool.withdrawPeriod()).to.equal(1);
+      });
+    });
+
+    describe("requestWithdraw()", () => {
+      it("reverts if the pool is not active", async () => {
+        const { pool, otherAccount } = await loadFixture(loadPoolFixture);
+
+        await expect(
+          pool.connect(otherAccount).requestWithdraw(100)
+        ).to.be.revertedWith("Pool: PoolNotActive");
       });
 
-      it("returns 1 if the pool reached it's first withdraw window", async () => {
-        const { pool } = await loadFixture(loadActivePoolFixture);
+      it("reverts if the lender has a zero balance", async () => {
+        const { pool, poolManager, liquidityAsset } = await loadFixture(
+          loadPoolFixture
+        );
+        await activatePool(pool, poolManager, liquidityAsset);
 
-        const { withdrawWindowDurationSeconds } = await pool.settings();
-        await time.increase(withdrawWindowDurationSeconds.toNumber());
-
-        expect(await pool.currentWithdrawWindowIndex()).to.equal(1);
+        await expect(pool.requestWithdraw(100)).to.be.revertedWith(
+          "Pool: caller is not a lender"
+        );
       });
 
-      it("returns 1 if the pool is past it's first withdraw window", async () => {
-        const { pool } = await loadFixture(loadActivePoolFixture);
+      it("reverts if the lender is requesting to withdraw more than their balance", async () => {
+        const { pool, poolManager, liquidityAsset, otherAccount } =
+          await loadFixture(loadPoolFixture);
+        await activatePool(pool, poolManager, liquidityAsset);
 
-        const { withdrawWindowDurationSeconds } = await pool.settings();
-        await time.increase(withdrawWindowDurationSeconds.toNumber() + 1);
+        await depositToPool(pool, otherAccount, liquidityAsset, 100);
 
-        expect(await pool.currentWithdrawWindowIndex()).to.equal(1);
+        await expect(
+          pool.connect(otherAccount).requestWithdraw(101)
+        ).to.be.revertedWith("Pool: InsufficientBalance");
       });
 
-      it("returns 2 if the pool reached it's second withdraw window", async () => {
-        const { pool } = await loadFixture(loadActivePoolFixture);
+      it("emits a WithdrawRequested event if the lender requests a valid amount", async () => {
+        const { pool, poolManager, liquidityAsset, otherAccount } =
+          await loadFixture(loadPoolFixture);
+        await activatePool(pool, poolManager, liquidityAsset);
 
-        const { withdrawWindowDurationSeconds } = await pool.settings();
-        await time.increase(withdrawWindowDurationSeconds.toNumber() * 2);
+        await depositToPool(pool, otherAccount, liquidityAsset, 100);
 
-        expect(await pool.currentWithdrawWindowIndex()).to.equal(2);
+        expect(await pool.connect(otherAccount).requestWithdraw(100))
+          .to.emit(pool.address, "WithdrawRequested")
+          .withArgs(otherAccount.address, 100);
       });
     });
   });
