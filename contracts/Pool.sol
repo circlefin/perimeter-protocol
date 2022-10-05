@@ -352,12 +352,22 @@ contract Pool is IPool, ERC20 {
      *
      * Note: This is equivalent of EIP-4626 `previewWithdraw`
      */
-    function previewWithdrawRequest(uint256)
+    function previewWithdrawRequest(uint256 assets)
         external
         view
         returns (uint256 shares)
     {
-        return 0;
+        uint256 assetFees = feeForWithdrawRequest(assets);
+
+        return
+            PoolLib.calculateAssetsToShares(
+                assets + assetFees,
+                this.totalSupply(),
+                PoolLib.calculateNavAggregate(
+                    this.totalAssets(),
+                    _accountings.defaultsTotal
+                )
+            );
     }
 
     /**
@@ -373,12 +383,12 @@ contract Pool is IPool, ERC20 {
         onlyLender
         returns (uint256 shares)
     {
-        // TODO: Calculate fees here
         require(
             maxWithdrawRequest(msg.sender) >= assets,
             "Pool: InsufficientBalance"
         );
 
+        // uint256 assetFees = feeForWithdrawRequest(assets);
         uint256 period = requestPeriod();
 
         // Update the lender's WithdrawState

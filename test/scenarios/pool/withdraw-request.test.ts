@@ -1,12 +1,7 @@
 import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import {
-  deployPool,
-  DEFAULT_POOL_SETTINGS,
-  depositToPool,
-  activatePool
-} from "../../support/pool";
+import { deployPool, depositToPool, activatePool } from "../../support/pool";
 
 describe("Withdraw Requests", () => {
   async function loadPoolFixture() {
@@ -23,13 +18,15 @@ describe("Withdraw Requests", () => {
   }
 
   it("allows requesting of a withdraw", async () => {
-    const { pool, poolManager, liquidityAsset, otherAccount } =
-      await loadFixture(loadPoolFixture);
+    const { pool, otherAccount } = await loadFixture(loadPoolFixture);
 
     const { withdrawRequestPeriodDuration } = await pool.settings();
 
     expect(await pool.requestPeriod()).to.equal(1);
     expect(await pool.withdrawPeriod()).to.equal(0);
+
+    // Expect the lender to be able to request the full balance
+    expect(await pool.maxWithdrawRequest(otherAccount.address)).to.equal(100);
 
     // Request a withdraw for Period n + 1 (in this case, 1)
     // TODO: Handle fees here
@@ -41,6 +38,9 @@ describe("Withdraw Requests", () => {
     expect(await pool.requestedLenderWithdrawalTotal()).to.equal(50);
     expect(await pool.eligibleLenderWithdrawalTotal()).to.equal(0);
 
+    // Expect the lender can withdraw
+    expect(await pool.maxWithdrawRequest(otherAccount.address)).to.equal(50);
+
     // Verify the per-lender amount is set
     expect(
       await pool.requestedLenderWithdrawalAmount(otherAccount.address)
@@ -49,17 +49,11 @@ describe("Withdraw Requests", () => {
       await pool.eligibleLenderWithdrawalAmount(otherAccount.address)
     ).to.equal(0);
 
-    // Expect the lender can not withdraw
-    expect(await pool.maxWithdraw(otherAccount.address)).to.equal(0);
-
     // Skip ahead to the next window
     await time.increase(withdrawRequestPeriodDuration);
 
     // expect the request and withdraw periods to have advanced
     expect(await pool.requestPeriod()).to.equal(2);
     expect(await pool.withdrawPeriod()).to.equal(1);
-
-    // Expect the lender can withdraw
-    expect(await pool.maxWithdraw(otherAccount.address)).to.equal(50);
   });
 });

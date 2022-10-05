@@ -450,8 +450,9 @@ describe("Pool", () => {
       });
     });
 
-    describe.only("maxWithdrawRequest(address)", () => {
-      it("returns the current number of assets if no requests have been made", async () => {
+    describe("maxWithdrawRequest(address)", () => {
+      it("returns the current number of assets minus fees if no requests have been made", async () => {
+        // TODO: Implement fees
         const { pool, poolManager, otherAccount, liquidityAsset } =
           await loadFixture(loadPoolFixture);
         await activatePool(pool, poolManager, liquidityAsset);
@@ -464,7 +465,8 @@ describe("Pool", () => {
         ).to.equal(100);
       });
 
-      it("returns the current number of assets minus existing requests if any", async () => {
+      it("returns the current number of assets minus existing requests and fees if any", async () => {
+        // TODO: Implement fees
         const { pool, poolManager, otherAccount, liquidityAsset } =
           await loadFixture(loadPoolFixture);
         await activatePool(pool, poolManager, liquidityAsset);
@@ -479,7 +481,7 @@ describe("Pool", () => {
         ).to.equal(49);
       });
 
-      it("returns 0 if the requested balance is >=  what is available", async () => {
+      it("returns 0 if the requested balance is >= what is available", async () => {
         const { pool, poolManager, otherAccount, liquidityAsset } =
           await loadFixture(loadPoolFixture);
         await activatePool(pool, poolManager, liquidityAsset);
@@ -505,6 +507,19 @@ describe("Pool", () => {
         expect(await pool.maxWithdrawRequest(otherAccount.address)).to.equal(
           49
         );
+      });
+    });
+
+    describe("previewWithdrawRequest(assets)", () => {
+      it("returns the share value of the provided assets, minus fees, regardless of caller balance", async () => {
+        // TODO: Implement fees
+        const { pool, poolManager, liquidityAsset } = await loadFixture(
+          loadPoolFixture
+        );
+        await activatePool(pool, poolManager, liquidityAsset);
+
+        // TODO: Show a non 1:1 share value
+        expect(await pool.previewWithdrawRequest(27)).to.equal(27);
       });
     });
 
@@ -538,6 +553,19 @@ describe("Pool", () => {
         await expect(
           pool.connect(otherAccount).requestWithdraw(101)
         ).to.be.revertedWith("Pool: InsufficientBalance");
+      });
+
+      it("returns the number of shares that would be deducted if this were executed immediately", async () => {
+        const { pool, poolManager, liquidityAsset, otherAccount } =
+          await loadFixture(loadPoolFixture);
+        await activatePool(pool, poolManager, liquidityAsset);
+
+        await depositToPool(pool, otherAccount, liquidityAsset, 100);
+
+        // TODO: Show a non 1:1 share value
+        expect(
+          await pool.connect(otherAccount).callStatic.requestWithdraw(100)
+        ).to.equal(100);
       });
 
       it("emits a WithdrawRequested event if the lender requests a valid amount", async () => {
