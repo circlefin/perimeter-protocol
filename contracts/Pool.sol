@@ -212,13 +212,6 @@ contract Pool is IPool, ERC20 {
     {}
 
     /**
-     * @dev Returns the withdrawal fee for a given withdrawal amount at the current block.
-     */
-    function feeForWithdrawalRequest(uint256) external view returns (uint256) {
-        return 0;
-    }
-
-    /**
      * @dev Called by the pool manager, this transfers liquidity from the pool to a given loan.
      */
     function fundLoan(address addr)
@@ -296,15 +289,95 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
-     * @dev Submits a withdrawal request, incurring a fee.
+     * @dev Returns the withdrawal fee for a given withdrawal amount at the current block.
+     * The fee is the number of underlying assets that will be charged.
      */
-    function requestWithdraw(uint256 amount)
+    function feeForWithdrawRequest(uint256 assets)
+        public
+        view
+        returns (uint256 feeAssets)
+    {
+        return 0;
+    }
+
+    /**
+     * @dev Returns the redeem fee for a given withdrawal amount at the current block.
+     * The fee is the number of shares that will be charged.
+     */
+    function feeForRedeemRequest(uint256 shares)
+        external
+        view
+        returns (uint256 feeShares)
+    {
+        return 0;
+    }
+
+    /**
+     * @dev Returns the maximum amount of underlying assets that can be
+     * requested to be withdrawn from the owner balance with a single
+     * `requestWithdraw` call in the current block.
+     *
+     * Note: This is equivalent of EIP-4626 `maxWithdraw`
+     */
+    function maxWithdrawRequest(address owner)
+        public
+        view
+        returns (uint256 amount)
+    {
+        // Calculate the asset value of the current balance
+        uint256 currentAssetBalance = PoolLib.calculateSharesToAssets(
+            balanceOf(owner),
+            totalSupply(),
+            PoolLib.calculateNavAggregate(
+                this.totalAssets(),
+                _accountings.defaultsTotal
+            )
+        );
+
+        uint256 currentAssetsRequested = _withdrawState[owner].requestedAssets;
+        // Calculate fees based on requesting the full asset balance amount
+        uint256 assetFees = feeForWithdrawRequest(currentAssetBalance);
+
+        if (currentAssetBalance - currentAssetsRequested < assetFees) {
+            return 0;
+        }
+
+        return currentAssetBalance - currentAssetsRequested - assetFees;
+    }
+
+    /**
+     * @dev Simulate the effects of a withdrawal request at the current block.
+     * Returns the amount of shares that would be burned if this entire
+     * withdrawal request were to be processed at the current block.
+     *
+     * Note: This is equivalent of EIP-4626 `previewWithdraw`
+     */
+    function previewWithdrawRequest(uint256)
+        external
+        view
+        returns (uint256 shares)
+    {
+        return 0;
+    }
+
+    /**
+     * @dev Requests withdrawing a specific value of `assets` from owner and
+     * returns an estimated number of shares that will be removed if this
+     * were immeidately executed.
+     *
+     * Emits a {WithdrawRequested} event.
+     */
+    function requestWithdraw(uint256 assets)
         external
         onlyActivatedPool
         onlyLender
+        returns (uint256 shares)
     {
         // TODO: Calculate fees here
-        require(balanceOf(msg.sender) >= amount, "Pool: InsufficientBalance");
+        require(
+            maxWithdrawRequest(msg.sender) >= assets,
+            "Pool: InsufficientBalance"
+        );
 
         uint256 period = requestPeriod();
 
@@ -343,6 +416,16 @@ contract Pool is IPool, ERC20 {
         _globalWithdrawState.latestPeriod = period;
 
         emit WithdrawRequested(msg.sender, assets);
+
+        return
+            PoolLib.calculateAssetsToShares(
+                assets,
+                this.totalSupply(),
+                PoolLib.calculateNavAggregate(
+                    this.totalAssets(),
+                    _accountings.defaultsTotal
+                )
+            );
     }
 
     function requestedLenderWithdrawalTotal() external view returns (uint256) {

@@ -450,6 +450,64 @@ describe("Pool", () => {
       });
     });
 
+    describe.only("maxWithdrawRequest(address)", () => {
+      it("returns the current number of assets if no requests have been made", async () => {
+        const { pool, poolManager, otherAccount, liquidityAsset } =
+          await loadFixture(loadPoolFixture);
+        await activatePool(pool, poolManager, liquidityAsset);
+        await depositToPool(pool, otherAccount, liquidityAsset, 100);
+
+        expect(
+          await pool
+            .connect(otherAccount)
+            .maxWithdrawRequest(otherAccount.address)
+        ).to.equal(100);
+      });
+
+      it("returns the current number of assets minus existing requests if any", async () => {
+        const { pool, poolManager, otherAccount, liquidityAsset } =
+          await loadFixture(loadPoolFixture);
+        await activatePool(pool, poolManager, liquidityAsset);
+        await depositToPool(pool, otherAccount, liquidityAsset, 100);
+
+        await pool.connect(otherAccount).requestWithdraw(51);
+
+        expect(
+          await pool
+            .connect(otherAccount)
+            .maxWithdrawRequest(otherAccount.address)
+        ).to.equal(49);
+      });
+
+      it("returns 0 if the requested balance is >=  what is available", async () => {
+        const { pool, poolManager, otherAccount, liquidityAsset } =
+          await loadFixture(loadPoolFixture);
+        await activatePool(pool, poolManager, liquidityAsset);
+        await depositToPool(pool, otherAccount, liquidityAsset, 100);
+
+        await pool.connect(otherAccount).requestWithdraw(100);
+
+        expect(
+          await pool
+            .connect(otherAccount)
+            .maxWithdrawRequest(otherAccount.address)
+        ).to.equal(0);
+      });
+
+      it("allows calling this method to check another lender", async () => {
+        const { pool, poolManager, otherAccount, liquidityAsset } =
+          await loadFixture(loadPoolFixture);
+        await activatePool(pool, poolManager, liquidityAsset);
+        await depositToPool(pool, otherAccount, liquidityAsset, 100);
+
+        await pool.connect(otherAccount).requestWithdraw(51);
+
+        expect(await pool.maxWithdrawRequest(otherAccount.address)).to.equal(
+          49
+        );
+      });
+    });
+
     describe("requestWithdraw()", () => {
       it("reverts if the pool is not active", async () => {
         const { pool, otherAccount } = await loadFixture(loadPoolFixture);

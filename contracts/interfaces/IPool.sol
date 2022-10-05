@@ -138,12 +138,17 @@ interface IPool is IERC4626 {
     /**
      * @dev Returns the withdrawal fee for a given withdrawal amount at the current block.
      */
-    function feeForWithdrawalRequest(uint256) external view returns (uint256);
+    function feeForWithdrawRequest(uint256) external view returns (uint256);
+
+    /**
+     * @dev Returns the withdrawal fee for a given withdrawal amount at the current block.
+     */
+    function feeForRedeemRequest(uint256) external view returns (uint256);
 
     /**
      * @dev Submits a withdrawal request, incurring a fee.
      */
-    function requestWithdraw(uint256) external;
+    function requestWithdraw(uint256) external returns (uint256);
 
     /**
      * @dev Called by the pool manager, this transfers liquidity from the pool to a given loan.
