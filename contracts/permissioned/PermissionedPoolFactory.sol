@@ -44,10 +44,10 @@ contract PermissionedPoolFactory is PoolFactory {
         uint256 maxCapacity,
         uint256 endDate,
         uint256 withdrawalFee,
-        uint256 withdrawWindowDurationSeconds
+        uint256 withdrawRequestPeriodDuration
     ) public override onlyVerifiedPoolManager returns (address poolAddress) {
         require(
-            withdrawWindowDurationSeconds > 0,
+            withdrawRequestPeriodDuration > 0,
             "PoolFactory: Invalid duration"
         );
 
@@ -58,7 +58,7 @@ contract PermissionedPoolFactory is PoolFactory {
             endDate,
             withdrawalFee,
             firstLossInitialMinimum,
-            withdrawWindowDurationSeconds
+            withdrawRequestPeriodDuration
         );
         Pool pool = new PermissionedPool(
             liquidityAsset,

@@ -220,4 +220,34 @@ library PoolLib {
         emit Deposit(msg.sender, sharesReceiver, assets, shares);
         return shares;
     }
+
+    /*//////////////////////////////////////////////////////////////
+                    Withdrawal Request Methods
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev The current withdrawal period.
+     */
+    function currentWithdrawPeriod(
+        uint256 activatedAt,
+        uint256 withdrawalWindowDuration
+    ) public view returns (uint256) {
+        if (activatedAt == 0) {
+            return 0;
+        }
+
+        return (block.timestamp - activatedAt) / withdrawalWindowDuration;
+    }
+
+    /**
+     * @dev The current withdrawal request period. Withdrawal requests made
+     * made now are able to be withdrawn in the withdrawal period that matches
+     * this value.
+     */
+    function currentRequestPeriod(
+        uint256 activatedAt,
+        uint256 withdrawalWindowDuration
+    ) public view returns (uint256) {
+        return currentWithdrawPeriod(activatedAt, withdrawalWindowDuration) + 1;
+    }
 }

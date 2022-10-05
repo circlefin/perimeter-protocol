@@ -31,14 +31,14 @@ contract PoolFactory {
         uint256 maxCapacity,
         uint256 endDate,
         uint256 withdrawalFee,
-        uint256 withdrawWindowDurationSeconds
+        uint256 withdrawRequestPeriodDuration
     ) public virtual returns (address poolAddress) {
         require(
             _serviceConfiguration.paused() == false,
             "PoolFactory: Protocol paused"
         );
         require(
-            withdrawWindowDurationSeconds > 0,
+            withdrawRequestPeriodDuration > 0,
             "PoolFactory: Invalid duration"
         );
 
@@ -48,7 +48,7 @@ contract PoolFactory {
             endDate,
             withdrawalFee,
             firstLossInitialMinimum,
-            withdrawWindowDurationSeconds
+            withdrawRequestPeriodDuration
         );
         Pool pool = new Pool(
             liquidityAsset,

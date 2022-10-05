@@ -25,9 +25,19 @@ contract Pool is IPool, ERC20 {
     IPoolAccountings private _accountings;
 
     /**
-     * @dev a timestamp of when the pool was first put in this state
+     * @dev a timestamp of when the pool was first put into the Active state
      */
-    uint256 private _poolLifeCycleStateTimestamp;
+    uint256 public poolActivatedAt;
+
+    /**
+     * @dev Per-lender withdraw request information
+     */
+    mapping(address => IPoolWithdrawState) private _withdrawState;
+
+    /**
+     * @dev Aggregate withdraw request information
+     */
+    IPoolWithdrawState private _globalWithdrawState;
 
     /**
      * @dev Modifier that checks that the caller is the pool's manager.
@@ -68,6 +78,14 @@ contract Pool is IPool, ERC20 {
             _poolLifeCycleState == state,
             "Pool: FunctionInvalidAtThisLifeCycleState"
         );
+        _;
+    }
+
+    /**
+     * @dev Modifier to check that the pool has ever been activated
+     */
+    modifier onlyActivatedPool() {
+        require(poolActivatedAt > 0, "Pool: PoolNotActive");
         _;
     }
 
@@ -196,22 +214,6 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
-     * @dev Returns the next withdrawal window, at which a withdrawal could be completed.
-     */
-    function nextWithdrawalWindow(uint256)
-        external
-        view
-        returns (IPoolWithdrawalPeriod memory)
-    {
-        return IPoolWithdrawalPeriod(0, 0);
-    }
-
-    /**
-     * @dev Submits a withdrawal request, incurring a fee.
-     */
-    function requestWithdrawal(uint256) external view onlyLender {}
-
-    /**
      * @dev Called by the pool manager, this transfers liquidity from the pool to a given loan.
      */
     function fundLoan(address addr) external onlyManager {
@@ -229,29 +231,147 @@ contract Pool is IPool, ERC20 {
                     Withdrawal Request Methods
     //////////////////////////////////////////////////////////////*/
 
-    function currentWithdrawWindowIndex() external view returns (uint256) {
-        // If the pool has not yet been activated, the withdrawal window
-        // does not start.
-        if (_poolLifeCycleState == IPoolLifeCycleState.Initialized) {
+    /**
+     * @dev The withdraw period that we're requesting for (aka nextWithdrawPeriod)
+     */
+    function requestPeriod() public view returns (uint256) {
+        return
+            PoolLib.currentRequestPeriod(
+                poolActivatedAt,
+                _poolSettings.withdrawRequestPeriodDuration
+            );
+    }
+
+    /**
+     * @dev The current withdraw period
+     */
+    function withdrawPeriod() public view returns (uint256) {
+        return
+            PoolLib.currentWithdrawPeriod(
+                poolActivatedAt,
+                _poolSettings.withdrawRequestPeriodDuration
+            );
+    }
+
+    /**
+     * @dev Submits a withdrawal request, incurring a fee.
+     */
+    function requestWithdraw(uint256 amount)
+        external
+        onlyActivatedPool
+        onlyLender
+    {
+        // TODO: Calculate fees here
+        require(balanceOf(msg.sender) >= amount, "Pool: InsufficientBalance");
+
+        uint256 period = requestPeriod();
+
+        // Update the lender's WithdrawState
+        if (
+            _withdrawState[msg.sender].latestPeriod > 0 &&
+            _withdrawState[msg.sender].latestPeriod <= period
+        ) {
+            _withdrawState[msg.sender].eligible =
+                _withdrawState[msg.sender].eligible +
+                _withdrawState[msg.sender].requested;
+            _withdrawState[msg.sender].requested = 0;
+        }
+
+        // Update the global withdraw state
+        if (
+            _globalWithdrawState.latestPeriod > 0 &&
+            _globalWithdrawState.latestPeriod <= period
+        ) {
+            _globalWithdrawState.eligible =
+                _globalWithdrawState.eligible +
+                _globalWithdrawState.requested;
+            _globalWithdrawState.requested = 0;
+        }
+
+        // Update the requested amount from the user
+        _withdrawState[msg.sender].requested =
+            _withdrawState[msg.sender].requested +
+            amount;
+        _withdrawState[msg.sender].latestPeriod = period;
+
+        // Update the global amount
+        _globalWithdrawState.requested =
+            _globalWithdrawState.requested +
+            amount;
+        _globalWithdrawState.latestPeriod = period;
+
+        emit WithdrawRequested(msg.sender, amount);
+    }
+
+    function requestedLenderWithdrawalTotal() external view returns (uint256) {
+        uint256 period = withdrawPeriod();
+
+        // Check if there's any new eligible shares need to be added, but
+        // has not yet been "cranked"
+        if (_globalWithdrawState.latestPeriod <= period) {
             return 0;
         }
 
-        return
-            (block.timestamp - _poolLifeCycleStateTimestamp) /
-            _poolSettings.withdrawWindowDurationSeconds;
+        return _globalWithdrawState.requested;
     }
 
-    function nextWithdrawWindowIndex() external view returns (uint256) {
-        return 0;
+    function eligibleLenderWithdrawalTotal() external view returns (uint256) {
+        uint256 period = withdrawPeriod();
+
+        // Check if there's any new eligible shares need to be added, but
+        // has not yet been "cranked"
+        if (_globalWithdrawState.latestPeriod <= period) {
+            return
+                _globalWithdrawState.eligible + _globalWithdrawState.requested;
+        }
+
+        return _globalWithdrawState.eligible;
+    }
+
+    function requestedLenderWithdrawalAmount(address lender)
+        external
+        view
+        returns (uint256)
+    {
+        uint256 period = withdrawPeriod();
+
+        // Check if there's any new eligible shares need to be added, but
+        // has not yet been "cranked"
+        if (_withdrawState[lender].latestPeriod <= period) {
+            return 0;
+        }
+
+        return _withdrawState[lender].requested;
+    }
+
+    function eligibleLenderWithdrawalAmount(address lender)
+        external
+        view
+        returns (uint256)
+    {
+        uint256 period = withdrawPeriod();
+
+        // Check if there's any new eligible shares need to be added, but
+        // has not yet been "cranked"
+        if (_withdrawState[lender].latestPeriod <= period) {
+            return
+                _withdrawState[lender].eligible +
+                _withdrawState[lender].requested;
+        }
+
+        return _withdrawState[lender].eligible;
     }
 
     /**
      * @dev Set the pool lifecycle state. If the state changes, this method
-     * will also update the _poolLifeCycleStateTimestamp variable
+     * will also update the poolActivatedAt variable
      */
     function _setPoolLifeCycleState(IPoolLifeCycleState state) internal {
         if (_poolLifeCycleState != state) {
-            _poolLifeCycleStateTimestamp = block.timestamp;
+            if (state == IPoolLifeCycleState.Active && poolActivatedAt == 0) {
+                poolActivatedAt = block.timestamp;
+            }
+
             _poolLifeCycleState = state;
             emit LifeCycleStateTransition(state);
         }
@@ -410,7 +530,18 @@ contract Pool is IPool, ERC20 {
         override
         returns (uint256)
     {
-        return 0;
+        // TODO: have to consider how much is available in the withdrawal pool
+        uint256 period = withdrawPeriod();
+
+        // Check if there's any new eligible shares need to be added, but
+        // has not yet been "cranked"
+        if (_withdrawState[owner].latestPeriod <= period) {
+            return
+                _withdrawState[owner].eligible +
+                _withdrawState[owner].requested;
+        }
+
+        return _withdrawState[owner].eligible;
     }
 
     /**
