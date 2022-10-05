@@ -1,13 +1,15 @@
 import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { DEFAULT_POOL_SETTINGS } from "./support/pool";
 
 describe("Loan", () => {
   const SEVEN_DAYS = 6 * 60 * 60 * 24;
 
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
-    const [operator, poolManager, borrower, other] = await ethers.getSigners();
+    const [operator, poolManager, borrower, lender, other] =
+      await ethers.getSigners();
 
     const LiquidityAsset = await ethers.getContractFactory("MockERC20");
     const liquidityAsset = await LiquidityAsset.deploy("Test Coin", "TC");
@@ -48,7 +50,13 @@ describe("Loan", () => {
     // Create a pool
     const tx1 = await poolFactory
       .connect(poolManager)
-      .createPool(liquidityAsset.address, 0, 0, 0, 1);
+      .createPool(
+        liquidityAsset.address,
+        DEFAULT_POOL_SETTINGS.maxCapacity,
+        DEFAULT_POOL_SETTINGS.endDate,
+        DEFAULT_POOL_SETTINGS.withdrawalFee,
+        DEFAULT_POOL_SETTINGS.withdrawWindowDurationSeconds
+      );
     const tx1Receipt = await tx1.wait();
 
     // Extract its address from the PoolCreated event
@@ -71,8 +79,10 @@ describe("Loan", () => {
       .connect(poolManager)
       .depositFirstLoss(firstLossInitialMinimum, poolManager.address);
 
-    // TODO: Do this right by funding the loan?
-    await liquidityAsset.mint(pool.address, 1_000_000_000000);
+    const depositAmount = 1_000_000;
+    await liquidityAsset.mint(lender.address, 10_000_000);
+    await liquidityAsset.connect(lender).approve(pool.address, depositAmount);
+    await pool.connect(lender).deposit(depositAmount, lender.address);
 
     // Create the Loan
     const tx2 = await loanFactory.createLoan(
@@ -83,7 +93,7 @@ describe("Loan", () => {
       0,
       500,
       liquidityAsset.address,
-      1_000_000000,
+      500_000,
       Math.floor(Date.now() / 1000) + SEVEN_DAYS
     );
     const tx2Receipt = await tx2.wait();
@@ -134,7 +144,7 @@ describe("Loan", () => {
       expect(await loan.paymentPeriod()).to.equal(30); // 30 day payments
       expect(await loan.loanType()).to.equal(0); // fixed
       expect(await loan.apr()).to.equal(500); // apr 5.00%
-      expect(await loan.principal()).to.equal(1_000_000000); // $1,6000
+      expect(await loan.principal()).to.equal(500_000); // $500,000
     });
   });
 
