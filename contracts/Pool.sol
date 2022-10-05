@@ -226,6 +226,7 @@ contract Pool is IPool, ERC20 {
 
         _liquidityAsset.safeApprove(address(loan), loan.principal());
         loan.fund();
+        _accountings.activeLoanPrincipals += loan.principal();
     }
 
     /**
