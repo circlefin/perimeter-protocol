@@ -156,7 +156,7 @@ library LoanLib {
     }
 
     /**
-     *
+     * Fund a loan
      */
     function fundLoan(
         address liquidityAsset,
