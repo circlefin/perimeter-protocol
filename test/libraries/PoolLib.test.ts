@@ -214,14 +214,6 @@ describe("PoolLib", () => {
     });
   });
 
-  describe("calculateNavAggregate()", async () => {
-    it("deducts withdrawals from total assets", async () => {
-      const { poolLibWrapper } = await loadFixture(deployFixture);
-
-      expect(await poolLibWrapper.calculateNavAggregate(100, 25)).to.equal(75);
-    });
-  });
-
   describe("calculateTotalAssets()", async () => {
     it("combines balance of vault with oustanding loan principals", async () => {
       const { poolLibWrapper, liquidityAsset } = await loadFixture(

@@ -74,13 +74,6 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
         return PoolLib.calculateSharesToAssets(shares, sharesTotalSupply, nav);
     }
 
-    function calculateNavAggregate(
-        uint256 totalVaultAssets,
-        uint256 defaultsTotal
-    ) external pure returns (uint256) {
-        return PoolLib.calculateNavAggregate(totalVaultAssets, defaultsTotal);
-    }
-
     function calculateTotalAssets(
         address asset,
         address vault,
