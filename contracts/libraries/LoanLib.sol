@@ -170,4 +170,15 @@ library LoanLib {
         );
         return ILoanLifeCycleState.Funded;
     }
+
+    /**
+     * Drawdown a loan
+     */
+    function drawdown(
+        FundingVault fundingVault,
+        uint256 amount,
+        address receiver
+    ) public {
+        fundingVault.withdraw(amount, receiver);
+    }
 }

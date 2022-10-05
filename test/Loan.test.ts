@@ -128,6 +128,7 @@ describe("Loan", () => {
       poolManager,
       borrower,
       collateralAsset,
+      liquidityAsset,
       nftAsset,
       other
     };
@@ -400,6 +401,49 @@ describe("Loan", () => {
 
       await expect(loan.connect(other).fund()).to.be.revertedWith(
         "Loan: caller is not pool"
+      );
+    });
+  });
+
+  describe("drawdown", () => {
+    it("transfers funds to the borrower", async () => {
+      const fixture = await loadFixture(deployFixture);
+      const {
+        borrower,
+        collateralAsset,
+        liquidityAsset,
+        loan,
+        pool,
+        poolManager
+      } = fixture;
+
+      // Setup and fund loan
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await expect(
+        loan
+          .connect(borrower)
+          .postFungibleCollateral(collateralAsset.address, 100)
+      ).not.to.be.reverted;
+      await expect(pool.connect(poolManager).fundLoan(loan.address)).not.to.be
+        .reverted;
+      expect(await loan.state()).to.equal(4);
+
+      // Draw down the funds
+      const drawDownTx = loan.connect(borrower).drawdown();
+      await expect(drawDownTx).not.to.be.reverted;
+      await expect(drawDownTx).to.changeTokenBalance(
+        liquidityAsset,
+        borrower.address,
+        500_000
+      );
+
+      // Try again
+      const drawDownTx2 = loan.connect(borrower).drawdown();
+      await expect(drawDownTx2).not.to.be.reverted;
+      await expect(drawDownTx2).to.changeTokenBalance(
+        liquidityAsset,
+        borrower.address,
+        0
       );
     });
   });

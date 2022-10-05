@@ -214,6 +214,23 @@ contract Loan is ILoan {
         return _state;
     }
 
+    /**
+     * @dev Drawdown the Loan
+     */
+    function drawdown()
+        external
+        onlyBorrower
+        atState(ILoanLifeCycleState.Funded)
+        returns (uint256)
+    {
+        // Fixed term loans require the borrower to drawdown the full amount
+        uint256 amount = IERC20(liquidityAsset).balanceOf(
+            address(fundingVault)
+        );
+        LoanLib.drawdown(fundingVault, amount, msg.sender);
+        return amount;
+    }
+
     function state() external view returns (ILoanLifeCycleState) {
         return _state;
     }

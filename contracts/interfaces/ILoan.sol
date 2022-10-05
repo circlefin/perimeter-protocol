@@ -75,6 +75,8 @@ interface ILoan {
 
     function fund() external returns (ILoanLifeCycleState);
 
+    function drawdown() external returns (uint256);
+
     function createdAt() external returns (uint256);
 
     function duration() external returns (uint256);
