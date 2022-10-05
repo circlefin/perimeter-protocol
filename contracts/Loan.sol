@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-
 import "./interfaces/ILoan.sol";
 import "./interfaces/IServiceConfiguration.sol";
 import "./libraries/LoanLib.sol";
@@ -15,8 +13,6 @@ import "./FundingVault.sol";
  * Empty Loan contract.
  */
 contract Loan is ILoan {
-    using SafeERC20 for IERC20;
-
     IServiceConfiguration private immutable _serviceConfiguration;
     ILoanLifeCycleState private _state = ILoanLifeCycleState.Requested;
     address private immutable _borrower;
