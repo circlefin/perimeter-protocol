@@ -19,7 +19,7 @@ describe("Pool", () => {
     const { loan } = await deployLoan(
       pool.address,
       otherAccount.address,
-      (await time.latest()) + 60 * 60 * 48,
+      liquidityAsset.address,
       serviceConfiguration
     );
 

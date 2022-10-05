@@ -1,12 +1,6 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import {
-  deployPool,
-  DEFAULT_POOL_SETTINGS,
-  depositToPool,
-  activatePool
-} from "../support/pool";
 import { deployLoan } from "../support/loan";
 import { deployMockERC20 } from "../support/erc20";
 
@@ -48,7 +42,7 @@ describe("PoolLib", () => {
     const { loan, loanFactory, serviceConfiguration } = await deployLoan(
       poolLibWrapper.address,
       otherAccount.address,
-      0
+      liquidityAsset.address
     );
 
     return {

@@ -79,7 +79,7 @@ contract Loan is ILoan {
 
     constructor(
         IServiceConfiguration serviceConfiguration,
-        address factory
+        address factory,
         address borrower,
         address pool,
         uint256 duration_,

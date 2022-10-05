@@ -1,13 +1,15 @@
 import { ethers } from "hardhat";
 import { deployServiceConfiguration } from "./serviceconfiguration";
 
+const SEVEN_DAYS = 6 * 60 * 60 * 24;
+
 /**
  * Deploy a loan
  */
 export async function deployLoan(
   pool: any,
   borrower: any,
-  dropDeadDate: number,
+  liquidityAsset: any,
   existingServiceConfiguration: any = null
 ) {
   const { serviceConfiguration } = await (existingServiceConfiguration == null
@@ -15,6 +17,8 @@ export async function deployLoan(
     : {
         serviceConfiguration: existingServiceConfiguration
       });
+
+  await serviceConfiguration.setLiquidityAsset(liquidityAsset, true);
 
   const LoanLib = await ethers.getContractFactory("LoanLib");
   const loanLib = await LoanLib.deploy();
@@ -29,7 +33,18 @@ export async function deployLoan(
 
   await serviceConfiguration.setLoanFactory(loanFactory.address, true);
 
-  const txn = await loanFactory.createLoan(borrower, pool, dropDeadDate);
+  const txn = await loanFactory.createLoan(
+    borrower,
+    pool,
+    180,
+    30,
+    0,
+    500,
+    liquidityAsset,
+    1_000_000000,
+    Math.floor(Date.now() / 1000) + SEVEN_DAYS
+  );
+
   const txnReceipt = await txn.wait();
 
   const loanCreatedEvent = txnReceipt.events?.find(

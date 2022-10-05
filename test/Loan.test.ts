@@ -134,7 +134,6 @@ describe("Loan", () => {
       collateralAsset,
       liquidityAsset,
       nftAsset,
-      liquidityAsset,
       other
     };
   }
