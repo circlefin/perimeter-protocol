@@ -247,7 +247,7 @@ contract Pool is IPool, ERC20 {
         );
 
         ILoan(loan).markDefaulted();
-        _accountings.activeLoanPrincipals -= 0; // _accountings.activeLoanPrincipals -= loan.principal // Uncomment once PR 41 lands
+        _accountings.activeLoanPrincipals -= ILoan(loan).principal();
         emit LoanDefaulted(loan);
     }
 
