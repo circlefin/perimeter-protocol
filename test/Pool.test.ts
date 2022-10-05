@@ -227,10 +227,16 @@ describe("Pool", () => {
       await collateralizeLoan(loan, otherAccount);
       await fundLoan(loan, pool, poolManager);
 
+      const activeLoanPrincipalBefore = (await pool.accountings()).activeLoanPrincipals;
+      const loanPrincipal = await loan.principal();
+
       await expect(pool.connect(poolManager).defaultLoan(loan.address)).to.emit(
         pool,
         "LoanDefaulted"
       );
+
+      const activeLoanPrincipalsAfter = (await pool.accountings()).activeLoanPrincipals;
+      expect(activeLoanPrincipalsAfter).is.equal(activeLoanPrincipalBefore.sub(loanPrincipal));
     });
   });
 
