@@ -11,4 +11,8 @@ interface IServiceConfiguration is IAccessControl {
      * @dev checks if a given address has the Operator role
      */
     function isOperator(address addr) external view returns (bool);
+
+    function paused() external view returns (bool);
+
+    function isLiquidityAsset(address addr) external view returns (bool);
 }

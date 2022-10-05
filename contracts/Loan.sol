@@ -2,6 +2,7 @@
 pragma solidity ^0.8.16;
 
 import "./interfaces/ILoan.sol";
+import "./interfaces/IServiceConfiguration.sol";
 import "./libraries/LoanLib.sol";
 import "./CollateralVault.sol";
 
@@ -11,13 +12,21 @@ import "./CollateralVault.sol";
  * Empty Loan contract.
  */
 contract Loan is ILoan {
+    IServiceConfiguration private immutable _serviceConfiguration;
     ILoanLifeCycleState private _state = ILoanLifeCycleState.Requested;
     address private immutable _borrower;
     address private immutable _pool;
     CollateralVault public immutable _collateralVault;
     address[] private _fungibleCollateral;
     ILoanNonFungibleCollateral[] private _nonFungibleCollateral;
-    uint256 private _dropDeadTimestamp;
+    uint256 private immutable _dropDeadTimestamp;
+    uint256 public immutable createdAt;
+    uint256 public immutable duration;
+    uint256 public immutable paymentPeriod;
+    uint256 public immutable apr;
+    uint256 public immutable principal;
+    address public immutable liquidityAsset;
+    ILoanType public immutable loanType = ILoanType.Fixed;
 
     /**
      * @dev Modifier that requires the Loan be in the given `state_`
@@ -66,14 +75,37 @@ contract Loan is ILoan {
     }
 
     constructor(
+        IServiceConfiguration serviceConfiguration,
         address borrower,
         address pool,
+        uint256 duration_,
+        uint256 paymentPeriod_,
+        ILoanType loanType_,
+        uint256 apr_,
+        address liquidityAsset_,
+        uint256 principal_,
         uint256 dropDeadTimestamp
     ) {
+        _serviceConfiguration = serviceConfiguration;
         _borrower = borrower;
         _pool = pool;
         _collateralVault = new CollateralVault(address(this));
         _dropDeadTimestamp = dropDeadTimestamp;
+        createdAt = block.timestamp;
+        duration = duration_;
+        paymentPeriod = paymentPeriod_;
+        apr = apr_;
+        liquidityAsset = liquidityAsset_;
+        principal = principal_;
+
+        LoanLib.validateLoan(
+            serviceConfiguration,
+            duration,
+            paymentPeriod,
+            loanType,
+            principal,
+            liquidityAsset
+        );
     }
 
     /**

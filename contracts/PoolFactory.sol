@@ -34,6 +34,10 @@ contract PoolFactory {
         uint256 withdrawRequestPeriodDuration
     ) public virtual returns (address poolAddress) {
         require(
+            _serviceConfiguration.paused() == false,
+            "PoolFactory: Protocol paused"
+        );
+        require(
             withdrawRequestPeriodDuration > 0,
             "PoolFactory: Invalid duration"
         );

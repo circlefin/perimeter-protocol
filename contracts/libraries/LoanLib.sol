@@ -2,14 +2,17 @@
 pragma solidity ^0.8.16;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import "../interfaces/ILoan.sol";
+import "../interfaces/IServiceConfiguration.sol";
 import "../CollateralVault.sol";
 
 library LoanLib {
     using SafeERC20 for IERC20;
+    using SafeMath for uint256;
 
     /**
      * @dev Emitted when collateral is posted to the loan.
@@ -30,6 +33,31 @@ library LoanLib {
      * @dev Emitted when collateral is posted to the loan.
      */
     event WithdrewNonFungibleCollateral(address asset, uint256 tokenId);
+
+    /**
+     * @dev Validate Loan constructor arguments
+     */
+    function validateLoan(
+        IServiceConfiguration config,
+        uint256 duration,
+        uint256 paymentPeriod,
+        ILoanType loanType,
+        uint256 principal,
+        address liquidityAsset
+    ) external {
+        require(duration > 0, "LoanLib: Duration cannot be zero");
+        require(paymentPeriod > 0, "LoanLib: Payment period cannot be zero");
+        require(
+            duration.mod(paymentPeriod) == 0,
+            "LoanLib: Duration not evenly divisible"
+        );
+        require(principal > 0, "LoanLib: Principal cannot be zero");
+
+        require(
+            config.isLiquidityAsset(liquidityAsset),
+            "LoanLib: Liquidity asset not allowed"
+        );
+    }
 
     /**
      * @dev Post ERC20 tokens as collateral

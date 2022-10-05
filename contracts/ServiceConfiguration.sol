@@ -15,9 +15,26 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
     /**
+     * @dev Whether the protocol is paused.
+     */
+    bool public paused = false;
+
+    mapping(address => bool) public isLiquidityAsset;
+
+    /**
      * @dev Emitted when an address is changed.
      */
     event AddressSet(bytes32 which, address addr);
+
+    /**
+     * @dev Emitted when a liquidity asset is set.
+     */
+    event LiquidityAssetSet(address addr, bool value);
+
+    /**
+     * @dev Emitted when the protocol is paused.
+     */
+    event ProtocolPaused(bool paused);
 
     /**
      * @dev Constructor for the contract, which sets up the default roles and
@@ -37,6 +54,22 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
             "ServiceConfiguration: caller is not an operator"
         );
         _;
+    }
+
+    /**
+     * @dev Set a liquidity asset as valid or not.
+     */
+    function setLiquidityAsset(address addr, bool value) public onlyOperator {
+        isLiquidityAsset[addr] = value;
+        emit LiquidityAssetSet(addr, value);
+    }
+
+    /**
+     * @dev Pause/unpause the protocol.
+     */
+    function setPaused(bool paused_) public onlyOperator {
+        paused = paused_;
+        emit ProtocolPaused(paused);
     }
 
     /**

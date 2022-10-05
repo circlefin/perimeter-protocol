@@ -18,6 +18,8 @@ describe("Loan", () => {
     const serviceConfiguration = await ServiceConfiguration.deploy();
     await serviceConfiguration.deployed();
 
+    await serviceConfiguration.setLiquidityAsset(MOCK_LIQUIDITY_ADDRESS, true);
+
     const PoolLib = await ethers.getContractFactory("PoolLib");
     const poolLib = await PoolLib.deploy();
 
@@ -64,6 +66,12 @@ describe("Loan", () => {
     const tx2 = await loanFactory.createLoan(
       borrower.address,
       poolAddress,
+      180,
+      30,
+      0,
+      500,
+      MOCK_LIQUIDITY_ADDRESS,
+      1_000_000000,
       Math.floor(Date.now() / 1000) + SEVEN_DAYS
     );
     const tx2Receipt = await tx2.wait();
@@ -108,6 +116,12 @@ describe("Loan", () => {
       expect(await loan.state()).to.equal(0);
       expect(await loan.borrower()).to.equal(borrower.address);
       expect(await loan.pool()).to.equal(pool.address);
+
+      expect(await loan.duration()).to.equal(180); // 6 month duration
+      expect(await loan.paymentPeriod()).to.equal(30); // 30 day payments
+      expect(await loan.loanType()).to.equal(0); // fixed
+      expect(await loan.apr()).to.equal(500); // apr 5.00%
+      expect(await loan.principal()).to.equal(1_000_000000); // $1,6000
     });
   });
 

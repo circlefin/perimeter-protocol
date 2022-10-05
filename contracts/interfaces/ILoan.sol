@@ -13,6 +13,11 @@ enum ILoanLifeCycleState {
     Matured
 }
 
+enum ILoanType {
+    Fixed,
+    Open
+}
+
 struct ILoanNonFungibleCollateral {
     address asset;
     uint256 tokenId;
@@ -67,4 +72,16 @@ interface ILoan {
         returns (ILoanNonFungibleCollateral[] memory);
 
     function fund() external returns (ILoanLifeCycleState);
+
+    function createdAt() external returns (uint256);
+
+    function duration() external returns (uint256);
+
+    function paymentPeriod() external returns (uint256);
+
+    function loanType() external returns (ILoanType);
+
+    function apr() external returns (uint256);
+
+    function principal() external returns (uint256);
 }

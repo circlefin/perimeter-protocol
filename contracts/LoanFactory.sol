@@ -29,9 +29,30 @@ contract LoanFactory {
     function createLoan(
         address borrower,
         address pool,
+        uint256 duration,
+        uint256 paymentPeriod,
+        ILoanType loanType,
+        uint256 apr,
+        address liquidityAsset,
+        uint256 principal,
         uint256 dropDeadDate
     ) public virtual returns (address LoanAddress) {
-        Loan loan = new Loan(borrower, pool, dropDeadDate);
+        require(
+            _serviceConfiguration.paused() == false,
+            "LoanFactory: Protocol paused"
+        );
+        Loan loan = new Loan(
+            _serviceConfiguration,
+            borrower,
+            pool,
+            duration,
+            paymentPeriod,
+            loanType,
+            apr,
+            liquidityAsset,
+            principal,
+            dropDeadDate
+        );
         address addr = address(loan);
         emit LoanCreated(addr);
         return addr;
