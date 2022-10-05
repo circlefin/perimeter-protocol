@@ -7,7 +7,7 @@ describe("Loan", () => {
 
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
-    const [operator, borrower, other] = await ethers.getSigners();
+    const [operator, poolManager, borrower, other] = await ethers.getSigners();
 
     const LiquidityAsset = await ethers.getContractFactory("MockERC20");
     const liquidityAsset = await LiquidityAsset.deploy("Test Coin", "TC");
@@ -46,13 +46,9 @@ describe("Loan", () => {
     await loanFactory.deployed();
 
     // Create a pool
-    const tx1 = await poolFactory.createPool(
-      liquidityAsset.address,
-      0,
-      0,
-      0,
-      1
-    );
+    const tx1 = await poolFactory
+      .connect(poolManager)
+      .createPool(liquidityAsset.address, 0, 0, 0, 1);
     const tx1Receipt = await tx1.wait();
 
     // Extract its address from the PoolCreated event
@@ -64,6 +60,16 @@ describe("Loan", () => {
       }
     });
     const pool = Pool.attach(poolAddress);
+
+    const { firstLossInitialMinimum } = await pool.settings();
+
+    await pool
+      .connect(poolManager)
+      .approve(pool.address, firstLossInitialMinimum);
+
+    await pool
+      .connect(poolManager)
+      .depositFirstLoss(firstLossInitialMinimum, poolManager.address);
 
     // TODO: Do this right by funding the loan?
     await liquidityAsset.mint(pool.address, 1_000_000_000000);
@@ -109,6 +115,7 @@ describe("Loan", () => {
       pool,
       loan,
       operator,
+      poolManager,
       borrower,
       collateralAsset,
       nftAsset,
@@ -342,7 +349,7 @@ describe("Loan", () => {
     it("transitions Loan to Funded state", async () => {
       const fixture = await loadFixture(deployFixture);
       let { loan } = fixture;
-      const { borrower, collateralAsset, pool } = fixture;
+      const { borrower, collateralAsset, pool, poolManager } = fixture;
 
       // Connect as borrower
       loan = loan.connect(borrower);
@@ -352,17 +359,18 @@ describe("Loan", () => {
       await expect(loan.postFungibleCollateral(collateralAsset.address, 100))
         .not.to.be.reverted;
       expect(await loan.state()).to.equal(1);
-      await expect(pool.fundLoan(loan.address)).not.to.be.reverted;
+      await expect(pool.connect(poolManager).fundLoan(loan.address)).not.to.be
+        .reverted;
       expect(await loan.state()).to.equal(4);
     });
 
     it("reverts if not in the collateralized state", async () => {
-      const { pool, loan } = await loadFixture(deployFixture);
+      const { pool, poolManager, loan } = await loadFixture(deployFixture);
 
       expect(await loan.state()).to.equal(0);
-      await expect(pool.fundLoan(loan.address)).to.be.revertedWith(
-        "Loan: FunctionInvalidAtThisILoanLifeCycleState"
-      );
+      await expect(
+        pool.connect(poolManager).fundLoan(loan.address)
+      ).to.be.revertedWith("Loan: FunctionInvalidAtThisILoanLifeCycleState");
       expect(await loan.state()).to.equal(0);
     });
 
