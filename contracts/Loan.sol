@@ -96,7 +96,7 @@ contract Loan is ILoan {
         _borrower = borrower;
         _pool = pool;
         _collateralVault = new CollateralVault(address(this));
-        fundingVault = new FundingVault(pool, address(this), liquidityAsset_);
+        fundingVault = new FundingVault(address(this), liquidityAsset_);
         _dropDeadTimestamp = dropDeadTimestamp;
         createdAt = block.timestamp;
         duration = duration_;
