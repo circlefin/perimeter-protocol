@@ -9,6 +9,7 @@ import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "../interfaces/ILoan.sol";
 import "../interfaces/IServiceConfiguration.sol";
 import "../CollateralVault.sol";
+import "../FundingVault.sol";
 
 library LoanLib {
     using SafeERC20 for IERC20;
@@ -152,5 +153,21 @@ library LoanLib {
         for (uint256 i = 0; i < collateral.length; i++) {
             collateral.pop();
         }
+    }
+
+    /**
+     *
+     */
+    function fundLoan(
+        address liquidityAsset,
+        FundingVault fundingVault,
+        uint256 amount
+    ) public returns (ILoanLifeCycleState) {
+        IERC20(liquidityAsset).safeTransferFrom(
+            msg.sender,
+            address(fundingVault),
+            amount
+        );
+        return ILoanLifeCycleState.Funded;
     }
 }

@@ -214,14 +214,7 @@ contract Loan is ILoan {
         atState(ILoanLifeCycleState.Collateralized)
         returns (ILoanLifeCycleState)
     {
-        // TODO: fund the loan
-        _state = ILoanLifeCycleState.Funded;
-        IERC20(liquidityAsset).safeTransferFrom(
-            msg.sender,
-            address(fundingVault),
-            principal
-        );
-
+        _state = LoanLib.fundLoan(liquidityAsset, fundingVault, principal);
         return _state;
     }
 
