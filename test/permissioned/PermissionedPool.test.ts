@@ -3,7 +3,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { deployPermissionedPool } from "../support/permissionedpool";
 
-describe("Pool", () => {
+describe("PermissionedPool", () => {
   async function loadPoolFixture() {
     const [poolManager, otherAccount, thirdAccount] = await ethers.getSigners();
     const { pool, liquidityAsset } = await deployPermissionedPool(poolManager);

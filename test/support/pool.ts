@@ -1,6 +1,7 @@
 import { ethers } from "hardhat";
 import { MockERC20, Pool } from "../../typechain-types";
 import { deployMockERC20 } from "./erc20";
+import { deployServiceConfiguration } from "./serviceconfiguration";
 
 export const DEFAULT_POOL_SETTINGS = {
   maxCapacity: 10_000_000,
@@ -19,6 +20,8 @@ export async function deployPool(
 ) {
   const { mockERC20: liquidityAsset } = await deployMockERC20();
 
+  const { serviceConfiguration } = await deployServiceConfiguration();
+
   const PoolLib = await ethers.getContractFactory("PoolLib");
   const poolLib = await PoolLib.deploy();
 
@@ -31,6 +34,7 @@ export async function deployPool(
   const pool = await Pool.deploy(
     liquidityAsset.address,
     poolManager.address,
+    serviceConfiguration.address,
     poolSettings,
     "Valyria PoolToken",
     "VPT"
@@ -42,7 +46,7 @@ export async function deployPool(
     poolSettings.firstLossInitialMinimum
   );
 
-  return { pool, liquidityAsset };
+  return { pool, liquidityAsset, serviceConfiguration };
 }
 
 /**

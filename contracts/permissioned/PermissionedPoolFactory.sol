@@ -60,9 +60,10 @@ contract PermissionedPoolFactory is PoolFactory {
             firstLossInitialMinimum,
             withdrawRequestPeriodDuration
         );
-        Pool pool = new PermissionedPool(
+        PermissionedPool pool = new PermissionedPool(
             liquidityAsset,
             msg.sender,
+            address(_serviceConfiguration),
             settings,
             "ValyriaPoolToken",
             "VPT"

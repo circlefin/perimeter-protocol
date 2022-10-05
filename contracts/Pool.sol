@@ -3,6 +3,7 @@ pragma solidity ^0.8.16;
 
 import "./interfaces/ILoan.sol";
 import "./interfaces/IPool.sol";
+import "./interfaces/IServiceConfiguration.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -19,6 +20,7 @@ contract Pool is IPool, ERC20 {
 
     IPoolLifeCycleState private _poolLifeCycleState;
     address private _manager;
+    IServiceConfiguration private _serviceConfiguration;
     IERC20 private _liquidityAsset;
     IPoolConfigurableSettings private _poolSettings;
     FirstLossVault private _firstLossVault;
@@ -94,12 +96,14 @@ contract Pool is IPool, ERC20 {
      * @param liquidityAsset asset held by the poo
      * @param poolManager manager of the pool
      * @param poolSettings configurable settings for the pool
+     * @param serviceConfiguration address of global service configuration
      * @param tokenName Name used for issued pool tokens
      * @param tokenSymbol Symbol used for issued pool tokens
      */
     constructor(
         address liquidityAsset,
         address poolManager,
+        address serviceConfiguration,
         IPoolConfigurableSettings memory poolSettings,
         string memory tokenName,
         string memory tokenSymbol
@@ -107,6 +111,7 @@ contract Pool is IPool, ERC20 {
         _liquidityAsset = IERC20(liquidityAsset);
         _poolSettings = poolSettings;
         _manager = poolManager;
+        _serviceConfiguration = IServiceConfiguration(serviceConfiguration);
         _firstLossVault = new FirstLossVault(address(this), liquidityAsset);
         _setPoolLifeCycleState(IPoolLifeCycleState.Initialized);
     }
@@ -224,10 +229,27 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
-     * @dev Called by the pool manager, marks a loan as in default, updating pool accounting and allowing loan
-     * collateral to be claimed.
+     * @inheritdoc IPool
      */
-    function markLoanAsInDefault(address) external onlyManager {}
+    function defaultLoan(address loan)
+        external
+        onlyManager
+        atState(IPoolLifeCycleState.Active)
+    {
+        require(loan != address(0), "Pool: 0 address");
+        require(
+            PoolLib.isPoolLoan(
+                loan,
+                address(_serviceConfiguration),
+                address(this)
+            ),
+            "Pool: invalid loan"
+        );
+
+        ILoan(loan).markDefaulted();
+        _accountings.activeLoanPrincipals -= 0; // _accountings.activeLoanPrincipals -= loan.principal // Uncomment once PR 41 lands
+        emit LoanDefaulted(loan);
+    }
 
     /*//////////////////////////////////////////////////////////////
                     Withdrawal Request Methods

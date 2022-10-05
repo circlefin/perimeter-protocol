@@ -15,4 +15,18 @@ interface IServiceConfiguration is IAccessControl {
     function paused() external view returns (bool);
 
     function isLiquidityAsset(address addr) external view returns (bool);
+
+    /**
+     * @dev checks if an address is a valid loan factory
+     * @param addr Address of loan factory
+     * @return bool whether the loan factory is valid
+     */
+    function isLoanFactory(address addr) external view returns (bool);
+
+    /**
+     * @dev Sets whether a loan factory is valid
+     * @param addr Address of loan factory
+     * @param isValid Whether the loan factory is valid
+     */
+    function setLoanFactory(address addr, bool isValid) external;
 }

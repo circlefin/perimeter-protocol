@@ -7,13 +7,23 @@ import {
   depositToPool,
   activatePool
 } from "./support/pool";
+import { deployLoan, collateralizeLoan, fundLoan } from "./support/loan";
 
 describe("Pool", () => {
   async function loadPoolFixture() {
     const [poolManager, otherAccount] = await ethers.getSigners();
-    const { pool, liquidityAsset } = await deployPool(poolManager);
+    const { pool, liquidityAsset, serviceConfiguration } = await deployPool(
+      poolManager
+    );
 
-    return { pool, liquidityAsset, poolManager, otherAccount };
+    const { loan } = await deployLoan(
+      pool.address,
+      otherAccount.address,
+      (await time.latest()) + 60 * 60 * 48,
+      serviceConfiguration
+    );
+
+    return { pool, liquidityAsset, poolManager, otherAccount, loan };
   }
 
   describe("Deployment", () => {
@@ -189,6 +199,41 @@ describe("Pool", () => {
     });
   });
 
+  describe("defaultLoan()", () => {
+    it("reverts if Pool state is initialized", async () => {
+      const { pool, poolManager, otherAccount } = await loadFixture(
+        loadPoolFixture
+      );
+      await expect(
+        pool.connect(poolManager).defaultLoan(otherAccount.address)
+      ).to.be.revertedWith("Pool: FunctionInvalidAtThisLifeCycleState");
+    });
+
+    it("reverts if loan is not in a valid state", async () => {
+      const { pool, poolManager, liquidityAsset, loan } = await loadFixture(
+        loadPoolFixture
+      );
+      await activatePool(pool, poolManager, liquidityAsset);
+      await expect(
+        pool.connect(poolManager).defaultLoan(loan.address)
+      ).to.be.revertedWith("Loan: FunctionInvalidAtThisILoanLifeCycleState");
+    });
+
+    it("defaults loan if conditions are met", async () => {
+      const { pool, poolManager, liquidityAsset, loan, otherAccount } =
+        await loadFixture(loadPoolFixture);
+      await activatePool(pool, poolManager, liquidityAsset);
+
+      await collateralizeLoan(loan, otherAccount);
+      await fundLoan(loan, pool, poolManager);
+
+      await expect(pool.connect(poolManager).defaultLoan(loan.address)).to.emit(
+        pool,
+        "LoanDefaulted"
+      );
+    });
+  });
+
   describe("Permissions", () => {
     describe("updatePoolCapacity()", () => {
       it("reverts if not called by Pool Manager", async () => {
@@ -220,12 +265,12 @@ describe("Pool", () => {
       });
     });
 
-    describe("markLoanAsInDefault()", () => {
+    describe("defaultLoan()", () => {
       it("reverts if not called by Pool Manager", async () => {
         const { pool, otherAccount } = await loadFixture(loadPoolFixture);
 
         await expect(
-          pool.connect(otherAccount).markLoanAsInDefault(otherAccount.address)
+          pool.connect(otherAccount).defaultLoan(otherAccount.address)
         ).to.be.revertedWith("Pool: caller is not manager");
       });
     });
