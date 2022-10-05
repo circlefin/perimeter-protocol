@@ -218,6 +218,8 @@ contract Pool is IPool, ERC20 {
      */
     function fundLoan(address addr) external onlyManager {
         ILoan loan = ILoan(addr);
+
+        _liquidityAsset.safeApprove(address(loan), loan.principal());
         loan.fund();
     }
 

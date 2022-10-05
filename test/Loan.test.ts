@@ -4,11 +4,14 @@ import { ethers } from "hardhat";
 
 describe("Loan", () => {
   const SEVEN_DAYS = 6 * 60 * 60 * 24;
-  const MOCK_LIQUIDITY_ADDRESS = "0x0000000000000000000000000000000000000001";
 
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
     const [operator, borrower, other] = await ethers.getSigners();
+
+    const LiquidityAsset = await ethers.getContractFactory("MockERC20");
+    const liquidityAsset = await LiquidityAsset.deploy("Test Coin", "TC");
+    await liquidityAsset.deployed();
 
     // Deploy the Service Configuration contract
     const ServiceConfiguration = await ethers.getContractFactory(
@@ -18,7 +21,7 @@ describe("Loan", () => {
     const serviceConfiguration = await ServiceConfiguration.deploy();
     await serviceConfiguration.deployed();
 
-    await serviceConfiguration.setLiquidityAsset(MOCK_LIQUIDITY_ADDRESS, true);
+    await serviceConfiguration.setLiquidityAsset(liquidityAsset.address, true);
 
     const PoolLib = await ethers.getContractFactory("PoolLib");
     const poolLib = await PoolLib.deploy();
@@ -44,7 +47,7 @@ describe("Loan", () => {
 
     // Create a pool
     const tx1 = await poolFactory.createPool(
-      MOCK_LIQUIDITY_ADDRESS,
+      liquidityAsset.address,
       0,
       0,
       0,
@@ -62,6 +65,9 @@ describe("Loan", () => {
     });
     const pool = Pool.attach(poolAddress);
 
+    // TODO: Do this right by funding the loan?
+    await liquidityAsset.mint(pool.address, 1_000_000_000000);
+
     // Create the Loan
     const tx2 = await loanFactory.createLoan(
       borrower.address,
@@ -70,7 +76,7 @@ describe("Loan", () => {
       30,
       0,
       500,
-      MOCK_LIQUIDITY_ADDRESS,
+      liquidityAsset.address,
       1_000_000000,
       Math.floor(Date.now() / 1000) + SEVEN_DAYS
     );

@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
 import "./interfaces/ILoan.sol";
 import "./interfaces/IServiceConfiguration.sol";
 import "./libraries/LoanLib.sol";
 import "./CollateralVault.sol";
+import "./FundingVault.sol";
 
 /**
  * @title Loan
@@ -12,11 +15,14 @@ import "./CollateralVault.sol";
  * Empty Loan contract.
  */
 contract Loan is ILoan {
+    using SafeERC20 for IERC20;
+
     IServiceConfiguration private immutable _serviceConfiguration;
     ILoanLifeCycleState private _state = ILoanLifeCycleState.Requested;
     address private immutable _borrower;
     address private immutable _pool;
     CollateralVault public immutable _collateralVault;
+    FundingVault public immutable fundingVault;
     address[] private _fungibleCollateral;
     ILoanNonFungibleCollateral[] private _nonFungibleCollateral;
     uint256 private immutable _dropDeadTimestamp;
@@ -90,6 +96,7 @@ contract Loan is ILoan {
         _borrower = borrower;
         _pool = pool;
         _collateralVault = new CollateralVault(address(this));
+        fundingVault = new FundingVault(pool, address(this), liquidityAsset_);
         _dropDeadTimestamp = dropDeadTimestamp;
         createdAt = block.timestamp;
         duration = duration_;
@@ -209,6 +216,12 @@ contract Loan is ILoan {
     {
         // TODO: fund the loan
         _state = ILoanLifeCycleState.Funded;
+        IERC20(liquidityAsset).safeTransferFrom(
+            msg.sender,
+            address(fundingVault),
+            principal
+        );
+
         return _state;
     }
 
