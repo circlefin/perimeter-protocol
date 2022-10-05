@@ -276,7 +276,7 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev The withdraw period that we're requesting for (aka nextWithdrawPeriod)
      */
-    function requestPeriod() public view returns (uint256) {
+    function requestPeriod() public view returns (uint256 period) {
         return
             PoolLib.currentRequestPeriod(
                 poolActivatedAt,
@@ -287,7 +287,7 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev The current withdraw period
      */
-    function withdrawPeriod() public view returns (uint256) {
+    function withdrawPeriod() public view returns (uint256 period) {
         return
             PoolLib.currentWithdrawPeriod(
                 poolActivatedAt,
@@ -313,10 +313,10 @@ contract Pool is IPool, ERC20 {
             _withdrawState[msg.sender].latestPeriod > 0 &&
             _withdrawState[msg.sender].latestPeriod <= period
         ) {
-            _withdrawState[msg.sender].eligible =
-                _withdrawState[msg.sender].eligible +
-                _withdrawState[msg.sender].requested;
-            _withdrawState[msg.sender].requested = 0;
+            _withdrawState[msg.sender].eligibleAssets =
+                _withdrawState[msg.sender].eligibleAssets +
+                _withdrawState[msg.sender].requestedAssets;
+            _withdrawState[msg.sender].requestedAssets = 0;
         }
 
         // Update the global withdraw state
@@ -324,25 +324,25 @@ contract Pool is IPool, ERC20 {
             _globalWithdrawState.latestPeriod > 0 &&
             _globalWithdrawState.latestPeriod <= period
         ) {
-            _globalWithdrawState.eligible =
-                _globalWithdrawState.eligible +
-                _globalWithdrawState.requested;
-            _globalWithdrawState.requested = 0;
+            _globalWithdrawState.eligibleAssets =
+                _globalWithdrawState.eligibleAssets +
+                _globalWithdrawState.requestedAssets;
+            _globalWithdrawState.requestedAssets = 0;
         }
 
         // Update the requested amount from the user
-        _withdrawState[msg.sender].requested =
-            _withdrawState[msg.sender].requested +
-            amount;
+        _withdrawState[msg.sender].requestedAssets =
+            _withdrawState[msg.sender].requestedAssets +
+            assets;
         _withdrawState[msg.sender].latestPeriod = period;
 
         // Update the global amount
-        _globalWithdrawState.requested =
-            _globalWithdrawState.requested +
-            amount;
+        _globalWithdrawState.requestedAssets =
+            _globalWithdrawState.requestedAssets +
+            assets;
         _globalWithdrawState.latestPeriod = period;
 
-        emit WithdrawRequested(msg.sender, amount);
+        emit WithdrawRequested(msg.sender, assets);
     }
 
     function requestedLenderWithdrawalTotal() external view returns (uint256) {
@@ -354,7 +354,7 @@ contract Pool is IPool, ERC20 {
             return 0;
         }
 
-        return _globalWithdrawState.requested;
+        return _globalWithdrawState.requestedAssets;
     }
 
     function eligibleLenderWithdrawalTotal() external view returns (uint256) {
@@ -364,10 +364,11 @@ contract Pool is IPool, ERC20 {
         // has not yet been "cranked"
         if (_globalWithdrawState.latestPeriod <= period) {
             return
-                _globalWithdrawState.eligible + _globalWithdrawState.requested;
+                _globalWithdrawState.eligibleAssets +
+                _globalWithdrawState.requestedAssets;
         }
 
-        return _globalWithdrawState.eligible;
+        return _globalWithdrawState.eligibleAssets;
     }
 
     function requestedLenderWithdrawalAmount(address lender)
@@ -383,7 +384,7 @@ contract Pool is IPool, ERC20 {
             return 0;
         }
 
-        return _withdrawState[lender].requested;
+        return _withdrawState[lender].requestedAssets;
     }
 
     function eligibleLenderWithdrawalAmount(address lender)
@@ -397,11 +398,11 @@ contract Pool is IPool, ERC20 {
         // has not yet been "cranked"
         if (_withdrawState[lender].latestPeriod <= period) {
             return
-                _withdrawState[lender].eligible +
-                _withdrawState[lender].requested;
+                _withdrawState[lender].eligibleAssets +
+                _withdrawState[lender].requestedAssets;
         }
 
-        return _withdrawState[lender].eligible;
+        return _withdrawState[lender].eligibleAssets;
     }
 
     /**
@@ -566,18 +567,7 @@ contract Pool is IPool, ERC20 {
         override
         returns (uint256)
     {
-        // TODO: have to consider how much is available in the withdrawal pool
-        uint256 period = withdrawPeriod();
-
-        // Check if there's any new eligible shares need to be added, but
-        // has not yet been "cranked"
-        if (_withdrawState[owner].latestPeriod <= period) {
-            return
-                _withdrawState[owner].eligible +
-                _withdrawState[owner].requested;
-        }
-
-        return _withdrawState[owner].eligible;
+        return 0;
     }
 
     /**

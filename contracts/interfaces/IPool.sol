@@ -37,8 +37,8 @@ struct IPoolConfigurableSettings {
  * @dev contains withdraw request information
  */
 struct IPoolWithdrawState {
-    uint256 requested;
-    uint256 eligible;
+    uint256 requestedAssets;
+    uint256 eligibleAssets;
     uint256 latestPeriod;
 }
 
