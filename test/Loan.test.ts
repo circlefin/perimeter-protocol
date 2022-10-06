@@ -463,24 +463,17 @@ describe("Loan", () => {
       );
     });
 
-    it("transitions state, if defaulted while in a Funded state", async () => {
+    it("transitions state only if defaulted while in a Funded state", async () => {
       const fixture = await loadFixture(deployFixture);
-      let { loan } = fixture;
-      const { borrower, collateralAsset, pool, operator, liquidityAsset } =
-        fixture;
-      const pm = operator;
-
-      // activate pool
-      await activatePool(pool, operator, liquidityAsset);
+      const { borrower, collateralAsset, poolManager } = fixture;
+      const loan = fixture.loan.connect(borrower);
+      const pool = fixture.pool.connect(poolManager);
 
       // Check Loan is in requested state; defaults should revert
       expect(await loan.state()).to.equal(0);
       await expect(pool.defaultLoan(loan.address)).to.be.revertedWith(
         "Loan: FunctionInvalidAtThisILoanLifeCycleState"
       );
-
-      // Connect as borrower
-      loan = loan.connect(borrower);
 
       // Loan is collateralized; defaults should still revert
       await collateralAsset.connect(borrower).approve(loan.address, 100);

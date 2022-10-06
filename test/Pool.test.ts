@@ -219,23 +219,30 @@ describe("Pool", () => {
       ).to.be.revertedWith("Loan: FunctionInvalidAtThisILoanLifeCycleState");
     });
 
-    it("defaults loan if conditions are met", async () => {
+    it("defaults loan if loan is funded, and pool is active", async () => {
       const { pool, poolManager, liquidityAsset, loan, otherAccount } =
         await loadFixture(loadPoolFixture);
       await activatePool(pool, poolManager, liquidityAsset);
 
+      // Collateralize loan
       await collateralizeLoan(loan, otherAccount);
+
+      // Deposit to pool and fund loan
+      const loanPrincipal = await loan.principal();
+      await depositToPool(pool, otherAccount, liquidityAsset, loanPrincipal);
       await fundLoan(loan, pool, poolManager);
 
+      // Get an accounting snapshot prior to the default
       const activeLoanPrincipalBefore = (await pool.accountings())
         .activeLoanPrincipals;
-      const loanPrincipal = await loan.principal();
 
+      // Trigger default
       await expect(pool.connect(poolManager).defaultLoan(loan.address)).to.emit(
         pool,
         "LoanDefaulted"
       );
 
+      // Check accountings after
       const activeLoanPrincipalsAfter = (await pool.accountings())
         .activeLoanPrincipals;
       expect(activeLoanPrincipalsAfter).is.equal(

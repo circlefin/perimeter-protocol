@@ -78,7 +78,7 @@ export async function depositToPool(
   pool: Pool,
   depositorAccount: any,
   asset: MockERC20,
-  amount: number
+  amount: any
 ) {
   // Provide capital to lender
   await asset.mint(depositorAccount.address, amount);

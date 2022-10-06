@@ -41,7 +41,7 @@ export async function deployLoan(
     0,
     500,
     liquidityAsset,
-    1_000_000000,
+    1_000_000,
     Math.floor(Date.now() / 1000) + SEVEN_DAYS
   );
 
