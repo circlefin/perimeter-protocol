@@ -315,4 +315,37 @@ library PoolLib {
     ) public view returns (uint256) {
         return currentWithdrawPeriod(activatedAt, withdrawalWindowDuration) + 1;
     }
+
+    /**
+     * @dev Calculate the current IPoolWithdrawState based on the existing
+     * request state and the current request period.
+     */
+    function calculateWithdrawState(
+        IPoolWithdrawState calldata state,
+        uint256 requestPeriod
+    ) public pure returns (IPoolWithdrawState memory) {
+        if (state.latestPeriod == 0 || state.latestPeriod > requestPeriod) {
+            return state;
+        }
+
+        return
+            IPoolWithdrawState({
+                requestedAssets: 0,
+                eligibleAssets: state.eligibleAssets + state.requestedAssets,
+                latestPeriod: state.latestPeriod
+            });
+    }
+
+    function updateWithdrawState(
+        IPoolWithdrawState calldata state,
+        uint256 requestPeriod,
+        uint256 requestedAssets
+    ) public pure returns (IPoolWithdrawState memory) {
+        return
+            IPoolWithdrawState({
+                requestedAssets: state.requestedAssets + requestedAssets,
+                eligibleAssets: state.eligibleAssets,
+                latestPeriod: requestPeriod
+            });
+    }
 }

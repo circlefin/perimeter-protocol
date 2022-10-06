@@ -292,10 +292,14 @@ contract Pool is IPool, ERC20 {
      * @dev Returns the withdrawal fee for a given withdrawal amount at the current block.
      * The fee is the number of underlying assets that will be charged.
      */
-    function feeForWithdrawRequest(uint256 assets)
+    function feeForWithdrawRequest(
+        uint256 /* assets */
+    )
         public
-        view
-        returns (uint256 feeAssets)
+        pure
+        returns (
+            uint256 /* assets */
+        )
     {
         return 0;
     }
@@ -304,10 +308,14 @@ contract Pool is IPool, ERC20 {
      * @dev Returns the redeem fee for a given withdrawal amount at the current block.
      * The fee is the number of shares that will be charged.
      */
-    function feeForRedeemRequest(uint256 shares)
-        external
-        view
-        returns (uint256 feeShares)
+    function feeForRedeemRequest(
+        uint256 /* shares */
+    )
+        public
+        pure
+        returns (
+            uint256 /* shares */
+        )
     {
         return 0;
     }
@@ -325,24 +333,22 @@ contract Pool is IPool, ERC20 {
         returns (uint256 amount)
     {
         // Calculate the asset value of the current balance
-        uint256 currentAssetBalance = PoolLib.calculateSharesToAssets(
-            balanceOf(owner),
-            totalSupply(),
-            PoolLib.calculateNavAggregate(
-                this.totalAssets(),
-                _accountings.defaultsTotal
-            )
-        );
-
+        uint256 currentAssetBalance = convertToAssets(balanceOf(owner));
         uint256 currentAssetsRequested = _withdrawState[owner].requestedAssets;
-        // Calculate fees based on requesting the full asset balance amount
-        uint256 assetFees = feeForWithdrawRequest(currentAssetBalance);
+        uint256 assetsRemaining = currentAssetBalance - currentAssetsRequested;
 
-        if (currentAssetBalance - currentAssetsRequested < assetFees) {
+        if (assetsRemaining <= 0) {
             return 0;
         }
 
-        return currentAssetBalance - currentAssetsRequested - assetFees;
+        // Calculate fees based on requesting the full asset balance amount
+        uint256 assetFees = feeForWithdrawRequest(assetsRemaining);
+
+        if (assetFees > assetsRemaining) {
+            return 0;
+        }
+
+        return assetsRemaining - assetFees;
     }
 
     /**
@@ -359,15 +365,7 @@ contract Pool is IPool, ERC20 {
     {
         uint256 assetFees = feeForWithdrawRequest(assets);
 
-        return
-            PoolLib.calculateAssetsToShares(
-                assets + assetFees,
-                this.totalSupply(),
-                PoolLib.calculateNavAggregate(
-                    this.totalAssets(),
-                    _accountings.defaultsTotal
-                )
-            );
+        return convertToShares(assets + assetFees);
     }
 
     /**
@@ -388,54 +386,85 @@ contract Pool is IPool, ERC20 {
             "Pool: InsufficientBalance"
         );
 
-        // uint256 assetFees = feeForWithdrawRequest(assets);
         uint256 period = requestPeriod();
 
         // Update the lender's WithdrawState
-        if (
-            _withdrawState[msg.sender].latestPeriod > 0 &&
-            _withdrawState[msg.sender].latestPeriod <= period
-        ) {
-            _withdrawState[msg.sender].eligibleAssets =
-                _withdrawState[msg.sender].eligibleAssets +
-                _withdrawState[msg.sender].requestedAssets;
-            _withdrawState[msg.sender].requestedAssets = 0;
-        }
+        _withdrawState[msg.sender] = PoolLib.calculateWithdrawState(
+            _withdrawState[msg.sender],
+            period
+        );
 
         // Update the global withdraw state
-        if (
-            _globalWithdrawState.latestPeriod > 0 &&
-            _globalWithdrawState.latestPeriod <= period
-        ) {
-            _globalWithdrawState.eligibleAssets =
-                _globalWithdrawState.eligibleAssets +
-                _globalWithdrawState.requestedAssets;
-            _globalWithdrawState.requestedAssets = 0;
-        }
+        _globalWithdrawState = PoolLib.calculateWithdrawState(
+            _globalWithdrawState,
+            period
+        );
 
         // Update the requested amount from the user
-        _withdrawState[msg.sender].requestedAssets =
-            _withdrawState[msg.sender].requestedAssets +
-            assets;
-        _withdrawState[msg.sender].latestPeriod = period;
+        _withdrawState[msg.sender] = PoolLib.updateWithdrawState(
+            _withdrawState[msg.sender],
+            period,
+            assets
+        );
 
         // Update the global amount
-        _globalWithdrawState.requestedAssets =
-            _globalWithdrawState.requestedAssets +
-            assets;
-        _globalWithdrawState.latestPeriod = period;
+        _globalWithdrawState = PoolLib.updateWithdrawState(
+            _globalWithdrawState,
+            period,
+            assets
+        );
 
         emit WithdrawRequested(msg.sender, assets);
 
-        return
-            PoolLib.calculateAssetsToShares(
-                assets,
-                this.totalSupply(),
-                PoolLib.calculateNavAggregate(
-                    this.totalAssets(),
-                    _accountings.defaultsTotal
-                )
-            );
+        return convertToShares(assets);
+    }
+
+    /**
+     * @dev Returns the maximum number of `shares` that can be
+     * requested to be redeemed from the owner balance with a single
+     * `requestRedeem` call in the current block.
+     *
+     * Note: This is equivalent of EIP-4626 `maxRedeem`
+     */
+    function maxRedeemRequest(address owner)
+        public
+        view
+        returns (uint256 shares)
+    {
+        uint256 currentSharesRequested = convertToShares(
+            _withdrawState[owner].requestedAssets
+        );
+        uint256 sharesRemaining = balanceOf(owner) - currentSharesRequested;
+
+        if (sharesRemaining <= 0) {
+            return 0;
+        }
+
+        // Calculate fees based on requesting the full asset balance amount
+        uint256 sharesFee = feeForRedeemRequest(sharesRemaining);
+
+        if (sharesFee > sharesRemaining) {
+            return 0;
+        }
+
+        return sharesRemaining - sharesFee;
+    }
+
+    /**
+     * @dev Simulate the effects of a redeem request at the current block.
+     * Returns the amount of underlying assets that would be requested if this
+     * entire redeem request were to be processed at the current block.
+     *
+     * Note: This is equivalent of EIP-4626 `previewRedeem`
+     */
+    function previewRedeemRequest(uint256 shares)
+        external
+        view
+        returns (uint256 assets)
+    {
+        uint256 shareFees = feeForRedeemRequest(shares);
+
+        return convertToAssets(shares + shareFees);
     }
 
     function requestedLenderWithdrawalTotal() external view returns (uint256) {
@@ -538,7 +567,7 @@ contract Pool is IPool, ERC20 {
      * @dev Calculates the amount of assets that would be exchanged by the vault for the amount of shares provided.
      */
     function convertToAssets(uint256 shares)
-        external
+        public
         view
         override
         returns (uint256)
