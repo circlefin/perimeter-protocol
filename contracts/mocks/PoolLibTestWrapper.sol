@@ -3,6 +3,7 @@ pragma solidity ^0.8.16;
 
 import "../libraries/PoolLib.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "../interfaces/IPool.sol";
 
 /**
  * @title PoolLibTestWrapper
@@ -118,5 +119,13 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
                 maxDeposit,
                 _mint
             );
+    }
+
+    function isPoolLoan(
+        address loan,
+        address serviceConfiguration,
+        address pool
+    ) public view returns (bool) {
+        return PoolLib.isPoolLoan(loan, serviceConfiguration, pool);
     }
 }

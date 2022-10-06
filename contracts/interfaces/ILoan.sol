@@ -37,6 +37,11 @@ interface ILoan {
     event LoanDrawnDown(address asset, uint256 amount);
 
     /**
+     * @dev Emitted when a Loan's lifecycle state transitions
+     */
+    event LifeCycleStateTransition(ILoanLifeCycleState state);
+
+    /**
      * @dev Emitted when collateral is posted to the loan.
      */
     event PostedCollateral(address asset, uint256 amount);
@@ -61,6 +66,8 @@ interface ILoan {
     function borrower() external view returns (address);
 
     function pool() external view returns (address);
+
+    function factory() external view returns (address);
 
     function dropDeadTimestamp() external view returns (uint256);
 
@@ -100,4 +107,6 @@ interface ILoan {
     function principal() external returns (uint256);
 
     function fundingVault() external returns (FundingVault);
+
+    function markDefaulted() external returns (ILoanLifeCycleState);
 }

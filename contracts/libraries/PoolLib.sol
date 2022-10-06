@@ -6,7 +6,10 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "../interfaces/ILoan.sol";
 import "../interfaces/IPool.sol";
+import "../interfaces/ILoan.sol";
+import "../interfaces/IServiceConfiguration.sol";
 import "../FirstLossVault.sol";
+import "../LoanFactory.sol";
 
 /**
  * @title Collection of functions used by the Pool
@@ -44,6 +47,11 @@ library PoolLib {
         uint256 assets,
         uint256 shares
     );
+
+    /**
+     * @dev See IPool for event definition
+     */
+    event LoanDefaulted(address indexed loan);
 
     /**
      * @dev Transfers first loss to the vault.
@@ -236,5 +244,25 @@ library PoolLib {
         uint256 withdrawalWindowDuration
     ) public view returns (uint256) {
         return currentWithdrawPeriod(activatedAt, withdrawalWindowDuration) + 1;
+    }
+
+    /**
+     * @dev Determines whether an address corresponds to a pool loan
+     * @param loan address of loan
+     * @param serviceConfiguration address of service configuration
+     * @param pool address of pool
+     */
+    function isPoolLoan(
+        address loan,
+        address serviceConfiguration,
+        address pool
+    ) public view returns (bool) {
+        address factory = ILoan(loan).factory();
+        return
+            IServiceConfiguration(serviceConfiguration).isLoanFactory(
+                factory
+            ) &&
+            LoanFactory(factory).isLoan(loan) &&
+            ILoan(loan).pool() == pool;
     }
 }

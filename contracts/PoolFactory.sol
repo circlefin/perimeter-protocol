@@ -53,6 +53,7 @@ contract PoolFactory {
         Pool pool = new Pool(
             liquidityAsset,
             msg.sender,
+            address(_serviceConfiguration),
             settings,
             "ValyriaPoolToken",
             "VPT"
