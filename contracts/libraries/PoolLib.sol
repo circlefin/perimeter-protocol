@@ -320,32 +320,52 @@ library PoolLib {
      * @dev Calculate the current IPoolWithdrawState based on the existing
      * request state and the current request period.
      */
-    function calculateWithdrawState(
-        IPoolWithdrawState calldata state,
-        uint256 requestPeriod
+    function updateWithdrawState(
+        IPoolWithdrawState memory state,
+        uint256 requestPeriod,
+        uint256 requestedShares
     ) public pure returns (IPoolWithdrawState memory) {
-        if (state.latestPeriod == 0 || state.latestPeriod > requestPeriod) {
-            return state;
+        // If the latest withdrawlState has not been updated for this
+        // given request period, we need to move "requested" shares over
+        // to be "eligible".
+        //
+        // TODO: This likely happens in the crank instead, because those
+        // shares are not necessarily eligible yet.
+        if (state.latestPeriod > 0 && state.latestPeriod <= requestPeriod) {
+            state.eligibleShares = state.eligibleShares + state.requestedShares;
+            state.requestedShares = 0;
         }
 
-        return
-            IPoolWithdrawState({
-                requestedAssets: 0,
-                eligibleAssets: state.eligibleAssets + state.requestedAssets,
-                latestPeriod: state.latestPeriod
-            });
+        // Increment the requested shares count, and ensure the "latestPeriod"
+        // is set to the current request period.
+        state.requestedShares = state.requestedShares + requestedShares;
+        state.latestPeriod = requestPeriod;
+
+        return state;
     }
 
-    function updateWithdrawState(
-        IPoolWithdrawState calldata state,
-        uint256 requestPeriod,
-        uint256 requestedAssets
-    ) public pure returns (IPoolWithdrawState memory) {
-        return
-            IPoolWithdrawState({
-                requestedAssets: state.requestedAssets + requestedAssets,
-                eligibleAssets: state.eligibleAssets,
-                latestPeriod: requestPeriod
-            });
+    function requestFee(uint256 shares, uint256 requestFeeBips)
+        public
+        pure
+        returns (uint256)
+    {
+        return shares * (requestFeeBips / 100);
+    }
+
+    function maxRedeemRequest(
+        IPoolWithdrawState memory state,
+        uint256 shareBalance,
+        uint256 requestFeeBips
+    ) public pure returns (uint256) {
+        uint256 sharesRemaining = shareBalance -
+            state.requestedShares -
+            state.eligibleShares;
+        uint256 sharesFee = requestFee(sharesRemaining, requestFeeBips);
+
+        if (sharesFee > sharesRemaining) {
+            return 0;
+        }
+
+        return sharesRemaining - sharesFee;
     }
 }

@@ -8,6 +8,8 @@ describe("Withdraw Requests", () => {
     const [poolManager, otherAccount] = await ethers.getSigners();
     const { pool, liquidityAsset } = await deployPool(poolManager);
 
+    await pool.setWithdrawalFee(1000); // 10%
+
     // activate the pool
     await activatePool(pool, poolManager, liquidityAsset);
 
@@ -26,6 +28,8 @@ describe("Withdraw Requests", () => {
     expect(await pool.withdrawPeriod()).to.equal(0);
 
     // Expect the lender to be able to request the full balance
+    // TODO: Update this to have a non 1:1 ratio!
+    expect(await pool.maxRedeemRequest(otherAccount.address)).to.equal(100);
     expect(await pool.maxWithdrawRequest(otherAccount.address)).to.equal(100);
 
     // Request a withdraw for Period n + 1 (in this case, 1)

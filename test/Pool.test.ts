@@ -45,13 +45,13 @@ describe("Pool", () => {
       const {
         endDate,
         maxCapacity,
-        withdrawalFee,
+        requestFeeBips,
         withdrawRequestPeriodDuration
       } = await pool.settings();
 
       expect(endDate).to.equal(DEFAULT_POOL_SETTINGS.endDate);
       expect(maxCapacity).to.equal(DEFAULT_POOL_SETTINGS.maxCapacity);
-      expect(withdrawalFee).to.equal(DEFAULT_POOL_SETTINGS.withdrawalFee);
+      expect(requestFeeBips).to.equal(DEFAULT_POOL_SETTINGS.requestFeeBips);
       expect(withdrawRequestPeriodDuration).to.equal(
         DEFAULT_POOL_SETTINGS.withdrawRequestPeriodDuration
       );
@@ -452,7 +452,6 @@ describe("Pool", () => {
 
     describe("maxWithdrawRequest(address)", () => {
       it("returns the current number of assets minus fees if no requests have been made", async () => {
-        // TODO: Implement fees
         const { pool, poolManager, otherAccount, liquidityAsset } =
           await loadFixture(loadPoolFixture);
         await activatePool(pool, poolManager, liquidityAsset);
@@ -481,7 +480,7 @@ describe("Pool", () => {
         ).to.equal(49);
       });
 
-      it("returns 0 if the requested balance is >= what is available", async () => {
+      it("returns 0 if the requested balance is > what is available", async () => {
         const { pool, poolManager, otherAccount, liquidityAsset } =
           await loadFixture(loadPoolFixture);
         await activatePool(pool, poolManager, liquidityAsset);
@@ -516,6 +515,7 @@ describe("Pool", () => {
         const { pool, poolManager, liquidityAsset } = await loadFixture(
           loadPoolFixture
         );
+        await pool.setFee(1000); // 10%
         await activatePool(pool, poolManager, liquidityAsset);
 
         // TODO: Show a non 1:1 share value

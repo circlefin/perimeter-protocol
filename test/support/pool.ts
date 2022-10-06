@@ -6,7 +6,7 @@ import { deployServiceConfiguration } from "./serviceconfiguration";
 export const DEFAULT_POOL_SETTINGS = {
   maxCapacity: 10_000_000,
   endDate: 2524611601, // Jan 1, 2050
-  withdrawalFee: 50, // bips,
+  requestFeeBips: 50, // bips,
   firstLossInitialMinimum: 100_000,
   withdrawRequestPeriodDuration: 30 * 24 * 60 * 60 // 30 days
 };
@@ -16,9 +16,13 @@ export const DEFAULT_POOL_SETTINGS = {
  */
 export async function deployPool(
   poolManager: any,
-  poolSettings = DEFAULT_POOL_SETTINGS
+  settings?: Partial<typeof DEFAULT_POOL_SETTINGS>
 ) {
   const { mockERC20: liquidityAsset } = await deployMockERC20();
+  const poolSettings = {
+    ...DEFAULT_POOL_SETTINGS,
+    ...settings
+  };
 
   const { serviceConfiguration } = await deployServiceConfiguration();
 

@@ -27,7 +27,7 @@ enum IPoolLifeCycleState {
 struct IPoolConfigurableSettings {
     uint256 maxCapacity; // amount
     uint256 endDate; // epoch seconds
-    uint256 withdrawalFee; // bips
+    uint256 requestFeeBips; // bips
     uint256 firstLossInitialMinimum; // amount
     uint256 withdrawRequestPeriodDuration; // seconds (e.g. 30 days)
     // TODO: add in Pool fees
@@ -37,9 +37,9 @@ struct IPoolConfigurableSettings {
  * @dev contains withdraw request information
  */
 struct IPoolWithdrawState {
-    uint256 requestedAssets;
-    uint256 eligibleAssets;
-    uint256 latestPeriod;
+    uint256 requestedShares; // Number of shares requested in the `latestPeriod`
+    uint256 eligibleShares; // Number of shares that are eligibble to be CONSIDERED for withdraw by the crank
+    uint256 latestPeriod; // Period where this was last updated
 }
 
 /**
@@ -69,7 +69,12 @@ interface IPool is IERC4626 {
     /**
      * @dev Emitted when a withdrawal is requested.
      */
-    event WithdrawRequested(address indexed lender, uint256 amount);
+    event WithdrawRequested(address indexed lender, uint256 assets);
+
+    /**
+     * @dev Emitted when a redeem is requested.
+     */
+    event RedeemRequested(address indexed lender, uint256 shares);
 
     /**
      * @dev Emitted when pool settings are updated.
@@ -138,12 +143,12 @@ interface IPool is IERC4626 {
     /**
      * @dev Returns the withdrawal fee for a given withdrawal amount at the current block.
      */
-    function feeForWithdrawRequest(uint256) external view returns (uint256);
+    function withdrawRequestFee(uint256) external view returns (uint256);
 
     /**
      * @dev Returns the withdrawal fee for a given withdrawal amount at the current block.
      */
-    function feeForRedeemRequest(uint256) external view returns (uint256);
+    function redeemRequestFee(uint256) external view returns (uint256);
 
     /**
      * @dev Submits a withdrawal request, incurring a fee.
