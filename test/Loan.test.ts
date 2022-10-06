@@ -1,7 +1,8 @@
 import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { DEFAULT_POOL_SETTINGS } from "./support/pool";
+import { DEFAULT_POOL_SETTINGS, activatePool } from "./support/pool";
+import { deployMockERC20 } from "./support/erc20";
 
 describe("Loan", () => {
   const SEVEN_DAYS = 6 * 60 * 60 * 24;
@@ -11,9 +12,9 @@ describe("Loan", () => {
     const [operator, poolManager, borrower, lender, other] =
       await ethers.getSigners();
 
-    const LiquidityAsset = await ethers.getContractFactory("MockERC20");
-    const liquidityAsset = await LiquidityAsset.deploy("Test Coin", "TC");
-    await liquidityAsset.deployed();
+    // deploy mock liquidity
+    const { mockERC20 } = await deployMockERC20();
+    const liquidityAsset = mockERC20;
 
     // Deploy the Service Configuration contract
     const ServiceConfiguration = await ethers.getContractFactory(
@@ -46,6 +47,8 @@ describe("Loan", () => {
     });
     const loanFactory = await LoanFactory.deploy(serviceConfiguration.address);
     await loanFactory.deployed();
+
+    await serviceConfiguration.setLoanFactory(loanFactory.address, true);
 
     // Create a pool
     const tx1 = await poolFactory
@@ -124,6 +127,7 @@ describe("Loan", () => {
     return {
       pool,
       loan,
+      loanFactory,
       operator,
       poolManager,
       borrower,
@@ -136,16 +140,18 @@ describe("Loan", () => {
 
   describe("after initialization", () => {
     it("is initialized!", async () => {
-      const { loan, pool, borrower } = await loadFixture(deployFixture);
+      const { loan, pool, borrower, loanFactory } = await loadFixture(
+        deployFixture
+      );
       expect(await loan.state()).to.equal(0);
       expect(await loan.borrower()).to.equal(borrower.address);
       expect(await loan.pool()).to.equal(pool.address);
-
       expect(await loan.duration()).to.equal(180); // 6 month duration
       expect(await loan.paymentPeriod()).to.equal(30); // 30 day payments
       expect(await loan.loanType()).to.equal(0); // fixed
       expect(await loan.apr()).to.equal(500); // apr 5.00%
       expect(await loan.principal()).to.equal(500_000); // $500,000
+      expect(await loan.factory()).to.equal(loanFactory.address);
     });
   });
 
@@ -445,6 +451,48 @@ describe("Loan", () => {
         borrower.address,
         0
       );
+    });
+  });
+
+  describe("markDefaulted", () => {
+    it("reverts if not called by pool", async () => {
+      const { loan, other } = await loadFixture(deployFixture);
+
+      await expect(loan.connect(other).markDefaulted()).to.be.revertedWith(
+        "Loan: caller is not pool"
+      );
+    });
+
+    it("transitions state only if defaulted while in a Funded state", async () => {
+      const fixture = await loadFixture(deployFixture);
+      const { borrower, collateralAsset, poolManager } = fixture;
+      const loan = fixture.loan.connect(borrower);
+      const pool = fixture.pool.connect(poolManager);
+
+      // Check Loan is in requested state; defaults should revert
+      expect(await loan.state()).to.equal(0);
+      await expect(pool.defaultLoan(loan.address)).to.be.revertedWith(
+        "Loan: FunctionInvalidAtThisILoanLifeCycleState"
+      );
+
+      // Loan is collateralized; defaults should still revert
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await loan.postFungibleCollateral(collateralAsset.address, 100);
+      expect(await loan.state()).to.equal(1);
+      await expect(pool.defaultLoan(loan.address)).to.be.revertedWith(
+        "Loan: FunctionInvalidAtThisILoanLifeCycleState"
+      );
+
+      // Loan is funded
+      await pool.fundLoan(loan.address);
+      expect(await loan.state()).to.equal(4);
+
+      // Default should proceed
+      await expect(pool.defaultLoan(loan.address)).to.emit(
+        loan,
+        "LifeCycleStateTransition"
+      );
+      expect(await loan.state()).to.equal(3);
     });
   });
 

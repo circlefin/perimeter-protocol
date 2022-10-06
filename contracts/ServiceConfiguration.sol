@@ -22,6 +22,11 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     mapping(address => bool) public isLiquidityAsset;
 
     /**
+     * @dev Holds a reference to valid LoanFactories
+     */
+    mapping(address => bool) public isLoanFactory;
+
+    /**
      * @dev Emitted when an address is changed.
      */
     event AddressSet(bytes32 which, address addr);
@@ -35,6 +40,11 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
      * @dev Emitted when the protocol is paused.
      */
     event ProtocolPaused(bool paused);
+
+    /**
+     * @dev Emitted when a loan factory is set
+     */
+    event LoanFactorySet(address indexed factory, bool isValid);
 
     /**
      * @dev Constructor for the contract, which sets up the default roles and
@@ -77,5 +87,17 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
      */
     function isOperator(address addr) external view returns (bool) {
         return hasRole(OPERATOR_ROLE, addr);
+    }
+
+    /**
+     * @inheritdoc IServiceConfiguration
+     */
+    function setLoanFactory(address addr, bool isValid)
+        external
+        override
+        onlyOperator
+    {
+        isLoanFactory[addr] = isValid;
+        emit LoanFactorySet(addr, isValid);
     }
 }

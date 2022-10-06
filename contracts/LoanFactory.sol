@@ -14,6 +14,11 @@ contract LoanFactory {
     IServiceConfiguration private _serviceConfiguration;
 
     /**
+     * @dev Mapping of created loans
+     */
+    mapping(address => bool) private _isLoan;
+
+    /**
      * @dev Emitted when a Loan is created.
      */
     event LoanCreated(address indexed addr);
@@ -43,6 +48,7 @@ contract LoanFactory {
         );
         Loan loan = new Loan(
             _serviceConfiguration,
+            address(this),
             borrower,
             pool,
             duration,
@@ -55,6 +61,14 @@ contract LoanFactory {
         );
         address addr = address(loan);
         emit LoanCreated(addr);
+        _isLoan[addr] = true;
         return addr;
+    }
+
+    /**
+     * @dev Checks whether the address corresponds to a created loan for this factory
+     */
+    function isLoan(address loan) public view returns (bool) {
+        return _isLoan[loan];
     }
 }

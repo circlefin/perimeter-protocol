@@ -14,6 +14,7 @@ import "./FundingVault.sol";
  */
 contract Loan is ILoan {
     IServiceConfiguration private immutable _serviceConfiguration;
+    address private immutable _factory;
     ILoanLifeCycleState private _state = ILoanLifeCycleState.Requested;
     address private immutable _borrower;
     address private immutable _pool;
@@ -78,6 +79,7 @@ contract Loan is ILoan {
 
     constructor(
         IServiceConfiguration serviceConfiguration,
+        address factory,
         address borrower,
         address pool,
         uint256 duration_,
@@ -89,6 +91,7 @@ contract Loan is ILoan {
         uint256 dropDeadTimestamp
     ) {
         _serviceConfiguration = serviceConfiguration;
+        _factory = factory;
         _borrower = borrower;
         _pool = pool;
         _collateralVault = new CollateralVault(address(this));
@@ -231,6 +234,21 @@ contract Loan is ILoan {
         return amount;
     }
 
+    /**
+     * @inheritdoc ILoan
+     */
+    function markDefaulted()
+        external
+        override
+        onlyPool
+        atState(ILoanLifeCycleState.Funded)
+        returns (ILoanLifeCycleState)
+    {
+        _state = ILoanLifeCycleState.Defaulted;
+        emit LifeCycleStateTransition(_state);
+        return _state;
+    }
+
     function state() external view returns (ILoanLifeCycleState) {
         return _state;
     }
@@ -241,6 +259,10 @@ contract Loan is ILoan {
 
     function pool() external view returns (address) {
         return _pool;
+    }
+
+    function factory() external view returns (address) {
+        return _factory;
     }
 
     function dropDeadTimestamp() external view returns (uint256) {

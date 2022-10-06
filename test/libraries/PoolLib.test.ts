@@ -1,6 +1,8 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { deployLoan } from "../support/loan";
+import { deployMockERC20 } from "../support/erc20";
 
 describe("PoolLib", () => {
   const FIRST_LOSS_AMOUNT = 100;
@@ -23,9 +25,7 @@ describe("PoolLib", () => {
     const poolLibWrapper = await PoolLibWrapper.deploy();
     await poolLibWrapper.deployed();
 
-    const LiquidityAsset = await ethers.getContractFactory("MockERC20");
-    const liquidityAsset = await LiquidityAsset.deploy("Test Coin", "TC");
-    await liquidityAsset.deployed();
+    const liquidityAsset = (await deployMockERC20()).mockERC20;
 
     await liquidityAsset.mint(caller.address, FIRST_LOSS_AMOUNT);
     await liquidityAsset
@@ -39,12 +39,21 @@ describe("PoolLib", () => {
     );
     await firstLossVault.deployed();
 
+    const { loan, loanFactory, serviceConfiguration } = await deployLoan(
+      poolLibWrapper.address,
+      otherAccount.address,
+      liquidityAsset.address
+    );
+
     return {
       poolLibWrapper,
       caller,
       firstLossVault,
       liquidityAsset,
-      otherAccount
+      otherAccount,
+      loanFactory,
+      loan,
+      serviceConfiguration
     };
   }
 
@@ -386,6 +395,88 @@ describe("PoolLib", () => {
       expect(
         await poolLibWrapper.calculateAssetsToShares(500, 500, 400)
       ).to.equal(625);
+    });
+  });
+
+  describe("isPoolLoan()", async () => {
+    it("reverts if not passed an ILoan", async () => {
+      const { poolLibWrapper, serviceConfiguration, caller } =
+        await loadFixture(deployFixture);
+
+      await expect(
+        poolLibWrapper.isPoolLoan(
+          caller.address,
+          serviceConfiguration.address,
+          poolLibWrapper.address
+        )
+      ).to.be.reverted;
+    });
+
+    it("reverts if not passed a service configuration", async () => {
+      const { poolLibWrapper, loan } = await loadFixture(deployFixture);
+
+      await expect(
+        poolLibWrapper.isPoolLoan(
+          loan.address,
+          loan.address,
+          poolLibWrapper.address
+        )
+      ).to.be.reverted;
+    });
+
+    it("returns true if conditions are met", async () => {
+      const { poolLibWrapper, loan, serviceConfiguration } = await loadFixture(
+        deployFixture
+      );
+
+      expect(
+        await poolLibWrapper.isPoolLoan(
+          loan.address,
+          serviceConfiguration.address,
+          poolLibWrapper.address
+        )
+      ).to.equal(true);
+    });
+  });
+
+  describe("isPoolLoan()", async () => {
+    it("reverts if not passed an ILoan", async () => {
+      const { poolLibWrapper, serviceConfiguration, caller } =
+        await loadFixture(deployFixture);
+
+      await expect(
+        poolLibWrapper.isPoolLoan(
+          caller.address,
+          serviceConfiguration.address,
+          poolLibWrapper.address
+        )
+      ).to.be.reverted;
+    });
+
+    it("reverts if not passed a service configuration", async () => {
+      const { poolLibWrapper, loan } = await loadFixture(deployFixture);
+
+      await expect(
+        poolLibWrapper.isPoolLoan(
+          loan.address,
+          loan.address,
+          poolLibWrapper.address
+        )
+      ).to.be.reverted;
+    });
+
+    it("returns true if conditions are met", async () => {
+      const { poolLibWrapper, loan, serviceConfiguration } = await loadFixture(
+        deployFixture
+      );
+
+      expect(
+        await poolLibWrapper.isPoolLoan(
+          loan.address,
+          serviceConfiguration.address,
+          poolLibWrapper.address
+        )
+      ).to.equal(true);
     });
   });
 });

@@ -44,10 +44,20 @@ contract PermissionedPool is Pool {
     constructor(
         address liquidityAsset,
         address poolManager,
+        address serviceConfiguration,
         IPoolConfigurableSettings memory poolSettings,
         string memory tokenName,
         string memory tokenSymbol
-    ) Pool(liquidityAsset, poolManager, poolSettings, tokenName, tokenSymbol) {
+    )
+        Pool(
+            liquidityAsset,
+            poolManager,
+            serviceConfiguration,
+            poolSettings,
+            tokenName,
+            tokenSymbol
+        )
+    {
         _poolAccessControl = new PoolAccessControl(address(this));
     }
 

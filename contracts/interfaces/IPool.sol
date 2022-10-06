@@ -142,8 +142,8 @@ interface IPool is IERC4626 {
     function fundLoan(address) external;
 
     /**
-     * @dev Called by the pool manager, marks a loan as in default, updating pool accounting and allowing loan
-     * collateral to be claimed.
+     * @dev Called by the pool manager, this marks a loan as in default, triggering liquiditation
+     * proceedings and updating pool accounting.
      */
-    function markLoanAsInDefault(address) external;
+    function defaultLoan(address) external;
 }
