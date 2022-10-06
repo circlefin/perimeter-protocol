@@ -5,6 +5,7 @@ import "./interfaces/ILoan.sol";
 import "./interfaces/IServiceConfiguration.sol";
 import "./libraries/LoanLib.sol";
 import "./CollateralVault.sol";
+import "./FundingVault.sol";
 
 /**
  * @title Loan
@@ -17,6 +18,7 @@ contract Loan is ILoan {
     address private immutable _borrower;
     address private immutable _pool;
     CollateralVault public immutable _collateralVault;
+    FundingVault public immutable fundingVault;
     address[] private _fungibleCollateral;
     ILoanNonFungibleCollateral[] private _nonFungibleCollateral;
     uint256 private immutable _dropDeadTimestamp;
@@ -90,6 +92,7 @@ contract Loan is ILoan {
         _borrower = borrower;
         _pool = pool;
         _collateralVault = new CollateralVault(address(this));
+        fundingVault = new FundingVault(address(this), liquidityAsset_);
         _dropDeadTimestamp = dropDeadTimestamp;
         createdAt = block.timestamp;
         duration = duration_;
@@ -207,9 +210,25 @@ contract Loan is ILoan {
         atState(ILoanLifeCycleState.Collateralized)
         returns (ILoanLifeCycleState)
     {
-        // TODO: fund the loan
-        _state = ILoanLifeCycleState.Funded;
+        _state = LoanLib.fundLoan(liquidityAsset, fundingVault, principal);
         return _state;
+    }
+
+    /**
+     * @dev Drawdown the Loan
+     */
+    function drawdown()
+        external
+        onlyBorrower
+        atState(ILoanLifeCycleState.Funded)
+        returns (uint256)
+    {
+        // Fixed term loans require the borrower to drawdown the full amount
+        uint256 amount = IERC20(liquidityAsset).balanceOf(
+            address(fundingVault)
+        );
+        LoanLib.drawdown(fundingVault, amount, msg.sender);
+        return amount;
     }
 
     function state() external view returns (ILoanLifeCycleState) {

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
+import "../FundingVault.sol";
+
 /**
  * @title The protocol Loan
  */
@@ -73,6 +75,8 @@ interface ILoan {
 
     function fund() external returns (ILoanLifeCycleState);
 
+    function drawdown() external returns (uint256);
+
     function createdAt() external returns (uint256);
 
     function duration() external returns (uint256);
@@ -84,4 +88,6 @@ interface ILoan {
     function apr() external returns (uint256);
 
     function principal() external returns (uint256);
+
+    function fundingVault() external returns (FundingVault);
 }

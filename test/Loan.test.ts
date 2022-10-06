@@ -1,14 +1,19 @@
 import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { DEFAULT_POOL_SETTINGS } from "./support/pool";
 
 describe("Loan", () => {
   const SEVEN_DAYS = 6 * 60 * 60 * 24;
-  const MOCK_LIQUIDITY_ADDRESS = "0x0000000000000000000000000000000000000001";
 
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
-    const [operator, borrower, other] = await ethers.getSigners();
+    const [operator, poolManager, borrower, lender, other] =
+      await ethers.getSigners();
+
+    const LiquidityAsset = await ethers.getContractFactory("MockERC20");
+    const liquidityAsset = await LiquidityAsset.deploy("Test Coin", "TC");
+    await liquidityAsset.deployed();
 
     // Deploy the Service Configuration contract
     const ServiceConfiguration = await ethers.getContractFactory(
@@ -18,7 +23,7 @@ describe("Loan", () => {
     const serviceConfiguration = await ServiceConfiguration.deploy();
     await serviceConfiguration.deployed();
 
-    await serviceConfiguration.setLiquidityAsset(MOCK_LIQUIDITY_ADDRESS, true);
+    await serviceConfiguration.setLiquidityAsset(liquidityAsset.address, true);
 
     const PoolLib = await ethers.getContractFactory("PoolLib");
     const poolLib = await PoolLib.deploy();
@@ -43,13 +48,15 @@ describe("Loan", () => {
     await loanFactory.deployed();
 
     // Create a pool
-    const tx1 = await poolFactory.createPool(
-      MOCK_LIQUIDITY_ADDRESS,
-      0,
-      0,
-      0,
-      1
-    );
+    const tx1 = await poolFactory
+      .connect(poolManager)
+      .createPool(
+        liquidityAsset.address,
+        DEFAULT_POOL_SETTINGS.maxCapacity,
+        DEFAULT_POOL_SETTINGS.endDate,
+        DEFAULT_POOL_SETTINGS.withdrawalFee,
+        DEFAULT_POOL_SETTINGS.withdrawRequestPeriodDuration
+      );
     const tx1Receipt = await tx1.wait();
 
     // Extract its address from the PoolCreated event
@@ -62,6 +69,21 @@ describe("Loan", () => {
     });
     const pool = Pool.attach(poolAddress);
 
+    const { firstLossInitialMinimum } = await pool.settings();
+
+    await pool
+      .connect(poolManager)
+      .approve(pool.address, firstLossInitialMinimum);
+
+    await pool
+      .connect(poolManager)
+      .depositFirstLoss(firstLossInitialMinimum, poolManager.address);
+
+    const depositAmount = 1_000_000;
+    await liquidityAsset.mint(lender.address, 10_000_000);
+    await liquidityAsset.connect(lender).approve(pool.address, depositAmount);
+    await pool.connect(lender).deposit(depositAmount, lender.address);
+
     // Create the Loan
     const tx2 = await loanFactory.createLoan(
       borrower.address,
@@ -70,8 +92,8 @@ describe("Loan", () => {
       30,
       0,
       500,
-      MOCK_LIQUIDITY_ADDRESS,
-      1_000_000000,
+      liquidityAsset.address,
+      500_000,
       Math.floor(Date.now() / 1000) + SEVEN_DAYS
     );
     const tx2Receipt = await tx2.wait();
@@ -103,8 +125,10 @@ describe("Loan", () => {
       pool,
       loan,
       operator,
+      poolManager,
       borrower,
       collateralAsset,
+      liquidityAsset,
       nftAsset,
       other
     };
@@ -121,7 +145,7 @@ describe("Loan", () => {
       expect(await loan.paymentPeriod()).to.equal(30); // 30 day payments
       expect(await loan.loanType()).to.equal(0); // fixed
       expect(await loan.apr()).to.equal(500); // apr 5.00%
-      expect(await loan.principal()).to.equal(1_000_000000); // $1,6000
+      expect(await loan.principal()).to.equal(500_000); // $500,000
     });
   });
 
@@ -336,7 +360,7 @@ describe("Loan", () => {
     it("transitions Loan to Funded state", async () => {
       const fixture = await loadFixture(deployFixture);
       let { loan } = fixture;
-      const { borrower, collateralAsset, pool } = fixture;
+      const { borrower, collateralAsset, pool, poolManager } = fixture;
 
       // Connect as borrower
       loan = loan.connect(borrower);
@@ -346,17 +370,18 @@ describe("Loan", () => {
       await expect(loan.postFungibleCollateral(collateralAsset.address, 100))
         .not.to.be.reverted;
       expect(await loan.state()).to.equal(1);
-      await expect(pool.fundLoan(loan.address)).not.to.be.reverted;
+      await expect(pool.connect(poolManager).fundLoan(loan.address)).not.to.be
+        .reverted;
       expect(await loan.state()).to.equal(4);
     });
 
     it("reverts if not in the collateralized state", async () => {
-      const { pool, loan } = await loadFixture(deployFixture);
+      const { pool, poolManager, loan } = await loadFixture(deployFixture);
 
       expect(await loan.state()).to.equal(0);
-      await expect(pool.fundLoan(loan.address)).to.be.revertedWith(
-        "Loan: FunctionInvalidAtThisILoanLifeCycleState"
-      );
+      await expect(
+        pool.connect(poolManager).fundLoan(loan.address)
+      ).to.be.revertedWith("Loan: FunctionInvalidAtThisILoanLifeCycleState");
       expect(await loan.state()).to.equal(0);
     });
 
@@ -376,6 +401,49 @@ describe("Loan", () => {
 
       await expect(loan.connect(other).fund()).to.be.revertedWith(
         "Loan: caller is not pool"
+      );
+    });
+  });
+
+  describe("drawdown", () => {
+    it("transfers funds to the borrower", async () => {
+      const fixture = await loadFixture(deployFixture);
+      const {
+        borrower,
+        collateralAsset,
+        liquidityAsset,
+        loan,
+        pool,
+        poolManager
+      } = fixture;
+
+      // Setup and fund loan
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await expect(
+        loan
+          .connect(borrower)
+          .postFungibleCollateral(collateralAsset.address, 100)
+      ).not.to.be.reverted;
+      await expect(pool.connect(poolManager).fundLoan(loan.address)).not.to.be
+        .reverted;
+      expect(await loan.state()).to.equal(4);
+
+      // Draw down the funds
+      const drawDownTx = loan.connect(borrower).drawdown();
+      await expect(drawDownTx).not.to.be.reverted;
+      await expect(drawDownTx).to.changeTokenBalance(
+        liquidityAsset,
+        borrower.address,
+        500_000
+      );
+
+      // Try again
+      const drawDownTx2 = loan.connect(borrower).drawdown();
+      await expect(drawDownTx2).not.to.be.reverted;
+      await expect(drawDownTx2).to.changeTokenBalance(
+        liquidityAsset,
+        borrower.address,
+        0
       );
     });
   });
