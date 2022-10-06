@@ -13,7 +13,7 @@ contract FundingVault {
     using SafeERC20 for IERC20;
 
     address private immutable _loan;
-    IERC20 private immutable _asset;
+    IERC20 public immutable asset;
 
     /**
      * @dev Modifier restricting access to pool
@@ -26,11 +26,11 @@ contract FundingVault {
     /**
      * @dev Constructor for the vault
      * @param loan address of loan
-     * @param asset asset held by vault
+     * @param asset_ asset held by vault
      */
-    constructor(address loan, address asset) {
+    constructor(address loan, address asset_) {
         _loan = loan;
-        _asset = IERC20(asset);
+        asset = IERC20(asset_);
     }
 
     /**
@@ -38,6 +38,6 @@ contract FundingVault {
      */
     function withdraw(uint256 amount, address receiver) external onlyLoan {
         require(receiver != address(0), "FundingVault: 0 address");
-        _asset.safeTransfer(receiver, amount);
+        asset.safeTransfer(receiver, amount);
     }
 }

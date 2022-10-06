@@ -27,6 +27,16 @@ struct ILoanNonFungibleCollateral {
 
 interface ILoan {
     /**
+     * @dev Emitted when loan is funded.
+     */
+    event LoanFunded(address asset, uint256 amount);
+
+    /**
+     * @dev Emitted when the loan is drawn down.
+     */
+    event LoanDrawnDown(address asset, uint256 amount);
+
+    /**
      * @dev Emitted when collateral is posted to the loan.
      */
     event PostedCollateral(address asset, uint256 amount);

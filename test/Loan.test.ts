@@ -360,7 +360,8 @@ describe("Loan", () => {
     it("transitions Loan to Funded state", async () => {
       const fixture = await loadFixture(deployFixture);
       let { loan } = fixture;
-      const { borrower, collateralAsset, pool, poolManager } = fixture;
+      const { borrower, collateralAsset, liquidityAsset, pool, poolManager } =
+        fixture;
 
       // Connect as borrower
       loan = loan.connect(borrower);
@@ -370,8 +371,22 @@ describe("Loan", () => {
       await expect(loan.postFungibleCollateral(collateralAsset.address, 100))
         .not.to.be.reverted;
       expect(await loan.state()).to.equal(1);
-      await expect(pool.connect(poolManager).fundLoan(loan.address)).not.to.be
-        .reverted;
+      const fundTx = pool.connect(poolManager).fundLoan(loan.address);
+      await expect(fundTx).not.to.be.reverted;
+      await expect(fundTx)
+        .to.emit(loan, "LoanFunded")
+        .withArgs(loan.liquidityAsset, 500_000);
+      await expect(fundTx).to.changeTokenBalance(
+        liquidityAsset,
+        await loan.fundingVault(),
+        500_000
+      );
+      await expect(fundTx).to.changeTokenBalance(
+        liquidityAsset,
+        pool,
+        -500_000
+      );
+
       expect(await loan.state()).to.equal(4);
     });
 
@@ -436,6 +451,14 @@ describe("Loan", () => {
         borrower.address,
         500_000
       );
+      await expect(drawDownTx).to.changeTokenBalance(
+        liquidityAsset,
+        await loan.fundingVault(),
+        -500_000
+      );
+      await expect(drawDownTx)
+        .to.emit(loan, "LoanDrawnDown")
+        .withArgs(loan.liquidityAsset, 500_000);
 
       // Try again
       const drawDownTx2 = loan.connect(borrower).drawdown();
