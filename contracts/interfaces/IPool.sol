@@ -72,6 +72,11 @@ interface IPool is IERC4626 {
     event WithdrawRequested(address indexed lender, uint256 assets);
 
     /**
+     * @dev Emitted when a redeem fee is paid.
+     */
+    event RequestFeePaid(address indexed lender, uint256 feeShares);
+
+    /**
      * @dev Emitted when a redeem is requested.
      */
     event RedeemRequested(address indexed lender, uint256 shares);

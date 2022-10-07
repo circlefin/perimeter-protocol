@@ -241,6 +241,7 @@ library PoolLib {
 
         IERC20(asset).safeTransferFrom(msg.sender, vault, assets);
         mint(sharesReceiver, shares);
+
         emit Deposit(msg.sender, sharesReceiver, assets, shares);
         return shares;
     }
@@ -348,6 +349,9 @@ library PoolLib {
         return shares.mul(requestFeeBps).div(10000);
     }
 
+    /**
+     * @dev Calculates the Maximum amount of shares that can be requested
+     */
     function calculateMaxRedeemRequest(
         IPoolWithdrawState memory state,
         uint256 shareBalance,

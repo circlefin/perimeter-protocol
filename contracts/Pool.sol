@@ -282,24 +282,26 @@ contract Pool is IPool, ERC20 {
      * @dev The current withdraw period
      */
     function withdrawPeriod() public view returns (uint256 period) {
-        return
-            PoolLib.calculateCurrentWithdrawPeriod(
-                block.timestamp,
-                poolActivatedAt,
-                _poolSettings.withdrawRequestPeriodDuration
-            );
+        period = PoolLib.calculateCurrentWithdrawPeriod(
+            block.timestamp,
+            poolActivatedAt,
+            _poolSettings.withdrawRequestPeriodDuration
+        );
     }
 
     /**
      * @dev Returns the redeem fee for a given withdrawal amount at the current block.
      * The fee is the number of shares that will be charged.
      */
-    function requestFee(uint256 sharesOrAssets) public view returns (uint256) {
-        return
-            PoolLib.calculateRequestFee(
-                sharesOrAssets,
-                _poolSettings.requestFeeBps
-            );
+    function requestFee(uint256 sharesOrAssets)
+        public
+        view
+        returns (uint256 feeShares)
+    {
+        feeShares = PoolLib.calculateRequestFee(
+            sharesOrAssets,
+            _poolSettings.requestFeeBps
+        );
     }
 
     /**
@@ -314,12 +316,11 @@ contract Pool is IPool, ERC20 {
         view
         returns (uint256 maxShares)
     {
-        return
-            PoolLib.calculateMaxRedeemRequest(
-                _withdrawState[owner],
-                balanceOf(owner),
-                _poolSettings.requestFeeBps
-            );
+        maxShares = PoolLib.calculateMaxRedeemRequest(
+            _withdrawState[owner],
+            balanceOf(owner),
+            _poolSettings.requestFeeBps
+        );
     }
 
     /**
@@ -339,7 +340,7 @@ contract Pool is IPool, ERC20 {
             _poolSettings.requestFeeBps
         );
 
-        return convertToAssets(shares - shareFees);
+        assets = convertToAssets(shares - shareFees);
     }
 
     /**
@@ -355,30 +356,9 @@ contract Pool is IPool, ERC20 {
         onlyLender
         returns (uint256 assets)
     {
-        require(
-            maxRedeemRequest(msg.sender) >= shares,
-            "Pool: InsufficientBalance"
-        );
-
-        uint256 nextPeriod = withdrawPeriod() + 1;
-
-        // Update the requested amount from the user
-        _withdrawState[msg.sender] = PoolLib.updateWithdrawState(
-            _withdrawState[msg.sender],
-            nextPeriod,
-            shares
-        );
-
-        // Update the global amount
-        _globalWithdrawState = PoolLib.updateWithdrawState(
-            _globalWithdrawState,
-            nextPeriod,
-            shares
-        );
-
+        assets = convertToAssets(shares);
+        _requestRedeem(msg.sender, shares);
         emit RedeemRequested(msg.sender, shares);
-
-        return convertToAssets(shares);
     }
 
     /**
@@ -393,7 +373,7 @@ contract Pool is IPool, ERC20 {
         view
         returns (uint256 maxAssets)
     {
-        return convertToAssets(maxRedeemRequest(owner));
+        maxAssets = convertToAssets(maxRedeemRequest(owner));
     }
 
     /**
@@ -413,7 +393,7 @@ contract Pool is IPool, ERC20 {
             _poolSettings.requestFeeBps
         );
 
-        return convertToShares(assets + assetFees);
+        shares = convertToShares(assets + assetFees);
     }
 
     /**
@@ -429,29 +409,8 @@ contract Pool is IPool, ERC20 {
         onlyLender
         returns (uint256 shares)
     {
-        require(
-            maxWithdrawRequest(msg.sender) >= assets,
-            "Pool: InsufficientBalance"
-        );
-
-        uint256 nextPeriod = withdrawPeriod() + 1;
-
         shares = convertToShares(assets);
-
-        // Update the requested amount from the user
-        _withdrawState[msg.sender] = PoolLib.updateWithdrawState(
-            _withdrawState[msg.sender],
-            nextPeriod,
-            shares
-        );
-
-        // Update the global amount
-        _globalWithdrawState = PoolLib.updateWithdrawState(
-            _globalWithdrawState,
-            nextPeriod,
-            shares
-        );
-
+        _requestRedeem(msg.sender, shares);
         emit WithdrawRequested(msg.sender, assets);
     }
 
@@ -464,7 +423,7 @@ contract Pool is IPool, ERC20 {
         view
         returns (uint256 shares)
     {
-        return _withdrawState[owner].eligibleShares;
+        shares = _withdrawState[owner].eligibleShares;
     }
 
     /**
@@ -472,7 +431,7 @@ contract Pool is IPool, ERC20 {
      * the owner in the current block.
      */
     function totalEligibleBalance() external view returns (uint256 shares) {
-        return _globalWithdrawState.eligibleShares;
+        shares = _globalWithdrawState.eligibleShares;
     }
 
     /**
@@ -484,7 +443,7 @@ contract Pool is IPool, ERC20 {
         view
         returns (uint256 shares)
     {
-        return _withdrawState[owner].requestedShares;
+        shares = _withdrawState[owner].requestedShares;
     }
 
     /**
@@ -492,7 +451,37 @@ contract Pool is IPool, ERC20 {
      * the owner in the current block.
      */
     function totalRequestedBalance() external view returns (uint256 shares) {
-        return _globalWithdrawState.requestedShares;
+        shares = _globalWithdrawState.requestedShares;
+    }
+
+    /**
+     * @dev Performs a redeem request for the owner, including paying any fees.
+     */
+    function _requestRedeem(address owner, uint256 shares) internal {
+        require(maxRedeemRequest(owner) >= shares, "Pool: InsufficientBalance");
+
+        uint256 nextPeriod = withdrawPeriod() + 1;
+        uint256 feeShares = PoolLib.calculateRequestFee(
+            shares,
+            _poolSettings.requestFeeBps
+        );
+
+        // Pay the Fee
+        _burn(owner, feeShares);
+
+        // Update the requested amount from the user
+        _withdrawState[owner] = PoolLib.updateWithdrawState(
+            _withdrawState[owner],
+            nextPeriod,
+            shares
+        );
+
+        // Update the global amount
+        _globalWithdrawState = PoolLib.updateWithdrawState(
+            _globalWithdrawState,
+            nextPeriod,
+            shares
+        );
     }
 
     /**
@@ -598,6 +587,9 @@ contract Pool is IPool, ERC20 {
             maxDeposit(receiver),
             _mint
         );
+
+        // Approve the contract for infinite tokens.
+        approve(address(this), type(uint128).max);
     }
 
     /**

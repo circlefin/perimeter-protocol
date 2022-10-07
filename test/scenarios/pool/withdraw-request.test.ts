@@ -8,7 +8,8 @@ describe("Withdraw Requests", () => {
     const [poolManager, otherAccount] = await ethers.getSigners();
     const { pool, liquidityAsset } = await deployPool(poolManager);
 
-    await pool.setRequestFee(1000); // 10%
+    // Set the request fee to 10%
+    await pool.setRequestFee(1000);
 
     // activate the pool
     await activatePool(pool, poolManager, liquidityAsset);
@@ -32,22 +33,25 @@ describe("Withdraw Requests", () => {
     expect(await pool.maxWithdrawRequest(otherAccount.address)).to.equal(90);
 
     // Request a withdraw for Period n + 1 (in this case, 1)
-    // TODO: Handle fees here
+    // 10% fee is 5 shares
     expect(await pool.connect(otherAccount).requestWithdraw(50))
       .to.emit(pool.address, "WithdrawRequested")
       .withArgs(otherAccount.address, 50);
 
-    // Verify the total for this period is set
+    // Ensure a fee was paid (10% of 50 = 5 tokens)
+    expect(await pool.totalSupply()).to.equal(95);
+    expect(await pool.totalAssets()).to.equal(100); // unchanged
+    expect(await pool.balanceOf(otherAccount.address)).to.equal(95);
+
+    // Verify the withdrawal state is updated
+    expect(await pool.requestedBalanceOf(otherAccount.address)).to.equal(50);
+    expect(await pool.eligibleBalanceOf(otherAccount.address)).to.equal(0);
     expect(await pool.totalRequestedBalance()).to.equal(50);
     expect(await pool.totalEligibleBalance()).to.equal(0);
 
-    // Expect the lender can withdraw
-    expect(await pool.maxRedeemRequest(otherAccount.address)).to.equal(45);
-    expect(await pool.maxWithdrawRequest(otherAccount.address)).to.equal(45);
-
-    // Verify the per-lender amount is set
-    expect(await pool.requestedBalanceOf(otherAccount.address)).to.equal(50);
-    expect(await pool.eligibleBalanceOf(otherAccount.address)).to.equal(0);
+    // Expect the lender maxWithdraw amounts have decreased
+    expect(await pool.maxRedeemRequest(otherAccount.address)).to.equal(41);
+    expect(await pool.maxWithdrawRequest(otherAccount.address)).to.equal(43);
 
     // Skip ahead to the next window
     await time.increase(withdrawRequestPeriodDuration);

@@ -84,7 +84,7 @@ export async function depositToPool(
   asset: MockERC20,
   amount: any
 ) {
-  // Provide capital to lender
+  // Provide fake USDC capital to lender
   await asset.mint(depositorAccount.address, amount);
 
   // Approve the deposit
