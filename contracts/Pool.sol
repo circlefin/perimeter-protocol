@@ -275,26 +275,16 @@ contract Pool is IPool, ERC20 {
     }
 
     /*//////////////////////////////////////////////////////////////
-                    Withdrawal Request Methods
+                    Withdraw/Redeem Request Methods
     //////////////////////////////////////////////////////////////*/
-
-    /**
-     * @dev The withdraw period that we're requesting for (aka nextWithdrawPeriod)
-     */
-    function requestPeriod() public view returns (uint256 period) {
-        return
-            PoolLib.currentRequestPeriod(
-                poolActivatedAt,
-                _poolSettings.withdrawRequestPeriodDuration
-            );
-    }
 
     /**
      * @dev The current withdraw period
      */
     function withdrawPeriod() public view returns (uint256 period) {
         return
-            PoolLib.currentWithdrawPeriod(
+            PoolLib.calculateCurrentWithdrawPeriod(
+                block.timestamp,
                 poolActivatedAt,
                 _poolSettings.withdrawRequestPeriodDuration
             );
@@ -325,7 +315,7 @@ contract Pool is IPool, ERC20 {
         returns (uint256 maxShares)
     {
         return
-            PoolLib.maxRedeemRequest(
+            PoolLib.calculateMaxRedeemRequest(
                 _withdrawState[owner],
                 balanceOf(owner),
                 _poolSettings.requestFeeBps
@@ -348,6 +338,7 @@ contract Pool is IPool, ERC20 {
             shares,
             _poolSettings.requestFeeBps
         );
+
         return convertToAssets(shares - shareFees);
     }
 
@@ -369,19 +360,19 @@ contract Pool is IPool, ERC20 {
             "Pool: InsufficientBalance"
         );
 
-        uint256 period = requestPeriod();
+        uint256 nextPeriod = withdrawPeriod() + 1;
 
         // Update the requested amount from the user
         _withdrawState[msg.sender] = PoolLib.updateWithdrawState(
             _withdrawState[msg.sender],
-            period,
+            nextPeriod,
             shares
         );
 
         // Update the global amount
         _globalWithdrawState = PoolLib.updateWithdrawState(
             _globalWithdrawState,
-            period,
+            nextPeriod,
             shares
         );
 
@@ -443,21 +434,21 @@ contract Pool is IPool, ERC20 {
             "Pool: InsufficientBalance"
         );
 
-        uint256 period = requestPeriod();
+        uint256 nextPeriod = withdrawPeriod() + 1;
 
         shares = convertToShares(assets);
 
         // Update the requested amount from the user
         _withdrawState[msg.sender] = PoolLib.updateWithdrawState(
             _withdrawState[msg.sender],
-            period,
+            nextPeriod,
             shares
         );
 
         // Update the global amount
         _globalWithdrawState = PoolLib.updateWithdrawState(
             _globalWithdrawState,
-            period,
+            nextPeriod,
             shares
         );
 

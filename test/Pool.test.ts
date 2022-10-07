@@ -418,11 +418,10 @@ describe("Pool", () => {
   });
 
   describe("Withdrawal Requests", () => {
-    describe("requestPeriod(), withdrawPeriod()", () => {
+    describe("withdrawPeriod()", () => {
       it("returns the first period when the pool is not yet initialized", async () => {
         const { pool } = await loadFixture(loadPoolFixture);
 
-        expect(await pool.requestPeriod()).to.equal(1);
         expect(await pool.withdrawPeriod()).to.equal(0);
       });
 
@@ -432,7 +431,6 @@ describe("Pool", () => {
         );
         await activatePool(pool, poolManager, liquidityAsset);
 
-        expect(await pool.requestPeriod()).to.equal(1);
         expect(await pool.withdrawPeriod()).to.equal(0);
       });
 
@@ -445,7 +443,6 @@ describe("Pool", () => {
         const { withdrawRequestPeriodDuration } = await pool.settings();
         await time.increase(withdrawRequestPeriodDuration);
 
-        expect(await pool.requestPeriod()).to.equal(2);
         expect(await pool.withdrawPeriod()).to.equal(1);
       });
     });
@@ -519,7 +516,7 @@ describe("Pool", () => {
         await activatePool(pool, poolManager, liquidityAsset);
 
         // TODO: Show a non 1:1 share value
-        expect(await pool.previewWithdrawRequest(27)).to.equal(27);
+        expect(await pool.previewWithdrawRequest(27)).to.equal(29);
       });
     });
 

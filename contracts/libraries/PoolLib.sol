@@ -291,29 +291,18 @@ library PoolLib {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev The current withdrawal period.
+     * @dev The current withdrawal period. Withdraw Requests made prior to this
+     * window are eligible to be included in the withdrawal flows.
      */
-    function currentWithdrawPeriod(
+    function calculateCurrentWithdrawPeriod(
+        uint256 currentTimestamp,
         uint256 activatedAt,
         uint256 withdrawalWindowDuration
-    ) public view returns (uint256) {
+    ) public pure returns (uint256) {
         if (activatedAt == 0) {
             return 0;
         }
-
-        return (block.timestamp - activatedAt) / withdrawalWindowDuration;
-    }
-
-    /**
-     * @dev The current withdrawal request period. Withdrawal requests made
-     * made now are able to be withdrawn in the withdrawal period that matches
-     * this value.
-     */
-    function currentRequestPeriod(
-        uint256 activatedAt,
-        uint256 withdrawalWindowDuration
-    ) public view returns (uint256) {
-        return currentWithdrawPeriod(activatedAt, withdrawalWindowDuration) + 1;
+        return (currentTimestamp - activatedAt) / withdrawalWindowDuration;
     }
 
     /**
@@ -322,26 +311,28 @@ library PoolLib {
      */
     function updateWithdrawState(
         IPoolWithdrawState memory state,
-        uint256 requestPeriod,
+        uint256 requestedPeriod,
         uint256 requestedShares
     ) public pure returns (IPoolWithdrawState memory) {
+        require(requestedPeriod > 0, "Pool: Invalid request period");
+
         // If the latest withdrawlState has not been updated for this
         // given request period, we need to move "requested" shares over
         // to be "eligible".
         //
         // TODO: This likely happens in the crank instead, because those
         // shares are not necessarily eligible yet.
-        if (state.latestPeriod > 0 && state.latestPeriod <= requestPeriod) {
+        if (state.lastUpdatedPeriod <= requestedPeriod) {
             state.eligibleShares = state.eligibleShares.add(
                 state.requestedShares
             );
             state.requestedShares = 0;
         }
 
-        // Increment the requested shares count, and ensure the "latestPeriod"
+        // Increment the requested shares count, and ensure the "lastUpdatedPeriod"
         // is set to the current request period.
         state.requestedShares = state.requestedShares.add(requestedShares);
-        state.latestPeriod = requestPeriod;
+        state.lastUpdatedPeriod = requestedPeriod;
 
         return state;
     }
@@ -357,7 +348,7 @@ library PoolLib {
         return shares.mul(requestFeeBps).div(10000);
     }
 
-    function maxRedeemRequest(
+    function calculateMaxRedeemRequest(
         IPoolWithdrawState memory state,
         uint256 shareBalance,
         uint256 requestFeeBps

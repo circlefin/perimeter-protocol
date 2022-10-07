@@ -24,13 +24,12 @@ describe("Withdraw Requests", () => {
 
     const { withdrawRequestPeriodDuration } = await pool.settings();
 
-    expect(await pool.requestPeriod()).to.equal(1);
     expect(await pool.withdrawPeriod()).to.equal(0);
 
-    // Expect the lender to be able to request the full balance
+    // Expect the lender to be able to request the full balance, minus fees
     // TODO: Update this to have a non 1:1 ratio!
-    expect(await pool.maxRedeemRequest(otherAccount.address)).to.equal(100);
-    expect(await pool.maxWithdrawRequest(otherAccount.address)).to.equal(100);
+    expect(await pool.maxRedeemRequest(otherAccount.address)).to.equal(90);
+    expect(await pool.maxWithdrawRequest(otherAccount.address)).to.equal(90);
 
     // Request a withdraw for Period n + 1 (in this case, 1)
     // TODO: Handle fees here
@@ -43,7 +42,8 @@ describe("Withdraw Requests", () => {
     expect(await pool.totalEligibleBalance()).to.equal(0);
 
     // Expect the lender can withdraw
-    expect(await pool.maxWithdrawRequest(otherAccount.address)).to.equal(50);
+    expect(await pool.maxRedeemRequest(otherAccount.address)).to.equal(45);
+    expect(await pool.maxWithdrawRequest(otherAccount.address)).to.equal(45);
 
     // Verify the per-lender amount is set
     expect(await pool.requestedBalanceOf(otherAccount.address)).to.equal(50);
@@ -53,7 +53,6 @@ describe("Withdraw Requests", () => {
     await time.increase(withdrawRequestPeriodDuration);
 
     // expect the request and withdraw periods to have advanced
-    expect(await pool.requestPeriod()).to.equal(2);
     expect(await pool.withdrawPeriod()).to.equal(1);
   });
 });

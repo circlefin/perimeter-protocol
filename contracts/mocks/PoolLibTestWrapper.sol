@@ -129,11 +129,46 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
         return PoolLib.isPoolLoan(loan, serviceConfiguration, pool);
     }
 
+    function calculateCurrentWithdrawPeriod(
+        uint256 currentTimestamp,
+        uint256 activatedAt,
+        uint256 withdrawalWindowDuration
+    ) public pure returns (uint256) {
+        return
+            PoolLib.calculateCurrentWithdrawPeriod(
+                currentTimestamp,
+                activatedAt,
+                withdrawalWindowDuration
+            );
+    }
+
+    function updateWithdrawState(
+        IPoolWithdrawState memory state,
+        uint256 requestPeriod,
+        uint256 requestedShares
+    ) public pure returns (IPoolWithdrawState memory) {
+        return
+            PoolLib.updateWithdrawState(state, requestPeriod, requestedShares);
+    }
+
     function calculateRequestFee(uint256 shares, uint256 requestFeeBps)
         external
         pure
         returns (uint256)
     {
         return PoolLib.calculateRequestFee(shares, requestFeeBps);
+    }
+
+    function calculateMaxRedeemRequest(
+        IPoolWithdrawState memory state,
+        uint256 shareBalance,
+        uint256 requestFeeBps
+    ) public pure returns (uint256) {
+        return
+            PoolLib.calculateMaxRedeemRequest(
+                state,
+                shareBalance,
+                requestFeeBps
+            );
     }
 }
