@@ -332,40 +332,45 @@ library PoolLib {
         // TODO: This likely happens in the crank instead, because those
         // shares are not necessarily eligible yet.
         if (state.latestPeriod > 0 && state.latestPeriod <= requestPeriod) {
-            state.eligibleShares = state.eligibleShares + state.requestedShares;
+            state.eligibleShares = state.eligibleShares.add(
+                state.requestedShares
+            );
             state.requestedShares = 0;
         }
 
         // Increment the requested shares count, and ensure the "latestPeriod"
         // is set to the current request period.
-        state.requestedShares = state.requestedShares + requestedShares;
+        state.requestedShares = state.requestedShares.add(requestedShares);
         state.latestPeriod = requestPeriod;
 
         return state;
     }
 
-    function requestFee(uint256 shares, uint256 requestFeeBips)
+    /**
+     * @dev Calculate the fee for making a withdrawRequest or a redeemRequest.
+     */
+    function calculateRequestFee(uint256 shares, uint256 requestFeeBps)
         public
         pure
         returns (uint256)
     {
-        return shares * (requestFeeBips / 100);
+        return shares.mul(requestFeeBps).div(10000);
     }
 
     function maxRedeemRequest(
         IPoolWithdrawState memory state,
         uint256 shareBalance,
-        uint256 requestFeeBips
+        uint256 requestFeeBps
     ) public pure returns (uint256) {
-        uint256 sharesRemaining = shareBalance -
-            state.requestedShares -
-            state.eligibleShares;
-        uint256 sharesFee = requestFee(sharesRemaining, requestFeeBips);
+        uint256 sharesRemaining = shareBalance.sub(state.requestedShares).sub(
+            state.eligibleShares
+        );
+        uint256 sharesFee = calculateRequestFee(sharesRemaining, requestFeeBps);
 
         if (sharesFee > sharesRemaining) {
             return 0;
         }
 
-        return sharesRemaining - sharesFee;
+        return sharesRemaining.sub(sharesFee);
     }
 }

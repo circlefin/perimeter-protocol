@@ -27,7 +27,7 @@ enum IPoolLifeCycleState {
 struct IPoolConfigurableSettings {
     uint256 maxCapacity; // amount
     uint256 endDate; // epoch seconds
-    uint256 requestFeeBips; // bips
+    uint256 requestFeeBps; // bips
     uint256 firstLossInitialMinimum; // amount
     uint256 withdrawRequestPeriodDuration; // seconds (e.g. 30 days)
     // TODO: add in Pool fees
@@ -143,12 +143,7 @@ interface IPool is IERC4626 {
     /**
      * @dev Returns the withdrawal fee for a given withdrawal amount at the current block.
      */
-    function withdrawRequestFee(uint256) external view returns (uint256);
-
-    /**
-     * @dev Returns the withdrawal fee for a given withdrawal amount at the current block.
-     */
-    function redeemRequestFee(uint256) external view returns (uint256);
+    function requestFee(uint256) external view returns (uint256);
 
     /**
      * @dev Submits a withdrawal request, incurring a fee.

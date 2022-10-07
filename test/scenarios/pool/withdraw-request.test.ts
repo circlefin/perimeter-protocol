@@ -8,7 +8,7 @@ describe("Withdraw Requests", () => {
     const [poolManager, otherAccount] = await ethers.getSigners();
     const { pool, liquidityAsset } = await deployPool(poolManager);
 
-    await pool.setWithdrawalFee(1000); // 10%
+    await pool.setRequestFee(1000); // 10%
 
     // activate the pool
     await activatePool(pool, poolManager, liquidityAsset);
@@ -39,19 +39,15 @@ describe("Withdraw Requests", () => {
       .withArgs(otherAccount.address, 50);
 
     // Verify the total for this period is set
-    expect(await pool.requestedLenderWithdrawalTotal()).to.equal(50);
-    expect(await pool.eligibleLenderWithdrawalTotal()).to.equal(0);
+    expect(await pool.totalRequestedBalance()).to.equal(50);
+    expect(await pool.totalEligibleBalance()).to.equal(0);
 
     // Expect the lender can withdraw
     expect(await pool.maxWithdrawRequest(otherAccount.address)).to.equal(50);
 
     // Verify the per-lender amount is set
-    expect(
-      await pool.requestedLenderWithdrawalAmount(otherAccount.address)
-    ).to.equal(50);
-    expect(
-      await pool.eligibleLenderWithdrawalAmount(otherAccount.address)
-    ).to.equal(0);
+    expect(await pool.requestedBalanceOf(otherAccount.address)).to.equal(50);
+    expect(await pool.eligibleBalanceOf(otherAccount.address)).to.equal(0);
 
     // Skip ahead to the next window
     await time.increase(withdrawRequestPeriodDuration);

@@ -138,12 +138,12 @@ contract Pool is IPool, ERC20 {
      * @dev Allow the current pool manager to update the pool fees
      * before the pool has been activated.
      */
-    function setWithdrawalFee(uint256 fee)
+    function setRequestFee(uint256 feeBps)
         external
         onlyManager
         atState(IPoolLifeCycleState.Initialized)
     {
-        _poolSettings.requestFeeBips = fee;
+        _poolSettings.requestFeeBps = feeBps;
     }
 
     /**
@@ -304,12 +304,12 @@ contract Pool is IPool, ERC20 {
      * @dev Returns the redeem fee for a given withdrawal amount at the current block.
      * The fee is the number of shares that will be charged.
      */
-    function redeemRequestFee(uint256 shares)
-        public
-        view
-        returns (uint256 shareFee)
-    {
-        return PoolLib.requestFee(shares, _poolSettings.requestFeeBips);
+    function requestFee(uint256 sharesOrAssets) public view returns (uint256) {
+        return
+            PoolLib.calculateRequestFee(
+                sharesOrAssets,
+                _poolSettings.requestFeeBps
+            );
     }
 
     /**
@@ -328,7 +328,7 @@ contract Pool is IPool, ERC20 {
             PoolLib.maxRedeemRequest(
                 _withdrawState[owner],
                 balanceOf(owner),
-                _poolSettings.requestFeeBips
+                _poolSettings.requestFeeBps
             );
     }
 
@@ -344,9 +344,9 @@ contract Pool is IPool, ERC20 {
         view
         returns (uint256 assets)
     {
-        uint256 shareFees = PoolLib.requestFee(
+        uint256 shareFees = PoolLib.calculateRequestFee(
             shares,
-            _poolSettings.requestFeeBips
+            _poolSettings.requestFeeBps
         );
         return convertToAssets(shares - shareFees);
     }
@@ -391,18 +391,6 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
-     * @dev Returns the withdrawal fee for a given withdrawal amount at the current block.
-     * The fee is the number of underlying assets that will be charged.
-     */
-    function withdrawRequestFee(uint256 assets)
-        public
-        view
-        returns (uint256 assetFee)
-    {
-        return PoolLib.requestFee(assets, _poolSettings.requestFeeBips);
-    }
-
-    /**
      * @dev Returns the maximum amount of underlying `assets` that can be
      * requested to be withdrawn from the owner balance with a single
      * `requestWithdraw` call in the current block.
@@ -429,9 +417,9 @@ contract Pool is IPool, ERC20 {
         view
         returns (uint256 shares)
     {
-        uint256 assetFees = PoolLib.requestFee(
+        uint256 assetFees = PoolLib.calculateRequestFee(
             assets,
-            _poolSettings.requestFeeBips
+            _poolSettings.requestFeeBps
         );
 
         return convertToShares(assets + assetFees);
@@ -515,92 +503,6 @@ contract Pool is IPool, ERC20 {
     function totalRequestedBalance() external view returns (uint256 shares) {
         return _globalWithdrawState.requestedShares;
     }
-
-    /**
-     * @dev Returns the underlying `asset` value that has been requested to be
-     * redeemed by the owner as of the current block.
-     *
-     * TODO: needed?
-    function withdrawRequestedBalanceOf(address owner)
-        external
-        view
-        returns (uint256 assets)
-    {
-        return convertToAssets(_withdrawState[owner].requestedShares);
-    }
-
-    /**
-     * @dev
-     *
-     * TODO: needed?
-    function requestedLenderWithdrawalTotal() external view returns (uint256) {
-        uint256 period = withdrawPeriod();
-
-        // Check if there's any new eligible shares need to be added, but
-        // has not yet been "cranked"
-        if (_globalWithdrawState.latestPeriod <= period) {
-            return 0;
-        }
-
-        return _globalWithdrawState.requestedAssets;
-    }
-
-    /**
-     * @dev
-     *
-     * TODO: needed?
-    function eligibleLenderWithdrawalTotal() external view returns (uint256) {
-        uint256 period = withdrawPeriod();
-
-        // Check if there's any new eligible shares need to be added, but
-        // has not yet been "cranked"
-        if (_globalWithdrawState.latestPeriod <= period) {
-            return
-                _globalWithdrawState.eligibleAssets +
-                _globalWithdrawState.requestedAssets;
-        }
-
-        return _globalWithdrawState.eligibleAssets;
-    }
-
-    /**
-     * TODO: Needed?
-    function requestedLenderWithdrawalAmount(address lender)
-        external
-        view
-        returns (uint256)
-    {
-        uint256 period = withdrawPeriod();
-
-        // Check if there's any new eligible shares need to be added, but
-        // has not yet been "cranked"
-        if (_withdrawState[lender].latestPeriod <= period) {
-            return 0;
-        }
-
-        return _withdrawState[lender].requestedAssets;
-    }
-
-    /**
-     * TODO: needed?
-    function eligibleLenderWithdrawalAmount(address lender)
-        external
-        view
-        returns (uint256)
-    {
-        uint256 period = withdrawPeriod();
-
-        // Check if there's any new eligible shares need to be added, but
-        // has not yet been "cranked"
-        if (_withdrawState[lender].latestPeriod <= period) {
-            return
-                _withdrawState[lender].eligibleAssets +
-                _withdrawState[lender].requestedAssets;
-        }
-
-        return _withdrawState[lender].eligibleAssets;
-    }
-    */
 
     /**
      * @dev Set the pool lifecycle state. If the state changes, this method

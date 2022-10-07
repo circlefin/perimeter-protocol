@@ -45,13 +45,13 @@ describe("Pool", () => {
       const {
         endDate,
         maxCapacity,
-        requestFeeBips,
+        requestFeeBps,
         withdrawRequestPeriodDuration
       } = await pool.settings();
 
       expect(endDate).to.equal(DEFAULT_POOL_SETTINGS.endDate);
       expect(maxCapacity).to.equal(DEFAULT_POOL_SETTINGS.maxCapacity);
-      expect(requestFeeBips).to.equal(DEFAULT_POOL_SETTINGS.requestFeeBips);
+      expect(requestFeeBps).to.equal(DEFAULT_POOL_SETTINGS.requestFeeBps);
       expect(withdrawRequestPeriodDuration).to.equal(
         DEFAULT_POOL_SETTINGS.withdrawRequestPeriodDuration
       );
@@ -515,7 +515,7 @@ describe("Pool", () => {
         const { pool, poolManager, liquidityAsset } = await loadFixture(
           loadPoolFixture
         );
-        await pool.setFee(1000); // 10%
+        await pool.setRequestFee(1000); // 10%
         await activatePool(pool, poolManager, liquidityAsset);
 
         // TODO: Show a non 1:1 share value

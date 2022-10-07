@@ -128,4 +128,12 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
     ) public view returns (bool) {
         return PoolLib.isPoolLoan(loan, serviceConfiguration, pool);
     }
+
+    function calculateRequestFee(uint256 shares, uint256 requestFeeBps)
+        external
+        pure
+        returns (uint256)
+    {
+        return PoolLib.calculateRequestFee(shares, requestFeeBps);
+    }
 }

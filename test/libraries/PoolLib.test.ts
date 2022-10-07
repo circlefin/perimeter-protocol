@@ -438,4 +438,15 @@ describe("PoolLib", () => {
       ).to.equal(true);
     });
   });
+
+  describe.only("calculateRequestFee()", () => {
+    it("calculates the fee for a request", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      const shares = 500;
+      const bps = 127; // 1.27%
+
+      expect(await poolLibWrapper.calculateRequestFee(shares, bps)).to.equal(6);
+    });
+  });
 });
