@@ -4,6 +4,7 @@ pragma solidity ^0.8.16;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "../interfaces/ILoan.sol";
 import "../interfaces/IPool.sol";
 import "../interfaces/ILoan.sol";
@@ -306,36 +307,43 @@ library PoolLib {
         return (currentTimestamp - activatedAt) / withdrawalWindowDuration;
     }
 
-    /**
-     * @dev Calculate the current IPoolWithdrawState based on the existing
-     * request state and the current request period.
-     */
-    function updateWithdrawState(
+    function progressWithdrawState(
         IPoolWithdrawState memory state,
-        uint256 requestedPeriod,
-        uint256 requestedShares
+        uint256 requestedPeriod
     ) public pure returns (IPoolWithdrawState memory) {
         require(requestedPeriod > 0, "Pool: Invalid request period");
-
         // If the latest withdrawlState has not been updated for this
         // given request period, we need to move "requested" shares over
         // to be "eligible".
-        //
-        // TODO: This likely happens in the crank instead, because those
-        // shares are not necessarily eligible yet.
-        if (state.lastUpdatedPeriod <= requestedPeriod) {
+        if (state.lastUpdatedPeriod < requestedPeriod) {
             state.eligibleShares = state.eligibleShares.add(
                 state.requestedShares
             );
             state.requestedShares = 0;
         }
 
+        return state;
+    }
+
+    /**
+     * @dev Calculate the current IPoolWithdrawState based on the existing
+     * request state and the current request period.
+     */
+    function caclulateWithdrawState(
+        IPoolWithdrawState memory state,
+        uint256 requestedPeriod,
+        uint256 requestedShares
+    ) public pure returns (IPoolWithdrawState memory updatedState) {
+        require(requestedPeriod > 0, "Pool: Invalid request period");
+
+        updatedState = progressWithdrawState(state, requestedPeriod);
+
         // Increment the requested shares count, and ensure the "lastUpdatedPeriod"
         // is set to the current request period.
-        state.requestedShares = state.requestedShares.add(requestedShares);
-        state.lastUpdatedPeriod = requestedPeriod;
-
-        return state;
+        updatedState.requestedShares = state.requestedShares.add(
+            requestedShares
+        );
+        updatedState.lastUpdatedPeriod = requestedPeriod;
     }
 
     /**
@@ -362,10 +370,6 @@ library PoolLib {
         );
         uint256 sharesFee = calculateRequestFee(sharesRemaining, requestFeeBps);
 
-        if (sharesFee > sharesRemaining) {
-            return 0;
-        }
-
-        return sharesRemaining.sub(sharesFee);
+        return Math.max(sharesRemaining.sub(sharesFee), 0);
     }
 }

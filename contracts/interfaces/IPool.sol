@@ -28,9 +28,9 @@ struct IPoolConfigurableSettings {
     uint256 maxCapacity; // amount
     uint256 endDate; // epoch seconds
     uint256 requestFeeBps; // bips
+    uint256 withdrawGateBPS; // Percent of liquidity pool available to withdraw, represented in BPS
     uint256 firstLossInitialMinimum; // amount
     uint256 withdrawRequestPeriodDuration; // seconds (e.g. 30 days)
-    // TODO: add in Pool fees
 }
 
 /**
@@ -40,6 +40,8 @@ struct IPoolWithdrawState {
     uint256 requestedShares; // Number of shares requested in the `latestPeriod`
     uint256 eligibleShares; // Number of shares that are eligibble to be CONSIDERED for withdraw by the crank
     uint256 lastUpdatedPeriod; // Period where this was last updated
+    uint256 withdrawableShares; // The shares that are currently withdrawable
+    uint256 withdrawableAssets; // The assets that are currently withdrawable
 }
 
 /**

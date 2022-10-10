@@ -7,6 +7,9 @@ import "./interfaces/IServiceConfiguration.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "./libraries/PoolLib.sol";
 import "./FirstLossVault.sol";
 
@@ -17,6 +20,8 @@ import "./FirstLossVault.sol";
  */
 contract Pool is IPool, ERC20 {
     using SafeERC20 for IERC20;
+    using SafeMath for uint256;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
     IPoolLifeCycleState private _poolLifeCycleState;
     address private _manager;
@@ -35,6 +40,12 @@ contract Pool is IPool, ERC20 {
      * @dev Per-lender withdraw request information
      */
     mapping(address => IPoolWithdrawState) private _withdrawState;
+
+    /**
+     * @dev a list of all addresses that have requested a withdrawal from this
+     * pool. This allows us to iterate over them to perform a withdrawal/redeem.
+     */
+    EnumerableSet.AddressSet private _withdrawAddresses;
 
     /**
      * @dev Aggregate withdraw request information
@@ -275,11 +286,96 @@ contract Pool is IPool, ERC20 {
     }
 
     /*//////////////////////////////////////////////////////////////
+                    Crank
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Crank the protocol. Issues withdrawals
+     */
+    function crank() external returns (uint256 withdrawableShares) {
+        // Calculate the amount available for withdrawal
+        uint256 availableLiquidity = totalSupply();
+
+        // How much is available to redeem for this period
+        uint256 availableShares = availableLiquidity.mul(1000).div(
+            _poolSettings.withdrawGateBPS
+        );
+
+        if (availableShares <= 0) {
+            // unable to redeem anything
+            withdrawableShares = 0;
+            return 0;
+        }
+
+        uint256 currentPeriod = withdrawPeriod();
+
+        // crank the total withdraw state
+        _globalWithdrawState = PoolLib.progressWithdrawState(
+            _globalWithdrawState,
+            currentPeriod
+        );
+
+        // Determine the amount of shares that we will actually distribute.
+        withdrawableShares = Math.min(
+            availableShares,
+            _globalWithdrawState.eligibleShares
+        );
+
+        // Increment how many shares and assets are "locked" for withdrawal
+        _globalWithdrawState.withdrawableShares = _globalWithdrawState
+            .withdrawableShares
+            .add(withdrawableShares);
+        _globalWithdrawState.withdrawableAssets = _globalWithdrawState
+            .withdrawableAssets
+            .add(convertToAssets(withdrawableShares));
+
+        // iterate over every address that has made a withdraw request, and
+        // determine how many shares they should be receiveing out of this
+        // bucket of withdrawableShares
+        for (uint256 i; i < _withdrawAddresses.length(); i++) {
+            address _addr = _withdrawAddresses.at(i);
+
+            _withdrawState[_addr] = PoolLib.progressWithdrawState(
+                _withdrawState[_addr],
+                currentPeriod
+            );
+
+            // We're not eligible, move on to the next address
+            if (_withdrawState[_addr].eligibleShares == 0) {
+                continue;
+            }
+
+            // calculate the shares able to be withdrawn
+            uint256 shares = _withdrawState[_addr]
+                .eligibleShares
+                .mul(PoolLib.RAY)
+                .div(withdrawableShares)
+                .div(PoolLib.RAY);
+            uint256 assets = convertToAssets(shares);
+
+            // Increment the withdrawable Shares for this lender
+            _withdrawState[_addr].withdrawableShares = _withdrawState[_addr]
+                .withdrawableShares
+                .add(shares);
+            // Increment the withdrawable Shares for this lender
+            _withdrawState[_addr].withdrawableAssets = _withdrawState[_addr]
+                .withdrawableAssets
+                .add(assets);
+
+            // Subtract the "eligible" shares for this lender
+            _withdrawState[_addr].eligibleShares = _withdrawState[_addr]
+                .eligibleShares
+                .sub(shares);
+        }
+    }
+
+    /*//////////////////////////////////////////////////////////////
                     Withdraw/Redeem Request Methods
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev The current withdraw period
+     * @dev The current withdraw period. Funds marked with this period (or
+     * earlier), are eligible to be considered for redemption/widrawal.
      */
     function withdrawPeriod() public view returns (uint256 period) {
         period = PoolLib.calculateCurrentWithdrawPeriod(
@@ -470,14 +566,17 @@ contract Pool is IPool, ERC20 {
         _burn(owner, feeShares);
 
         // Update the requested amount from the user
-        _withdrawState[owner] = PoolLib.updateWithdrawState(
+        _withdrawState[owner] = PoolLib.caclulateWithdrawState(
             _withdrawState[owner],
             nextPeriod,
             shares
         );
 
+        // Add the address to the addresslist
+        _withdrawAddresses.add(owner);
+
         // Update the global amount
-        _globalWithdrawState = PoolLib.updateWithdrawState(
+        _globalWithdrawState = PoolLib.caclulateWithdrawState(
             _globalWithdrawState,
             nextPeriod,
             shares
