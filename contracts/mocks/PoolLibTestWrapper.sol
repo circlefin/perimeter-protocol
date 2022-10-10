@@ -142,13 +142,17 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
             );
     }
 
-    function updateWithdrawState(
+    function caclulateWithdrawState(
         IPoolWithdrawState memory state,
         uint256 requestPeriod,
         uint256 requestedShares
     ) public pure returns (IPoolWithdrawState memory) {
         return
-            PoolLib.updateWithdrawState(state, requestPeriod, requestedShares);
+            PoolLib.caclulateWithdrawState(
+                state,
+                requestPeriod,
+                requestedShares
+            );
     }
 
     function calculateRequestFee(uint256 shares, uint256 requestFeeBps)

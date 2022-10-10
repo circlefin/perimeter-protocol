@@ -285,6 +285,25 @@ contract Pool is IPool, ERC20 {
         );
     }
 
+    /**
+     * @dev Returns the address of the underlying ERC20 token "locked" by the vault.
+     */
+    function asset() public view returns (address) {
+        return address(_liquidityAsset);
+    }
+
+    /**
+     * @dev Calculate the total amount of underlying assets held by the vault.
+     */
+    function totalAssets() public view returns (uint256) {
+        return
+            PoolLib.calculateTotalAssets(
+                address(_liquidityAsset),
+                address(this),
+                _accountings.activeLoanPrincipals
+            );
+    }
+
     /*//////////////////////////////////////////////////////////////
                     Crank
     //////////////////////////////////////////////////////////////*/
@@ -298,7 +317,7 @@ contract Pool is IPool, ERC20 {
 
         // How much is available to redeem for this period
         uint256 availableShares = availableLiquidity.mul(1000).div(
-            _poolSettings.withdrawGateBPS
+            _poolSettings.withdrawGateBps
         );
 
         if (availableShares <= 0) {
@@ -742,13 +761,8 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev Returns the maximum amount of underlying assets that can be withdrawn from the owner balance with a single withdraw call.
      */
-    function maxWithdraw(address owner)
-        external
-        view
-        override
-        returns (uint256)
-    {
-        return 0;
+    function maxWithdraw(address owner) public view override returns (uint256) {
+        return _withdrawState[owner].withdrawableAssets;
     }
 
     /**
@@ -758,47 +772,13 @@ contract Pool is IPool, ERC20 {
         external
         view
         override
-        returns (uint256)
+        returns (uint256 shares)
     {
-        return 0;
-    }
-
-    /**
-     * @dev The maximum amount of shares that can be redeemed from the owner balance through a redeem call.
-     */
-    function maxRedeem(address owner) external view override returns (uint256) {
-        return 0;
-    }
-
-    /**
-     * @dev Simulates the effects of their redeemption at the current block.
-     */
-    function previewRedeem(uint256 shares)
-        external
-        view
-        override
-        returns (uint256)
-    {
-        return 0;
-    }
-
-    /**
-     * @dev Returns the address of the underlying ERC20 token "locked" by the vault.
-     */
-    function asset() public view returns (address) {
-        return address(_liquidityAsset);
-    }
-
-    /**
-     * @dev Calculate the total amount of underlying assets held by the vault.
-     */
-    function totalAssets() public view returns (uint256) {
-        return
-            PoolLib.calculateTotalAssets(
-                address(_liquidityAsset),
-                address(this),
-                _accountings.activeLoanPrincipals
-            );
+        shares = PoolLib.calculateAssetsToShares(
+            assets,
+            _withdrawState[msg.sender].withdrawableShares,
+            _withdrawState[msg.sender].withdrawableAssets
+        );
     }
 
     /**
@@ -810,7 +790,41 @@ contract Pool is IPool, ERC20 {
         address receiver,
         address owner
     ) external virtual returns (uint256 shares) {
-        return 0;
+        require(assets > 0, "Pool: 0 withdraw not allowed");
+        require(maxWithdraw(owner) >= assets, "Pool: InsufficientBalance");
+
+        // Calculate how many shares should be burned
+        shares = PoolLib.calculateAssetsToShares(
+            assets,
+            _withdrawState[owner].withdrawableShares,
+            _withdrawState[owner].withdrawableAssets
+        );
+
+        // Update the withdraw state, transfer assets, and burn the shares
+        _redeem(shares, assets, owner, receiver);
+    }
+
+    /**
+     * @dev The maximum amount of shares that can be redeemed from the owner balance through a redeem call.
+     */
+    function maxRedeem(address owner) public view override returns (uint256) {
+        return _withdrawState[owner].withdrawableShares;
+    }
+
+    /**
+     * @dev Simulates the effects of their redeemption at the current block.
+     */
+    function previewRedeem(uint256 shares)
+        external
+        view
+        override
+        returns (uint256 assets)
+    {
+        assets = PoolLib.calculateSharesToAssets(
+            shares,
+            _withdrawState[msg.sender].withdrawableAssets,
+            _withdrawState[msg.sender].withdrawableShares
+        );
     }
 
     /**
@@ -822,7 +836,55 @@ contract Pool is IPool, ERC20 {
         address receiver,
         address owner
     ) external virtual returns (uint256 assets) {
-        return 0;
+        require(shares > 0, "Pool: 0 redeem not allowed");
+        require(maxRedeem(owner) >= shares, "Pool: InsufficientBalance");
+
+        // Calculate how many assets should be transferred
+        assets = PoolLib.calculateSharesToAssets(
+            shares,
+            _withdrawState[owner].withdrawableAssets,
+            _withdrawState[owner].withdrawableShares
+        );
+
+        // Update the withdraw state, transfer assets, and burn the shares
+        _redeem(shares, assets, receiver, owner);
+    }
+
+    /**
+     * @dev Redeem a number of shares for a given number of assets. This method
+     * will transfer `assets` from the vault to the `receiver`, and burn `shares`
+     * from `owner`.
+     */
+    function _redeem(
+        uint256 shares,
+        uint256 assets,
+        address owner,
+        address receiver
+    ) internal {
+        require(
+            assets <= _withdrawState[owner].withdrawableAssets,
+            "Pool: InsufficientBalance"
+        );
+
+        require(
+            shares <= _withdrawState[owner].withdrawableShares,
+            "Pool: InsufficientBalance"
+        );
+
+        // update the withdrawstate to account for these shares being
+        // removed from "withdrawable"
+        _withdrawState[owner].withdrawableShares = _withdrawState[owner]
+            .withdrawableShares
+            .sub(shares);
+        _withdrawState[owner].withdrawableAssets = _withdrawState[owner]
+            .withdrawableAssets
+            .sub(assets);
+
+        // Transfer assets
+        _liquidityAsset.safeTransferFrom(address(this), receiver, assets);
+
+        // Burn the shares
+        _burn(owner, shares);
     }
 
     /*//////////////////////////////////////////////////////////////

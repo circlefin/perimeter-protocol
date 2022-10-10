@@ -44,6 +44,7 @@ contract PermissionedPoolFactory is PoolFactory {
         uint256 maxCapacity,
         uint256 endDate,
         uint256 requestFeeBps,
+        uint256 withdrawGateBps,
         uint256 withdrawRequestPeriodDuration
     ) public override onlyVerifiedPoolManager returns (address poolAddress) {
         require(
@@ -57,6 +58,7 @@ contract PermissionedPoolFactory is PoolFactory {
             maxCapacity,
             endDate,
             requestFeeBps,
+            withdrawGateBps,
             firstLossInitialMinimum,
             withdrawRequestPeriodDuration
         );

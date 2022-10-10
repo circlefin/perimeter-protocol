@@ -489,7 +489,7 @@ describe("PoolLib", () => {
     });
   });
 
-  describe("updateWithdrawState", () => {
+  describe("caclulateWithdrawState", () => {
     it("increments the requested shares of the lender", async () => {
       const { poolLibWrapper } = await loadFixture(deployFixture);
 
@@ -500,7 +500,7 @@ describe("PoolLib", () => {
       };
 
       expect(
-        await poolLibWrapper.updateWithdrawState(withdrawState, 1, 22)
+        await poolLibWrapper.caclulateWithdrawState(withdrawState, 1, 22)
       ).to.deep.equal([
         /* requestedShares: */ 22, /* eligibleShares: */ 0,
         /* lastUpdatedPeriod: */ 1
@@ -517,7 +517,7 @@ describe("PoolLib", () => {
       };
 
       expect(
-        await poolLibWrapper.updateWithdrawState(withdrawState, 2, 33)
+        await poolLibWrapper.caclulateWithdrawState(withdrawState, 2, 33)
       ).to.deep.equal([
         /* requestedShares: */ 33, /* eligibleShares: */ 50,
         /* lastUpdatedPeriod: */ 2
