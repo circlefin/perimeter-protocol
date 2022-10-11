@@ -221,7 +221,11 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev Called by the pool manager, this transfers liquidity from the pool to a given loan.
      */
-    function fundLoan(address addr) external onlyManager {
+    function fundLoan(address addr)
+        external
+        onlyManager
+        atState(IPoolLifeCycleState.Active)
+    {
         ILoan loan = ILoan(addr);
 
         _liquidityAsset.safeApprove(address(loan), loan.principal());
