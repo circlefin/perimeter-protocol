@@ -1,11 +1,12 @@
 import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { DEFAULT_POOL_SETTINGS, activatePool } from "./support/pool";
+import { DEFAULT_POOL_SETTINGS } from "./support/pool";
 import { deployMockERC20 } from "./support/erc20";
 
 describe("Loan", () => {
   const SEVEN_DAYS = 6 * 60 * 60 * 24;
+  const THIRTY_DAYS = 30 * 60 * 60 * 24;
 
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
@@ -466,6 +467,10 @@ describe("Loan", () => {
         .to.emit(loan, "LoanDrawnDown")
         .withArgs(loan.liquidityAsset, 500_000);
 
+      const latestBlock = await ethers.provider.getBlock("latest");
+      const now = latestBlock.timestamp;
+      expect(await loan.paymentDueDate()).to.equal(now + THIRTY_DAYS);
+
       // Try again
       const drawDownTx2 = loan.connect(borrower).drawdown();
       await expect(drawDownTx2).not.to.be.reverted;
@@ -516,6 +521,130 @@ describe("Loan", () => {
         "LifeCycleStateTransition"
       );
       expect(await loan.state()).to.equal(3);
+    });
+  });
+
+  describe("payments", () => {
+    it("calculates payments correctly", async () => {
+      const fixture = await loadFixture(deployFixture);
+      const { loan } = fixture;
+
+      expect(await loan.paymentsRemaining()).to.equal(6);
+      expect(await loan.payment()).to.equal(2083);
+      expect(await loan.paymentDueDate()).to.equal(0);
+    });
+
+    it("can complete the next payment", async () => {
+      const fixture = await loadFixture(deployFixture);
+      const {
+        borrower,
+        collateralAsset,
+        liquidityAsset,
+        loan,
+        pool,
+        poolManager
+      } = fixture;
+
+      // Setup
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await loan
+        .connect(borrower)
+        .postFungibleCollateral(collateralAsset.address, 100);
+      await pool.connect(poolManager).fundLoan(loan.address);
+      await loan.connect(borrower).drawdown();
+
+      // Make payment
+      const dueDate = await loan.paymentDueDate();
+      expect(await loan.paymentsRemaining()).to.equal(6);
+      await liquidityAsset.connect(borrower).approve(loan.address, 2083);
+      const tx = loan.connect(borrower).completeNextPayment();
+      await expect(tx).to.not.be.reverted;
+      await expect(tx).to.changeTokenBalance(liquidityAsset, borrower, -2083);
+      await expect(tx).to.changeTokenBalance(liquidityAsset, pool, +2083);
+      expect(await loan.paymentsRemaining()).to.equal(5);
+      const newDueDate = await loan.paymentDueDate();
+      expect(newDueDate).to.equal(dueDate.add(THIRTY_DAYS));
+    });
+
+    it("can payoff the entire loan at once", async () => {
+      const fixture = await loadFixture(deployFixture);
+      const {
+        borrower,
+        collateralAsset,
+        liquidityAsset,
+        loan,
+        pool,
+        poolManager
+      } = fixture;
+
+      // Setup
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await loan
+        .connect(borrower)
+        .postFungibleCollateral(collateralAsset.address, 100);
+      await pool.connect(poolManager).fundLoan(loan.address);
+      await loan.connect(borrower).drawdown();
+
+      // Mint additional tokens to cover the interest payments
+      await liquidityAsset.mint(borrower.address, 12498);
+
+      // Make payment
+      await liquidityAsset
+        .connect(borrower)
+        .approve(loan.address, 12498 + 500_000);
+      const tx = loan.connect(borrower).completeFullPayment();
+      await expect(tx).to.not.be.reverted;
+      await expect(tx).to.changeTokenBalance(
+        liquidityAsset,
+        borrower,
+        -12498 - 500_000
+      );
+      await expect(tx).to.changeTokenBalance(
+        liquidityAsset,
+        pool,
+        12498 + 500_000
+      );
+
+      expect(await loan.paymentsRemaining()).to.equal(0);
+      expect(await loan.state()).to.equal(5);
+    });
+
+    it("can make payments and pay off the loan", async () => {
+      const fixture = await loadFixture(deployFixture);
+      const {
+        borrower,
+        collateralAsset,
+        liquidityAsset,
+        loan,
+        pool,
+        poolManager
+      } = fixture;
+
+      // Setup
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await loan
+        .connect(borrower)
+        .postFungibleCollateral(collateralAsset.address, 100);
+      await pool.connect(poolManager).fundLoan(loan.address);
+      await loan.connect(borrower).drawdown();
+
+      // Mint additional tokens to cover the interest payments
+      await liquidityAsset.mint(borrower.address, 12498);
+
+      // Make payment
+      await liquidityAsset
+        .connect(borrower)
+        .approve(loan.address, 12498 + 500_000);
+      await loan.connect(borrower).completeNextPayment();
+      await loan.connect(borrower).completeNextPayment();
+      await loan.connect(borrower).completeNextPayment();
+      await loan.connect(borrower).completeNextPayment();
+      await loan.connect(borrower).completeNextPayment();
+      await loan.connect(borrower).completeNextPayment();
+      expect(await loan.state()).to.equal(4);
+      await loan.connect(borrower).completeFullPayment();
+      expect(await loan.paymentsRemaining()).to.equal(0);
+      expect(await loan.state()).to.equal(5);
     });
   });
 

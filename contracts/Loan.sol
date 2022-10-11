@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
+import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./interfaces/ILoan.sol";
 import "./interfaces/IServiceConfiguration.sol";
 import "./libraries/LoanLib.sol";
@@ -13,6 +14,9 @@ import "./FundingVault.sol";
  * Empty Loan contract.
  */
 contract Loan is ILoan {
+    using SafeMath for uint256;
+    uint256 constant RAY = 10**27;
+
     IServiceConfiguration private immutable _serviceConfiguration;
     address private immutable _factory;
     ILoanLifeCycleState private _state = ILoanLifeCycleState.Requested;
@@ -30,6 +34,9 @@ contract Loan is ILoan {
     uint256 public immutable principal;
     address public immutable liquidityAsset;
     ILoanType public immutable loanType = ILoanType.Fixed;
+    uint256 public immutable payment;
+    uint256 public paymentsRemaining;
+    uint256 public paymentDueDate;
 
     /**
      * @dev Modifier that requires the Loan be in the given `state_`
@@ -112,6 +119,14 @@ contract Loan is ILoan {
             principal,
             liquidityAsset
         );
+
+        paymentsRemaining = duration.div(paymentPeriod);
+        uint256 paymentsTotal = principal
+            .mul(apr)
+            .mul(duration.mul(RAY).div(360))
+            .div(RAY)
+            .div(10000);
+        payment = paymentsTotal.mul(RAY).div(paymentsRemaining).div(RAY);
     }
 
     /**
@@ -226,11 +241,43 @@ contract Loan is ILoan {
         atState(ILoanLifeCycleState.Funded)
         returns (uint256)
     {
+        // First drawdown kicks off the payment schedule
+        if (paymentDueDate == 0) {
+            paymentDueDate = block.timestamp + (paymentPeriod * 1 days);
+        }
+
         // Fixed term loans require the borrower to drawdown the full amount
         uint256 amount = IERC20(liquidityAsset).balanceOf(
             address(fundingVault)
         );
         LoanLib.drawdown(fundingVault, amount, msg.sender);
+        return amount;
+    }
+
+    function completeNextPayment()
+        public
+        onlyBorrower
+        atState(ILoanLifeCycleState.Funded)
+        returns (uint256)
+    {
+        require(paymentsRemaining > 0, "Loan: No more payments remain");
+        LoanLib.completePayment(liquidityAsset, _pool, payment);
+        paymentsRemaining -= 1;
+        paymentDueDate += paymentPeriod * 1 days;
+        return payment;
+    }
+
+    function completeFullPayment()
+        public
+        onlyBorrower
+        atState(ILoanLifeCycleState.Funded)
+        returns (uint256)
+    {
+        uint256 amount = payment.mul(paymentsRemaining).add(principal);
+        LoanLib.completePayment(liquidityAsset, _pool, amount);
+        paymentsRemaining = 0;
+        paymentDueDate += paymentPeriod * 1 days;
+        _state = ILoanLifeCycleState.Matured;
         return amount;
     }
 
