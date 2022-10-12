@@ -280,6 +280,27 @@ describe("Pool", () => {
           pool.connect(otherAccount).fundLoan(otherAccount.address)
         ).to.be.revertedWith("Pool: caller is not manager");
       });
+
+      it("reverts if pool is not active", async () => {
+        const { pool, otherAccount, poolManager } = await loadFixture(loadPoolFixture);
+
+        expect(await pool.lifeCycleState()).to.equal(0); // initialized 
+
+        await expect(
+          pool.connect(poolManager).fundLoan(otherAccount.address)
+        ).to.be.revertedWith("Pool: FunctionInvalidAtThisLifeCycleState");
+      });
+
+      it("reverts if loan address is not recognized", async () => {
+        const { pool, liquidityAsset, otherAccount, poolManager } = await loadFixture(loadPoolFixture);
+
+        expect(await pool.lifeCycleState()).to.equal(0); // initialized 
+        await activatePool(pool, poolManager, liquidityAsset);
+
+        await expect(
+          pool.connect(poolManager).fundLoan(otherAccount.address)
+        ).to.be.reverted;
+      });
     });
 
     describe("defaultLoan()", () => {
