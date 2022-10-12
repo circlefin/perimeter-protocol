@@ -6,6 +6,7 @@ import "./interfaces/IPool.sol";
 import "./interfaces/IServiceConfiguration.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -20,7 +21,10 @@ import "./FirstLossVault.sol";
  */
 contract Pool is IPool, ERC20 {
     using SafeERC20 for IERC20;
+<<<<<<< HEAD
     using SafeMath for uint256;
+=======
+>>>>>>> 4005cf3 (Add expected interest accruals.)
     using EnumerableSet for EnumerableSet.AddressSet;
 
     IPoolLifeCycleState private _poolLifeCycleState;
@@ -30,6 +34,12 @@ contract Pool is IPool, ERC20 {
     IPoolConfigurableSettings private _poolSettings;
     FirstLossVault private _firstLossVault;
     IPoolAccountings private _accountings;
+
+    /**
+     * @dev list of all active loan addresses for this Pool. Active loans have been
+     * drawn down, and the payment schedule activated.
+     */
+    EnumerableSet.AddressSet private _activeLoans;
 
     /**
      * @dev a timestamp of when the pool was first put into the Active state
@@ -99,6 +109,22 @@ contract Pool is IPool, ERC20 {
      */
     modifier onlyActivatedPool() {
         require(poolActivatedAt > 0, "Pool: PoolNotActive");
+        _;
+    }
+
+    /**
+     * @dev Modifier to check that an addres is a Valyria loan associated
+     * with this pool.
+     */
+    modifier isPoolLoan(address loan) {
+        require(
+            PoolLib.isPoolLoan(
+                loan,
+                address(_serviceConfiguration),
+                address(this)
+            ),
+            "Pool: invalid loan"
+        );
         _;
     }
 
@@ -272,21 +298,19 @@ contract Pool is IPool, ERC20 {
         external
         onlyManager
         atState(IPoolLifeCycleState.Active)
+        isPoolLoan(addr)
     {
-        require(
-            PoolLib.isPoolLoan(
-                addr,
-                address(_serviceConfiguration),
-                address(this)
-            ),
-            "Pool: invalid loan"
-        );
-
         ILoan loan = ILoan(addr);
-
         _liquidityAsset.safeApprove(address(loan), loan.principal());
         loan.fund();
-        _accountings.activeLoanPrincipals += loan.principal();
+        _accountings.outstandingLoanPrincipals += loan.principal();
+    }
+
+    /**
+     * @inheritdoc IPool
+     */
+    function notifyLoanDrawndown() external isPoolLoan(msg.sender) {
+        _activeLoans.add(msg.sender);
     }
 
     /**
@@ -296,16 +320,9 @@ contract Pool is IPool, ERC20 {
         external
         onlyManager
         atState(IPoolLifeCycleState.Active)
+        isPoolLoan(loan)
     {
         require(loan != address(0), "Pool: 0 address");
-        require(
-            PoolLib.isPoolLoan(
-                loan,
-                address(_serviceConfiguration),
-                address(this)
-            ),
-            "Pool: invalid loan"
-        );
 
         PoolLib.executeDefault(
             asset(),
@@ -314,25 +331,6 @@ contract Pool is IPool, ERC20 {
             address(this),
             _accountings
         );
-    }
-
-    /**
-     * @dev Returns the address of the underlying ERC20 token "locked" by the vault.
-     */
-    function asset() public view returns (address) {
-        return address(_liquidityAsset);
-    }
-
-    /**
-     * @dev Calculate the total amount of underlying assets held by the vault.
-     */
-    function totalAssets() public view returns (uint256) {
-        return
-            PoolLib.calculateTotalAssets(
-                address(_liquidityAsset),
-                address(this),
-                _accountings.activeLoanPrincipals
-            );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -708,6 +706,25 @@ contract Pool is IPool, ERC20 {
     //////////////////////////////////////////////////////////////*/
 
     /**
+     * @inheritdoc IERC4626
+     */
+    function asset() public view returns (address) {
+        return address(_liquidityAsset);
+    }
+
+    /**
+     * @inheritdoc IERC4626
+     */
+    function totalAssets() public view returns (uint256) {
+        return
+            PoolLib.calculateTotalAssets(
+                address(_liquidityAsset),
+                address(this),
+                _accountings.activeLoanPrincipals
+            );
+    }
+
+    /**
      * @dev Calculates the amount of shares that would be exchanged by the vault for the amount of assets provided.
      */
     function convertToShares(uint256 assets)
@@ -768,7 +785,12 @@ contract Pool is IPool, ERC20 {
         override
         returns (uint256)
     {
-        return convertToShares(assets);
+        return
+            PoolLib.calculateAssetsToShares(
+                assets,
+                totalSupply(),
+                totalAssets() + PoolLib.calculateExpectedInterest(_activeLoans)
+            );
     }
 
     /**
@@ -803,7 +825,7 @@ contract Pool is IPool, ERC20 {
         override
         returns (uint256)
     {
-        return this.previewDeposit(this.maxDeposit(receiver));
+        return previewDeposit(maxDeposit(receiver));
     }
 
     /**
@@ -815,7 +837,12 @@ contract Pool is IPool, ERC20 {
         override
         returns (uint256 assets)
     {
-        return this.convertToAssets(shares);
+        return
+            PoolLib.calculateSharesToAssets(
+                shares,
+                totalSupply(),
+                totalAssets() + PoolLib.calculateExpectedInterest(_activeLoans)
+            );
     }
 
     /**

@@ -3,6 +3,7 @@ pragma solidity ^0.8.16;
 
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./interfaces/ILoan.sol";
+import "./interfaces/IPool.sol";
 import "./interfaces/IServiceConfiguration.sol";
 import "./libraries/LoanLib.sol";
 import "./CollateralVault.sol";
@@ -251,6 +252,7 @@ contract Loan is ILoan {
             address(fundingVault)
         );
         LoanLib.drawdown(fundingVault, amount, msg.sender);
+        IPool(_pool).notifyLoanDrawndown();
         return amount;
     }
 

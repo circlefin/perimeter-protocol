@@ -8,7 +8,7 @@ import "./IERC4626.sol";
  */
 struct IPoolAccountings {
     uint256 defaultsTotal;
-    uint256 activeLoanPrincipals;
+    uint256 outstandingLoanPrincipals;
 }
 
 /**
@@ -160,6 +160,11 @@ interface IPool is IERC4626 {
      * @dev Called by the pool manager, this transfers liquidity from the pool to a given loan.
      */
     function fundLoan(address) external;
+
+    /**
+     * @dev Called by a loan, it notifies the pool that the loan has been drawn down.
+     */
+    function notifyLoanDrawndown() external;
 
     /**
      * @dev Called by the pool manager, this marks a loan as in default, triggering liquiditation
