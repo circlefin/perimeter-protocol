@@ -282,9 +282,11 @@ describe("Pool", () => {
       });
 
       it("reverts if pool is not active", async () => {
-        const { pool, otherAccount, poolManager } = await loadFixture(loadPoolFixture);
+        const { pool, otherAccount, poolManager } = await loadFixture(
+          loadPoolFixture
+        );
 
-        expect(await pool.lifeCycleState()).to.equal(0); // initialized 
+        expect(await pool.lifeCycleState()).to.equal(0); // initialized
 
         await expect(
           pool.connect(poolManager).fundLoan(otherAccount.address)
@@ -292,14 +294,14 @@ describe("Pool", () => {
       });
 
       it("reverts if loan address is not recognized", async () => {
-        const { pool, liquidityAsset, otherAccount, poolManager } = await loadFixture(loadPoolFixture);
+        const { pool, liquidityAsset, otherAccount, poolManager } =
+          await loadFixture(loadPoolFixture);
 
-        expect(await pool.lifeCycleState()).to.equal(0); // initialized 
+        expect(await pool.lifeCycleState()).to.equal(0); // initialized
         await activatePool(pool, poolManager, liquidityAsset);
 
-        await expect(
-          pool.connect(poolManager).fundLoan(otherAccount.address)
-        ).to.be.reverted;
+        await expect(pool.connect(poolManager).fundLoan(otherAccount.address))
+          .to.be.reverted;
       });
     });
 
