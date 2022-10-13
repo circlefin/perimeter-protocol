@@ -12,6 +12,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "./libraries/PoolLib.sol";
 import "./FirstLossVault.sol";
+import "hardhat/console.sol";
 
 /**
  * @title Pool
@@ -155,6 +156,10 @@ contract Pool is IPool, ERC20 {
         atState(IPoolLifeCycleState.Initialized)
     {
         _poolSettings.requestFeeBps = feeBps;
+    }
+
+    function setWithdrawGate(uint256 _withdrawGateBps) external onlyManager {
+        _poolSettings.withdrawGateBps = _withdrawGateBps;
     }
 
     /**
@@ -311,49 +316,67 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev Crank the protocol. Issues withdrawals
      */
-    function crank() external returns (uint256 withdrawableShares) {
-        // Calculate the amount available for withdrawal
-        uint256 availableLiquidity = totalSupply();
-
-        // How much is available to redeem for this period
-        uint256 availableShares = availableLiquidity.mul(1000).div(
-            _poolSettings.withdrawGateBps
-        );
-
-        if (availableShares <= 0) {
-            // unable to redeem anything
-            withdrawableShares = 0;
-            return 0;
-        }
-
-        uint256 currentPeriod = withdrawPeriod();
-
+    function crank() external returns (uint256 redeemableShares) {
         // crank the total withdraw state
+        uint256 currentPeriod = withdrawPeriod();
         _globalWithdrawState = PoolLib.progressWithdrawState(
             _globalWithdrawState,
             currentPeriod
         );
 
+        // Calculate the amount available for withdrawal
+        // TODO: This is incorrect. Where do we find this?
+        uint256 availableLiquidity = totalSupply();
+
+        // How much is available to redeem for this period
+        uint256 availableShares = availableLiquidity
+            .mul(_poolSettings.withdrawGateBps)
+            .mul(PoolLib.RAY)
+            .div(10_000)
+            .div(PoolLib.RAY);
+
+        if (availableShares <= 0) {
+            // unable to redeem anything
+            redeemableShares = 0;
+            return 0;
+        }
+
         // Determine the amount of shares that we will actually distribute.
-        withdrawableShares = Math.min(
+        redeemableShares = Math.min(
             availableShares,
             _globalWithdrawState.eligibleShares
         );
 
+        // Calculate the withdrawable assets before we make any changes to
+        // the withdraw state.
+        uint256 withdrawableAssets = convertToAssets(redeemableShares);
+
+        // Calculate the redeemable rate for each lender
+        uint256 redeemableRateRay = redeemableShares.mul(PoolLib.RAY).div(
+            _globalWithdrawState.eligibleShares
+        );
+
+        // Decrease the global "eligible" shares, because they are moving to
+        // "redeemable" (aka "locked" for withdrawal)
+        _globalWithdrawState.eligibleShares = _globalWithdrawState
+            .eligibleShares
+            .sub(redeemableShares);
+
         // Increment how many shares and assets are "locked" for withdrawal
-        _globalWithdrawState.withdrawableShares = _globalWithdrawState
-            .withdrawableShares
-            .add(withdrawableShares);
+        _globalWithdrawState.redeemableShares = _globalWithdrawState
+            .redeemableShares
+            .add(redeemableShares);
         _globalWithdrawState.withdrawableAssets = _globalWithdrawState
             .withdrawableAssets
-            .add(convertToAssets(withdrawableShares));
+            .add(withdrawableAssets);
 
         // iterate over every address that has made a withdraw request, and
         // determine how many shares they should be receiveing out of this
-        // bucket of withdrawableShares
+        // bucket of redeemableShares
         for (uint256 i; i < _withdrawAddresses.length(); i++) {
             address _addr = _withdrawAddresses.at(i);
 
+            // crank the address's withdraw state
             _withdrawState[_addr] = PoolLib.progressWithdrawState(
                 _withdrawState[_addr],
                 currentPeriod
@@ -367,14 +390,14 @@ contract Pool is IPool, ERC20 {
             // calculate the shares able to be withdrawn
             uint256 shares = _withdrawState[_addr]
                 .eligibleShares
-                .mul(PoolLib.RAY)
-                .div(withdrawableShares)
+                .mul(redeemableRateRay)
                 .div(PoolLib.RAY);
+
             uint256 assets = convertToAssets(shares);
 
             // Increment the withdrawable Shares for this lender
-            _withdrawState[_addr].withdrawableShares = _withdrawState[_addr]
-                .withdrawableShares
+            _withdrawState[_addr].redeemableShares = _withdrawState[_addr]
+                .redeemableShares
                 .add(shares);
             // Increment the withdrawable Shares for this lender
             _withdrawState[_addr].withdrawableAssets = _withdrawState[_addr]
@@ -530,26 +553,6 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
-     * @dev Returns the number of shares that are available to be redeemed by
-     * the owner in the current block.
-     */
-    function eligibleBalanceOf(address owner)
-        external
-        view
-        returns (uint256 shares)
-    {
-        shares = _withdrawState[owner].eligibleShares;
-    }
-
-    /**
-     * @dev Returns the number of shares that are available to be redeemed by
-     * the owner in the current block.
-     */
-    function totalEligibleBalance() external view returns (uint256 shares) {
-        shares = _globalWithdrawState.eligibleShares;
-    }
-
-    /**
      * @dev Returns the number of shares that have been requested to be redeemed
      * by the owner as of the current block.
      */
@@ -570,23 +573,86 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
+     * @dev Returns the number of shares owned by an address that are "vested"
+     * enough to be considered for redeeming during the next withdraw period.
+     */
+    function eligibleBalanceOf(address owner)
+        external
+        view
+        returns (uint256 shares)
+    {
+        shares = _withdrawState[owner].eligibleShares;
+    }
+
+    /**
+     * @dev Returns the number of shares overall that are "vested" enough to be
+     * considered for redeeming during the next withdraw period.
+     */
+    function totalEligibleBalance() external view returns (uint256 shares) {
+        shares = _globalWithdrawState.eligibleShares;
+    }
+
+    /**
+     * @dev Returns the number of shares that are available to be redeemed
+     * by an owner in the current block.
+     */
+    function redeemableBalanceOf(address owner)
+        external
+        view
+        returns (uint256 shares)
+    {
+        shares = _withdrawState[owner].redeemableShares;
+    }
+
+    /**
+     * @dev Returns the number of shares that are available to be redeemed
+     * overall in the current block.
+     */
+    function totalRedeemableBalance() external view returns (uint256 shares) {
+        shares = _globalWithdrawState.redeemableShares;
+    }
+
+    /**
+     * @dev Returns the number of `assets` that are available to be withdrawn
+     * by an owner in the current block.
+     */
+    function withdrawableBalanceOf(address owner)
+        external
+        view
+        returns (uint256 assets)
+    {
+        assets = _withdrawState[owner].withdrawableAssets;
+    }
+
+    /**
+     * @dev Returns the number of `assets` that are available to be withdrawn
+     * overall in the current block.
+     */
+    function totalWithdrawableBalance() external view returns (uint256 assets) {
+        assets = _globalWithdrawState.withdrawableAssets;
+    }
+
+    /**
      * @dev Performs a redeem request for the owner, including paying any fees.
      */
     function _requestRedeem(address owner, uint256 shares) internal {
         require(maxRedeemRequest(owner) >= shares, "Pool: InsufficientBalance");
 
-        uint256 nextPeriod = withdrawPeriod() + 1;
+        uint256 currentPeriod = withdrawPeriod();
+        uint256 nextPeriod = withdrawPeriod().add(1);
         uint256 feeShares = PoolLib.calculateRequestFee(
             shares,
             _poolSettings.requestFeeBps
         );
 
         // Pay the Fee
+        // TODO: Doesn't this make the owner's other shares more valuable?
         _burn(owner, feeShares);
 
         // Update the requested amount from the user
         _withdrawState[owner] = PoolLib.caclulateWithdrawState(
             _withdrawState[owner],
+            currentPeriod,
             nextPeriod,
             shares
         );
@@ -597,6 +663,7 @@ contract Pool is IPool, ERC20 {
         // Update the global amount
         _globalWithdrawState = PoolLib.caclulateWithdrawState(
             _globalWithdrawState,
+            currentPeriod,
             nextPeriod,
             shares
         );
@@ -776,7 +843,7 @@ contract Pool is IPool, ERC20 {
     {
         shares = PoolLib.calculateAssetsToShares(
             assets,
-            _withdrawState[msg.sender].withdrawableShares,
+            _withdrawState[msg.sender].redeemableShares,
             _withdrawState[msg.sender].withdrawableAssets
         );
     }
@@ -796,7 +863,7 @@ contract Pool is IPool, ERC20 {
         // Calculate how many shares should be burned
         shares = PoolLib.calculateAssetsToShares(
             assets,
-            _withdrawState[owner].withdrawableShares,
+            _withdrawState[owner].redeemableShares,
             _withdrawState[owner].withdrawableAssets
         );
 
@@ -808,7 +875,7 @@ contract Pool is IPool, ERC20 {
      * @dev The maximum amount of shares that can be redeemed from the owner balance through a redeem call.
      */
     function maxRedeem(address owner) public view override returns (uint256) {
-        return _withdrawState[owner].withdrawableShares;
+        return _withdrawState[owner].redeemableShares;
     }
 
     /**
@@ -823,7 +890,7 @@ contract Pool is IPool, ERC20 {
         assets = PoolLib.calculateSharesToAssets(
             shares,
             _withdrawState[msg.sender].withdrawableAssets,
-            _withdrawState[msg.sender].withdrawableShares
+            _withdrawState[msg.sender].redeemableShares
         );
     }
 
@@ -843,7 +910,7 @@ contract Pool is IPool, ERC20 {
         assets = PoolLib.calculateSharesToAssets(
             shares,
             _withdrawState[owner].withdrawableAssets,
-            _withdrawState[owner].withdrawableShares
+            _withdrawState[owner].redeemableShares
         );
 
         // Update the withdraw state, transfer assets, and burn the shares
@@ -867,14 +934,14 @@ contract Pool is IPool, ERC20 {
         );
 
         require(
-            shares <= _withdrawState[owner].withdrawableShares,
+            shares <= _withdrawState[owner].redeemableShares,
             "Pool: InsufficientBalance"
         );
 
         // update the withdrawstate to account for these shares being
         // removed from "withdrawable"
-        _withdrawState[owner].withdrawableShares = _withdrawState[owner]
-            .withdrawableShares
+        _withdrawState[owner].redeemableShares = _withdrawState[owner]
+            .redeemableShares
             .sub(shares);
         _withdrawState[owner].withdrawableAssets = _withdrawState[owner]
             .withdrawableAssets

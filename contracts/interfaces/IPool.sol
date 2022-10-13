@@ -39,8 +39,8 @@ struct IPoolConfigurableSettings {
 struct IPoolWithdrawState {
     uint256 requestedShares; // Number of shares requested in the `latestPeriod`
     uint256 eligibleShares; // Number of shares that are eligibble to be CONSIDERED for withdraw by the crank
-    uint256 lastUpdatedPeriod; // Period where this was last updated
-    uint256 withdrawableShares; // The shares that are currently withdrawable
+    uint256 latestRequestPeriod; // Period where this was last updated
+    uint256 redeemableShares; // The shares that are currently withdrawable
     uint256 withdrawableAssets; // The assets that are currently withdrawable
 }
 

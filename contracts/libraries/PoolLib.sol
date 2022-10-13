@@ -309,13 +309,12 @@ library PoolLib {
 
     function progressWithdrawState(
         IPoolWithdrawState memory state,
-        uint256 requestedPeriod
+        uint256 currentPeriod
     ) public pure returns (IPoolWithdrawState memory) {
-        require(requestedPeriod > 0, "Pool: Invalid request period");
         // If the latest withdrawlState has not been updated for this
         // given request period, we need to move "requested" shares over
         // to be "eligible".
-        if (state.lastUpdatedPeriod < requestedPeriod) {
+        if (state.latestRequestPeriod <= currentPeriod) {
             state.eligibleShares = state.eligibleShares.add(
                 state.requestedShares
             );
@@ -331,19 +330,20 @@ library PoolLib {
      */
     function caclulateWithdrawState(
         IPoolWithdrawState memory state,
+        uint256 currentPeriod,
         uint256 requestedPeriod,
         uint256 requestedShares
     ) public pure returns (IPoolWithdrawState memory updatedState) {
         require(requestedPeriod > 0, "Pool: Invalid request period");
 
-        updatedState = progressWithdrawState(state, requestedPeriod);
+        updatedState = progressWithdrawState(state, currentPeriod);
 
-        // Increment the requested shares count, and ensure the "lastUpdatedPeriod"
+        // Increment the requested shares count, and ensure the "latestRequestPeriod"
         // is set to the current request period.
         updatedState.requestedShares = state.requestedShares.add(
             requestedShares
         );
-        updatedState.lastUpdatedPeriod = requestedPeriod;
+        updatedState.latestRequestPeriod = requestedPeriod;
     }
 
     /**
@@ -354,6 +354,7 @@ library PoolLib {
         pure
         returns (uint256)
     {
+        // TODO: Need to Round up / Down?
         return shares.mul(requestFeeBps).div(10000);
     }
 
@@ -365,9 +366,11 @@ library PoolLib {
         uint256 shareBalance,
         uint256 requestFeeBps
     ) public pure returns (uint256) {
-        uint256 sharesRemaining = shareBalance.sub(state.requestedShares).sub(
-            state.eligibleShares
-        );
+        uint256 sharesRemaining = shareBalance
+            .sub(state.requestedShares)
+            .sub(state.eligibleShares)
+            .sub(state.redeemableShares);
+
         uint256 sharesFee = calculateRequestFee(sharesRemaining, requestFeeBps);
 
         return Math.max(sharesRemaining.sub(sharesFee), 0);

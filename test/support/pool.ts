@@ -96,3 +96,30 @@ export async function depositToPool(
     .connect(depositorAccount)
     .deposit(amount, depositorAccount.address);
 }
+
+type WithdrawState = {
+  requestedShares: number;
+  eligibleShares: number;
+  latestRequestPeriod: number;
+  redeemableShares: number;
+  withdrawableAssets: number;
+};
+
+/**
+ *
+ */
+export const buildWithdrawState = (
+  overrides: Partial<WithdrawState> = {}
+): WithdrawState => {
+  return Object.assign(
+    {},
+    {
+      requestedShares: 0,
+      eligibleShares: 0,
+      latestRequestPeriod: 0,
+      redeemableShares: 0,
+      withdrawableAssets: 0
+    },
+    overrides
+  );
+};

@@ -1,8 +1,9 @@
-import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { deployLoan } from "../support/loan";
 import { deployMockERC20 } from "../support/erc20";
+import { buildWithdrawState } from "../support/pool";
 
 describe("PoolLib", () => {
   const FIRST_LOSS_AMOUNT = 100;
@@ -493,35 +494,39 @@ describe("PoolLib", () => {
     it("increments the requested shares of the lender", async () => {
       const { poolLibWrapper } = await loadFixture(deployFixture);
 
-      const withdrawState = {
-        requestedShares: 0,
-        eligibleShares: 0,
-        lastUpdatedPeriod: 0
-      };
+      const withdrawState = buildWithdrawState();
 
       expect(
-        await poolLibWrapper.caclulateWithdrawState(withdrawState, 1, 22)
-      ).to.deep.equal([
-        /* requestedShares: */ 22, /* eligibleShares: */ 0,
-        /* lastUpdatedPeriod: */ 1
-      ]);
+        await poolLibWrapper.caclulateWithdrawState(withdrawState, 0, 1, 22)
+      ).to.deep.equal(
+        Object.values(
+          buildWithdrawState({
+            requestedShares: 22,
+            latestRequestPeriod: 1
+          })
+        )
+      );
     });
 
     it("rolls over requested shares to be eligible if we are in a new period", async () => {
       const { poolLibWrapper } = await loadFixture(deployFixture);
 
-      const withdrawState = {
+      const withdrawState = buildWithdrawState({
         requestedShares: 50,
-        eligibleShares: 0,
-        lastUpdatedPeriod: 1
-      };
+        latestRequestPeriod: 1
+      });
 
       expect(
-        await poolLibWrapper.caclulateWithdrawState(withdrawState, 2, 33)
-      ).to.deep.equal([
-        /* requestedShares: */ 33, /* eligibleShares: */ 50,
-        /* lastUpdatedPeriod: */ 2
-      ]);
+        await poolLibWrapper.caclulateWithdrawState(withdrawState, 1, 2, 33)
+      ).to.deep.equal(
+        Object.values(
+          buildWithdrawState({
+            requestedShares: 33,
+            eligibleShares: 50,
+            latestRequestPeriod: 2
+          })
+        )
+      );
     });
   });
 
@@ -542,11 +547,11 @@ describe("PoolLib", () => {
 
       const balance = 100;
       const fees = 0;
-      const withdrawState = {
+      const withdrawState = buildWithdrawState({
         requestedShares: 50,
         eligibleShares: 22,
-        lastUpdatedPeriod: 2
-      };
+        latestRequestPeriod: 2
+      });
 
       expect(
         await poolLibWrapper.calculateMaxRedeemRequest(
@@ -562,11 +567,11 @@ describe("PoolLib", () => {
 
       const balance = 100;
       const fees = 1200; // 12%
-      const withdrawState = {
+      const withdrawState = buildWithdrawState({
         requestedShares: 50,
         eligibleShares: 20,
-        lastUpdatedPeriod: 2
-      };
+        latestRequestPeriod: 2
+      });
 
       expect(
         await poolLibWrapper.calculateMaxRedeemRequest(

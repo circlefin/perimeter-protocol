@@ -37,7 +37,14 @@ describe("PoolFactory", () => {
     const { poolFactory } = await loadFixture(deployFixture);
 
     await expect(
-      poolFactory.createPool(MOCK_LIQUIDITY_ADDRESS, 0, 0, 0, 0)
+      poolFactory.createPool(
+        MOCK_LIQUIDITY_ADDRESS,
+        0,
+        0,
+        0,
+        0,
+        /* window: */ 0
+      )
     ).to.be.revertedWith("PoolFactory: Invalid duration");
   });
 
@@ -45,7 +52,14 @@ describe("PoolFactory", () => {
     const { poolFactory } = await loadFixture(deployFixture);
 
     await expect(
-      poolFactory.createPool(MOCK_LIQUIDITY_ADDRESS, 0, 0, 0, 1)
+      poolFactory.createPool(
+        MOCK_LIQUIDITY_ADDRESS,
+        0,
+        0,
+        0,
+        0,
+        /* window: */ 1
+      )
     ).to.emit(poolFactory, "PoolCreated");
   });
 });
