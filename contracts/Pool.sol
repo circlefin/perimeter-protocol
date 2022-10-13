@@ -12,7 +12,6 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "./libraries/PoolLib.sol";
 import "./FirstLossVault.sol";
-import "hardhat/console.sol";
 
 /**
  * @title Pool
@@ -126,6 +125,13 @@ contract Pool is IPool, ERC20 {
         _serviceConfiguration = IServiceConfiguration(serviceConfiguration);
         _firstLossVault = new FirstLossVault(address(this), liquidityAsset);
         _setPoolLifeCycleState(IPoolLifeCycleState.Initialized);
+
+        // Allow the contract to move infinite amount of vault liquidity assets
+        bool approved = _liquidityAsset.approve(
+            address(this),
+            type(uint256).max
+        );
+        require(approved, "Unable to approve liquidity asset");
     }
 
     /**

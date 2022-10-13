@@ -1,13 +1,15 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { deployMockERC20 } from "../support/erc20";
 
 describe("PermissionedPoolFactory", () => {
-  const MOCK_LIQUIDITY_ADDRESS = "0x0000000000000000000000000000000000000001";
-
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
     const [operator, otherAccount] = await ethers.getSigners();
+
+    // Deploy the liquidity asset
+    const { mockERC20: liquidityAsset } = await deployMockERC20();
 
     // Deploy the Service Configuration contract
     const PermissionedServiceConfiguration = await ethers.getContractFactory(
@@ -56,31 +58,54 @@ describe("PermissionedPoolFactory", () => {
       poolFactory,
       poolManagerAccessControl,
       operator,
-      otherAccount
+      otherAccount,
+      liquidityAsset
     };
   }
 
   it("emits PoolCreated", async () => {
-    const { poolFactory, poolManagerAccessControl, otherAccount } =
-      await loadFixture(deployFixture);
+    const {
+      poolFactory,
+      poolManagerAccessControl,
+      otherAccount,
+      liquidityAsset
+    } = await loadFixture(deployFixture);
 
     await poolManagerAccessControl.allow(otherAccount.getAddress());
 
     await expect(
       poolFactory
         .connect(otherAccount)
-        .createPool(MOCK_LIQUIDITY_ADDRESS, 0, 0, 0, 0, 1)
+        .createPool(
+          /* liquidityAsset */ liquidityAsset.address,
+          /* maxCapacity */ 0,
+          /* endDate */ 0,
+          /* requestFeeBps */ 0,
+          /* withdrawGateBps */ 0,
+          /* withdrawRequestPeriodDuration: */ 1
+        )
     ).to.emit(poolFactory, "PoolCreated");
   });
 
   it("reverts if not called by a Pool Manager", async () => {
-    const { poolFactory, poolManagerAccessControl, otherAccount } =
-      await loadFixture(deployFixture);
+    const {
+      poolFactory,
+      poolManagerAccessControl,
+      otherAccount,
+      liquidityAsset
+    } = await loadFixture(deployFixture);
 
     await poolManagerAccessControl.allow(otherAccount.getAddress());
 
     await expect(
-      poolFactory.createPool(MOCK_LIQUIDITY_ADDRESS, 0, 0, 0, 0, 1)
+      poolFactory.createPool(
+        /* liquidityAsset */ liquidityAsset.address,
+        /* maxCapacity */ 0,
+        /* endDate */ 0,
+        /* requestFeeBps */ 0,
+        /* withdrawGateBps */ 0,
+        /* withdrawRequestPeriodDuration: */ 1
+      )
     ).to.be.revertedWith("caller is not a pool manager");
   });
 });
