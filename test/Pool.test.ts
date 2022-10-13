@@ -232,7 +232,7 @@ describe("Pool", () => {
       await depositToPool(pool, otherAccount, liquidityAsset, loanPrincipal);
       await fundLoan(loan, pool, poolManager);
 
-      // Confirm that pool liquidity reserve is now empty 
+      // Confirm that pool liquidity reserve is now empty
       expect(await liquidityAsset.balanceOf(pool.address)).to.equal(0);
 
       // Get an accounting snapshot prior to the default
@@ -243,7 +243,9 @@ describe("Pool", () => {
       // Expected loan outstanding stand = principal + numberPayments * payments
       const loanPaymentsRemaining = await loan.paymentsRemaining();
       const loanPaymentAmount = await loan.payment();
-      const loanOustandingDebt = loanPrincipal.add(loanPaymentsRemaining.mul(loanPaymentAmount));
+      const loanOustandingDebt = loanPrincipal.add(
+        loanPaymentsRemaining.mul(loanPaymentAmount)
+      );
 
       // Confirm that first loss is NOT enough to cover the oustanding loan debt
       expect(firstLossAvailable).to.be.lessThan(loanOustandingDebt);
@@ -254,19 +256,25 @@ describe("Pool", () => {
         .to.emit(pool, "LoanDefaulted")
         .withArgs(loan.address)
         .to.emit(pool, "FirstLossApplied")
-        .withArgs(loan.address, firstLossAvailable, loanOustandingDebt.sub(firstLossAvailable));
+        .withArgs(
+          loan.address,
+          firstLossAvailable,
+          loanOustandingDebt.sub(firstLossAvailable)
+        );
 
       // Check accountings after
-      // Pool accountings should be updated 
+      // Pool accountings should be updated
       expect((await pool.accountings()).activeLoanPrincipals).is.equal(
         activeLoanPrincipalBefore.sub(loanPrincipal)
       );
 
-      // First loss vault should be empty 
+      // First loss vault should be empty
       expect(await pool.firstLoss()).to.equal(0);
 
-      // Pool liquidity reserve should now contain the first loss 
-      expect(await liquidityAsset.balanceOf(pool.address)).to.equal(firstLossAvailable);
+      // Pool liquidity reserve should now contain the first loss
+      expect(await liquidityAsset.balanceOf(pool.address)).to.equal(
+        firstLossAvailable
+      );
     });
   });
 
