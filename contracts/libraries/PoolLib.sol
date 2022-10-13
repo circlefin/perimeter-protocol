@@ -11,6 +11,8 @@ import "../interfaces/IServiceConfiguration.sol";
 import "../FirstLossVault.sol";
 import "../LoanFactory.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @title Collection of functions used by the Pool
  */
@@ -47,6 +49,35 @@ library PoolLib {
         uint256 assets,
         uint256 shares
     );
+
+    /**
+     * @dev See IPool
+     */
+    event FirstLossApplied(
+        address indexed loan,
+        uint256 amount,
+        uint256 outstandingLosses
+    );
+
+    /**
+     * @dev Determines whether an address corresponds to a pool loan
+     * @param loan address of loan
+     * @param serviceConfiguration address of service configuration
+     * @param pool address of pool
+     */
+    function isPoolLoan(
+        address loan,
+        address serviceConfiguration,
+        address pool
+    ) public view returns (bool) {
+        address factory = ILoan(loan).factory();
+        return
+            IServiceConfiguration(serviceConfiguration).isLoanFactory(
+                factory
+            ) &&
+            LoanFactory(factory).isLoan(loan) &&
+            ILoan(loan).pool() == pool;
+    }
 
     /**
      * @dev See IPool for event definition
@@ -216,6 +247,45 @@ library PoolLib {
         return shares;
     }
 
+    /**
+     * @dev Executes a default, supplying first-loss to cover losses.
+     * @param asset Pool liquidity asset
+     * @param firstLossVault Vault holding first-loss capital
+     * @param loan Address of loan in default
+     * @param accountings Pool accountings to update
+     */
+    function executeDefault(
+        address asset,
+        address firstLossVault,
+        address loan,
+        address pool,
+        IPoolAccountings storage accountings
+    ) external {
+        ILoan(loan).markDefaulted();
+        accountings.activeLoanPrincipals -= ILoan(loan).principal();
+
+        uint256 firstLossBalance = IERC20(asset).balanceOf(
+            address(firstLossVault)
+        );
+
+        uint256 outstandingLoanDebt = ILoan(loan).outstandingPrincipal() +
+            ILoan(loan).paymentsRemaining() *
+            ILoan(loan).payment();
+
+        uint256 firstLossRequired = firstLossBalance >= outstandingLoanDebt
+            ? outstandingLoanDebt
+            : firstLossBalance;
+
+        FirstLossVault(firstLossVault).withdraw(firstLossRequired, pool);
+
+        emit LoanDefaulted(loan);
+        emit FirstLossApplied(
+            loan,
+            firstLossRequired,
+            outstandingLoanDebt.sub(firstLossRequired)
+        );
+    }
+
     /*//////////////////////////////////////////////////////////////
                     Withdrawal Request Methods
     //////////////////////////////////////////////////////////////*/
@@ -244,25 +314,5 @@ library PoolLib {
         uint256 withdrawalWindowDuration
     ) public view returns (uint256) {
         return currentWithdrawPeriod(activatedAt, withdrawalWindowDuration) + 1;
-    }
-
-    /**
-     * @dev Determines whether an address corresponds to a pool loan
-     * @param loan address of loan
-     * @param serviceConfiguration address of service configuration
-     * @param pool address of pool
-     */
-    function isPoolLoan(
-        address loan,
-        address serviceConfiguration,
-        address pool
-    ) public view returns (bool) {
-        address factory = ILoan(loan).factory();
-        return
-            IServiceConfiguration(serviceConfiguration).isLoanFactory(
-                factory
-            ) &&
-            LoanFactory(factory).isLoan(loan) &&
-            ILoan(loan).pool() == pool;
     }
 }
