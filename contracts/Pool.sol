@@ -8,6 +8,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./libraries/PoolLib.sol";
+import "./FeeVault.sol";
 import "./FirstLossVault.sol";
 
 /**
@@ -23,6 +24,7 @@ contract Pool is IPool, ERC20 {
     IServiceConfiguration private _serviceConfiguration;
     IERC20 private _liquidityAsset;
     IPoolConfigurableSettings private _poolSettings;
+    FeeVault private immutable _feeVault;
     FirstLossVault private _firstLossVault;
     IPoolAccountings private _accountings;
 
@@ -113,6 +115,7 @@ contract Pool is IPool, ERC20 {
         _manager = poolManager;
         _serviceConfiguration = IServiceConfiguration(serviceConfiguration);
         _firstLossVault = new FirstLossVault(address(this), liquidityAsset);
+        _feeVault = new FeeVault(address(this));
         _setPoolLifeCycleState(IPoolLifeCycleState.Initialized);
     }
 
