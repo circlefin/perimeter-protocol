@@ -12,7 +12,6 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "./libraries/PoolLib.sol";
 import "./FirstLossVault.sol";
-import "hardhat/console.sol";
 
 /**
  * @title Pool
@@ -344,13 +343,6 @@ contract Pool is IPool, ERC20 {
      * @dev Crank the protocol. Issues withdrawals
      */
     function crank() external returns (uint256 redeemableShares) {
-        // crank the total withdraw state
-        uint256 currentPeriod = withdrawPeriod();
-        _globalWithdrawState = PoolLib.progressWithdrawState(
-            _globalWithdrawState,
-            currentPeriod
-        );
-
         // Calculate the amount available for withdrawal
         // TODO: Find the real available liquidity
         uint256 availableLiquidity = totalSupply();
@@ -368,34 +360,24 @@ contract Pool is IPool, ERC20 {
             return 0;
         }
 
+        IPoolWithdrawState memory globalState = _currentGlobalWithdrawState();
+
         // Determine the amount of shares that we will actually distribute.
         redeemableShares = Math.min(
             availableShares,
-            _globalWithdrawState.eligibleShares
+            globalState.eligibleShares
         );
-
-        // Calculate the withdrawable assets before we make any changes to
-        // the withdraw state.
-        uint256 withdrawableAssets = convertToAssets(redeemableShares);
 
         // Calculate the redeemable rate for each lender
         uint256 redeemableRateRay = redeemableShares.mul(PoolLib.RAY).div(
-            _globalWithdrawState.eligibleShares
+            globalState.eligibleShares
         );
 
-        // Decrease the global "eligible" shares, because they are moving to
-        // "redeemable" (aka "locked" for withdrawal)
-        _globalWithdrawState.eligibleShares = _globalWithdrawState
-            .eligibleShares
-            .sub(redeemableShares);
-
-        // Increment how many shares and assets are "locked" for withdrawal
-        _globalWithdrawState.redeemableShares = _globalWithdrawState
-            .redeemableShares
-            .add(redeemableShares);
-        _globalWithdrawState.withdrawableAssets = _globalWithdrawState
-            .withdrawableAssets
-            .add(withdrawableAssets);
+        _globalWithdrawState = PoolLib.updateWithdrawStateForWithdraw(
+            globalState,
+            convertToAssets(redeemableShares),
+            redeemableShares
+        );
 
         // iterate over every address that has made a withdraw request, and
         // determine how many shares they should be receiveing out of this
@@ -404,37 +386,23 @@ contract Pool is IPool, ERC20 {
             address _addr = _withdrawAddresses.at(i);
 
             // crank the address's withdraw state
-            _withdrawState[_addr] = PoolLib.progressWithdrawState(
-                _withdrawState[_addr],
-                currentPeriod
-            );
+            IPoolWithdrawState memory state = _currentWithdrawState(_addr);
 
             // We're not eligible, move on to the next address
-            if (_withdrawState[_addr].eligibleShares == 0) {
+            if (state.eligibleShares == 0) {
                 continue;
             }
 
             // calculate the shares able to be withdrawn
-            uint256 shares = _withdrawState[_addr]
-                .eligibleShares
-                .mul(redeemableRateRay)
-                .div(PoolLib.RAY);
+            uint256 shares = state.eligibleShares.mul(redeemableRateRay).div(
+                PoolLib.RAY
+            );
 
-            uint256 assets = convertToAssets(shares);
-
-            // Increment the withdrawable Shares for this lender
-            _withdrawState[_addr].redeemableShares = _withdrawState[_addr]
-                .redeemableShares
-                .add(shares);
-            // Increment the withdrawable Shares for this lender
-            _withdrawState[_addr].withdrawableAssets = _withdrawState[_addr]
-                .withdrawableAssets
-                .add(assets);
-
-            // Subtract the "eligible" shares for this lender
-            _withdrawState[_addr].eligibleShares = _withdrawState[_addr]
-                .eligibleShares
-                .sub(shares);
+            _withdrawState[_addr] = PoolLib.updateWithdrawStateForWithdraw(
+                state,
+                convertToAssets(shares),
+                shares
+            );
         }
     }
 

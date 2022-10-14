@@ -382,4 +382,23 @@ library PoolLib {
 
         return Math.max(sharesRemaining.sub(sharesFee), 0);
     }
+
+    /**
+     * @dev
+     */
+    function updateWithdrawStateForWithdraw(
+        IPoolWithdrawState memory state,
+        uint256 assets,
+        uint256 shares
+    ) public pure returns (IPoolWithdrawState memory) {
+        // Decrease the "eligible" shares, because they are moving to
+        // "redeemable" (aka "locked" for withdrawal)
+        state.eligibleShares = state.eligibleShares.sub(shares);
+
+        // Increment how many shares and assets are "locked" for withdrawal
+        state.redeemableShares = state.redeemableShares.add(shares);
+        state.withdrawableAssets = state.withdrawableAssets.add(assets);
+
+        return state;
+    }
 }
