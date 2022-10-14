@@ -58,6 +58,46 @@ describe("Pool", () => {
     });
   });
 
+  describe("setRequestFee", () => {
+    it("sets the request fee in Bps", async () => {
+      const { pool, poolManager } = await loadFixture(loadPoolFixture);
+
+      const originalSettings = await pool.settings();
+      expect(originalSettings.requestFeeBps).to.equal(50);
+
+      await pool.connect(poolManager).setRequestFee(1000);
+
+      const settings = await pool.settings();
+      expect(settings.requestFeeBps).to.equal(1000);
+    });
+
+    it("does not let anyone except the manager to set the fee", async () => {
+      const { pool, otherAccount } = await loadFixture(loadPoolFixture);
+
+      const originalSettings = await pool.settings();
+      expect(originalSettings.requestFeeBps).to.equal(50);
+
+      await expect(
+        pool.connect(otherAccount).setRequestFee(10)
+      ).to.be.revertedWith("Pool: caller is not manager");
+    });
+
+    it("does not allow setting the request fee once the pool is active", async () => {
+      const { pool, poolManager, liquidityAsset } = await loadFixture(
+        loadPoolFixture
+      );
+
+      const originalSettings = await pool.settings();
+      expect(originalSettings.requestFeeBps).to.equal(50);
+
+      await activatePool(pool, poolManager, liquidityAsset);
+
+      await expect(
+        pool.connect(poolManager).setRequestFee(10)
+      ).to.be.revertedWith("Pool: FunctionInvalidAtThisLifeCycleState");
+    });
+  });
+
   describe("depositFirstLoss()", async () => {
     it("first loss can be deposited and transitions lifecycle state", async () => {
       const { pool, poolManager, liquidityAsset } = await loadFixture(
