@@ -226,6 +226,15 @@ contract Pool is IPool, ERC20 {
         onlyManager
         atState(IPoolLifeCycleState.Active)
     {
+        require(
+            PoolLib.isPoolLoan(
+                addr,
+                address(_serviceConfiguration),
+                address(this)
+            ),
+            "Pool: invalid loan"
+        );
+
         ILoan loan = ILoan(addr);
 
         _liquidityAsset.safeApprove(address(loan), loan.principal());

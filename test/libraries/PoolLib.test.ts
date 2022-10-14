@@ -438,45 +438,4 @@ describe("PoolLib", () => {
       ).to.equal(true);
     });
   });
-
-  describe("isPoolLoan()", async () => {
-    it("reverts if not passed an ILoan", async () => {
-      const { poolLibWrapper, serviceConfiguration, caller } =
-        await loadFixture(deployFixture);
-
-      await expect(
-        poolLibWrapper.isPoolLoan(
-          caller.address,
-          serviceConfiguration.address,
-          poolLibWrapper.address
-        )
-      ).to.be.reverted;
-    });
-
-    it("reverts if not passed a service configuration", async () => {
-      const { poolLibWrapper, loan } = await loadFixture(deployFixture);
-
-      await expect(
-        poolLibWrapper.isPoolLoan(
-          loan.address,
-          loan.address,
-          poolLibWrapper.address
-        )
-      ).to.be.reverted;
-    });
-
-    it("returns true if conditions are met", async () => {
-      const { poolLibWrapper, loan, serviceConfiguration } = await loadFixture(
-        deployFixture
-      );
-
-      expect(
-        await poolLibWrapper.isPoolLoan(
-          loan.address,
-          serviceConfiguration.address,
-          poolLibWrapper.address
-        )
-      ).to.equal(true);
-    });
-  });
 });
