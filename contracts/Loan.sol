@@ -3,6 +3,7 @@ pragma solidity ^0.8.16;
 
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./interfaces/ILoan.sol";
+import "./interfaces/IPool.sol";
 import "./interfaces/IServiceConfiguration.sol";
 import "./libraries/LoanLib.sol";
 import "./CollateralVault.sol";
@@ -261,7 +262,23 @@ contract Loan is ILoan {
         returns (uint256)
     {
         require(paymentsRemaining > 0, "Loan: No more payments remain");
-        LoanLib.completePayment(liquidityAsset, _pool, payment);
+
+        uint256 poolFee = RAY
+            .mul(_serviceConfiguration.poolFeePercentOfInterest())
+            .mul(payment)
+            .div(10000)
+            .div(RAY);
+        uint256 poolPayment = payment - poolFee;
+
+        LoanLib.completePayment(liquidityAsset, _pool, poolPayment);
+        if (poolFee > 0) {
+            LoanLib.completePayment(
+                liquidityAsset,
+                IPool(_pool).manager(),
+                poolFee
+            );
+        }
+
         paymentsRemaining -= 1;
         paymentDueDate += paymentPeriod * 1 days;
         return payment;

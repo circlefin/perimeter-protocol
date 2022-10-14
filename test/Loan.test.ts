@@ -135,7 +135,8 @@ describe("Loan", () => {
       collateralAsset,
       liquidityAsset,
       nftAsset,
-      other
+      other,
+      serviceConfiguration
     };
   }
 
@@ -645,6 +646,41 @@ describe("Loan", () => {
       await loan.connect(borrower).completeFullPayment();
       expect(await loan.paymentsRemaining()).to.equal(0);
       expect(await loan.state()).to.equal(5);
+    });
+
+    it("can collect pool fees from the next payment", async () => {
+      const fixture = await loadFixture(deployFixture);
+      const {
+        borrower,
+        collateralAsset,
+        liquidityAsset,
+        loan,
+        pool,
+        poolManager,
+        serviceConfiguration
+      } = fixture;
+
+      // Setup
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await loan
+        .connect(borrower)
+        .postFungibleCollateral(collateralAsset.address, 100);
+      await pool.connect(poolManager).fundLoan(loan.address);
+      await loan.connect(borrower).drawdown();
+
+      // Make payment
+      await serviceConfiguration.setPoolFeePercentOfInterest(100);
+      const dueDate = await loan.paymentDueDate();
+      expect(await loan.paymentsRemaining()).to.equal(6);
+      await liquidityAsset.connect(borrower).approve(loan.address, 2083);
+      const tx = loan.connect(borrower).completeNextPayment();
+      await expect(tx).to.not.be.reverted;
+      await expect(tx).to.changeTokenBalance(liquidityAsset, borrower, -2083);
+      await expect(tx).to.changeTokenBalance(liquidityAsset, pool, 2063);
+      await expect(tx).to.changeTokenBalance(liquidityAsset, poolManager, 20);
+      expect(await loan.paymentsRemaining()).to.equal(5);
+      const newDueDate = await loan.paymentDueDate();
+      expect(newDueDate).to.equal(dueDate.add(THIRTY_DAYS));
     });
   });
 

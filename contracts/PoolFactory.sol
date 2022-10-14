@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
-import "./FeeVault.sol";
 import "./Pool.sol";
 import "./interfaces/IServiceConfiguration.sol";
 
