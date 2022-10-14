@@ -84,6 +84,13 @@ library PoolLib {
     event LoanDefaulted(address indexed loan);
 
     /**
+     * @dev Math `ceil` method to round up on division
+     */
+    function ceil(uint256 lhs, uint256 rhs) internal pure returns (uint256) {
+        return (lhs + rhs - 1) / rhs;
+    }
+
+    /**
      * @dev Transfers first loss to the vault.
      * @param liquidityAsset Pool liquidity asset
      * @param amount Amount of first loss being contributed
@@ -348,14 +355,14 @@ library PoolLib {
 
     /**
      * @dev Calculate the fee for making a withdrawRequest or a redeemRequest.
+     * Per the EIP-4626 spec, this method rounds up.
      */
     function calculateRequestFee(uint256 shares, uint256 requestFeeBps)
         public
         pure
         returns (uint256)
     {
-        // TODO: Need to Round up / Down?
-        return shares.mul(requestFeeBps).div(10000);
+        return ceil(shares * requestFeeBps, 10_000);
     }
 
     /**

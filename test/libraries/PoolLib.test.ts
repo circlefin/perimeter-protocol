@@ -537,7 +537,18 @@ describe("PoolLib", () => {
       const shares = 500;
       const bps = 127; // 1.27%
 
-      expect(await poolLibWrapper.calculateRequestFee(shares, bps)).to.equal(6);
+      expect(await poolLibWrapper.calculateRequestFee(shares, bps)).to.equal(7);
+    });
+
+    it("rounds the fee up", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      const shares = 101;
+      const bps = 900; // 9%
+
+      expect(await poolLibWrapper.calculateRequestFee(shares, bps)).to.equal(
+        10
+      ); // 9.09 rounded up
     });
   });
 
