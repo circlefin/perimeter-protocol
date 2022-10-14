@@ -164,8 +164,28 @@ contract Pool is IPool, ERC20 {
         _poolSettings.requestFeeBps = feeBps;
     }
 
-    function setWithdrawGate(uint256 _withdrawGateBps) external onlyManager {
+    /**
+     * @dev Allow the current pool manager to update the withdraw gate at any
+     * time if the pool is Initialized or Active
+     */
+    function setWithdrawGate(uint256 _withdrawGateBps)
+        external
+        onlyManager
+        atInitializedOrActiveState
+    {
         _poolSettings.withdrawGateBps = _withdrawGateBps;
+    }
+
+    /**
+     * @dev Returns the current withdraw gate in bps. If the pool is closed, this
+     * is set to 10_000 (100%)
+     */
+    function withdrawGate() public view returns (uint256) {
+        if (_poolLifeCycleState == IPoolLifeCycleState.Closed) {
+            return 10_000;
+        }
+
+        return _poolSettings.withdrawGateBps;
     }
 
     /**

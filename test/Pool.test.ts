@@ -58,7 +58,7 @@ describe("Pool", () => {
     });
   });
 
-  describe("setRequestFee", () => {
+  describe("setRequestFee()", () => {
     it("sets the request fee in Bps", async () => {
       const { pool, poolManager } = await loadFixture(loadPoolFixture);
 
@@ -95,6 +95,56 @@ describe("Pool", () => {
       await expect(
         pool.connect(poolManager).setRequestFee(10)
       ).to.be.revertedWith("Pool: FunctionInvalidAtThisLifeCycleState");
+    });
+  });
+
+  describe("setWithdrawGate()", () => {
+    it("sets the withdraw gate in Bps", async () => {
+      const { pool, poolManager, liquidityAsset } = await loadFixture(
+        loadPoolFixture
+      );
+      await activatePool(pool, poolManager, liquidityAsset);
+
+      const originalSettings = await pool.settings();
+      expect(originalSettings.withdrawGateBps).to.equal(10_000);
+
+      await pool.connect(poolManager).setWithdrawGate(10);
+
+      const settings = await pool.settings();
+      expect(settings.withdrawGateBps).to.equal(10);
+    });
+
+    it("does not let anyone except the manager to set the withdraw gate", async () => {
+      const { pool, otherAccount } = await loadFixture(loadPoolFixture);
+
+      const originalSettings = await pool.settings();
+      expect(originalSettings.withdrawGateBps).to.equal(10_000);
+
+      await expect(
+        pool.connect(otherAccount).setWithdrawGate(10)
+      ).to.be.revertedWith("Pool: caller is not manager");
+    });
+
+    it("does not allow setting the request fee if the pool is paused", async () => {
+      // TODO: Pause bpool
+    });
+  });
+
+  describe("withdrawGate()", () => {
+    it("returns the current withdraw gate", async () => {
+      const { pool } = await loadFixture(loadPoolFixture);
+
+      expect(await pool.withdrawGate()).to.equal(10_000);
+    });
+
+    it("returns 100% if the pool is closed", async () => {
+      const { pool, poolManager } = await loadFixture(loadPoolFixture);
+
+      await pool.connect(poolManager).setWithdrawGate(0);
+      expect(await pool.withdrawGate()).to.equal(0);
+
+      // TODO: Close Pool
+      // expect(await pool.withdrawGate()).to.equal(10_000);
     });
   });
 
