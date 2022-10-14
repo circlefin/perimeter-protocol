@@ -26,6 +26,11 @@ library LoanLib {
     event LoanDrawnDown(address asset, uint256 amount);
 
     /**
+     * @dev Emitted when a loan payment is made.
+     */
+    event LoanPaymentMade(address pool, address liquidityAsset, uint256 amount);
+
+    /**
      * @dev Emitted when collateral is posted to the loan.
      */
     event PostedCollateral(address asset, uint256 amount);
@@ -192,5 +197,17 @@ library LoanLib {
     ) public {
         fundingVault.withdraw(amount, receiver);
         emit LoanDrawnDown(address(fundingVault.asset()), amount);
+    }
+
+    /**
+     * Make a payment
+     */
+    function completePayment(
+        address liquidityAsset,
+        address pool,
+        uint256 amount
+    ) public {
+        IERC20(liquidityAsset).safeTransferFrom(msg.sender, pool, amount);
+        emit LoanPaymentMade(pool, liquidityAsset, amount);
     }
 }
