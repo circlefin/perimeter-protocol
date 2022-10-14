@@ -6,8 +6,8 @@ import { deployServiceConfiguration } from "./serviceconfiguration";
 export const DEFAULT_POOL_SETTINGS = {
   maxCapacity: 10_000_000,
   endDate: 2524611601, // Jan 1, 2050
-  requestFeeBps: 50, // bips,
-  withdrawGateBps: 10_000, // 100%
+  requestFeeBps: 500, // bps (1%)
+  withdrawGateBps: 10_000, // bps (100%)
   firstLossInitialMinimum: 100_000,
   withdrawRequestPeriodDuration: 30 * 24 * 60 * 60 // 30 days
 };

@@ -12,6 +12,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "./libraries/PoolLib.sol";
 import "./FirstLossVault.sol";
+import "hardhat/console.sol";
 
 /**
  * @title Pool
@@ -351,7 +352,7 @@ contract Pool is IPool, ERC20 {
         );
 
         // Calculate the amount available for withdrawal
-        // TODO: This is incorrect. Where do we find this?
+        // TODO: Find the real available liquidity
         uint256 availableLiquidity = totalSupply();
 
         // How much is available to redeem for this period
@@ -469,6 +470,10 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
+     * @dev
+     */
+
+    /**
      * @dev Returns the maximum number of `shares` that can be
      * requested to be redeemed from the owner balance with a single
      * `requestRedeem` call in the current block.
@@ -521,8 +526,7 @@ contract Pool is IPool, ERC20 {
         returns (uint256 assets)
     {
         assets = convertToAssets(shares);
-        _requestRedeem(msg.sender, shares);
-        emit RedeemRequested(msg.sender, shares);
+        _requestWithdraw(msg.sender, assets, shares);
     }
 
     /**
@@ -574,8 +578,20 @@ contract Pool is IPool, ERC20 {
         returns (uint256 shares)
     {
         shares = convertToShares(assets);
-        _requestRedeem(msg.sender, shares);
-        emit WithdrawRequested(msg.sender, assets);
+        _requestWithdraw(msg.sender, assets, shares);
+    }
+
+    /**
+     * @dev Returns the amount of shares that should be considered interest
+     * bearing for a given owner.  This number is their balance, minus their
+     * "redeemable" shares.
+     */
+    function interestBearingBalanceOf(address owner)
+        public
+        view
+        returns (uint256 shares)
+    {
+        shares = balanceOf(owner) - maxRedeem(owner);
     }
 
     /**
@@ -583,11 +599,11 @@ contract Pool is IPool, ERC20 {
      * by the owner as of the current block.
      */
     function requestedBalanceOf(address owner)
-        external
+        public
         view
         returns (uint256 shares)
     {
-        shares = _withdrawState[owner].requestedShares;
+        shares = _currentWithdrawState(owner).requestedShares;
     }
 
     /**
@@ -595,7 +611,7 @@ contract Pool is IPool, ERC20 {
      * the owner in the current block.
      */
     function totalRequestedBalance() external view returns (uint256 shares) {
-        shares = _globalWithdrawState.requestedShares;
+        shares = _currentGlobalWithdrawState().requestedShares;
     }
 
     /**
@@ -607,7 +623,7 @@ contract Pool is IPool, ERC20 {
         view
         returns (uint256 shares)
     {
-        shares = _withdrawState[owner].eligibleShares;
+        shares = _currentWithdrawState(owner).eligibleShares;
     }
 
     /**
@@ -615,19 +631,7 @@ contract Pool is IPool, ERC20 {
      * considered for redeeming during the next withdraw period.
      */
     function totalEligibleBalance() external view returns (uint256 shares) {
-        shares = _globalWithdrawState.eligibleShares;
-    }
-
-    /**
-     * @dev Returns the number of shares that are available to be redeemed
-     * by an owner in the current block.
-     */
-    function redeemableBalanceOf(address owner)
-        external
-        view
-        returns (uint256 shares)
-    {
-        shares = _withdrawState[owner].redeemableShares;
+        shares = _currentGlobalWithdrawState().eligibleShares;
     }
 
     /**
@@ -635,19 +639,7 @@ contract Pool is IPool, ERC20 {
      * overall in the current block.
      */
     function totalRedeemableBalance() external view returns (uint256 shares) {
-        shares = _globalWithdrawState.redeemableShares;
-    }
-
-    /**
-     * @dev Returns the number of `assets` that are available to be withdrawn
-     * by an owner in the current block.
-     */
-    function withdrawableBalanceOf(address owner)
-        external
-        view
-        returns (uint256 assets)
-    {
-        assets = _withdrawState[owner].withdrawableAssets;
+        shares = _currentGlobalWithdrawState().redeemableShares;
     }
 
     /**
@@ -655,13 +647,45 @@ contract Pool is IPool, ERC20 {
      * overall in the current block.
      */
     function totalWithdrawableBalance() external view returns (uint256 assets) {
-        assets = _globalWithdrawState.withdrawableAssets;
+        assets = _currentGlobalWithdrawState().withdrawableAssets;
+    }
+
+    /**
+     * @dev Returns the current withdraw state of an owner.
+     */
+    function _currentWithdrawState(address owner)
+        internal
+        view
+        returns (IPoolWithdrawState memory state)
+    {
+        state = PoolLib.progressWithdrawState(
+            _withdrawState[owner],
+            withdrawPeriod()
+        );
+    }
+
+    /**
+     * @dev Returns the current global withdraw state.
+     */
+    function _currentGlobalWithdrawState()
+        internal
+        view
+        returns (IPoolWithdrawState memory state)
+    {
+        state = PoolLib.progressWithdrawState(
+            _globalWithdrawState,
+            withdrawPeriod()
+        );
     }
 
     /**
      * @dev Performs a redeem request for the owner, including paying any fees.
      */
-    function _requestRedeem(address owner, uint256 shares) internal {
+    function _requestWithdraw(
+        address owner,
+        uint256 assets,
+        uint256 shares
+    ) internal {
         require(maxRedeemRequest(owner) >= shares, "Pool: InsufficientBalance");
 
         uint256 currentPeriod = withdrawPeriod();
@@ -672,7 +696,6 @@ contract Pool is IPool, ERC20 {
         );
 
         // Pay the Fee
-        // TODO: Doesn't this make the owner's other shares more valuable?
         _burn(owner, feeShares);
 
         // Update the requested amount from the user
@@ -693,6 +716,8 @@ contract Pool is IPool, ERC20 {
             nextPeriod,
             shares
         );
+
+        emit WithdrawRequested(msg.sender, assets, shares);
     }
 
     /**
@@ -883,6 +908,8 @@ contract Pool is IPool, ERC20 {
         address receiver,
         address owner
     ) external virtual returns (uint256 shares) {
+        require(receiver == owner, "Pool: Withdrawal to unrelated address");
+        require(receiver == msg.sender, "Pool: Must transfer to msg.sender");
         require(assets > 0, "Pool: 0 withdraw not allowed");
         require(maxWithdraw(owner) >= assets, "Pool: InsufficientBalance");
 
@@ -894,14 +921,19 @@ contract Pool is IPool, ERC20 {
         );
 
         // Update the withdraw state, transfer assets, and burn the shares
-        _redeem(shares, assets, owner, receiver);
+        _withdraw(assets, shares, owner, receiver);
     }
 
     /**
      * @dev The maximum amount of shares that can be redeemed from the owner balance through a redeem call.
      */
-    function maxRedeem(address owner) public view override returns (uint256) {
-        return _withdrawState[owner].redeemableShares;
+    function maxRedeem(address owner)
+        public
+        view
+        override
+        returns (uint256 maxShares)
+    {
+        maxShares = _currentWithdrawState(owner).redeemableShares;
     }
 
     /**
@@ -929,6 +961,8 @@ contract Pool is IPool, ERC20 {
         address receiver,
         address owner
     ) external virtual returns (uint256 assets) {
+        require(receiver == owner, "Pool: Withdrawal to unrelated address");
+        require(receiver == msg.sender, "Pool: Must transfer to msg.sender");
         require(shares > 0, "Pool: 0 redeem not allowed");
         require(maxRedeem(owner) >= shares, "Pool: InsufficientBalance");
 
@@ -940,7 +974,7 @@ contract Pool is IPool, ERC20 {
         );
 
         // Update the withdraw state, transfer assets, and burn the shares
-        _redeem(shares, assets, receiver, owner);
+        _withdraw(assets, shares, receiver, owner);
     }
 
     /**
@@ -948,9 +982,9 @@ contract Pool is IPool, ERC20 {
      * will transfer `assets` from the vault to the `receiver`, and burn `shares`
      * from `owner`.
      */
-    function _redeem(
-        uint256 shares,
+    function _withdraw(
         uint256 assets,
+        uint256 shares,
         address owner,
         address receiver
     ) internal {
@@ -978,6 +1012,8 @@ contract Pool is IPool, ERC20 {
 
         // Burn the shares
         _burn(owner, shares);
+
+        emit Withdraw(msg.sender, receiver, owner, assets, shares);
     }
 
     /*//////////////////////////////////////////////////////////////

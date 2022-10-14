@@ -69,19 +69,18 @@ interface IPool is IERC4626 {
     event LoanMatured(address indexed loan);
 
     /**
-     * @dev Emitted when a withdrawal is requested.
-     */
-    event WithdrawRequested(address indexed lender, uint256 assets);
-
-    /**
      * @dev Emitted when a redeem fee is paid.
      */
     event RequestFeePaid(address indexed lender, uint256 feeShares);
 
     /**
-     * @dev Emitted when a redeem is requested.
+     * @dev Emitted when a withdrawal is requested.
      */
-    event RedeemRequested(address indexed lender, uint256 shares);
+    event WithdrawRequested(
+        address indexed lender,
+        uint256 assets,
+        uint256 shares
+    );
 
     /**
      * @dev Emitted when pool settings are updated.

@@ -590,7 +590,7 @@ describe("PoolLib", () => {
           balance,
           fees
         )
-      ).to.equal(27);
+      ).to.equal(26);
     });
   });
 });

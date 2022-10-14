@@ -61,14 +61,14 @@ describe("Withdraw Requests", () => {
     // Verify Alice's withdrawal state is updated
     expect(await pool.requestedBalanceOf(aliceLender.address)).to.equal(50);
     expect(await pool.eligibleBalanceOf(aliceLender.address)).to.equal(0);
-    expect(await pool.redeemableBalanceOf(aliceLender.address)).to.equal(0);
-    expect(await pool.withdrawableBalanceOf(aliceLender.address)).to.equal(0);
+    expect(await pool.maxRedeem(aliceLender.address)).to.equal(0);
+    expect(await pool.maxWithdraw(aliceLender.address)).to.equal(0);
 
     // Verify Bob's withdrawal state is updated
     expect(await pool.requestedBalanceOf(bobLender.address)).to.equal(10);
     expect(await pool.eligibleBalanceOf(bobLender.address)).to.equal(0);
-    expect(await pool.redeemableBalanceOf(bobLender.address)).to.equal(0);
-    expect(await pool.withdrawableBalanceOf(bobLender.address)).to.equal(0);
+    expect(await pool.maxRedeem(bobLender.address)).to.equal(0);
+    expect(await pool.maxWithdraw(bobLender.address)).to.equal(0);
 
     // Verify the Global withdrawal state is updated
     expect(await pool.totalRequestedBalance()).to.equal(60);
@@ -78,27 +78,25 @@ describe("Withdraw Requests", () => {
 
     // Expect Alice's maxWithdrawRequest amounts have decreased
     expect(await pool.maxRedeemRequest(aliceLender.address)).to.equal(
-      // TODO: Rounding. See `PoolLib.cacluclateRequestFee`
-      Math.ceil(
+      Math.floor(
         (100 /* initial balance */ -
           50 /* requested */ -
           5) /* previous request fee */ *
           0.9 /* sub the request fee */
       )
     );
-    expect(await pool.maxWithdrawRequest(aliceLender.address)).to.equal(42);
+    expect(await pool.maxWithdrawRequest(aliceLender.address)).to.equal(41);
 
     // Expect Bob's maxWithdrawRequest amounts have decreased
     expect(await pool.maxRedeemRequest(bobLender.address)).to.equal(
-      // TODO: Rounding. See `PoolLib.cacluclateRequestFee`
-      Math.ceil(
+      Math.floor(
         (70 /* initial balance */ -
           10 /* requested */ -
           1) /* previous request fee */ *
           0.9 /* sub the request fee */
       )
     );
-    expect(await pool.maxWithdrawRequest(bobLender.address)).to.equal(55);
+    expect(await pool.maxWithdrawRequest(bobLender.address)).to.equal(54);
 
     // Skip ahead to the next window
     await time.increase(withdrawRequestPeriodDuration);
