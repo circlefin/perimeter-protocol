@@ -125,12 +125,7 @@ interface ILoan {
 
     function markDefaulted() external returns (ILoanLifeCycleState);
 
-    // TODO - remove
-    function outstandingPrincipal() external view returns (uint256);
-
     function paymentsRemaining() external view returns (uint256);
-
-    function paymentsTotal() external view returns (uint256);
 
     function payment() external view returns (uint256);
 
