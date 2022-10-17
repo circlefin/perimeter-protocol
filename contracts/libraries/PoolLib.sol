@@ -13,9 +13,6 @@ import "../interfaces/IServiceConfiguration.sol";
 import "../FirstLossVault.sol";
 import "../LoanFactory.sol";
 
-// TODO - remove
-import "hardhat/console.sol";
-
 /**
  * @title Collection of functions used by the Pool
  */

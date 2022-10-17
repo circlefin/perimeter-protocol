@@ -381,7 +381,7 @@ describe("Pool", () => {
     });
   });
 
-  describe.only("previewDeposit()", async () => {
+  describe("previewDeposit()", async () => {
     it("reverts if loan if Pool hasn't funded loan yet", async () => {
       const lender = (await ethers.getSigners())[10];
       const { pool, poolManager, liquidityAsset, loan, otherAccount } =
