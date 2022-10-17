@@ -260,9 +260,13 @@ contract Pool is IPool, ERC20 {
             "Pool: invalid loan"
         );
 
-        ILoan(loan).markDefaulted();
-        _accountings.activeLoanPrincipals -= ILoan(loan).principal();
-        emit LoanDefaulted(loan);
+        PoolLib.executeDefault(
+            asset(),
+            address(_firstLossVault),
+            loan,
+            address(this),
+            _accountings
+        );
     }
 
     /*//////////////////////////////////////////////////////////////

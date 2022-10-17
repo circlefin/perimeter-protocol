@@ -77,6 +77,15 @@ interface IPool is IERC4626 {
     event PoolSettingsUpdated(IPoolConfigurableSettings settings);
 
     /**
+     * @dev Emitted when first loss capital is used to cover loan defaults
+     */
+    event FirstLossApplied(
+        address indexed loan,
+        uint256 amount,
+        uint256 outstandingLoss
+    );
+
+    /**
      * @dev Returns the current pool lifecycle state.
      */
     function lifeCycleState() external view returns (IPoolLifeCycleState);
