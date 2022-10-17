@@ -266,7 +266,9 @@ library PoolLib {
             address(firstLossVault)
         );
 
-        uint256 outstandingLoanDebt = ILoan(loan).outstandingPrincipal() +
+        // TODO - handle open-term loans where principal may
+        // not be fully oustanding.
+        uint256 outstandingLoanDebt = ILoan(loan).principal() +
             ILoan(loan).paymentsRemaining() *
             ILoan(loan).payment();
 

@@ -78,17 +78,17 @@ interface ILoan {
     /**
      * @dev Number of payments remaining
      */
-    function paymentsRemaining() external returns (uint256);
+    function paymentsRemaining() external view returns (uint256);
 
     /**
      * @dev Amount expected in each payment
      */
-    function payment() external returns (uint256);
+    function payment() external view returns (uint256);
 
     /**
      * @dev Due date for the next payment
      */
-    function paymentDueDate() external returns (uint256);
+    function paymentDueDate() external view returns (uint256);
 
     function postFungibleCollateral(address asset, uint256 amount)
         external
@@ -124,10 +124,4 @@ interface ILoan {
     function fundingVault() external returns (FundingVault);
 
     function markDefaulted() external returns (ILoanLifeCycleState);
-
-    function paymentsRemaining() external view returns (uint256);
-
-    function payment() external view returns (uint256);
-
-    function paymentDueDate() external view returns (uint256);
 }
