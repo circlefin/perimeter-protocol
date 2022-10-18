@@ -27,19 +27,21 @@ enum IPoolLifeCycleState {
 struct IPoolConfigurableSettings {
     uint256 maxCapacity; // amount
     uint256 endDate; // epoch seconds
-    uint256 withdrawalFee; // bips
+    uint256 requestFeeBps; // bips
+    uint256 withdrawGateBps; // Percent of liquidity pool available to withdraw, represented in BPS
     uint256 firstLossInitialMinimum; // amount
     uint256 withdrawRequestPeriodDuration; // seconds (e.g. 30 days)
-    // TODO: add in Pool fees
 }
 
 /**
  * @dev contains withdraw request information
  */
 struct IPoolWithdrawState {
-    uint256 requested;
-    uint256 eligible;
-    uint256 latestPeriod;
+    uint256 requestedShares; // Number of shares requested in the `latestPeriod`
+    uint256 eligibleShares; // Number of shares that are eligibble to be CONSIDERED for withdraw by the crank
+    uint256 latestRequestPeriod; // Period where this was last updated
+    uint256 redeemableShares; // The shares that are currently withdrawable
+    uint256 withdrawableAssets; // The assets that are currently withdrawable
 }
 
 /**
@@ -67,9 +69,18 @@ interface IPool is IERC4626 {
     event LoanMatured(address indexed loan);
 
     /**
+     * @dev Emitted when a redeem fee is paid.
+     */
+    event RequestFeePaid(address indexed lender, uint256 feeShares);
+
+    /**
      * @dev Emitted when a withdrawal is requested.
      */
-    event WithdrawRequested(address indexed lender, uint256 amount);
+    event WithdrawRequested(
+        address indexed lender,
+        uint256 assets,
+        uint256 shares
+    );
 
     /**
      * @dev Emitted when pool settings are updated.
@@ -138,12 +149,12 @@ interface IPool is IERC4626 {
     /**
      * @dev Returns the withdrawal fee for a given withdrawal amount at the current block.
      */
-    function feeForWithdrawalRequest(uint256) external view returns (uint256);
+    function requestFee(uint256) external view returns (uint256);
 
     /**
      * @dev Submits a withdrawal request, incurring a fee.
      */
-    function requestWithdraw(uint256) external;
+    function requestWithdraw(uint256) external returns (uint256);
 
     /**
      * @dev Called by the pool manager, this transfers liquidity from the pool to a given loan.

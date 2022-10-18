@@ -4,6 +4,7 @@ pragma solidity ^0.8.16;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "../interfaces/ILoan.sol";
 import "../interfaces/IPool.sol";
 import "../interfaces/ILoan.sol";
@@ -81,6 +82,13 @@ library PoolLib {
      * @dev See IPool for event definition
      */
     event LoanDefaulted(address indexed loan);
+
+    /**
+     * @dev Math `ceil` method to round up on division
+     */
+    function ceil(uint256 lhs, uint256 rhs) internal pure returns (uint256) {
+        return (lhs + rhs - 1) / rhs;
+    }
 
     /**
      * @dev Transfers first loss to the vault.
@@ -241,6 +249,7 @@ library PoolLib {
 
         IERC20(asset).safeTransferFrom(msg.sender, vault, assets);
         mint(sharesReceiver, shares);
+
         emit Deposit(msg.sender, sharesReceiver, assets, shares);
         return shares;
     }
@@ -291,28 +300,105 @@ library PoolLib {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev The current withdrawal period.
+     * @dev The current withdrawal period. Withdraw Requests made prior to this
+     * window are eligible to be included in the withdrawal flows.
      */
-    function currentWithdrawPeriod(
+    function calculateCurrentWithdrawPeriod(
+        uint256 currentTimestamp,
         uint256 activatedAt,
         uint256 withdrawalWindowDuration
-    ) public view returns (uint256) {
+    ) public pure returns (uint256) {
         if (activatedAt == 0) {
             return 0;
         }
+        return (currentTimestamp - activatedAt) / withdrawalWindowDuration;
+    }
 
-        return (block.timestamp - activatedAt) / withdrawalWindowDuration;
+    function progressWithdrawState(
+        IPoolWithdrawState memory state,
+        uint256 currentPeriod
+    ) public pure returns (IPoolWithdrawState memory) {
+        // If the latest withdrawlState has not been updated for this
+        // given request period, we need to move "requested" shares over
+        // to be "eligible".
+        if (state.latestRequestPeriod <= currentPeriod) {
+            state.eligibleShares = state.eligibleShares.add(
+                state.requestedShares
+            );
+            state.requestedShares = 0;
+        }
+
+        return state;
     }
 
     /**
-     * @dev The current withdrawal request period. Withdrawal requests made
-     * made now are able to be withdrawn in the withdrawal period that matches
-     * this value.
+     * @dev Calculate the current IPoolWithdrawState based on the existing
+     * request state and the current request period.
      */
-    function currentRequestPeriod(
-        uint256 activatedAt,
-        uint256 withdrawalWindowDuration
-    ) public view returns (uint256) {
-        return currentWithdrawPeriod(activatedAt, withdrawalWindowDuration) + 1;
+    function caclulateWithdrawState(
+        IPoolWithdrawState memory state,
+        uint256 currentPeriod,
+        uint256 requestedPeriod,
+        uint256 requestedShares
+    ) public pure returns (IPoolWithdrawState memory updatedState) {
+        require(requestedPeriod > 0, "Pool: Invalid request period");
+
+        updatedState = progressWithdrawState(state, currentPeriod);
+
+        // Increment the requested shares count, and ensure the "latestRequestPeriod"
+        // is set to the current request period.
+        updatedState.requestedShares = state.requestedShares.add(
+            requestedShares
+        );
+        updatedState.latestRequestPeriod = requestedPeriod;
+    }
+
+    /**
+     * @dev Calculate the fee for making a withdrawRequest or a redeemRequest.
+     * Per the EIP-4626 spec, this method rounds up.
+     */
+    function calculateRequestFee(uint256 shares, uint256 requestFeeBps)
+        public
+        pure
+        returns (uint256)
+    {
+        return ceil(shares * requestFeeBps, 10_000);
+    }
+
+    /**
+     * @dev Calculates the Maximum amount of shares that can be requested
+     */
+    function calculateMaxRedeemRequest(
+        IPoolWithdrawState memory state,
+        uint256 shareBalance,
+        uint256 requestFeeBps
+    ) public pure returns (uint256) {
+        uint256 sharesRemaining = shareBalance
+            .sub(state.requestedShares)
+            .sub(state.eligibleShares)
+            .sub(state.redeemableShares);
+
+        uint256 sharesFee = calculateRequestFee(sharesRemaining, requestFeeBps);
+
+        return Math.max(sharesRemaining.sub(sharesFee), 0);
+    }
+
+    /**
+     * @dev
+     */
+    function updateWithdrawStateForWithdraw(
+        IPoolWithdrawState memory state,
+        uint256 assets,
+        uint256 shares
+    ) public pure returns (IPoolWithdrawState memory) {
+        // Decrease the "eligible" shares, because they are moving to
+        // "redeemable" (aka "locked" for withdrawal)
+        state.eligibleShares = state.eligibleShares.sub(shares);
+
+        // Increment how many shares and assets are "locked" for withdrawal
+        state.redeemableShares = state.redeemableShares.add(shares);
+        state.withdrawableAssets = state.withdrawableAssets.add(assets);
+
+        return state;
     }
 }

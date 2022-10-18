@@ -43,7 +43,8 @@ contract PermissionedPoolFactory is PoolFactory {
         address liquidityAsset,
         uint256 maxCapacity,
         uint256 endDate,
-        uint256 withdrawalFee,
+        uint256 requestFeeBps,
+        uint256 withdrawGateBps,
         uint256 withdrawRequestPeriodDuration
     ) public override onlyVerifiedPoolManager returns (address poolAddress) {
         require(
@@ -56,7 +57,8 @@ contract PermissionedPoolFactory is PoolFactory {
         IPoolConfigurableSettings memory settings = IPoolConfigurableSettings(
             maxCapacity,
             endDate,
-            withdrawalFee,
+            requestFeeBps,
+            withdrawGateBps,
             firstLossInitialMinimum,
             withdrawRequestPeriodDuration
         );

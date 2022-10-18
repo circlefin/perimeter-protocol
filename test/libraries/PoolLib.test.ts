@@ -3,6 +3,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { deployLoan } from "../support/loan";
 import { deployMockERC20 } from "../support/erc20";
+import { buildWithdrawState } from "../support/pool";
 
 describe("PoolLib", () => {
   const FIRST_LOSS_AMOUNT = 100;
@@ -436,6 +437,160 @@ describe("PoolLib", () => {
           poolLibWrapper.address
         )
       ).to.equal(true);
+    });
+  });
+
+  describe("calculateCurrentWithdrawPeriod()", () => {
+    it("returns 0 if the pool has not yet been activated", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      const currentTimestamp = Math.floor(Date.now() / 1000);
+      const activatedAt = 0;
+      const withdrawWindowDuration = 100;
+
+      expect(
+        await poolLibWrapper.calculateCurrentWithdrawPeriod(
+          currentTimestamp,
+          activatedAt,
+          withdrawWindowDuration
+        )
+      ).to.equal(0);
+    });
+
+    it("returns 0 if the pool is activated, but in the first period", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      const currentTimestamp = Math.floor(Date.now() / 1000);
+      const activatedAt = currentTimestamp - 10;
+      const withdrawWindowDuration = 100;
+
+      expect(
+        await poolLibWrapper.calculateCurrentWithdrawPeriod(
+          currentTimestamp,
+          activatedAt,
+          withdrawWindowDuration
+        )
+      ).to.equal(0);
+    });
+
+    it("returns 1 if in the first withdrawable period", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      const currentTimestamp = Math.floor(Date.now() / 1000);
+      const activatedAt = currentTimestamp - 110;
+      const withdrawWindowDuration = 100;
+
+      expect(
+        await poolLibWrapper.calculateCurrentWithdrawPeriod(
+          currentTimestamp,
+          activatedAt,
+          withdrawWindowDuration
+        )
+      ).to.equal(1);
+    });
+  });
+
+  describe("caclulateWithdrawState", () => {
+    it("increments the requested shares of the lender", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      const withdrawState = buildWithdrawState();
+
+      expect(
+        await poolLibWrapper.caclulateWithdrawState(withdrawState, 0, 1, 22)
+      ).to.deep.equal(
+        Object.values(
+          buildWithdrawState({
+            requestedShares: 22,
+            latestRequestPeriod: 1
+          })
+        )
+      );
+    });
+
+    it("rolls over requested shares to be eligible if we are in a new period", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      const withdrawState = buildWithdrawState({
+        requestedShares: 50,
+        latestRequestPeriod: 1
+      });
+
+      expect(
+        await poolLibWrapper.caclulateWithdrawState(withdrawState, 1, 2, 33)
+      ).to.deep.equal(
+        Object.values(
+          buildWithdrawState({
+            requestedShares: 33,
+            eligibleShares: 50,
+            latestRequestPeriod: 2
+          })
+        )
+      );
+    });
+  });
+
+  describe("calculateRequestFee()", () => {
+    it("calculates the fee for a request", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      const shares = 500;
+      const bps = 127; // 1.27%
+
+      expect(await poolLibWrapper.calculateRequestFee(shares, bps)).to.equal(7);
+    });
+
+    it("rounds the fee up", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      const shares = 101;
+      const bps = 900; // 9%
+
+      expect(await poolLibWrapper.calculateRequestFee(shares, bps)).to.equal(
+        10
+      ); // 9.09 rounded up
+    });
+  });
+
+  describe("calculateMaxRedeemRequest()", () => {
+    it("returns the number of shares the owner has not yet requested if no fees", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      const balance = 100;
+      const fees = 0;
+      const withdrawState = buildWithdrawState({
+        requestedShares: 50,
+        eligibleShares: 22,
+        latestRequestPeriod: 2
+      });
+
+      expect(
+        await poolLibWrapper.calculateMaxRedeemRequest(
+          withdrawState,
+          balance,
+          fees
+        )
+      ).to.equal(28);
+    });
+
+    it("returns the number of shares minus fees", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      const balance = 100;
+      const fees = 1200; // 12%
+      const withdrawState = buildWithdrawState({
+        requestedShares: 50,
+        eligibleShares: 20,
+        latestRequestPeriod: 2
+      });
+
+      expect(
+        await poolLibWrapper.calculateMaxRedeemRequest(
+          withdrawState,
+          balance,
+          fees
+        )
+      ).to.equal(26);
     });
   });
 });

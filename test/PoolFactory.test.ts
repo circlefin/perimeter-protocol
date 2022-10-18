@@ -1,13 +1,15 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { deployMockERC20 } from "./support/erc20";
 
 describe("PoolFactory", () => {
-  const MOCK_LIQUIDITY_ADDRESS = "0x0000000000000000000000000000000000000001";
-
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
     const [operator] = await ethers.getSigners();
+
+    // Deploy the liquidity asset
+    const { mockERC20: liquidityAsset } = await deployMockERC20();
 
     // Deploy the Service Configuration contract
     const ServiceConfiguration = await ethers.getContractFactory(
@@ -29,23 +31,38 @@ describe("PoolFactory", () => {
     await poolFactory.deployed();
 
     return {
-      poolFactory
+      poolFactory,
+      liquidityAsset
     };
   }
 
   it("reverts if given a zero withdraw window", async () => {
-    const { poolFactory } = await loadFixture(deployFixture);
+    const { poolFactory, liquidityAsset } = await loadFixture(deployFixture);
 
     await expect(
-      poolFactory.createPool(MOCK_LIQUIDITY_ADDRESS, 0, 0, 0, 0)
+      poolFactory.createPool(
+        /* liquidityAsset */ liquidityAsset.address,
+        /* maxCapacity */ 0,
+        /* endDate */ 0,
+        /* requestFeeBps */ 0,
+        /* withdrawGateBps */ 0,
+        /* withdrawRequestPeriodDuration: */ 0
+      )
     ).to.be.revertedWith("PoolFactory: Invalid duration");
   });
 
   it("emits PoolCreated", async () => {
-    const { poolFactory } = await loadFixture(deployFixture);
+    const { poolFactory, liquidityAsset } = await loadFixture(deployFixture);
 
     await expect(
-      poolFactory.createPool(MOCK_LIQUIDITY_ADDRESS, 0, 0, 0, 1)
+      poolFactory.createPool(
+        /* liquidityAsset */ liquidityAsset.address,
+        /* maxCapacity */ 0,
+        /* endDate */ 0,
+        /* requestFeeBps */ 0,
+        /* withdrawGateBps */ 0,
+        /* withdrawRequestPeriodDuration: */ 1
+      )
     ).to.emit(poolFactory, "PoolCreated");
   });
 });
