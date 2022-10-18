@@ -127,11 +127,7 @@ contract Pool is IPool, ERC20 {
         _setPoolLifeCycleState(IPoolLifeCycleState.Initialized);
 
         // Allow the contract to move infinite amount of vault liquidity assets
-        bool approved = _liquidityAsset.approve(
-            address(this),
-            type(uint256).max
-        );
-        require(approved, "Unable to approve liquidity asset");
+        _liquidityAsset.safeApprove(address(this), type(uint256).max);
     }
 
     /**
@@ -795,9 +791,6 @@ contract Pool is IPool, ERC20 {
             maxDeposit(receiver),
             _mint
         );
-
-        // Approve the contract for infinite tokens.
-        approve(address(this), type(uint128).max);
     }
 
     /**
