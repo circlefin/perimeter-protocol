@@ -137,7 +137,11 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev Returns the current pool lifecycle state.
      */
-    function lifeCycleState() external view returns (IPoolLifeCycleState) {
+    function lifeCycleState() public view returns (IPoolLifeCycleState) {
+        if (block.timestamp >= _poolSettings.endDate) {
+            return IPoolLifeCycleState.Closed;
+        }
+
         return _poolLifeCycleState;
     }
 
@@ -181,7 +185,7 @@ contract Pool is IPool, ERC20 {
      * is set to 10_000 (100%)
      */
     function withdrawGate() public view returns (uint256) {
-        if (_poolLifeCycleState == IPoolLifeCycleState.Closed) {
+        if (lifeCycleState() == IPoolLifeCycleState.Closed) {
             return 10_000;
         }
 
