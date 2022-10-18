@@ -330,7 +330,7 @@ describe("Pool", () => {
       await activatePool(pool, poolManager, liquidityAsset);
 
       // Collateralize loan
-      await collateralizeLoan(loan, borrower);
+      await collateralizeLoan(loan, borrower, liquidityAsset);
 
       // Deposit to pool and fund loan
       const loanPrincipal = await loan.principal();

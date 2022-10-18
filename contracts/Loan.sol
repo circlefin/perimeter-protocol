@@ -3,6 +3,7 @@ pragma solidity ^0.8.16;
 
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./interfaces/ILoan.sol";
+import "./interfaces/IPool.sol";
 import "./interfaces/IServiceConfiguration.sol";
 import "./libraries/LoanLib.sol";
 import "./CollateralVault.sol";
@@ -155,17 +156,36 @@ contract Loan is ILoan {
             _dropDeadTimestamp < block.timestamp,
             "Loan: Drop dead date not met"
         );
-        LoanLib.withdrawFungibleCollateral(
-            _collateralVault,
-            _fungibleCollateral
-        );
-        LoanLib.withdrawNonFungibleCollateral(
-            _collateralVault,
-            _nonFungibleCollateral
-        );
 
         _state = ILoanLifeCycleState.Canceled;
         return _state;
+    }
+
+    /**
+     * @dev Claims specific fungible collateral types.
+     */
+    function claimCollateral(
+        address[] memory assets,
+        ILoanNonFungibleCollateral[] memory nonFungibleAssets
+    ) external override {
+        require(
+            (_state == ILoanLifeCycleState.Canceled &&
+                msg.sender == _borrower) ||
+                (_state == ILoanLifeCycleState.Defaulted &&
+                    msg.sender == IPool(_pool).manager()),
+            "Loan: unable to claim collateral"
+        );
+
+        LoanLib.withdrawFungibleCollateral(
+            _collateralVault,
+            _fungibleCollateral,
+            assets
+        );
+        LoanLib.withdrawNonFungibleCollateral(
+            _collateralVault,
+            _nonFungibleCollateral,
+            nonFungibleAssets
+        );
     }
 
     /**

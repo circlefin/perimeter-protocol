@@ -105,6 +105,11 @@ interface ILoan {
         view
         returns (ILoanNonFungibleCollateral[] memory);
 
+    function claimCollateral(
+        address[] memory assets,
+        ILoanNonFungibleCollateral[] memory nonFungibleAssets
+    ) external;
+
     function fund() external returns (ILoanLifeCycleState);
 
     function drawdown() external returns (uint256);
