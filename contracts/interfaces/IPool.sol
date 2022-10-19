@@ -100,6 +100,11 @@ interface IPool is IERC4626 {
     function firstLoss() external view returns (uint256);
 
     /**
+     * @dev The address of the first loss vault.
+     */
+    function firstLossVault() external view returns (address);
+
+    /**
      * @dev The pool accounting variables;
      */
     function accountings() external view returns (IPoolAccountings memory);

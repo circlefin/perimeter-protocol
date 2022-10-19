@@ -555,13 +555,15 @@ describe("Loan", () => {
       await loan.connect(borrower).drawdown();
 
       // Make payment
+      const firstLoss = await pool.firstLossVault();
       const dueDate = await loan.paymentDueDate();
       expect(await loan.paymentsRemaining()).to.equal(6);
       await liquidityAsset.connect(borrower).approve(loan.address, 2083);
       const tx = loan.connect(borrower).completeNextPayment();
       await expect(tx).to.not.be.reverted;
       await expect(tx).to.changeTokenBalance(liquidityAsset, borrower, -2083);
-      await expect(tx).to.changeTokenBalance(liquidityAsset, pool, +2083);
+      await expect(tx).to.changeTokenBalance(liquidityAsset, pool, 1979);
+      await expect(tx).to.changeTokenBalance(liquidityAsset, firstLoss, 104);
       expect(await loan.paymentsRemaining()).to.equal(5);
       const newDueDate = await loan.paymentDueDate();
       expect(newDueDate).to.equal(dueDate.add(THIRTY_DAYS));
@@ -669,6 +671,7 @@ describe("Loan", () => {
       await loan.connect(borrower).drawdown();
 
       // Make payment
+      const firstLoss = await pool.firstLossVault();
       await serviceConfiguration.setPoolFeePercentOfInterest(100);
       const dueDate = await loan.paymentDueDate();
       expect(await loan.paymentsRemaining()).to.equal(6);
@@ -676,8 +679,9 @@ describe("Loan", () => {
       const tx = loan.connect(borrower).completeNextPayment();
       await expect(tx).to.not.be.reverted;
       await expect(tx).to.changeTokenBalance(liquidityAsset, borrower, -2083);
-      await expect(tx).to.changeTokenBalance(liquidityAsset, pool, 2063);
+      await expect(tx).to.changeTokenBalance(liquidityAsset, pool, 1959);
       await expect(tx).to.changeTokenBalance(liquidityAsset, poolManager, 20);
+      await expect(tx).to.changeTokenBalance(liquidityAsset, firstLoss, 104);
       expect(await loan.paymentsRemaining()).to.equal(5);
       const newDueDate = await loan.paymentDueDate();
       expect(newDueDate).to.equal(dueDate.add(THIRTY_DAYS));
