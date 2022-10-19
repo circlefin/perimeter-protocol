@@ -21,10 +21,7 @@ import "./FirstLossVault.sol";
  */
 contract Pool is IPool, ERC20 {
     using SafeERC20 for IERC20;
-<<<<<<< HEAD
     using SafeMath for uint256;
-=======
->>>>>>> 4005cf3 (Add expected interest accruals.)
     using EnumerableSet for EnumerableSet.AddressSet;
 
     IPoolLifeCycleState private _poolLifeCycleState;
@@ -720,7 +717,7 @@ contract Pool is IPool, ERC20 {
             PoolLib.calculateTotalAssets(
                 address(_liquidityAsset),
                 address(this),
-                _accountings.activeLoanPrincipals
+                _accountings.outstandingLoanPrincipals
             );
     }
 

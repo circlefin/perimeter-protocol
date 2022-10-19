@@ -384,11 +384,11 @@ describe("Pool", () => {
   describe("previewDeposit()", async () => {
     it("reverts if loan if Pool hasn't funded loan yet", async () => {
       const lender = (await ethers.getSigners())[10];
-      const { pool, poolManager, liquidityAsset, loan, otherAccount } =
+      const { pool, poolManager, liquidityAsset, loan, borrower } =
         await loadFixture(loadPoolFixture);
 
       await activatePool(pool, poolManager, liquidityAsset);
-      await collateralizeLoan(loan, otherAccount);
+      await collateralizeLoan(loan, borrower);
 
       // setup lender
       const loanAmount = await loan.principal();
@@ -407,7 +407,7 @@ describe("Pool", () => {
       // Deposit and fund / drawdown loan
       await depositToPool(pool, lender, liquidityAsset, loanAmount);
       await fundLoan(loan, pool, poolManager);
-      await loan.connect(otherAccount).drawdown();
+      await loan.connect(borrower).drawdown();
       const drawdownTime = await time.latest();
 
       // Fast forward to halfway through 1st payment term
