@@ -22,7 +22,6 @@ library PoolLib {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     uint256 public constant RAY = 10**27;
-    uint256 public constant SECONDS_PER_DAY = 86400;
 
     /**
      * @dev Emitted when first loss is supplied to the pool.
