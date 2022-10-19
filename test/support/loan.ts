@@ -15,8 +15,8 @@ export async function deployLoan(
   const { serviceConfiguration } = await (existingServiceConfiguration == null
     ? deployServiceConfiguration()
     : {
-        serviceConfiguration: existingServiceConfiguration
-      });
+      serviceConfiguration: existingServiceConfiguration
+    });
 
   await serviceConfiguration.setLiquidityAsset(liquidityAsset, true);
 
@@ -60,7 +60,7 @@ export async function collateralizeLoan(
   loan: any,
   borrower: any,
   fungibleAsset: any,
-  fungibleAmount: number = 100
+  fungibleAmount = 100
 ) {
   await fungibleAsset.mint(borrower.address, fungibleAmount);
   await fungibleAsset.connect(borrower).approve(loan.address, fungibleAmount);
