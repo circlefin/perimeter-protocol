@@ -158,52 +158,53 @@ library PoolLib {
     function calculateExpectedInterest(
         EnumerableSet.AddressSet storage activeLoans
     ) external view returns (uint256 expectedInterest) {
-        // Loan properties
-        uint256 payments_remaining;
-        uint256 next_payment_due_date;
-        uint256 payment;
-        uint256 payment_period;
+        uint256 paymentsRemaining;
+        uint256 paymentDueDate;
+        uint256 paymentAmount;
+        uint256 paymentPeriod;
+        uint256 numberPaymentsLate;
+        uint256 paymentPeriodStart;
 
         for (uint256 i = 0; i < activeLoans.length(); i++) {
             ILoan loan = ILoan(activeLoans.at(i));
-            payments_remaining = loan.paymentsRemaining();
-            next_payment_due_date = loan.paymentDueDate();
 
-            if (payments_remaining == 0 || next_payment_due_date == 0) {
+            paymentsRemaining = loan.paymentsRemaining();
+            paymentDueDate = loan.paymentDueDate();
+
+            // Loan has been fully-paid, or the clock hasn't started yet
+            // on the first payment
+            if (paymentsRemaining == 0 || paymentDueDate == 0) {
                 continue;
             }
 
-            payment = loan.payment();
-            payment_period = loan.paymentPeriod().mul(SECONDS_PER_DAY);
+            paymentPeriod = loan.paymentPeriod().mul(SECONDS_PER_DAY);
 
-            // Lender is late on a payment
-            while (
-                next_payment_due_date < block.timestamp &&
-                payments_remaining > 0
-            ) {
-                // The late payment is expected in full
-                expectedInterest += payment;
-
-                // The clock also starts on the following payments
-                // Treat the next payment, as the current one
-                next_payment_due_date += payment_period;
-                payments_remaining -= 1;
-            }
-
-            // accrue interest relative to position in payment period
-            // IF there is one still acrruing.
-            if (payments_remaining == 0) {
-                continue;
-            }
-
-            expectedInterest += payment
-                .mul(RAY)
-                .mul(
-                    block.timestamp.sub(
-                        next_payment_due_date.sub(payment_period)
-                    )
+            // Determine how many payments loan is late on
+            numberPaymentsLate = paymentDueDate < block.timestamp
+                ? Math.min(
+                    (block.timestamp - paymentDueDate) / paymentPeriod,
+                    paymentsRemaining
                 )
-                .div(payment_period)
+                : 0;
+            paymentAmount = loan.payment();
+
+            // Add late payments in full
+            expectedInterest += paymentAmount * numberPaymentsLate;
+
+            // If lender is late on ALL remaining payments, then we're done.
+            if (paymentsRemaining == numberPaymentsLate) {
+                continue;
+            }
+
+            // Otherwise, find how far we are into current period.
+            paymentPeriodStart = numberPaymentsLate > 0
+                ? paymentDueDate + paymentPeriod * numberPaymentsLate
+                : paymentDueDate - paymentPeriod;
+
+            expectedInterest += paymentAmount
+                .mul(RAY)
+                .mul(block.timestamp - paymentPeriodStart)
+                .div(paymentPeriod)
                 .div(RAY);
         }
 

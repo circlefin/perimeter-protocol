@@ -382,7 +382,7 @@ describe("Pool", () => {
   });
 
   describe("previewDeposit()", async () => {
-    it("reverts if loan if Pool hasn't funded loan yet", async () => {
+    it("includes interest when calculating deposit exchange rate", async () => {
       const lender = (await ethers.getSigners())[10];
       const { pool, poolManager, liquidityAsset, loan, borrower } =
         await loadFixture(loadPoolFixture);
