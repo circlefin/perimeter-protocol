@@ -355,6 +355,31 @@ contract Pool is IPool, ERC20 {
         );
     }
 
+    /**
+     * @dev Calculate the total amount of underlying assets held by the vault,
+     * excluding any assets due for withdrawal.
+     */
+    function totalAvailableAssets() public view returns (uint256) {
+        return
+            PoolLib.calculateTotalAvailableAssets(
+                address(_liquidityAsset),
+                address(this),
+                _accountings.activeLoanPrincipals,
+                totalWithdrawableBalance()
+            );
+    }
+
+    /**
+     * @dev The total available supply that is not marked for withdrawal
+     */
+    function totalAvailableSupply() public view returns (uint256 supply) {
+        return
+            PoolLib.calculateTotalAvailableShares(
+                address(this),
+                totalRedeemableBalance()
+            );
+    }
+
     /*//////////////////////////////////////////////////////////////
                     Crank
     //////////////////////////////////////////////////////////////*/
@@ -626,7 +651,7 @@ contract Pool is IPool, ERC20 {
      * @dev Returns the number of shares that are available to be redeemed
      * overall in the current block.
      */
-    function totalRedeemableBalance() external view returns (uint256 shares) {
+    function totalRedeemableBalance() public view returns (uint256 shares) {
         shares = _currentGlobalWithdrawState().redeemableShares;
     }
 
@@ -634,7 +659,7 @@ contract Pool is IPool, ERC20 {
      * @dev Returns the number of `assets` that are available to be withdrawn
      * overall in the current block.
      */
-    function totalWithdrawableBalance() external view returns (uint256 assets) {
+    function totalWithdrawableBalance() public view returns (uint256 assets) {
         assets = _currentGlobalWithdrawState().withdrawableAssets;
     }
 
@@ -736,6 +761,9 @@ contract Pool is IPool, ERC20 {
 
     /**
      * @inheritdoc IERC4626
+     * NOTE: This method does not exclude assets that are marked for withdrawal,
+     * so it can be used effectively as a counterpart of the `totalSupply()`
+     * method.
      */
     function totalAssets() public view returns (uint256) {
         return
@@ -758,8 +786,8 @@ contract Pool is IPool, ERC20 {
         return
             PoolLib.calculateAssetsToShares(
                 assets,
-                totalSupply(),
-                totalAssets()
+                totalAvailableSupply(),
+                totalAvailableAssets()
             );
     }
 
@@ -775,8 +803,8 @@ contract Pool is IPool, ERC20 {
         return
             PoolLib.calculateSharesToAssets(
                 shares,
-                totalSupply(),
-                totalAssets()
+                totalAvailableSupply(),
+                totalAvailableAssets()
             );
     }
 
@@ -794,7 +822,7 @@ contract Pool is IPool, ERC20 {
             PoolLib.calculateMaxDeposit(
                 lifeCycleState(),
                 _poolSettings.maxCapacity,
-                totalAssets()
+                totalAvailableAssets()
             );
     }
 

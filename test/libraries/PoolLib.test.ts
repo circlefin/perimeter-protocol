@@ -235,7 +235,7 @@ describe("PoolLib", () => {
   });
 
   describe("calculateTotalAssets()", async () => {
-    it("combines balance of vault with oustanding loan principals", async () => {
+    it("combines balance of vault with outstanding loan principals", async () => {
       const { poolLibWrapper, liquidityAsset } = await loadFixture(
         deployFixture
       );
