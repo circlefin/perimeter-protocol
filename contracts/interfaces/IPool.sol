@@ -105,6 +105,11 @@ interface IPool is IERC4626 {
     function firstLossVault() external view returns (address);
 
     /**
+     * @dev The address of the fee vault.
+     */
+    function feeVault() external view returns (address);
+
+    /**
      * @dev The pool accounting variables;
      */
     function accountings() external view returns (IPoolAccountings memory);

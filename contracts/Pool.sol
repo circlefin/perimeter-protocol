@@ -159,6 +159,13 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
+     * @dev The address of the fee vault.
+     */
+    function feeVault() external view override returns (address) {
+        return address(_feeVault);
+    }
+
+    /**
      * @dev The pool accounting variables;
      */
     function accountings() external view returns (IPoolAccountings memory) {

@@ -274,7 +274,7 @@ contract Loan is ILoan {
             liquidityAsset,
             IPool(_pool).firstLossVault(),
             firstLossFee,
-            IPool(_pool).manager(),
+            IPool(_pool).feeVault(),
             poolFee
         );
         LoanLib.completePayment(liquidityAsset, _pool, poolPayment);
