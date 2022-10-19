@@ -15,6 +15,8 @@ library LoanLib {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
+    uint256 constant RAY = 10**27;
+
     /**
      * @dev Emitted when loan is funded.
      */
@@ -209,5 +211,33 @@ library LoanLib {
     ) public {
         IERC20(liquidityAsset).safeTransferFrom(msg.sender, pool, amount);
         emit LoanPaymentMade(pool, liquidityAsset, amount);
+    }
+
+    /**
+     * @dev Calculate the fees for a given interest payment.
+     */
+    function previewFees(
+        uint256 payment,
+        uint256 firstLoss,
+        uint256 poolFeePercentOfInterest
+    )
+        public
+        returns (
+            uint256,
+            uint256,
+            uint256
+        )
+    {
+        uint256 firstLossFee = RAY.mul(firstLoss).mul(payment).div(10000).div(
+            RAY
+        );
+        uint256 poolFee = RAY
+            .mul(poolFeePercentOfInterest)
+            .mul(payment)
+            .div(10000)
+            .div(RAY);
+        uint256 poolPayment = payment - poolFee - firstLossFee;
+
+        return (poolPayment, firstLossFee, poolFee);
     }
 }

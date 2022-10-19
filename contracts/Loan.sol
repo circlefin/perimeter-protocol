@@ -263,17 +263,12 @@ contract Loan is ILoan {
     {
         require(paymentsRemaining > 0, "Loan: No more payments remain");
 
-        uint256 firstLossFee = RAY
-            .mul(_serviceConfiguration.firstLossFee())
-            .mul(payment)
-            .div(10000)
-            .div(RAY);
-        uint256 poolFee = RAY
-            .mul(_serviceConfiguration.poolFeePercentOfInterest())
-            .mul(payment)
-            .div(10000)
-            .div(RAY);
-        uint256 poolPayment = payment - poolFee - firstLossFee;
+        (uint256 poolPayment, uint256 firstLossFee, uint256 poolFee) = LoanLib
+            .previewFees(
+                payment,
+                _serviceConfiguration.firstLossFee(),
+                _serviceConfiguration.poolFeePercentOfInterest()
+            );
 
         LoanLib.completePayment(liquidityAsset, _pool, poolPayment);
         if (firstLossFee > 0) {
