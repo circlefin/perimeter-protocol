@@ -395,9 +395,6 @@ describe("Loan", () => {
         .to.emit(loan, "WithdrewCollateral")
         .withArgs(collateralAsset.address, fungibleAmount);
 
-      // Check that the loan doesn't have that asset registered as collateral anymore
-      expect(await loan.fungibleCollateral()).to.be.empty;
-
       // Claim NFT
       expect(await nftAsset.ownerOf(tokenId)).to.not.equal(borrower.address);
       const txn2 = await loan.connect(borrower).claimCollateral(
@@ -414,7 +411,6 @@ describe("Loan", () => {
         .withArgs(nftAsset.address, tokenId);
 
       expect(await nftAsset.ownerOf(tokenId)).to.equal(borrower.address);
-      expect(await loan.nonFungibleCollateral()).to.be.empty;
     });
 
     it("reverts if unrecognized asset is requested", async () => {
@@ -433,7 +429,7 @@ describe("Loan", () => {
       // Pass incorrect / unrecognized fungible asset
       await expect(
         loan.connect(borrower).claimCollateral([nftAsset.address], [])
-      ).to.be.revertedWith("Loan: unrecognized collateral");
+      ).to.be.revertedWith("SafeERC20: low-level call failed");
 
       // Pass incorrect / unrecognized nonfungible asset
       await expect(
@@ -446,7 +442,7 @@ describe("Loan", () => {
             }
           ]
         )
-      ).to.be.revertedWith("Loan: unrecognized collateral");
+      ).to.be.reverted;
     });
   });
 

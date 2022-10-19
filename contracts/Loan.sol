@@ -162,7 +162,8 @@ contract Loan is ILoan {
     }
 
     /**
-     * @dev Claims specific fungible collateral types.
+     * @dev Claims specific collateral types. Can be called by the borrower (when Canceled)
+     * or by the PA (when Defaulted)
      */
     function claimCollateral(
         address[] memory assets,
@@ -176,14 +177,9 @@ contract Loan is ILoan {
             "Loan: unable to claim collateral"
         );
 
-        LoanLib.withdrawFungibleCollateral(
-            _collateralVault,
-            _fungibleCollateral,
-            assets
-        );
+        LoanLib.withdrawFungibleCollateral(_collateralVault, assets);
         LoanLib.withdrawNonFungibleCollateral(
             _collateralVault,
-            _nonFungibleCollateral,
             nonFungibleAssets
         );
     }

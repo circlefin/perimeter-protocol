@@ -136,36 +136,15 @@ library LoanLib {
      */
     function withdrawFungibleCollateral(
         CollateralVault collateralVault,
-        address[] storage postedCollateral,
         address[] memory collateralToWithdraw
     ) external {
         for (uint256 i = 0; i < collateralToWithdraw.length; i++) {
             address asset = collateralToWithdraw[i];
-            bool isPosted = false;
 
-            // Check that this asset has been posted
-            for (uint256 j = 0; j < postedCollateral.length; j++) {
-                address postedAsset = postedCollateral[j];
-                if (postedAsset != asset) {
-                    continue;
-                }
-
-                isPosted = true;
-                // Remove asset from the stored posted collateral
-                postedCollateral[j] = postedCollateral[
-                    postedCollateral.length - 1
-                ];
-                postedCollateral.pop();
-
-                // Perform transfer
-                uint256 amount = IERC20(asset).balanceOf(
-                    address(collateralVault)
-                );
-                collateralVault.withdraw(asset, amount, msg.sender);
-                emit WithdrewCollateral(asset, amount);
-            }
-
-            require(isPosted, "Loan: unrecognized collateral");
+            // Perform transfer
+            uint256 amount = IERC20(asset).balanceOf(address(collateralVault));
+            collateralVault.withdraw(asset, amount, msg.sender);
+            emit WithdrewCollateral(asset, amount);
         }
     }
 
@@ -174,32 +153,15 @@ library LoanLib {
      */
     function withdrawNonFungibleCollateral(
         CollateralVault collateralVault,
-        ILoanNonFungibleCollateral[] storage postedCollateral,
         ILoanNonFungibleCollateral[] memory collateralToWithdraw
     ) external {
         for (uint256 i = 0; i < collateralToWithdraw.length; i++) {
             ILoanNonFungibleCollateral memory wc = collateralToWithdraw[i];
             address asset = wc.asset;
             uint256 tokenId = wc.tokenId;
-            bool isPosted = false;
 
-            for (uint256 j = 0; j < postedCollateral.length; j++) {
-                ILoanNonFungibleCollateral memory pc = postedCollateral[i];
-                if (pc.tokenId != tokenId || pc.asset != asset) {
-                    continue;
-                }
-                isPosted = true;
-                // Remove asset from the stored posted collateral
-                postedCollateral[j] = postedCollateral[
-                    postedCollateral.length - 1
-                ];
-                postedCollateral.pop();
-
-                collateralVault.withdrawERC721(asset, tokenId, msg.sender);
-                emit WithdrewNonFungibleCollateral(asset, tokenId);
-            }
-
-            require(isPosted, "Loan: unrecognized collateral");
+            collateralVault.withdrawERC721(asset, tokenId, msg.sender);
+            emit WithdrewNonFungibleCollateral(asset, tokenId);
         }
     }
 
