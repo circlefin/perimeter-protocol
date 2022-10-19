@@ -266,7 +266,7 @@ contract Loan is ILoan {
         (uint256 poolPayment, uint256 firstLossFee, uint256 poolFee) = LoanLib
             .previewFees(
                 payment,
-                _serviceConfiguration.firstLossFee(),
+                _serviceConfiguration.firstLossFeeBps(),
                 _serviceConfiguration.poolFeePercentOfInterest()
             );
 
@@ -294,7 +294,7 @@ contract Loan is ILoan {
         (uint256 poolPayment, uint256 firstLossFee, uint256 poolFee) = LoanLib
             .previewFees(
                 amount,
-                _serviceConfiguration.firstLossFee(),
+                _serviceConfiguration.firstLossFeeBps(),
                 _serviceConfiguration.poolFeePercentOfInterest()
             );
 

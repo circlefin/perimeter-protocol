@@ -21,7 +21,7 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
 
     mapping(address => bool) public isLiquidityAsset;
 
-    uint256 public firstLossFee = 500;
+    uint256 public firstLossFeeBps = 500;
 
     uint256 public poolFeePercentOfInterest = 0;
 
