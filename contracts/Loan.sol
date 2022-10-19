@@ -297,8 +297,35 @@ contract Loan is ILoan {
         atState(ILoanLifeCycleState.Funded)
         returns (uint256)
     {
-        uint256 amount = payment.mul(paymentsRemaining).add(principal);
-        LoanLib.completePayment(liquidityAsset, _pool, amount);
+        uint256 amount = payment.mul(paymentsRemaining);
+
+        (uint256 poolPayment, uint256 firstLossFee, uint256 poolFee) = LoanLib
+            .previewFees(
+                amount,
+                _serviceConfiguration.firstLossFee(),
+                _serviceConfiguration.poolFeePercentOfInterest()
+            );
+
+        if (firstLossFee > 0) {
+            LoanLib.completePayment(
+                liquidityAsset,
+                IPool(_pool).firstLossVault(),
+                firstLossFee
+            );
+        }
+        if (poolFee > 0) {
+            LoanLib.completePayment(
+                liquidityAsset,
+                IPool(_pool).manager(),
+                poolFee
+            );
+        }
+
+        LoanLib.completePayment(
+            liquidityAsset,
+            _pool,
+            poolPayment.add(principal)
+        );
         paymentsRemaining = 0;
         paymentDueDate += paymentPeriod * 1 days;
         _state = ILoanLifeCycleState.Matured;

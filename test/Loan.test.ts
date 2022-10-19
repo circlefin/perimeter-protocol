@@ -605,8 +605,10 @@ describe("Loan", () => {
       await expect(tx).to.changeTokenBalance(
         liquidityAsset,
         pool,
-        12498 + 500_000
+        12498 + 500_000 - 624
       );
+      const firstLoss = await pool.firstLossVault();
+      await expect(tx).to.changeTokenBalance(liquidityAsset, firstLoss, 624);
 
       expect(await loan.paymentsRemaining()).to.equal(0);
       expect(await loan.state()).to.equal(5);

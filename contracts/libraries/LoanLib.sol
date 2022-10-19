@@ -222,6 +222,7 @@ library LoanLib {
         uint256 poolFeePercentOfInterest
     )
         public
+        pure
         returns (
             uint256,
             uint256,
