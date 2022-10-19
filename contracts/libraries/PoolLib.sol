@@ -177,7 +177,7 @@ library PoolLib {
                 continue;
             }
 
-            paymentPeriod = loan.paymentPeriod().mul(SECONDS_PER_DAY);
+            paymentPeriod = loan.paymentPeriod() * 1 days;
 
             // Determine how many payments loan is late on
             numberPaymentsLate = paymentDueDate < block.timestamp
