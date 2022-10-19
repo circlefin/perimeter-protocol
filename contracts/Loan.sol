@@ -270,22 +270,14 @@ contract Loan is ILoan {
                 _serviceConfiguration.poolFeePercentOfInterest()
             );
 
+        LoanLib.payFees(
+            liquidityAsset,
+            IPool(_pool).firstLossVault(),
+            firstLossFee,
+            IPool(_pool).manager(),
+            poolFee
+        );
         LoanLib.completePayment(liquidityAsset, _pool, poolPayment);
-        if (firstLossFee > 0) {
-            LoanLib.completePayment(
-                liquidityAsset,
-                IPool(_pool).firstLossVault(),
-                firstLossFee
-            );
-        }
-        if (poolFee > 0) {
-            LoanLib.completePayment(
-                liquidityAsset,
-                IPool(_pool).manager(),
-                poolFee
-            );
-        }
-
         paymentsRemaining -= 1;
         paymentDueDate += paymentPeriod * 1 days;
         return payment;
@@ -306,20 +298,13 @@ contract Loan is ILoan {
                 _serviceConfiguration.poolFeePercentOfInterest()
             );
 
-        if (firstLossFee > 0) {
-            LoanLib.completePayment(
-                liquidityAsset,
-                IPool(_pool).firstLossVault(),
-                firstLossFee
-            );
-        }
-        if (poolFee > 0) {
-            LoanLib.completePayment(
-                liquidityAsset,
-                IPool(_pool).manager(),
-                poolFee
-            );
-        }
+        LoanLib.payFees(
+            liquidityAsset,
+            IPool(_pool).firstLossVault(),
+            firstLossFee,
+            IPool(_pool).manager(),
+            poolFee
+        );
 
         LoanLib.completePayment(
             liquidityAsset,
@@ -327,7 +312,6 @@ contract Loan is ILoan {
             poolPayment.add(principal)
         );
         paymentsRemaining = 0;
-        paymentDueDate += paymentPeriod * 1 days;
         _state = ILoanLifeCycleState.Matured;
         return amount;
     }

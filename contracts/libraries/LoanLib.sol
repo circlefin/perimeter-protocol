@@ -241,4 +241,27 @@ library LoanLib {
 
         return (poolPayment, firstLossFee, poolFee);
     }
+
+    function payFees(
+        address asset,
+        address firstLossVault,
+        uint256 firstLoss,
+        address poolAdmin,
+        uint256 poolFeePercentOfInterest
+    ) public {
+        if (firstLoss > 0) {
+            IERC20(asset).safeTransferFrom(
+                msg.sender,
+                firstLossVault,
+                firstLoss
+            );
+        }
+        if (poolFeePercentOfInterest > 0) {
+            IERC20(asset).safeTransferFrom(
+                msg.sender,
+                poolAdmin,
+                poolFeePercentOfInterest
+            );
+        }
+    }
 }
