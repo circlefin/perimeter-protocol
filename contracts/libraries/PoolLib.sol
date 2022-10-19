@@ -177,6 +177,7 @@ library PoolLib {
             }
 
             paymentPeriod = loan.paymentPeriod() * 1 days;
+            paymentAmount = loan.payment();
 
             // Determine how many payments loan is late on
             numberPaymentsLate = paymentDueDate < block.timestamp
@@ -185,7 +186,6 @@ library PoolLib {
                     paymentsRemaining
                 )
                 : 0;
-            paymentAmount = loan.payment();
 
             // Add late payments in full
             expectedInterest += paymentAmount * numberPaymentsLate;
