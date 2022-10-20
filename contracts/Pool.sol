@@ -38,7 +38,7 @@ contract Pool is IPool, ERC20 {
      * @dev list of all active loan addresses for this Pool. Active loans have been
      * drawn down, and the payment schedule activated.
      */
-    EnumerableSet.AddressSet private _activeLoans;
+    EnumerableSet.AddressSet private _fundedLoans;
 
     /**
      * @dev a timestamp of when the pool was first put into the Active state
@@ -287,6 +287,7 @@ contract Pool is IPool, ERC20 {
         atState(IPoolLifeCycleState.Closed)
         returns (uint256)
     {
+        require(_fundedLoans.length() == 0, "Pool: loans still active");
         return
             PoolLib.executeFirstLossWithdraw(
                 amount,
@@ -326,14 +327,14 @@ contract Pool is IPool, ERC20 {
         _liquidityAsset.safeApprove(address(loan), loan.principal());
         loan.fund();
         _accountings.outstandingLoanPrincipals += loan.principal();
-        _activeLoans.add(addr);
+        _fundedLoans.add(addr);
     }
 
     /**
      * @inheritdoc IPool
      */
     function notifyLoanPrincipalReturned() external {
-        require(_activeLoans.remove(msg.sender), "Pool: not active loan");
+        require(_fundedLoans.remove(msg.sender), "Pool: not active loan");
         _accountings.outstandingLoanPrincipals -= ILoan(msg.sender).principal();
     }
 
@@ -850,7 +851,7 @@ contract Pool is IPool, ERC20 {
             PoolLib.calculateAssetsToShares(
                 assets,
                 totalSupply(),
-                totalAssets() + PoolLib.calculateExpectedInterest(_activeLoans)
+                totalAssets() + PoolLib.calculateExpectedInterest(_fundedLoans)
             );
     }
 
@@ -902,7 +903,7 @@ contract Pool is IPool, ERC20 {
             PoolLib.calculateSharesToAssets(
                 shares,
                 totalSupply(),
-                totalAssets() + PoolLib.calculateExpectedInterest(_activeLoans)
+                totalAssets() + PoolLib.calculateExpectedInterest(_fundedLoans)
             );
     }
 

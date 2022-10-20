@@ -212,6 +212,93 @@ describe("Pool", () => {
         pool.connect(poolManager).withdrawFirstLoss(10, poolManager.address)
       ).to.be.revertedWith("Pool: FunctionInvalidAtThisLifeCycleState");
     });
+
+    it("reverts if pool is closed, but there are still active loans", async () => {
+      const {
+        pool,
+        poolManager,
+        borrower,
+        loan,
+        otherAccount,
+        liquidityAsset
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolManager, liquidityAsset);
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        await loan.principal()
+      );
+      await collateralizeLoan(loan, borrower, liquidityAsset);
+      await fundLoan(loan, pool, poolManager);
+      await loan.connect(borrower).drawdown();
+
+      // Fast forward past pool close
+      await time.increaseTo((await pool.settings()).endDate);
+      expect(await pool.lifeCycleState()).to.equal(3); // Closed
+
+      await expect(
+        pool.connect(poolManager).withdrawFirstLoss(10, poolManager.address)
+      ).to.be.revertedWith("Pool: loans still active");
+    });
+
+    it("can withdraw first loss to a receiver", async () => {
+      const {
+        pool,
+        poolManager,
+        borrower,
+        loan,
+        otherAccount,
+        liquidityAsset
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolManager, liquidityAsset);
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        await loan.principal()
+      );
+      await collateralizeLoan(loan, borrower, liquidityAsset);
+      await fundLoan(loan, pool, poolManager);
+      await loan.connect(borrower).drawdown();
+
+      // Pay down loan
+      // Give borrower arbitrary amount to fully paydown loan
+      const borrowerExcessAmount = (await loan.principal()).mul(2);
+      await liquidityAsset.mint(borrower.address, borrowerExcessAmount);
+      await liquidityAsset
+        .connect(borrower)
+        .approve(loan.address, borrowerExcessAmount);
+      await loan.connect(borrower).completeFullPayment();
+
+      // Fast forward to pool enddate
+      await time.increaseTo(await (await pool.settings()).endDate);
+
+      // First loss available
+      const firstLossAmt = await pool.firstLoss();
+      const firstLossVault = await pool.firstLossVault();
+      const txn = await pool
+        .connect(poolManager)
+        .withdrawFirstLoss(firstLossAmt, poolManager.address);
+      await txn.wait();
+
+      expect(txn)
+        .to.emit(pool, "FirstLossWithdrawn")
+        .withArgs(poolManager.address, poolManager.address, firstLossAmt);
+
+      await expect(txn).to.changeTokenBalance(
+        liquidityAsset,
+        poolManager.address,
+        +firstLossAmt
+      );
+      await expect(txn).to.changeTokenBalance(
+        liquidityAsset,
+        firstLossVault,
+        -firstLossAmt
+      );
+    });
   });
 
   describe("deposit()", async () => {
