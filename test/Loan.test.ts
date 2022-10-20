@@ -2,6 +2,12 @@ import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { DEFAULT_POOL_SETTINGS } from "./support/pool";
+import {
+  collateralizeLoan,
+  collateralizeLoanNFT,
+  fundLoan,
+  matureLoan
+} from "./support/loan";
 import { deployMockERC20 } from "./support/erc20";
 
 describe("Loan", () => {
@@ -214,24 +220,6 @@ describe("Loan", () => {
       // Cancel
       const tx2 = loan.cancelCollateralized();
       await expect(tx2).not.to.be.reverted;
-      await expect(tx2).to.changeTokenBalance(
-        collateralAsset,
-        borrower.address,
-        +100
-      );
-      await expect(tx2).to.changeTokenBalance(
-        collateralAsset,
-        await loan._collateralVault(),
-        -100
-      );
-      await expect(tx2)
-        .to.emit(loan, "WithdrewCollateral")
-        .withArgs(collateralAsset.address, 100);
-
-      const c20 = await loan.fungibleCollateral();
-      expect(c20.length).to.equal(0);
-      const c721 = await loan.nonFungibleCollateral();
-      expect(c721.length).to.equal(0);
       expect(await loan.state()).to.equal(2);
     });
 
@@ -257,6 +245,253 @@ describe("Loan", () => {
       await expect(
         loan.connect(other).cancelCollateralized()
       ).to.be.revertedWith("Loan: caller is not borrower");
+    });
+  });
+
+  describe("claimCollateral", () => {
+    describe("Permissions", () => {
+      describe("Loan is Requested", () => {
+        it("reverts if called by PM or borrower", async () => {
+          const { loan, borrower, poolManager } = await loadFixture(
+            deployFixture
+          );
+
+          expect(await loan.state()).to.equal(0); // Requested
+
+          await expect(
+            loan.connect(poolManager).claimCollateral([], [])
+          ).to.be.revertedWith("Loan: unable to claim collateral");
+
+          await expect(
+            loan.connect(borrower).claimCollateral([], [])
+          ).to.be.revertedWith("Loan: unable to claim collateral");
+        });
+      });
+
+      describe("Loan is Collateralized", () => {
+        it("reverts if called by PM or borrower", async () => {
+          const { loan, poolManager, collateralAsset, borrower } =
+            await loadFixture(deployFixture);
+
+          // Post collateral
+          await collateralizeLoan(loan, borrower, collateralAsset);
+          expect(await loan.state()).to.equal(1); // Collateralized
+
+          await expect(
+            loan.connect(poolManager).claimCollateral([], [])
+          ).to.be.revertedWith("Loan: unable to claim collateral");
+
+          await expect(
+            loan.connect(borrower).claimCollateral([], [])
+          ).to.be.revertedWith("Loan: unable to claim collateral");
+        });
+      });
+
+      describe("Loan is Canceled", () => {
+        it("reverts if called by PM", async () => {
+          const { loan, poolManager, borrower } = await loadFixture(
+            deployFixture
+          );
+
+          // cancel loan
+          await loan.connect(borrower).cancelRequested();
+          expect(await loan.state()).to.equal(2); // canceled
+
+          await expect(
+            loan.connect(poolManager).claimCollateral([], [])
+          ).to.be.revertedWith("Loan: unable to claim collateral");
+        });
+
+        it("does not revert if called by the borrower", async () => {
+          const { loan, borrower } = await loadFixture(deployFixture);
+
+          // cancel loan
+          await loan.connect(borrower).cancelRequested();
+          expect(await loan.state()).to.equal(2); // canceled
+
+          await expect(loan.connect(borrower).claimCollateral([], [])).to.not.be
+            .reverted;
+        });
+      });
+
+      describe("Loan is funded", () => {
+        it("reverts if called by PM or borrower", async () => {
+          const { loan, poolManager, pool, borrower, collateralAsset } =
+            await loadFixture(deployFixture);
+
+          // collateralize and fund loan
+          await collateralizeLoan(loan, borrower, collateralAsset);
+          await pool.connect(poolManager).fundLoan(loan.address);
+          expect(await loan.state()).to.equal(4); // funded
+
+          await expect(
+            loan.connect(poolManager).claimCollateral([], [])
+          ).to.be.revertedWith("Loan: unable to claim collateral");
+
+          await expect(
+            loan.connect(borrower).claimCollateral([], [])
+          ).to.be.revertedWith("Loan: unable to claim collateral");
+        });
+      });
+
+      describe("Loan is Defaulted", () => {
+        it("reverts if called by the borrower", async () => {
+          const { loan, poolManager, pool, borrower, collateralAsset } =
+            await loadFixture(deployFixture);
+
+          // fund loan and default it
+          await collateralizeLoan(loan, borrower, collateralAsset);
+          await pool.connect(poolManager).fundLoan(loan.address);
+          await pool.connect(poolManager).defaultLoan(loan.address);
+          expect(await loan.state()).to.equal(3); // defaulted
+
+          await expect(
+            loan.connect(borrower).claimCollateral([], [])
+          ).to.be.revertedWith("Loan: unable to claim collateral");
+        });
+
+        it("PM can attempt claim", async () => {
+          const { loan, poolManager, pool, borrower, collateralAsset } =
+            await loadFixture(deployFixture);
+
+          // fund loan and default it
+          await collateralizeLoan(loan, borrower, collateralAsset);
+          await pool.connect(poolManager).fundLoan(loan.address);
+          await pool.connect(poolManager).defaultLoan(loan.address);
+          expect(await loan.state()).to.equal(3); // defaulted
+
+          await expect(loan.connect(poolManager).claimCollateral([], [])).to.not
+            .be.reverted;
+        });
+      });
+
+      describe("Loan is Matured", () => {
+        it("Reverts if called by PM", async () => {
+          const {
+            loan,
+            poolManager,
+            liquidityAsset,
+            pool,
+            borrower,
+            collateralAsset
+          } = await loadFixture(deployFixture);
+
+          // fund and mature loan
+          await collateralizeLoan(loan, borrower, collateralAsset);
+          await fundLoan(loan, pool, poolManager);
+          await matureLoan(loan, borrower, liquidityAsset);
+          expect(await loan.state()).to.equal(5); // matured
+
+          await expect(
+            loan.connect(poolManager).claimCollateral([], [])
+          ).to.be.revertedWith("Loan: unable to claim collateral");
+        });
+
+        it("Allows borrower to claim collateral", async () => {
+          const {
+            loan,
+            poolManager,
+            liquidityAsset,
+            pool,
+            borrower,
+            collateralAsset
+          } = await loadFixture(deployFixture);
+
+          // fund and mature loan
+          await collateralizeLoan(loan, borrower, collateralAsset);
+          await fundLoan(loan, pool, poolManager);
+          await matureLoan(loan, borrower, liquidityAsset);
+          expect(await loan.state()).to.equal(5); // matured
+
+          await expect(loan.connect(borrower).claimCollateral([], [])).to.not.be
+            .reverted;
+        });
+      });
+    });
+
+    it("returns only collateral requested", async () => {
+      const { loan, borrower, collateralAsset, nftAsset } = await loadFixture(
+        deployFixture
+      );
+
+      // post fungible and non-fungible collateral
+      const { fungibleAmount } = await collateralizeLoan(
+        loan,
+        borrower,
+        collateralAsset
+      );
+      const { tokenId } = await collateralizeLoanNFT(loan, borrower, nftAsset);
+
+      // Cancel loan
+      await time.increaseTo(await loan.dropDeadTimestamp());
+      await loan.connect(borrower).cancelCollateralized();
+
+      // Claim ERC20
+      const txn1 = await loan
+        .connect(borrower)
+        .claimCollateral([collateralAsset.address], []);
+      await expect(txn1).to.changeTokenBalance(
+        collateralAsset,
+        borrower.address,
+        +fungibleAmount
+      );
+      await expect(txn1).to.changeTokenBalance(
+        collateralAsset,
+        await loan._collateralVault(),
+        -fungibleAmount
+      );
+      await expect(txn1)
+        .to.emit(loan, "WithdrewCollateral")
+        .withArgs(collateralAsset.address, fungibleAmount);
+
+      // Claim NFT
+      expect(await nftAsset.ownerOf(tokenId)).to.not.equal(borrower.address);
+      const txn2 = await loan.connect(borrower).claimCollateral(
+        [],
+        [
+          {
+            asset: nftAsset.address,
+            tokenId: tokenId
+          }
+        ]
+      );
+      await expect(txn2)
+        .to.emit(loan, "WithdrewNonFungibleCollateral")
+        .withArgs(nftAsset.address, tokenId);
+
+      expect(await nftAsset.ownerOf(tokenId)).to.equal(borrower.address);
+    });
+
+    it("reverts if unrecognized asset is requested", async () => {
+      const { loan, borrower, collateralAsset, nftAsset } = await loadFixture(
+        deployFixture
+      );
+
+      // post fungible and non-fungible collateral
+      await collateralizeLoan(loan, borrower, collateralAsset);
+      const { tokenId } = await collateralizeLoanNFT(loan, borrower, nftAsset);
+
+      // Cancel loan
+      await time.increaseTo(await loan.dropDeadTimestamp());
+      await loan.connect(borrower).cancelCollateralized();
+
+      // Pass incorrect / unrecognized fungible asset
+      await expect(
+        loan.connect(borrower).claimCollateral([nftAsset.address], [])
+      ).to.be.revertedWith("SafeERC20: low-level call failed");
+
+      // Pass incorrect / unrecognized nonfungible asset
+      await expect(
+        loan.connect(borrower).claimCollateral(
+          [],
+          [
+            {
+              asset: collateralAsset.address,
+              tokenId: tokenId
+            }
+          ]
+        )
+      ).to.be.reverted;
     });
   });
 

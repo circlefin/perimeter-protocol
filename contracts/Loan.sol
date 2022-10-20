@@ -156,17 +156,34 @@ contract Loan is ILoan {
             _dropDeadTimestamp < block.timestamp,
             "Loan: Drop dead date not met"
         );
-        LoanLib.withdrawFungibleCollateral(
-            _collateralVault,
-            _fungibleCollateral
-        );
-        LoanLib.withdrawNonFungibleCollateral(
-            _collateralVault,
-            _nonFungibleCollateral
-        );
 
         _state = ILoanLifeCycleState.Canceled;
         return _state;
+    }
+
+    /**
+     * @dev Claims specific collateral types. Can be called by the borrower (when Canceled or Matured)
+     * or by the PA (when Defaulted)
+     */
+    function claimCollateral(
+        address[] memory assets,
+        ILoanNonFungibleCollateral[] memory nonFungibleAssets
+    ) external override {
+        require(
+            (_state == ILoanLifeCycleState.Canceled &&
+                msg.sender == _borrower) ||
+                (_state == ILoanLifeCycleState.Defaulted &&
+                    msg.sender == IPool(_pool).manager()) ||
+                (_state == ILoanLifeCycleState.Matured &&
+                    msg.sender == _borrower),
+            "Loan: unable to claim collateral"
+        );
+
+        LoanLib.withdrawFungibleCollateral(_collateralVault, assets);
+        LoanLib.withdrawNonFungibleCollateral(
+            _collateralVault,
+            nonFungibleAssets
+        );
     }
 
     /**
