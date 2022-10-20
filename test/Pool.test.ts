@@ -1219,8 +1219,60 @@ describe("Pool", () => {
   });
 
   describe("fixed fees", () => {
-    it("works", async () => {
-      const foo = loadFixture(loadPoolFixtureWithFees);
+    it("claiming fees is only available to the pool admin", async () => {
+      const { pool, poolManager, otherAccount } = await loadFixture(
+        loadPoolFixtureWithFees
+      );
+
+      const tx = pool.connect(otherAccount).claimFixedFee();
+      await expect(tx).to.be.revertedWith("Pool: caller is not manager");
+    });
+
+    it("cannot claim fees until they're due", async () => {
+      const { pool, poolManager, liquidityAsset, otherAccount } =
+        await loadFixture(loadPoolFixtureWithFees);
+      await activatePool(pool, poolManager, liquidityAsset);
+      const tx = pool.connect(poolManager).claimFixedFee();
+      await expect(tx).to.revertedWith("Pool: fixed fee not due");
+    });
+
+    it("can claim fees when they're due", async () => {
+      const { pool, poolManager, liquidityAsset, otherAccount } =
+        await loadFixture(loadPoolFixtureWithFees);
+      await activatePool(pool, poolManager, liquidityAsset);
+
+      // Mint tokens to the liquidity reserve
+      await liquidityAsset.mint(pool.address, 500_000);
+
+      // Fast forward 30 days
+      await time.increase(30 * 96_400);
+
+      // Claim Fees
+      const tx = pool.connect(poolManager).claimFixedFee();
+      await expect(tx).to.changeTokenBalance(liquidityAsset, poolManager, 100);
+
+      // Trying again will fail
+      const tx2 = pool.connect(poolManager).claimFixedFee();
+      await expect(tx2).to.be.revertedWith("Pool: fixed fee not due");
+    });
+
+    it("can cumulatively claim fees when they're due", async () => {
+      const { pool, poolManager, liquidityAsset, otherAccount } =
+        await loadFixture(loadPoolFixtureWithFees);
+      await activatePool(pool, poolManager, liquidityAsset);
+
+      // Mint tokens to the liquidity reserve
+      await liquidityAsset.mint(pool.address, 500_000);
+
+      // Fast forward 60 days
+      await time.increase(60 * 96_400);
+
+      // Claim Fees
+      const tx = pool.connect(poolManager).claimFixedFee();
+      await expect(tx).to.changeTokenBalance(liquidityAsset, poolManager, 100);
+
+      const tx2 = pool.connect(poolManager).claimFixedFee();
+      await expect(tx2).to.changeTokenBalance(liquidityAsset, poolManager, 100);
     });
   });
 });
