@@ -361,7 +361,6 @@ contract Pool is IPool, ERC20 {
             _poolSettings.fixedFeeDueDate < block.timestamp,
             "Pool: fixed fee not due"
         );
-        // TODO: require the interval be more than 0?
         _poolSettings.fixedFeeDueDate +=
             _poolSettings.fixedFeeInterval *
             1 days;

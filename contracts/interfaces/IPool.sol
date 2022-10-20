@@ -34,7 +34,6 @@ struct IPoolConfigurableSettings {
     uint256 fixedFee;
     uint256 fixedFeeInterval;
     uint256 fixedFeeDueDate;
-    // TODO: add in Pool fees
 }
 
 /**
