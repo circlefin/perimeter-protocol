@@ -113,7 +113,7 @@ interface ILoan {
 
     function duration() external returns (uint256);
 
-    function paymentPeriod() external returns (uint256);
+    function paymentPeriod() external view returns (uint256);
 
     function loanType() external returns (ILoanType);
 

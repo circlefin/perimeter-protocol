@@ -4,12 +4,17 @@ pragma solidity ^0.8.16;
 import "../libraries/PoolLib.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "../interfaces/IPool.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 /**
  * @title PoolLibTestWrapper
  * @dev Wrapper around PoolLib to facilitate testing.
  */
 contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
+    using EnumerableSet for EnumerableSet.AddressSet;
+
+    EnumerableSet.AddressSet private _activeLoans;
+
     event LifeCycleStateTransition(IPoolLifeCycleState state);
     event FirstLossDeposited(
         address indexed caller,
@@ -99,6 +104,25 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
                 poolMaxCapacity,
                 totalAssets
             );
+    }
+
+    function setMockActiveLoans(address[] memory loans) public {
+        // Clear out prior entries
+        for (uint256 i = 0; i < _activeLoans.length(); i++) {
+            _activeLoans.remove(_activeLoans.at(i));
+        }
+        // Add new loans
+        for (uint256 i = 0; i < loans.length; i++) {
+            _activeLoans.add(loans[i]);
+        }
+    }
+
+    function calculateExpectedInterestFromMocks()
+        public
+        view
+        returns (uint256 expectedInterest)
+    {
+        return PoolLib.calculateExpectedInterest(_activeLoans);
     }
 
     function executeDeposit(

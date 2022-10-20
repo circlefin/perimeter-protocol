@@ -2,6 +2,7 @@
 pragma solidity ^0.8.16;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -18,8 +19,9 @@ import "../LoanFactory.sol";
 library PoolLib {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
-    uint256 constant RAY = 10**27;
+    uint256 public constant RAY = 10**27;
 
     /**
      * @dev Emitted when first loss is supplied to the pool.
@@ -148,6 +150,67 @@ library PoolLib {
     }
 
     /**
+     * @dev Calculates total sum of expected interest
+     * @param activeLoans All active pool loans, i.e. they've been drawndown, and interest is accruing
+     * @return expectedInterest The total sum of expected accrued interest at this block
+     */
+    function calculateExpectedInterest(
+        EnumerableSet.AddressSet storage activeLoans
+    ) external view returns (uint256 expectedInterest) {
+        uint256 paymentsRemaining;
+        uint256 paymentDueDate;
+        uint256 paymentAmount;
+        uint256 paymentPeriod;
+        uint256 numberPaymentsLate;
+        uint256 paymentPeriodStart;
+
+        for (uint256 i = 0; i < activeLoans.length(); i++) {
+            ILoan loan = ILoan(activeLoans.at(i));
+
+            paymentsRemaining = loan.paymentsRemaining();
+            paymentDueDate = loan.paymentDueDate();
+
+            // Loan has been fully-paid, or the clock hasn't started yet
+            // on the first payment
+            if (paymentsRemaining == 0 || paymentDueDate == 0) {
+                continue;
+            }
+
+            paymentPeriod = loan.paymentPeriod() * 1 days;
+            paymentAmount = loan.payment();
+
+            // Determine how many payments loan is late on
+            numberPaymentsLate = paymentDueDate < block.timestamp
+                ? Math.min(
+                    (block.timestamp - paymentDueDate) / paymentPeriod,
+                    paymentsRemaining
+                )
+                : 0;
+
+            // Add late payments in full
+            expectedInterest += paymentAmount * numberPaymentsLate;
+
+            // If lender is late on ALL remaining payments, then we're done.
+            if (paymentsRemaining == numberPaymentsLate) {
+                continue;
+            }
+
+            // Otherwise, find how far we are into current period.
+            paymentPeriodStart = numberPaymentsLate > 0
+                ? paymentDueDate + paymentPeriod * numberPaymentsLate
+                : paymentDueDate - paymentPeriod;
+
+            expectedInterest += paymentAmount
+                .mul(RAY)
+                .mul(block.timestamp - paymentPeriodStart)
+                .div(paymentPeriod)
+                .div(RAY);
+        }
+
+        return expectedInterest;
+    }
+
+    /**
      * @dev Computes the exchange rate for converting assets to shares
      * @param assets Amount of assets to exchange
      * @param sharesTotalSupply Supply of Vault's ERC20 shares
@@ -269,7 +332,7 @@ library PoolLib {
         IPoolAccountings storage accountings
     ) external {
         ILoan(loan).markDefaulted();
-        accountings.activeLoanPrincipals -= ILoan(loan).principal();
+        accountings.outstandingLoanPrincipals -= ILoan(loan).principal();
 
         uint256 firstLossBalance = IERC20(asset).balanceOf(
             address(firstLossVault)

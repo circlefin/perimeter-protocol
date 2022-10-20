@@ -1,4 +1,4 @@
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { deployLoan } from "../support/loan";
@@ -7,6 +7,7 @@ import { buildWithdrawState } from "../support/pool";
 
 describe("PoolLib", () => {
   const FIRST_LOSS_AMOUNT = 100;
+  const ONE_MONTH_SECONDS = 3600 * 24 * 30;
 
   async function deployFixture() {
     const [caller, otherAccount] = await ethers.getSigners();
@@ -46,6 +47,13 @@ describe("PoolLib", () => {
       liquidityAsset.address
     );
 
+    const MockILoan = await ethers.getContractFactory("MockILoan");
+    const mockILoanOne = await MockILoan.deploy();
+    await mockILoanOne.deployed();
+
+    const mockILoanTwo = await MockILoan.deploy();
+    await mockILoanTwo.deployed();
+
     return {
       poolLibWrapper,
       caller,
@@ -54,7 +62,9 @@ describe("PoolLib", () => {
       otherAccount,
       loanFactory,
       loan,
-      serviceConfiguration
+      serviceConfiguration,
+      mockILoanOne,
+      mockILoanTwo
     };
   }
 
@@ -239,6 +249,131 @@ describe("PoolLib", () => {
           50
         )
       ).to.equal(250);
+    });
+  });
+
+  describe("calculateExpectedInterest()", async () => {
+    async function setupMockILoan(mock: any, start: number) {
+      await mock.setPayment(1000);
+      await mock.setPaymentPeriod(30); // days
+      await mock.setPaymentDueDate(start + ONE_MONTH_SECONDS);
+      await mock.setPaymentsRemaining(3);
+    }
+
+    it("returns 0 interest at beginning of payment term", async () => {
+      const { poolLibWrapper, loan } = await loadFixture(deployFixture);
+
+      // set mock
+      await poolLibWrapper.setMockActiveLoans([loan.address]);
+
+      expect(
+        await poolLibWrapper.calculateExpectedInterestFromMocks()
+      ).to.equal(0);
+    });
+
+    it("returns half of payment midway through 1st payment interval", async () => {
+      const { poolLibWrapper, mockILoanOne } = await loadFixture(deployFixture);
+
+      const start = await time.latest();
+      // setup mock
+      await setupMockILoan(mockILoanOne, start);
+
+      // set mock on the pool lib
+      await poolLibWrapper.setMockActiveLoans([mockILoanOne.address]);
+
+      // Fast-forward to midway through first payment
+      await time.increaseTo(start + ONE_MONTH_SECONDS / 2);
+
+      expect(
+        await poolLibWrapper.calculateExpectedInterestFromMocks()
+      ).to.equal(1000 / 2);
+    });
+
+    it("returns half of payment, if midway through 2nd period and first was paid on time", async () => {
+      const { poolLibWrapper, mockILoanOne } = await loadFixture(deployFixture);
+
+      const start = await time.latest();
+
+      // setup mock
+      await setupMockILoan(mockILoanOne, start);
+
+      // set mock on the pool lib
+      await poolLibWrapper.setMockActiveLoans([mockILoanOne.address]);
+
+      // Fast-forward to midway through 2nd payment
+      await time.increaseTo(start + (ONE_MONTH_SECONDS * 3) / 2);
+      await mockILoanOne.setPaymentsRemaining(2); // simulate payment
+      await mockILoanOne.setPaymentDueDate(
+        (
+          await mockILoanOne.paymentDueDate()
+        ).add((await mockILoanOne.paymentPeriod()).mul(86400))
+      ); // Bump payment due date
+
+      expect(
+        await poolLibWrapper.calculateExpectedInterestFromMocks()
+      ).to.equal(1000 / 2);
+    });
+
+    it("returns whole first payment + a portion of the 2nd, if late on the first payment", async () => {
+      const { poolLibWrapper, mockILoanOne } = await loadFixture(deployFixture);
+
+      const start = await time.latest();
+      // setup mock
+      await setupMockILoan(mockILoanOne, start);
+
+      // set mock on the pool lib
+      await poolLibWrapper.setMockActiveLoans([mockILoanOne.address]);
+
+      // Fast-forward to midway through SECOND payment
+      await time.increaseTo(start + (ONE_MONTH_SECONDS * 3) / 2);
+
+      expect(
+        await poolLibWrapper.calculateExpectedInterestFromMocks()
+      ).to.equal((1000 * 3) / 2);
+    });
+
+    it("returns sum of all payments if late on all payments", async () => {
+      const { poolLibWrapper, mockILoanOne } = await loadFixture(deployFixture);
+
+      const start = await time.latest();
+      // setup mock
+      await setupMockILoan(mockILoanOne, start);
+
+      // set mock on the pool lib
+      await poolLibWrapper.setMockActiveLoans([mockILoanOne.address]);
+
+      // Fast-forward to midway through first payment
+      // bump the time further past to ensure nothing extra accrues
+      await time.increaseTo(start + ONE_MONTH_SECONDS * 4);
+
+      expect(
+        await poolLibWrapper.calculateExpectedInterestFromMocks()
+      ).to.equal(1000 * 3);
+    });
+
+    it("returns the sum of interest accross multiple loans", async () => {
+      const { poolLibWrapper, mockILoanOne, mockILoanTwo } = await loadFixture(
+        deployFixture
+      );
+
+      const start = await time.latest();
+
+      // setup mock
+      await setupMockILoan(mockILoanOne, start);
+      await setupMockILoan(mockILoanTwo, start);
+
+      // set mock on the pool lib
+      await poolLibWrapper.setMockActiveLoans([
+        mockILoanOne.address,
+        mockILoanTwo.address
+      ]);
+
+      // Fast-forward to midway through first payment
+      await time.increaseTo(start + (ONE_MONTH_SECONDS * 1) / 2);
+
+      expect(
+        await poolLibWrapper.calculateExpectedInterestFromMocks()
+      ).to.equal(500 * 2);
     });
   });
 

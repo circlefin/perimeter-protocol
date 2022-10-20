@@ -252,6 +252,7 @@ contract Loan is ILoan {
             address(fundingVault)
         );
         LoanLib.drawdown(fundingVault, amount, msg.sender);
+        IPool(_pool).notifyLoanDrawndown();
         return amount;
     }
 
