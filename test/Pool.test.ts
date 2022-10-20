@@ -17,6 +17,10 @@ describe("Pool", () => {
       poolManager
     );
 
+    const CollateralAsset = await ethers.getContractFactory("MockERC20");
+    const collateralAsset = await CollateralAsset.deploy("Test Coin", "TC");
+    await collateralAsset.deployed();
+
     const { loan } = await deployLoan(
       pool.address,
       borrower.address,
@@ -26,6 +30,7 @@ describe("Pool", () => {
 
     return {
       pool,
+      collateralAsset,
       liquidityAsset,
       poolManager,
       borrower,
@@ -318,6 +323,7 @@ describe("Pool", () => {
 
     it("defaults loan if loan is funded, and pool is active", async () => {
       const {
+        collateralAsset,
         pool,
         poolManager,
         liquidityAsset,
@@ -328,7 +334,7 @@ describe("Pool", () => {
       await activatePool(pool, poolManager, liquidityAsset);
 
       // Collateralize loan
-      await collateralizeLoan(loan, borrower, liquidityAsset);
+      await collateralizeLoan(loan, borrower, collateralAsset);
 
       // Deposit to pool and fund loan
       const loanPrincipal = await loan.principal();
@@ -384,11 +390,17 @@ describe("Pool", () => {
   describe("previewDeposit()", async () => {
     it("includes interest when calculating deposit exchange rate", async () => {
       const lender = (await ethers.getSigners())[10];
-      const { pool, poolManager, liquidityAsset, loan, borrower } =
-        await loadFixture(loadPoolFixture);
+      const {
+        collateralAsset,
+        pool,
+        poolManager,
+        liquidityAsset,
+        loan,
+        borrower
+      } = await loadFixture(loadPoolFixture);
 
       await activatePool(pool, poolManager, liquidityAsset);
-      await collateralizeLoan(loan, borrower);
+      await collateralizeLoan(loan, borrower, collateralAsset);
 
       // setup lender
       const loanAmount = await loan.principal();

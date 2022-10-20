@@ -67,6 +67,11 @@ contract MockILoan is ILoan {
 
     function markDefaulted() external override returns (ILoanLifeCycleState) {}
 
+    function claimCollateral(
+        address[] memory assets,
+        ILoanNonFungibleCollateral[] memory nonFungibleAssets
+    ) external override {}
+
     // Setters for mocked values
     function setPrincipal(uint256 principal_) external {
         principal = principal_;
