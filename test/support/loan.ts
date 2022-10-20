@@ -81,3 +81,24 @@ export async function collateralizeLoanNFT(loan: any, borrower: any, nft: any) {
 export async function fundLoan(loan: any, pool: any, pm: any) {
   await pool.connect(pm).fundLoan(loan.address);
 }
+
+export async function matureLoan(
+  loan: any,
+  borrower: any,
+  liquidityAsset: any
+) {
+  let fullPayment = await loan.principal(); // principal
+  fullPayment = fullPayment.add(
+    // plus all payments
+    (await loan.paymentsRemaining()).mul(await loan.payment())
+  );
+
+  const borrowerBalance = await liquidityAsset.balanceOf(borrower.address);
+  if (fullPayment > borrowerBalance) {
+    await liquidityAsset.mint(borrower.address, fullPayment - borrowerBalance);
+  }
+
+  await liquidityAsset.connect(borrower).approve(loan.address, fullPayment);
+
+  await loan.connect(borrower).completeFullPayment();
+}

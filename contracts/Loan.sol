@@ -162,7 +162,7 @@ contract Loan is ILoan {
     }
 
     /**
-     * @dev Claims specific collateral types. Can be called by the borrower (when Canceled)
+     * @dev Claims specific collateral types. Can be called by the borrower (when Canceled or Matured)
      * or by the PA (when Defaulted)
      */
     function claimCollateral(
@@ -173,7 +173,9 @@ contract Loan is ILoan {
             (_state == ILoanLifeCycleState.Canceled &&
                 msg.sender == _borrower) ||
                 (_state == ILoanLifeCycleState.Defaulted &&
-                    msg.sender == IPool(_pool).manager()),
+                    msg.sender == IPool(_pool).manager()) ||
+                (_state == ILoanLifeCycleState.Matured &&
+                    msg.sender == _borrower),
             "Loan: unable to claim collateral"
         );
 

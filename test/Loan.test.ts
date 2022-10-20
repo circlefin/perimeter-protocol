@@ -2,7 +2,12 @@ import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { DEFAULT_POOL_SETTINGS } from "./support/pool";
-import { collateralizeLoan, collateralizeLoanNFT } from "./support/loan";
+import {
+  collateralizeLoan,
+  collateralizeLoanNFT,
+  fundLoan,
+  matureLoan
+} from "./support/loan";
 import { deployMockERC20 } from "./support/erc20";
 
 describe("Loan", () => {
@@ -356,6 +361,49 @@ describe("Loan", () => {
 
           await expect(loan.connect(poolManager).claimCollateral([], [])).to.not
             .be.reverted;
+        });
+      });
+
+      describe("Loan is Matured", () => {
+        it("Reverts if called by PM", async () => {
+          const {
+            loan,
+            poolManager,
+            liquidityAsset,
+            pool,
+            borrower,
+            collateralAsset
+          } = await loadFixture(deployFixture);
+
+          // fund and mature loan
+          await collateralizeLoan(loan, borrower, collateralAsset);
+          await fundLoan(loan, pool, poolManager);
+          await matureLoan(loan, borrower, liquidityAsset);
+          expect(await loan.state()).to.equal(5); // matured
+
+          await expect(
+            loan.connect(poolManager).claimCollateral([], [])
+          ).to.be.revertedWith("Loan: unable to claim collateral");
+        });
+
+        it("Allows borrower to claim collateral", async () => {
+          const {
+            loan,
+            poolManager,
+            liquidityAsset,
+            pool,
+            borrower,
+            collateralAsset
+          } = await loadFixture(deployFixture);
+
+          // fund and mature loan
+          await collateralizeLoan(loan, borrower, collateralAsset);
+          await fundLoan(loan, pool, poolManager);
+          await matureLoan(loan, borrower, liquidityAsset);
+          expect(await loan.state()).to.equal(5); // matured
+
+          await expect(loan.connect(borrower).claimCollateral([], [])).to.not.be
+            .reverted;
         });
       });
     });
