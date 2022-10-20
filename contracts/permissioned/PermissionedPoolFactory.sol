@@ -45,7 +45,9 @@ contract PermissionedPoolFactory is PoolFactory {
         uint256 endDate,
         uint256 requestFeeBps,
         uint256 withdrawGateBps,
-        uint256 withdrawRequestPeriodDuration
+        uint256 withdrawRequestPeriodDuration,
+        uint256 fixedFee,
+        uint256 fixedFeeInterval
     ) public override onlyVerifiedPoolManager returns (address poolAddress) {
         require(
             withdrawRequestPeriodDuration > 0,
@@ -60,7 +62,10 @@ contract PermissionedPoolFactory is PoolFactory {
             requestFeeBps,
             withdrawGateBps,
             firstLossInitialMinimum,
-            withdrawRequestPeriodDuration
+            withdrawRequestPeriodDuration,
+            fixedFee,
+            fixedFeeInterval,
+            0
         );
         PermissionedPool pool = new PermissionedPool(
             liquidityAsset,

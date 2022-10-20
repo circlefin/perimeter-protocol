@@ -35,6 +35,26 @@ describe("Pool", () => {
     };
   }
 
+  async function loadPoolFixtureWithFees() {
+    const [poolManager, otherAccount] = await ethers.getSigners();
+    const settings = Object.assign({}, DEFAULT_POOL_SETTINGS);
+    settings.fixedFee = 100;
+    settings.fixedFeeInterval = 30;
+    const { pool, liquidityAsset, serviceConfiguration } = await deployPool(
+      poolManager,
+      settings
+    );
+
+    const { loan } = await deployLoan(
+      pool.address,
+      otherAccount.address,
+      liquidityAsset.address,
+      serviceConfiguration
+    );
+
+    return { pool, liquidityAsset, poolManager, otherAccount, loan };
+  }
+
   describe("Deployment", () => {
     it("initializes the lifecycle on construction", async () => {
       const { pool } = await loadFixture(loadPoolFixture);
@@ -1195,6 +1215,12 @@ describe("Pool", () => {
       await expect(
         pool.connect(otherAccount).withdraw(10, alice.address, alice.address)
       ).to.be.revertedWith("Pool: Must transfer to msg.sender");
+    });
+  });
+
+  describe("fixed fees", () => {
+    it("works", async () => {
+      const foo = loadFixture(loadPoolFixtureWithFees);
     });
   });
 });

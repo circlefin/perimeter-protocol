@@ -352,6 +352,25 @@ contract Pool is IPool, ERC20 {
             );
     }
 
+    function claimFixedFee()
+        external
+        onlyManager
+        atState(IPoolLifeCycleState.Active)
+    {
+        require(
+            _poolSettings.fixedFeeDueDate < block.timestamp,
+            "Pool: fixed fee not due"
+        );
+        // TODO: require the interval be more than 0?
+        _poolSettings.fixedFeeDueDate +=
+            _poolSettings.fixedFeeInterval *
+            1 days;
+        IERC20(_liquidityAsset).safeTransfer(
+            msg.sender,
+            _poolSettings.fixedFee
+        );
+    }
+
     /*//////////////////////////////////////////////////////////////
                     Crank
     //////////////////////////////////////////////////////////////*/
@@ -713,6 +732,13 @@ contract Pool is IPool, ERC20 {
         if (_poolLifeCycleState != state) {
             if (state == IPoolLifeCycleState.Active && poolActivatedAt == 0) {
                 poolActivatedAt = block.timestamp;
+
+                if (_poolSettings.fixedFee != 0) {
+                    _poolSettings.fixedFeeDueDate =
+                        block.timestamp +
+                        _poolSettings.fixedFeeInterval *
+                        1 days;
+                }
             }
 
             _poolLifeCycleState = state;

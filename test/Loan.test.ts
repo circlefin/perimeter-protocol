@@ -60,7 +60,9 @@ describe("Loan", () => {
         DEFAULT_POOL_SETTINGS.endDate,
         DEFAULT_POOL_SETTINGS.requestFeeBps,
         DEFAULT_POOL_SETTINGS.withdrawGateBps,
-        DEFAULT_POOL_SETTINGS.withdrawRequestPeriodDuration
+        DEFAULT_POOL_SETTINGS.withdrawRequestPeriodDuration,
+        DEFAULT_POOL_SETTINGS.fixedFee,
+        DEFAULT_POOL_SETTINGS.fixedFeeInterval
       );
     const tx1Receipt = await tx1.wait();
 

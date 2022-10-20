@@ -31,6 +31,10 @@ struct IPoolConfigurableSettings {
     uint256 withdrawGateBps; // Percent of liquidity pool available to withdraw, represented in BPS
     uint256 firstLossInitialMinimum; // amount
     uint256 withdrawRequestPeriodDuration; // seconds (e.g. 30 days)
+    uint256 fixedFee;
+    uint256 fixedFeeInterval;
+    uint256 fixedFeeDueDate;
+    // TODO: add in Pool fees
 }
 
 /**
@@ -176,4 +180,10 @@ interface IPool is IERC4626 {
      * proceedings and updating pool accounting.
      */
     function defaultLoan(address) external;
+
+    /**
+     * @dev Called by the pool manager, this claims a fixed fee from the pool. Fee can only be
+     * claimed once every interval, as set on the pool.
+     */
+    function claimFixedFee() external;
 }

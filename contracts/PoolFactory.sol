@@ -32,7 +32,9 @@ contract PoolFactory {
         uint256 endDate,
         uint256 requestFeeBps,
         uint256 withdrawGateBps,
-        uint256 withdrawRequestPeriodDuration
+        uint256 withdrawRequestPeriodDuration,
+        uint256 fixedFee,
+        uint256 fixedFeeInterval
     ) public virtual returns (address poolAddress) {
         require(
             _serviceConfiguration.paused() == false,
@@ -42,6 +44,12 @@ contract PoolFactory {
             withdrawRequestPeriodDuration > 0,
             "PoolFactory: Invalid duration"
         );
+        if (fixedFee > 0) {
+            require(
+                fixedFeeInterval > 0,
+                "PoolFactory: Invalid fixed fee interval"
+            );
+        }
 
         uint256 firstLossInitialMinimum = 0; // TODO: take from ServiceConfig
         IPoolConfigurableSettings memory settings = IPoolConfigurableSettings(
@@ -50,7 +58,10 @@ contract PoolFactory {
             requestFeeBps,
             withdrawGateBps,
             firstLossInitialMinimum,
-            withdrawRequestPeriodDuration
+            withdrawRequestPeriodDuration,
+            fixedFee,
+            fixedFeeInterval,
+            0
         );
         Pool pool = new Pool(
             liquidityAsset,
