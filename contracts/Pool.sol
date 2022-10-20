@@ -11,6 +11,7 @@ import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "./libraries/PoolLib.sol";
+import "./FeeVault.sol";
 import "./FirstLossVault.sol";
 
 /**
@@ -28,6 +29,7 @@ contract Pool is IPool, ERC20 {
     IServiceConfiguration private _serviceConfiguration;
     IERC20 private _liquidityAsset;
     IPoolConfigurableSettings private _poolSettings;
+    FeeVault private immutable _feeVault;
     FirstLossVault private _firstLossVault;
     IPoolAccountings private _accountings;
 
@@ -124,6 +126,7 @@ contract Pool is IPool, ERC20 {
         _manager = poolManager;
         _serviceConfiguration = IServiceConfiguration(serviceConfiguration);
         _firstLossVault = new FirstLossVault(address(this), liquidityAsset);
+        _feeVault = new FeeVault(address(this));
         _setPoolLifeCycleState(IPoolLifeCycleState.Initialized);
 
         // Allow the contract to move infinite amount of vault liquidity assets
@@ -200,6 +203,20 @@ contract Pool is IPool, ERC20 {
      */
     function firstLoss() external view override returns (uint256) {
         return _liquidityAsset.balanceOf(address(_firstLossVault));
+    }
+
+    /**
+     * @dev The address of the first loss vault
+     */
+    function firstLossVault() external view override returns (address) {
+        return address(_firstLossVault);
+    }
+
+    /**
+     * @dev The address of the fee vault.
+     */
+    function feeVault() external view override returns (address) {
+        return address(_feeVault);
     }
 
     /**

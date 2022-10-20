@@ -14,6 +14,10 @@ interface IServiceConfiguration is IAccessControl {
 
     function paused() external view returns (bool);
 
+    function poolFeePercentOfInterest() external view returns (uint256);
+
+    function firstLossFeeBps() external view returns (uint256);
+
     function isLiquidityAsset(address addr) external view returns (bool);
 
     /**

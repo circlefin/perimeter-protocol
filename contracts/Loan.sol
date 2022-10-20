@@ -3,6 +3,7 @@ pragma solidity ^0.8.16;
 
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./interfaces/ILoan.sol";
+import "./interfaces/IPool.sol";
 import "./interfaces/IServiceConfiguration.sol";
 import "./libraries/LoanLib.sol";
 import "./CollateralVault.sol";
@@ -261,7 +262,22 @@ contract Loan is ILoan {
         returns (uint256)
     {
         require(paymentsRemaining > 0, "Loan: No more payments remain");
-        LoanLib.completePayment(liquidityAsset, _pool, payment);
+
+        (uint256 poolPayment, uint256 firstLossFee, uint256 poolFee) = LoanLib
+            .previewFees(
+                payment,
+                _serviceConfiguration.firstLossFeeBps(),
+                _serviceConfiguration.poolFeePercentOfInterest()
+            );
+
+        LoanLib.payFees(
+            liquidityAsset,
+            IPool(_pool).firstLossVault(),
+            firstLossFee,
+            IPool(_pool).feeVault(),
+            poolFee
+        );
+        LoanLib.completePayment(liquidityAsset, _pool, poolPayment);
         paymentsRemaining -= 1;
         paymentDueDate += paymentPeriod * 1 days;
         return payment;
@@ -273,10 +289,29 @@ contract Loan is ILoan {
         atState(ILoanLifeCycleState.Funded)
         returns (uint256)
     {
-        uint256 amount = payment.mul(paymentsRemaining).add(principal);
-        LoanLib.completePayment(liquidityAsset, _pool, amount);
+        uint256 amount = payment.mul(paymentsRemaining);
+
+        (uint256 poolPayment, uint256 firstLossFee, uint256 poolFee) = LoanLib
+            .previewFees(
+                amount,
+                _serviceConfiguration.firstLossFeeBps(),
+                _serviceConfiguration.poolFeePercentOfInterest()
+            );
+
+        LoanLib.payFees(
+            liquidityAsset,
+            IPool(_pool).firstLossVault(),
+            firstLossFee,
+            IPool(_pool).manager(),
+            poolFee
+        );
+
+        LoanLib.completePayment(
+            liquidityAsset,
+            _pool,
+            poolPayment.add(principal)
+        );
         paymentsRemaining = 0;
-        paymentDueDate += paymentPeriod * 1 days;
         _state = ILoanLifeCycleState.Matured;
         return amount;
     }
