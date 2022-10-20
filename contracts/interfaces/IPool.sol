@@ -31,6 +31,7 @@ struct IPoolConfigurableSettings {
     uint256 withdrawGateBps; // Percent of liquidity pool available to withdraw, represented in BPS
     uint256 firstLossInitialMinimum; // amount
     uint256 withdrawRequestPeriodDuration; // seconds (e.g. 30 days)
+    uint256 poolFeePercentOfInterest; // bips
 }
 
 /**
@@ -133,6 +134,11 @@ interface IPool is IERC4626 {
      * @dev The pool accounting variables;
      */
     function accountings() external view returns (IPoolAccountings memory);
+
+    /**
+     * @dev The pool fee, in bps, taken from each interest payment
+     */
+    function poolFeePercentOfInterest() external view returns (uint256);
 
     /**
      * @dev Deposits first-loss to the pool. Can only be called by the Pool Manager.

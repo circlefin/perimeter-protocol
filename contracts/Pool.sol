@@ -250,6 +250,13 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
+     * @dev The fee
+     */
+    function poolFeePercentOfInterest() external view returns (uint256) {
+        return _poolSettings.poolFeePercentOfInterest;
+    }
+
+    /**
      * @dev Supplies first-loss to the pool. Can only be called by the Pool Manager.
      */
     function depositFirstLoss(uint256 amount, address spender)

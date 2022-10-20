@@ -23,8 +23,6 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
 
     uint256 public firstLossFeeBps = 500;
 
-    uint256 public poolFeePercentOfInterest = 0;
-
     /**
      * @dev Holds a reference to valid LoanFactories
      */
@@ -89,11 +87,6 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     function setPaused(bool paused_) public onlyOperator {
         paused = paused_;
         emit ProtocolPaused(paused);
-    }
-
-    function setPoolFeePercentOfInterest(uint256 amount) public onlyOperator {
-        poolFeePercentOfInterest = amount;
-        emit ParameterSet("pooFeePercentOfInterest", amount);
     }
 
     /**
