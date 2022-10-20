@@ -86,7 +86,7 @@ interface IPool is IERC4626 {
     /**
      * @dev Emitted when pool settings are updated.
      */
-    event PoolSettingsUpdated(IPoolConfigurableSettings settings);
+    event PoolSettingsUpdated();
 
     /**
      * @dev Emitted when first loss capital is used to cover loan defaults
@@ -155,7 +155,7 @@ interface IPool is IERC4626 {
     /**
      * @dev Updates the pool capacity. Can only be called by the Pool Manager.
      */
-    function updatePoolCapacity(uint256) external returns (uint256);
+    function updatePoolCapacity(uint256) external;
 
     /**
      * @dev Updates the pool end date. Can only be called by the Pool Manager.
