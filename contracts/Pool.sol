@@ -332,7 +332,7 @@ contract Pool is IPool, ERC20 {
     /**
      * @inheritdoc IPool
      */
-    function notifyLoanMatured() external {
+    function notifyLoanPrincipalReturned() external {
         require(_activeLoans.remove(msg.sender), "Pool: not active loan");
         _accountings.outstandingLoanPrincipals -= ILoan(msg.sender).principal();
     }

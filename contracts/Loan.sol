@@ -162,6 +162,29 @@ contract Loan is ILoan {
     }
 
     /**
+     * @inheritdoc ILoan
+     */
+    function cancelFunded()
+        external
+        override
+        atState(ILoanLifeCycleState.Funded)
+        returns (ILoanLifeCycleState)
+    {
+        require(
+            msg.sender == _borrower || msg.sender == IPool(_pool).manager(),
+            "Loan: invalid caller"
+        );
+        require(
+            _dropDeadTimestamp < block.timestamp,
+            "Loan: Drop dead date not met"
+        );
+
+        LoanLib.returnCanceledLoanPrincipal(fundingVault, _pool, principal);
+        _state = ILoanLifeCycleState.Canceled;
+        return _state;
+    }
+
+    /**
      * @dev Claims specific collateral types. Can be called by the borrower (when Canceled or Matured)
      * or by the PA (when Defaulted)
      */
@@ -331,7 +354,7 @@ contract Loan is ILoan {
         );
         paymentsRemaining = 0;
         _state = ILoanLifeCycleState.Matured;
-        IPool(_pool).notifyLoanMatured();
+        IPool(_pool).notifyLoanPrincipalReturned();
         return amount;
     }
 

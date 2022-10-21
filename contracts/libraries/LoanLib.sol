@@ -53,6 +53,14 @@ library LoanLib {
     event WithdrewNonFungibleCollateral(address asset, uint256 tokenId);
 
     /**
+     * @dev See ILoan
+     */
+    event CanceledLoanPrincipalReturned(
+        address indexed pool,
+        uint256 principal
+    );
+
+    /**
      * @dev Validate Loan constructor arguments
      */
     function validateLoan(
@@ -206,6 +214,18 @@ library LoanLib {
     ) public {
         IERC20(liquidityAsset).safeTransferFrom(msg.sender, pool, amount);
         emit LoanPaymentMade(pool, liquidityAsset, amount);
+    }
+
+    /**
+     * Make a payment
+     */
+    function returnCanceledLoanPrincipal(
+        FundingVault fundingVault,
+        address pool,
+        uint256 amount
+    ) public {
+        fundingVault.withdraw(amount, pool);
+        emit CanceledLoanPrincipalReturned(pool, amount);
     }
 
     /**
