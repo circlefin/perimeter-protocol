@@ -73,8 +73,8 @@ describe("Withdraw Requests", () => {
     // Verify the Global withdrawal state is updated
     expect(await pool.totalRequestedBalance()).to.equal(60);
     expect(await pool.totalEligibleBalance()).to.equal(0);
-    expect(await pool.totalRedeemableBalance()).to.equal(0);
-    expect(await pool.totalWithdrawableBalance()).to.equal(0);
+    expect(await pool.totalRedeemableShares()).to.equal(0);
+    expect(await pool.totalWithdrawableAssets()).to.equal(0);
 
     // Expect Alice's maxWithdrawRequest amounts have decreased
     expect(await pool.maxRedeemRequest(aliceLender.address)).to.equal(
@@ -111,19 +111,19 @@ describe("Withdraw Requests", () => {
     // crank it
     await pool.crank();
 
-    // 48 shares should be available due to 25% withdraw gate.
-    expect(await pool.totalRedeemableBalance()).to.equal(41);
+    // 170 assets, 25% withdraw gate = 42 assets.
+    expect(await pool.totalWithdrawableAssets()).to.equal(41); // 42?
+    expect(await pool.totalRedeemableShares()).to.equal(40);
 
     // verify the global state is updated
     expect(await pool.totalRequestedBalance()).to.equal(0);
-    expect(await pool.totalEligibleBalance()).to.equal(19); /* 60 - 41 */
-    expect(await pool.totalWithdrawableBalance()).to.equal(42);
+    expect(await pool.totalEligibleBalance()).to.equal(20); /* 60 - 40 */
 
     // verify Alice's state is updated
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(
-      34
-    ); /* 50 * (41/60) */
-    expect(await pool.maxWithdraw(aliceLender.address)).to.equal(35);
+      33
+    ); /* 50 * (40/60) */
+    expect(await pool.maxWithdraw(aliceLender.address)).to.equal(34);
 
     // verify Bob's state is updated
     expect(await pool.maxRedeem(bobLender.address)).to.equal(

@@ -86,9 +86,13 @@ library PoolLib {
     event LoanDefaulted(address indexed loan);
 
     /**
-     * @dev Math `ceil` method to round up on division
+     * @dev Divide two numbers and round the result up
      */
-    function ceil(uint256 lhs, uint256 rhs) internal pure returns (uint256) {
+    function divideCeil(uint256 lhs, uint256 rhs)
+        internal
+        pure
+        returns (uint256)
+    {
         return (lhs + rhs - 1) / rhs;
     }
 
@@ -461,7 +465,7 @@ library PoolLib {
         pure
         returns (uint256)
     {
-        return ceil(shares * requestFeeBps, 10_000);
+        return divideCeil(shares * requestFeeBps, 10_000);
     }
 
     /**
