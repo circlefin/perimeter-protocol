@@ -14,7 +14,7 @@ describe("Loan", () => {
   const SEVEN_DAYS = 6 * 60 * 60 * 24;
   const THIRTY_DAYS = 30 * 60 * 60 * 24;
 
-  async function deployFixture() {
+  async function deployFixture(poolSettings = DEFAULT_POOL_SETTINGS) {
     // Contracts are deployed using the first signer/account by default
     const [operator, poolManager, borrower, lender, other] =
       await ethers.getSigners();
@@ -62,12 +62,12 @@ describe("Loan", () => {
       .connect(poolManager)
       .createPool(
         liquidityAsset.address,
-        DEFAULT_POOL_SETTINGS.maxCapacity,
-        DEFAULT_POOL_SETTINGS.endDate,
-        DEFAULT_POOL_SETTINGS.requestFeeBps,
-        DEFAULT_POOL_SETTINGS.withdrawGateBps,
-        DEFAULT_POOL_SETTINGS.withdrawRequestPeriodDuration,
-        DEFAULT_POOL_SETTINGS.poolFeePercentOfInterest
+        poolSettings.maxCapacity,
+        poolSettings.endDate,
+        poolSettings.requestFeeBps,
+        poolSettings.withdrawGateBps,
+        poolSettings.withdrawRequestPeriodDuration,
+        poolSettings.poolFeePercentOfInterest
       );
     const tx1Receipt = await tx1.wait();
 
@@ -146,6 +146,13 @@ describe("Loan", () => {
       other,
       serviceConfiguration
     };
+  }
+
+  async function deployFixturePoolFees() {
+    const poolSettings = Object.assign({}, DEFAULT_POOL_SETTINGS, {
+      poolFeePercentOfInterest: 100
+    });
+    return deployFixture(poolSettings);
   }
 
   describe("after initialization", () => {
@@ -890,7 +897,7 @@ describe("Loan", () => {
     });
 
     it("can collect pool fees from the next payment", async () => {
-      const fixture = await loadFixture(deployFixture);
+      const fixture = await loadFixture(deployFixturePoolFees);
       const {
         borrower,
         collateralAsset,
@@ -907,6 +914,7 @@ describe("Loan", () => {
         .postFungibleCollateral(collateralAsset.address, 100);
       await pool.connect(poolManager).fundLoan(loan.address);
       await loan.connect(borrower).drawdown();
+      expect(await pool.poolFeePercentOfInterest()).to.equal(100);
 
       // Make payment
       const firstLoss = await pool.firstLossVault();
