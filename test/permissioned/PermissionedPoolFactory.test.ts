@@ -82,7 +82,8 @@ describe("PermissionedPoolFactory", () => {
           /* endDate */ 0,
           /* requestFeeBps */ 0,
           /* withdrawGateBps */ 0,
-          /* withdrawRequestPeriodDuration: */ 1
+          /* withdrawRequestPeriodDuration: */ 1,
+          /* poolFeePercentOfInterest */ 0
         )
     ).to.emit(poolFactory, "PoolCreated");
   });
@@ -104,7 +105,8 @@ describe("PermissionedPoolFactory", () => {
         /* endDate */ 0,
         /* requestFeeBps */ 0,
         /* withdrawGateBps */ 0,
-        /* withdrawRequestPeriodDuration: */ 1
+        /* withdrawRequestPeriodDuration: */ 1,
+        /* poolFeePercentOfInterest */ 0
       )
     ).to.be.revertedWith("caller is not a pool manager");
   });

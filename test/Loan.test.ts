@@ -66,7 +66,8 @@ describe("Loan", () => {
         DEFAULT_POOL_SETTINGS.endDate,
         DEFAULT_POOL_SETTINGS.requestFeeBps,
         DEFAULT_POOL_SETTINGS.withdrawGateBps,
-        DEFAULT_POOL_SETTINGS.withdrawRequestPeriodDuration
+        DEFAULT_POOL_SETTINGS.withdrawRequestPeriodDuration,
+        DEFAULT_POOL_SETTINGS.poolFeePercentOfInterest
       );
     const tx1Receipt = await tx1.wait();
 
@@ -896,8 +897,7 @@ describe("Loan", () => {
         liquidityAsset,
         loan,
         pool,
-        poolManager,
-        serviceConfiguration
+        poolManager
       } = fixture;
 
       // Setup
@@ -911,7 +911,6 @@ describe("Loan", () => {
       // Make payment
       const firstLoss = await pool.firstLossVault();
       const feeVault = await pool.feeVault();
-      await serviceConfiguration.setPoolFeePercentOfInterest(100);
       const dueDate = await loan.paymentDueDate();
       expect(await loan.paymentsRemaining()).to.equal(6);
       await liquidityAsset.connect(borrower).approve(loan.address, 2083);
