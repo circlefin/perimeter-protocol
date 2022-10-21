@@ -326,13 +326,15 @@ contract Pool is IPool, ERC20 {
         _liquidityAsset.safeApprove(address(loan), loan.principal());
         loan.fund();
         _accountings.outstandingLoanPrincipals += loan.principal();
+        _activeLoans.add(addr);
     }
 
     /**
      * @inheritdoc IPool
      */
-    function notifyLoanDrawndown() external isPoolLoan(msg.sender) {
-        _activeLoans.add(msg.sender);
+    function notifyLoanMatured() external {
+        require(_activeLoans.remove(msg.sender), "Pool: not active loan");
+        _accountings.outstandingLoanPrincipals -= ILoan(msg.sender).principal();
     }
 
     /**

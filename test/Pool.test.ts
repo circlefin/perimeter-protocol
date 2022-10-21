@@ -334,7 +334,7 @@ describe("Pool", () => {
       ).to.be.revertedWith("Loan: FunctionInvalidAtThisILoanLifeCycleState");
     });
 
-    it("defaults loan if loan is funded, and pool is active", async () => {
+    it("defaults loan if loan is active, and pool is active", async () => {
       const {
         collateralAsset,
         pool,
@@ -353,6 +353,7 @@ describe("Pool", () => {
       const loanPrincipal = await loan.principal();
       await depositToPool(pool, otherAccount, liquidityAsset, loanPrincipal);
       await fundLoan(loan, pool, poolManager);
+      await loan.connect(borrower).drawdown();
 
       // Confirm that pool liquidity reserve is now empty
       expect(await liquidityAsset.balanceOf(pool.address)).to.equal(0);

@@ -69,7 +69,7 @@ contract Loan is ILoan {
     /**
      * @dev Modifier that requires the loan not be in a terminal state.
      */
-    modifier onlyActiveLoan() {
+    modifier onlyNonTerminalState() {
         require(
             _state != ILoanLifeCycleState.Canceled,
             "Loan: loan is in terminal state"
@@ -192,7 +192,7 @@ contract Loan is ILoan {
     function postFungibleCollateral(address asset, uint256 amount)
         external
         onlyBorrower
-        onlyActiveLoan
+        onlyNonTerminalState
         returns (ILoanLifeCycleState)
     {
         _state = LoanLib.postFungibleCollateral(
@@ -215,7 +215,7 @@ contract Loan is ILoan {
     function postNonFungibleCollateral(address asset, uint256 tokenId)
         external
         onlyBorrower
-        onlyActiveLoan
+        onlyNonTerminalState
         returns (ILoanLifeCycleState)
     {
         _state = LoanLib.postNonFungibleCollateral(
@@ -269,14 +269,14 @@ contract Loan is ILoan {
             address(fundingVault)
         );
         LoanLib.drawdown(fundingVault, amount, msg.sender);
-        IPool(_pool).notifyLoanDrawndown();
+        _state = ILoanLifeCycleState.Active;
         return amount;
     }
 
     function completeNextPayment()
         public
         onlyBorrower
-        atState(ILoanLifeCycleState.Funded)
+        atState(ILoanLifeCycleState.Active)
         returns (uint256)
     {
         require(paymentsRemaining > 0, "Loan: No more payments remain");
@@ -304,7 +304,7 @@ contract Loan is ILoan {
     function completeFullPayment()
         public
         onlyBorrower
-        atState(ILoanLifeCycleState.Funded)
+        atState(ILoanLifeCycleState.Active)
         returns (uint256)
     {
         uint256 amount = payment.mul(paymentsRemaining);
@@ -331,6 +331,7 @@ contract Loan is ILoan {
         );
         paymentsRemaining = 0;
         _state = ILoanLifeCycleState.Matured;
+        IPool(_pool).notifyLoanMatured();
         return amount;
     }
 
@@ -341,7 +342,7 @@ contract Loan is ILoan {
         external
         override
         onlyPool
-        atState(ILoanLifeCycleState.Funded)
+        atState(ILoanLifeCycleState.Active)
         returns (ILoanLifeCycleState)
     {
         _state = ILoanLifeCycleState.Defaulted;

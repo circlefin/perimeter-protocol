@@ -178,9 +178,9 @@ interface IPool is IERC4626 {
     function fundLoan(address) external;
 
     /**
-     * @dev Called by a loan, it notifies the pool that the loan has been drawn down.
+     * @dev Called by a loan, it notifies the pool that the loan has matured.
      */
-    function notifyLoanDrawndown() external;
+    function notifyLoanMatured() external;
 
     /**
      * @dev Called by the pool manager, this marks a loan as in default, triggering liquiditation

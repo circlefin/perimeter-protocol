@@ -170,6 +170,9 @@ library PoolLib {
 
         for (uint256 i = 0; i < activeLoans.length(); i++) {
             ILoan loan = ILoan(activeLoans.at(i));
+            if (loan.state() != ILoanLifeCycleState.Active) {
+                continue;
+            }
 
             paymentsRemaining = loan.paymentsRemaining();
             paymentDueDate = loan.paymentDueDate();

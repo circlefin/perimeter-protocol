@@ -12,7 +12,8 @@ enum ILoanLifeCycleState {
     Canceled,
     Defaulted,
     Funded,
-    Matured
+    Matured,
+    Active
 }
 
 enum ILoanType {
