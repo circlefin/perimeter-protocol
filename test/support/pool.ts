@@ -9,7 +9,8 @@ export const DEFAULT_POOL_SETTINGS = {
   requestFeeBps: 500, // bps (1%)
   withdrawGateBps: 10_000, // bps (100%)
   firstLossInitialMinimum: 100_000,
-  withdrawRequestPeriodDuration: 30 * 24 * 60 * 60 // 30 days
+  withdrawRequestPeriodDuration: 30 * 24 * 60 * 60, // 30 days
+  poolFeePercentOfInterest: 0 // bps (0%)
 };
 
 /**

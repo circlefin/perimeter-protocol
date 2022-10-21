@@ -46,7 +46,8 @@ describe("PoolFactory", () => {
         /* endDate */ 0,
         /* requestFeeBps */ 0,
         /* withdrawGateBps */ 0,
-        /* withdrawRequestPeriodDuration: */ 0
+        /* withdrawRequestPeriodDuration: */ 0,
+        /* poolFeePercentOfInterest */ 0
       )
     ).to.be.revertedWith("PoolFactory: Invalid duration");
   });
@@ -61,7 +62,8 @@ describe("PoolFactory", () => {
         /* endDate */ 0,
         /* requestFeeBps */ 0,
         /* withdrawGateBps */ 0,
-        /* withdrawRequestPeriodDuration: */ 1
+        /* withdrawRequestPeriodDuration: */ 1,
+        /* poolFeePercentOfInterest */ 0
       )
     ).to.emit(poolFactory, "PoolCreated");
   });
