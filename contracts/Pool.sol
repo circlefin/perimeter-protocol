@@ -84,9 +84,10 @@ contract Pool is IPool, ERC20 {
      * @dev Modifier that checks that the pool is Initialized or Active
      */
     modifier atInitializedOrActiveState() {
+        IPoolLifeCycleState _lifecycle = lifeCycleState();
         require(
-            _poolLifeCycleState == IPoolLifeCycleState.Active ||
-                _poolLifeCycleState == IPoolLifeCycleState.Initialized,
+            _lifecycle == IPoolLifeCycleState.Active ||
+                _lifecycle == IPoolLifeCycleState.Initialized,
             "Pool: invalid pool state"
         );
         _;
@@ -97,7 +98,7 @@ contract Pool is IPool, ERC20 {
      */
     modifier atState(IPoolLifeCycleState state) {
         require(
-            _poolLifeCycleState == state,
+            lifeCycleState() == state,
             "Pool: FunctionInvalidAtThisLifeCycleState"
         );
         _;
@@ -263,7 +264,7 @@ contract Pool is IPool, ERC20 {
                 spender,
                 amount,
                 address(_firstLossVault),
-                _poolLifeCycleState,
+                lifeCycleState(),
                 _poolSettings.firstLossInitialMinimum
             );
 
@@ -784,7 +785,7 @@ contract Pool is IPool, ERC20 {
     {
         return
             PoolLib.calculateMaxDeposit(
-                _poolLifeCycleState,
+                lifeCycleState(),
                 _poolSettings.maxCapacity,
                 totalAssets()
             );

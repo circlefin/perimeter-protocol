@@ -72,6 +72,19 @@ describe("Pool", () => {
     });
   });
 
+  describe("lifeCycleState()", () => {
+    it("is closed when pool end date passes", async () => {
+      const { pool } = await loadFixture(loadPoolFixture);
+
+      expect(await pool.lifeCycleState()).to.equal(0); // initialized
+
+      const poolEndDate = (await pool.settings()).endDate;
+      await time.increaseTo(poolEndDate);
+
+      expect(await pool.lifeCycleState()).to.equal(3); // closed
+    });
+  });
+
   describe("setRequestFee()", () => {
     it("sets the request fee in Bps", async () => {
       const { pool, poolManager } = await loadFixture(loadPoolFixture);
