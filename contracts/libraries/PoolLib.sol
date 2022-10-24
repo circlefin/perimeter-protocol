@@ -469,34 +469,32 @@ library PoolLib {
         uint256 shareBalance,
         uint256 requestFeeBps
     ) public pure returns (uint256) {
-        uint256 sharesRemaining = shareBalance
-            .sub(state.requestedShares)
-            .sub(state.eligibleShares)
-            .sub(state.redeemableShares);
+        uint256 sharesRemaining = shareBalance -
+            state.requestedShares -
+            state.eligibleShares -
+            state.redeemableShares;
 
         uint256 sharesFee = calculateRequestFee(sharesRemaining, requestFeeBps);
 
-        return Math.max(sharesRemaining.sub(sharesFee), 0);
+        return Math.max(sharesRemaining - sharesFee, 0);
     }
 
     /**
      * @dev Calculates the Maximum amount of shares that can be cancelled
      * from the current withdraw request.
      */
-    function calcualteMaxRequestCancellation(
+    function calculateMaxCancellation(
         IPoolWithdrawState memory state,
         uint256 requestCancellationFeeBps
     ) public pure returns (uint256) {
-        uint256 sharesRemaining = state.requestedShares.sub(
-            state.eligibleShares
-        );
+        uint256 sharesRemaining = state.requestedShares + state.eligibleShares;
 
         uint256 sharesFee = calculateCancellationFee(
             sharesRemaining,
             requestCancellationFeeBps
         );
 
-        return Math.max(sharesRemaining.sub(sharesFee), 0);
+        return Math.max(sharesRemaining - sharesFee, 0);
     }
 
     /**

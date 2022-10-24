@@ -697,6 +697,40 @@ describe("PoolLib", () => {
     });
   });
 
+  describe("calculateMaxCancellation()", () => {
+    it("returns the number of shares the owner can cancel from a request", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      const fees = 0;
+      const withdrawState = buildWithdrawState({
+        requestedShares: 50,
+        eligibleShares: 22,
+        redeemableShares: 28,
+        latestRequestPeriod: 2
+      });
+
+      expect(
+        await poolLibWrapper.calculateMaxCancellation(withdrawState, fees)
+      ).to.equal(72);
+    });
+
+    it("returns the number of shares minus fees", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      const fees = 1200; // 12%
+      const withdrawState = buildWithdrawState({
+        requestedShares: 50,
+        eligibleShares: 22,
+        redeemableShares: 28,
+        latestRequestPeriod: 2
+      });
+
+      expect(
+        await poolLibWrapper.calculateMaxCancellation(withdrawState, fees)
+      ).to.equal(63);
+    });
+  });
+
   describe("calculateMaxRedeemRequest()", () => {
     it("returns the number of shares the owner has not yet requested if no fees", async () => {
       const { poolLibWrapper } = await loadFixture(deployFixture);

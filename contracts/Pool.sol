@@ -468,7 +468,7 @@ contract Pool is IPool, ERC20 {
         view
         returns (uint256 maxShares)
     {
-        maxShares = PoolLib.calcualteMaxRequestCancellation(
+        maxShares = PoolLib.calculateMaxCancellation(
             _withdrawState[owner],
             _poolSettings.requestCancellationFeeBps
         );
