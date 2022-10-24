@@ -635,7 +635,6 @@ describe("PoolLib", () => {
         await poolLibWrapper.calculateWithdrawStateForRequest(
           withdrawState,
           0,
-          1,
           22
         )
       ).to.deep.equal(
@@ -660,7 +659,6 @@ describe("PoolLib", () => {
         await poolLibWrapper.calculateWithdrawStateForRequest(
           withdrawState,
           1,
-          2,
           33
         )
       ).to.deep.equal(
@@ -672,6 +670,49 @@ describe("PoolLib", () => {
           })
         )
       );
+    });
+  });
+
+  describe("calculateWithdrawStateForCancellation", () => {
+    it("subtracts the requested shares of the lender, followed by eligible shares", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      const withdrawState = buildWithdrawState({
+        requestedShares: 10,
+        eligibleShares: 20
+      });
+
+      expect(
+        await poolLibWrapper.calculateWithdrawStateForCancellation(
+          withdrawState,
+          0,
+          22
+        )
+      ).to.deep.equal(
+        Object.values(
+          buildWithdrawState({
+            requestedShares: 0,
+            eligibleShares: 8
+          })
+        )
+      );
+    });
+
+    it("returns an error if not enough shares available to cancel", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      const withdrawState = buildWithdrawState({
+        requestedShares: 20,
+        latestRequestPeriod: 1
+      });
+
+      await expect(
+        poolLibWrapper.calculateWithdrawStateForCancellation(
+          withdrawState,
+          1,
+          33
+        )
+      ).to.be.revertedWith("Pool: Invalid cancelled shares");
     });
   });
 

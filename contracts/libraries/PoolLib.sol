@@ -385,9 +385,7 @@ library PoolLib {
         // given request period, we need to move "requested" shares over
         // to be "eligible".
         if (state.latestRequestPeriod <= currentPeriod) {
-            state.eligibleShares = state.eligibleShares.add(
-                state.requestedShares
-            );
+            state.eligibleShares = state.eligibleShares + state.requestedShares;
             state.requestedShares = 0;
         }
 
@@ -401,19 +399,16 @@ library PoolLib {
     function calculateWithdrawStateForRequest(
         IPoolWithdrawState memory state,
         uint256 currentPeriod,
-        uint256 requestedPeriod,
         uint256 requestedShares
     ) public pure returns (IPoolWithdrawState memory updatedState) {
-        require(requestedPeriod > 0, "Pool: Invalid request period");
+        require(currentPeriod >= 0, "Pool: Invalid request period");
 
         updatedState = progressWithdrawState(state, currentPeriod);
 
         // Increment the requested shares count, and ensure the "latestRequestPeriod"
         // is set to the current request period.
-        updatedState.requestedShares = state.requestedShares.add(
-            requestedShares
-        );
-        updatedState.latestRequestPeriod = requestedPeriod;
+        updatedState.requestedShares = state.requestedShares + requestedShares;
+        updatedState.latestRequestPeriod = currentPeriod + 1;
     }
 
     /**
@@ -423,19 +418,30 @@ library PoolLib {
     function calculateWithdrawStateForCancellation(
         IPoolWithdrawState memory state,
         uint256 currentPeriod,
-        uint256 requestedPeriod,
         uint256 cancelledShares
     ) public pure returns (IPoolWithdrawState memory updatedState) {
-        require(requestedPeriod > 0, "Pool: Invalid request period");
-
         updatedState = progressWithdrawState(state, currentPeriod);
 
-        // Increment the requested shares count, and ensure the "latestRequestPeriod"
+        // Decrease the requested, eligible shares count, and ensure the "latestRequestPeriod"
         // is set to the current request period.
-        updatedState.requestedShares = state.requestedShares.sub(
-            cancelledShares
-        );
-        updatedState.latestRequestPeriod = requestedPeriod;
+        if (updatedState.requestedShares > cancelledShares) {
+            updatedState.requestedShares -= cancelledShares;
+            cancelledShares = 0;
+        } else {
+            cancelledShares -= updatedState.requestedShares;
+            updatedState.requestedShares = 0;
+        }
+
+        if (updatedState.eligibleShares > cancelledShares) {
+            updatedState.eligibleShares -= cancelledShares;
+            cancelledShares = 0;
+        } else {
+            cancelledShares -= updatedState.eligibleShares;
+            updatedState.eligibleShares = 0;
+        }
+
+        // Sanity check that we've cancelled all shares.
+        require(cancelledShares == 0, "Pool: Invalid cancelled shares");
     }
 
     /**

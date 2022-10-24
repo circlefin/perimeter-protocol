@@ -724,7 +724,6 @@ contract Pool is IPool, ERC20 {
         require(maxRedeemRequest(owner) >= shares, "Pool: InsufficientBalance");
 
         uint256 currentPeriod = withdrawPeriod();
-        uint256 nextPeriod = withdrawPeriod().add(1);
         uint256 feeShares = PoolLib.calculateRequestFee(
             shares,
             _poolSettings.requestFeeBps
@@ -737,7 +736,6 @@ contract Pool is IPool, ERC20 {
         _withdrawState[owner] = PoolLib.calculateWithdrawStateForRequest(
             _withdrawState[owner],
             currentPeriod,
-            nextPeriod,
             shares
         );
 
@@ -748,7 +746,6 @@ contract Pool is IPool, ERC20 {
         _globalWithdrawState = PoolLib.calculateWithdrawStateForRequest(
             _globalWithdrawState,
             currentPeriod,
-            nextPeriod,
             shares
         );
 
@@ -773,7 +770,6 @@ contract Pool is IPool, ERC20 {
         );
 
         uint256 currentPeriod = withdrawPeriod();
-        uint256 nextPeriod = withdrawPeriod().add(1);
         uint256 feeShares = PoolLib.calculateRequestFee(
             shares,
             _poolSettings.requestFeeBps
@@ -786,7 +782,6 @@ contract Pool is IPool, ERC20 {
         _withdrawState[owner] = PoolLib.calculateWithdrawStateForCancellation(
             _withdrawState[owner],
             currentPeriod,
-            nextPeriod,
             shares
         );
 
@@ -797,7 +792,6 @@ contract Pool is IPool, ERC20 {
         _globalWithdrawState = PoolLib.calculateWithdrawStateForCancellation(
             _globalWithdrawState,
             currentPeriod,
-            nextPeriod,
             shares
         );
 
