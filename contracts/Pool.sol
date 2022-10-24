@@ -355,6 +355,42 @@ contract Pool is IPool, ERC20 {
         );
     }
 
+    /**
+     * @dev Calculate the total amount of underlying assets held by the vault,
+     * excluding any assets due for withdrawal.
+     */
+    function totalAvailableAssets() public view returns (uint256 assets) {
+        assets = PoolLib.calculateTotalAvailableAssets(
+            address(_liquidityAsset),
+            address(this),
+            _accountings.outstandingLoanPrincipals,
+            totalWithdrawableAssets()
+        );
+    }
+
+    /**
+     * @dev The total available supply that is not marked for withdrawal
+     */
+    function totalAvailableSupply() public view returns (uint256 shares) {
+        shares = PoolLib.calculateTotalAvailableShares(
+            address(this),
+            totalRedeemableShares()
+        );
+    }
+
+    /**
+     * @dev The sum of all assets available in the liquidity pool, excluding
+     * any assets that are marked for withdrawal.
+     */
+    function liquidityPoolAssets() public view returns (uint256 assets) {
+        assets = PoolLib.calculateTotalAvailableAssets(
+            address(_liquidityAsset),
+            address(this),
+            0, // do not include any loan principles
+            totalWithdrawableAssets()
+        );
+    }
+
     /*//////////////////////////////////////////////////////////////
                     Crank
     //////////////////////////////////////////////////////////////*/
@@ -364,17 +400,17 @@ contract Pool is IPool, ERC20 {
      */
     function crank() external returns (uint256 redeemableShares) {
         // Calculate the amount available for withdrawal
-        // TODO: Find the real available liquidity
-        uint256 availableLiquidity = totalSupply();
+        uint256 liquidAssets = liquidityPoolAssets();
 
-        // How much is available to redeem for this period
-        uint256 availableShares = availableLiquidity
+        uint256 availableAssets = liquidAssets
             .mul(_poolSettings.withdrawGateBps)
             .mul(PoolLib.RAY)
             .div(10_000)
             .div(PoolLib.RAY);
 
-        if (availableShares <= 0) {
+        uint256 availableShares = convertToShares(availableAssets);
+
+        if (availableAssets <= 0 || availableShares <= 0) {
             // unable to redeem anything
             redeemableShares = 0;
             return 0;
@@ -393,6 +429,7 @@ contract Pool is IPool, ERC20 {
             globalState.eligibleShares
         );
 
+        // Update the global withdraw state
         _globalWithdrawState = PoolLib.updateWithdrawStateForWithdraw(
             globalState,
             convertToAssets(redeemableShares),
@@ -626,7 +663,7 @@ contract Pool is IPool, ERC20 {
      * @dev Returns the number of shares that are available to be redeemed
      * overall in the current block.
      */
-    function totalRedeemableBalance() external view returns (uint256 shares) {
+    function totalRedeemableShares() public view returns (uint256 shares) {
         shares = _currentGlobalWithdrawState().redeemableShares;
     }
 
@@ -634,7 +671,7 @@ contract Pool is IPool, ERC20 {
      * @dev Returns the number of `assets` that are available to be withdrawn
      * overall in the current block.
      */
-    function totalWithdrawableBalance() external view returns (uint256 assets) {
+    function totalWithdrawableAssets() public view returns (uint256 assets) {
         assets = _currentGlobalWithdrawState().withdrawableAssets;
     }
 
@@ -758,8 +795,8 @@ contract Pool is IPool, ERC20 {
         return
             PoolLib.calculateAssetsToShares(
                 assets,
-                totalSupply(),
-                totalAssets()
+                totalAvailableSupply(),
+                totalAvailableAssets()
             );
     }
 
@@ -775,8 +812,8 @@ contract Pool is IPool, ERC20 {
         return
             PoolLib.calculateSharesToAssets(
                 shares,
-                totalSupply(),
-                totalAssets()
+                totalAvailableSupply(),
+                totalAvailableAssets()
             );
     }
 
@@ -794,7 +831,7 @@ contract Pool is IPool, ERC20 {
             PoolLib.calculateMaxDeposit(
                 lifeCycleState(),
                 _poolSettings.maxCapacity,
-                totalAssets()
+                totalAvailableAssets()
             );
     }
 

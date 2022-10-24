@@ -35,6 +35,7 @@ interface IERC4626 is IERC20 {
 
     /**
      * @dev Calculate the total amount of underlying assets held by the vault.
+     * NOTE: This method includes assets that are marked for withdrawal.
      */
     function totalAssets() external view returns (uint256);
 
