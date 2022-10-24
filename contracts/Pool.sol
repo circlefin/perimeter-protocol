@@ -761,9 +761,7 @@ contract Pool is IPool, ERC20 {
         uint256 assets,
         uint256 shares
     ) internal {
-        // TODO: We must run the latest "mini crank" here to ensure
-        // none of this balance is already redeemable.
-
+        // TODO: If we move to a lighter crank, we must run it here before this method continues
         require(
             maxRequestCancellation(owner) >= shares,
             "Pool: InsufficientBalance"
