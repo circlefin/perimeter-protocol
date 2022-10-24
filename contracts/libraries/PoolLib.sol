@@ -504,7 +504,7 @@ library PoolLib {
         uint256 shares,
         uint256 requestCancellationFeeBps
     ) public pure returns (uint256) {
-        return ceil(shares * requestCancellationFeeBps, 10_000);
+        return divideCeil(shares * requestCancellationFeeBps, 10_000);
     }
 
     /**
