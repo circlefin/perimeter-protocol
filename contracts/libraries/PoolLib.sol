@@ -86,9 +86,13 @@ library PoolLib {
     event LoanDefaulted(address indexed loan);
 
     /**
-     * @dev Math `ceil` method to round up on division
+     * @dev Divide two numbers and round the result up
      */
-    function ceil(uint256 lhs, uint256 rhs) internal pure returns (uint256) {
+    function divideCeil(uint256 lhs, uint256 rhs)
+        internal
+        pure
+        returns (uint256)
+    {
         return (lhs + rhs - 1) / rhs;
     }
 
@@ -213,47 +217,51 @@ library PoolLib {
     /**
      * @dev Computes the exchange rate for converting assets to shares
      * @param assets Amount of assets to exchange
-     * @param sharesTotalSupply Supply of Vault's ERC20 shares
-     * @param totalAssets Pool total assets
+     * @param totalAvailableShares Supply of Vault's ERC20 shares (excluding marked for redemption)
+     * @param totalAvailableAssets Pool total available assets (excluding marked for withdrawal)
      * @return shares The amount of shares
      */
     function calculateAssetsToShares(
         uint256 assets,
-        uint256 sharesTotalSupply,
-        uint256 totalAssets
+        uint256 totalAvailableShares,
+        uint256 totalAvailableAssets
     ) external pure returns (uint256 shares) {
-        if (totalAssets == 0) {
+        if (totalAvailableAssets == 0) {
             return assets;
         }
 
         // TODO: add in interest rate.
-        uint256 rate = (sharesTotalSupply.mul(RAY)).div(totalAssets);
+        uint256 rate = (totalAvailableShares.mul(RAY)).div(
+            totalAvailableAssets
+        );
         shares = (rate.mul(assets)).div(RAY);
     }
 
     /**
      * @dev Computes the exchange rate for converting shares to assets
      * @param shares Amount of shares to exchange
-     * @param sharesTotalSupply Supply of Vault's ERC20 shares
-     * @param totalAssets Pool NAV
+     * @param totalAvailableShares Supply of Vault's ERC20 shares (excluding marked for redemption)
+     * @param totalAvailableAssets Pool total available assets (excluding marked for withdrawal)
      * @return assets The amount of shares
      */
     function calculateSharesToAssets(
         uint256 shares,
-        uint256 sharesTotalSupply,
-        uint256 totalAssets
+        uint256 totalAvailableShares,
+        uint256 totalAvailableAssets
     ) external pure returns (uint256 assets) {
-        if (sharesTotalSupply == 0) {
+        if (totalAvailableShares == 0) {
             return shares;
         }
 
         // TODO: add in interest rate.
-        uint256 rate = (totalAssets.mul(RAY)).div(sharesTotalSupply);
+        uint256 rate = (totalAvailableAssets.mul(RAY)).div(
+            totalAvailableShares
+        );
         assets = (rate.mul(shares)).div(RAY);
     }
 
     /**
-     * @dev Calculates total assets held by Vault
+     * @dev Calculates total assets held by Vault (including those marked for withdrawal)
      * @param asset Amount of total assets held by the Vault
      * @param vault Address of the ERC4626 vault
      * @param outstandingLoanPrincipals Sum of all oustanding loan principals
@@ -263,27 +271,59 @@ library PoolLib {
         address asset,
         address vault,
         uint256 outstandingLoanPrincipals
-    ) external view returns (uint256 totalAssets) {
+    ) public view returns (uint256 totalAssets) {
         totalAssets =
             IERC20(asset).balanceOf(vault) +
             outstandingLoanPrincipals;
     }
 
     /**
+     * @dev Calculates total assets held by Vault (excluding marked for withdrawal)
+     * @param asset Amount of total assets held by the Vault
+     * @param vault Address of the ERC4626 vault
+     * @param outstandingLoanPrincipals Sum of all oustanding loan principals
+     * @param withdrawableAssets Sum of all withdrawable assets
+     * @return totalAvailableAssets Total available assets (excluding marked for withdrawal)
+     */
+    function calculateTotalAvailableAssets(
+        address asset,
+        address vault,
+        uint256 outstandingLoanPrincipals,
+        uint256 withdrawableAssets
+    ) external view returns (uint256 totalAvailableAssets) {
+        totalAvailableAssets =
+            calculateTotalAssets(asset, vault, outstandingLoanPrincipals) -
+            withdrawableAssets;
+    }
+
+    /**
+     * @dev Calculates total shares held by Vault (excluding marked for redemption)
+     * @param vault Address of the ERC4626 vault
+     * @param redeemableShares Sum of all withdrawable assets
+     * @return totalAvailableShares Total redeemable shares (excluding marked for redemption)
+     */
+    function calculateTotalAvailableShares(
+        address vault,
+        uint256 redeemableShares
+    ) external view returns (uint256 totalAvailableShares) {
+        totalAvailableShares = IERC20(vault).totalSupply() - redeemableShares;
+    }
+
+    /**
      * @dev Calculates the max deposit allowed in the pool
      * @param poolLifeCycleState The current pool lifecycle state
      * @param poolMaxCapacity Max pool capacity allowed per the pool settings
-     * @param totalAssets Sum of all pool assets
+     * @param totalAvailableAssets Sum of all pool assets (excluding marked for withdrawal)
      * @return Max deposit allowed
      */
     function calculateMaxDeposit(
         IPoolLifeCycleState poolLifeCycleState,
         uint256 poolMaxCapacity,
-        uint256 totalAssets
+        uint256 totalAvailableAssets
     ) external pure returns (uint256) {
         return
             poolLifeCycleState == IPoolLifeCycleState.Active
-                ? poolMaxCapacity - totalAssets
+                ? poolMaxCapacity - totalAvailableAssets
                 : 0;
     }
 
@@ -453,7 +493,7 @@ library PoolLib {
         pure
         returns (uint256)
     {
-        return ceil(shares * requestFeeBps, 10_000);
+        return divideCeil(shares * requestFeeBps, 10_000);
     }
 
     /**

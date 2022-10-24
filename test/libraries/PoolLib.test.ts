@@ -235,7 +235,7 @@ describe("PoolLib", () => {
   });
 
   describe("calculateTotalAssets()", async () => {
-    it("combines balance of vault with oustanding loan principals", async () => {
+    it("combines balance of vault with outstanding loan principals", async () => {
       const { poolLibWrapper, liquidityAsset } = await loadFixture(
         deployFixture
       );
@@ -377,6 +377,56 @@ describe("PoolLib", () => {
     });
   });
 
+  describe("calculateTotalAvailableAssets()", async () => {
+    it("combines balance of vault with outstanding loan principals and subtracts withdrawable assets", async () => {
+      const { poolLibWrapper, liquidityAsset } = await loadFixture(
+        deployFixture
+      );
+
+      liquidityAsset.mint(poolLibWrapper.address, 200);
+
+      expect(
+        await poolLibWrapper.calculateTotalAvailableAssets(
+          liquidityAsset.address,
+          poolLibWrapper.address,
+          50,
+          100
+        )
+      ).to.equal(150);
+    });
+  });
+
+  describe("calculateTotalAvailableShares()", async () => {
+    it("returns the totalSupply minus redeemable shares", async () => {
+      const { poolLibWrapper, liquidityAsset, caller } = await loadFixture(
+        deployFixture
+      );
+
+      expect(await poolLibWrapper.balanceOf(caller.address)).to.equal(0);
+      const depositAmount = 10;
+
+      // Deposit
+      await poolLibWrapper.executeDeposit(
+        liquidityAsset.address,
+        poolLibWrapper.address,
+        caller.address,
+        depositAmount,
+        5,
+        10
+      );
+
+      // Check that shares were minted
+      expect(await poolLibWrapper.balanceOf(caller.address)).to.equal(5);
+
+      expect(
+        await poolLibWrapper.calculateTotalAvailableShares(
+          /* vault address */ poolLibWrapper.address,
+          /* redeemableShares */ 2
+        )
+      ).to.equal(3);
+    });
+  });
+
   describe("executeDeposit()", async () => {
     it("reverts if shares to be minted are 0", async () => {
       const { poolLibWrapper, liquidityAsset, caller } = await loadFixture(
@@ -491,20 +541,20 @@ describe("PoolLib", () => {
       );
     });
 
-    it("calculates <1:1 if nav has increased in value", async () => {
+    it("calculates <1:1 if nav has increased in value, and properly rounds down", async () => {
       const { poolLibWrapper } = await loadFixture(deployFixture);
 
       expect(
         await poolLibWrapper.calculateAssetsToShares(500, 500, 525)
-      ).to.equal(476);
+      ).to.equal(476) /* 476.19 rounded down */;
     });
 
-    it("calculates >1:1 if nav has decreased in value", async () => {
+    it("calculates >1:1 if nav has decreased in value, and properly rounds down", async () => {
       const { poolLibWrapper } = await loadFixture(deployFixture);
 
       expect(
-        await poolLibWrapper.calculateAssetsToShares(500, 500, 400)
-      ).to.equal(625);
+        await poolLibWrapper.calculateAssetsToShares(500, 500, 399)
+      ).to.equal(626); /* 626.53 rounded down */
     });
   });
 
@@ -517,20 +567,20 @@ describe("PoolLib", () => {
       );
     });
 
-    it("calculates <1:1 if nav has increased in value", async () => {
+    it("calculates <1:1 if nav has increased in value, and properly rounds down", async () => {
       const { poolLibWrapper } = await loadFixture(deployFixture);
 
       expect(
         await poolLibWrapper.calculateAssetsToShares(500, 500, 525)
-      ).to.equal(476);
+      ).to.equal(476); /* 476.19 rounded down */
     });
 
-    it("calculates >1:1 if nav has decreased in value", async () => {
+    it("calculates >1:1 if nav has decreased in value, and properly rounds down", async () => {
       const { poolLibWrapper } = await loadFixture(deployFixture);
 
       expect(
-        await poolLibWrapper.calculateAssetsToShares(500, 500, 400)
-      ).to.equal(625);
+        await poolLibWrapper.calculateAssetsToShares(500, 500, 399)
+      ).to.equal(626); /* 626.53 rounded down */
     });
   });
 

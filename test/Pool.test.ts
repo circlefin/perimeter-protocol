@@ -1020,7 +1020,7 @@ describe("Pool", () => {
       });
     });
 
-    describe("totalRedeemableBalance()", () => {
+    describe("totalRedeemableShares()", () => {
       it("returns the redeemable number of shares in this pool", async () => {
         const {
           pool,
@@ -1041,7 +1041,7 @@ describe("Pool", () => {
         await time.increase(withdrawRequestPeriodDuration);
         await pool.connect(poolManager).crank();
 
-        expect(await pool.totalRedeemableBalance()).to.equal(40);
+        expect(await pool.totalRedeemableShares()).to.equal(40);
       });
     });
 
@@ -1062,7 +1062,7 @@ describe("Pool", () => {
       });
     });
 
-    describe("totalWithdrawableBalance()", () => {
+    describe("totalWithdrawableAssets()", () => {
       it("returns the withdrawable number of shares in this pool", async () => {
         const {
           pool,
@@ -1083,7 +1083,7 @@ describe("Pool", () => {
         await time.increase(withdrawRequestPeriodDuration);
         await pool.connect(poolManager).crank();
 
-        expect(await pool.totalWithdrawableBalance()).to.equal(40);
+        expect(await pool.totalWithdrawableAssets()).to.equal(40);
       });
     });
   });

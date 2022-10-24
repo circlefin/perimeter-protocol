@@ -93,16 +93,38 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
             );
     }
 
+    function calculateTotalAvailableAssets(
+        address asset,
+        address vault,
+        uint256 outstandingLoanPrincipals,
+        uint256 withdrawableAssets
+    ) external view returns (uint256) {
+        return
+            PoolLib.calculateTotalAvailableAssets(
+                asset,
+                vault,
+                outstandingLoanPrincipals,
+                withdrawableAssets
+            );
+    }
+
+    function calculateTotalAvailableShares(
+        address vault,
+        uint256 redeemableShares
+    ) external view returns (uint256) {
+        return PoolLib.calculateTotalAvailableShares(vault, redeemableShares);
+    }
+
     function calculateMaxDeposit(
         IPoolLifeCycleState poolLifeCycleState,
         uint256 poolMaxCapacity,
-        uint256 totalAssets
+        uint256 totalAvailableAssets
     ) external pure returns (uint256) {
         return
             PoolLib.calculateMaxDeposit(
                 poolLifeCycleState,
                 poolMaxCapacity,
-                totalAssets
+                totalAvailableAssets
             );
     }
 
