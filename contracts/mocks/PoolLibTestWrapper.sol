@@ -166,18 +166,33 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
             );
     }
 
-    function caclulateWithdrawState(
+    function calculateWithdrawStateForRequest(
         IPoolWithdrawState memory state,
         uint256 currentPeriod,
         uint256 requestPeriod,
         uint256 requestedShares
     ) public pure returns (IPoolWithdrawState memory) {
         return
-            PoolLib.caclulateWithdrawState(
+            PoolLib.calculateWithdrawStateForRequest(
                 state,
                 currentPeriod,
                 requestPeriod,
                 requestedShares
+            );
+    }
+
+    function calculateWithdrawStateForCancellation(
+        IPoolWithdrawState memory state,
+        uint256 currentPeriod,
+        uint256 requestPeriod,
+        uint256 cancelledShares
+    ) public pure returns (IPoolWithdrawState memory) {
+        return
+            PoolLib.calculateWithdrawStateForCancellation(
+                state,
+                currentPeriod,
+                requestPeriod,
+                cancelledShares
             );
     }
 
@@ -187,6 +202,14 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
         returns (uint256)
     {
         return PoolLib.calculateRequestFee(shares, requestFeeBps);
+    }
+
+    function calculateCancellationFee(
+        uint256 shares,
+        uint256 requestCancellationFeeBps
+    ) external pure returns (uint256) {
+        return
+            PoolLib.calculateCancellationFee(shares, requestCancellationFeeBps);
     }
 
     function calculateMaxRedeemRequest(
@@ -199,6 +222,17 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
                 state,
                 shareBalance,
                 requestFeeBps
+            );
+    }
+
+    function calcualteMaxRequestCancellation(
+        IPoolWithdrawState memory state,
+        uint256 requestCancellationFeeBps
+    ) public pure returns (uint256) {
+        return
+            PoolLib.calcualteMaxRequestCancellation(
+                state,
+                requestCancellationFeeBps
             );
     }
 }

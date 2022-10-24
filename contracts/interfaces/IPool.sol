@@ -85,6 +85,15 @@ interface IPool is IERC4626 {
     );
 
     /**
+     * @dev Emitted when a withdrawal is requested.
+     */
+    event WithdrawRequestCancelled(
+        address indexed lender,
+        uint256 assets,
+        uint256 shares
+    );
+
+    /**
      * @dev Emitted when pool settings are updated.
      */
     event PoolSettingsUpdated(IPoolConfigurableSettings settings);
