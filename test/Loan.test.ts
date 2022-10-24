@@ -65,6 +65,7 @@ describe("Loan", () => {
         poolSettings.maxCapacity,
         poolSettings.endDate,
         poolSettings.requestFeeBps,
+        poolSettings.requestCancellationFeeBps,
         poolSettings.withdrawGateBps,
         poolSettings.withdrawRequestPeriodDuration,
         poolSettings.poolFeePercentOfInterest

@@ -45,6 +45,7 @@ describe("PoolFactory", () => {
         /* maxCapacity */ 0,
         /* endDate */ 0,
         /* requestFeeBps */ 0,
+        /* requestCancellationFeeBps */ 0,
         /* withdrawGateBps */ 0,
         /* withdrawRequestPeriodDuration: */ 0,
         /* poolFeePercentOfInterest */ 0
@@ -61,6 +62,7 @@ describe("PoolFactory", () => {
         /* maxCapacity */ 0,
         /* endDate */ 0,
         /* requestFeeBps */ 0,
+        /* requestCancellationFeeBps */ 0,
         /* withdrawGateBps */ 0,
         /* withdrawRequestPeriodDuration: */ 1,
         /* poolFeePercentOfInterest */ 0

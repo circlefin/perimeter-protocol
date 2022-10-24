@@ -28,6 +28,7 @@ struct IPoolConfigurableSettings {
     uint256 maxCapacity; // amount
     uint256 endDate; // epoch seconds
     uint256 requestFeeBps; // bips
+    uint256 requestCancellationFeeBps; // bips
     uint256 withdrawGateBps; // Percent of liquidity pool available to withdraw, represented in BPS
     uint256 firstLossInitialMinimum; // amount
     uint256 withdrawRequestPeriodDuration; // seconds (e.g. 30 days)

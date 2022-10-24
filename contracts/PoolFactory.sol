@@ -31,6 +31,7 @@ contract PoolFactory {
         uint256 maxCapacity,
         uint256 endDate,
         uint256 requestFeeBps,
+        uint256 requestCancellationFeeBps,
         uint256 withdrawGateBps,
         uint256 withdrawRequestPeriodDuration,
         uint256 poolFeePercentOfInterest
@@ -49,6 +50,7 @@ contract PoolFactory {
             maxCapacity,
             endDate,
             requestFeeBps,
+            requestCancellationFeeBps,
             withdrawGateBps,
             firstLossInitialMinimum,
             withdrawRequestPeriodDuration,
