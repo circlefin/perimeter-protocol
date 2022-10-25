@@ -341,20 +341,22 @@ contract Pool is IPool, ERC20 {
     /**
      * @inheritdoc IPool
      */
-    function defaultLoan(address loan)
-        external
-        onlyManager
-        atState(IPoolLifeCycleState.Active)
-        isPoolLoan(loan)
-    {
+    function defaultLoan(address loan) external onlyManager {
         require(loan != address(0), "Pool: 0 address");
+        IPoolLifeCycleState state = lifeCycleState();
+        require(
+            state == IPoolLifeCycleState.Active ||
+                state == IPoolLifeCycleState.Closed,
+            "Pool: FunctionInvalidAtThisLifeCycleState"
+        );
 
         PoolLib.executeDefault(
             asset(),
             address(_firstLossVault),
             loan,
             address(this),
-            _accountings
+            _accountings,
+            _fundedLoans
         );
     }
 
