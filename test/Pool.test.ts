@@ -400,7 +400,6 @@ describe("Pool", () => {
     });
   });
 
-<<<<<<< HEAD
   describe("previewDeposit()", async () => {
     it("includes interest when calculating deposit exchange rate", async () => {
       const lender = (await ethers.getSigners())[10];
