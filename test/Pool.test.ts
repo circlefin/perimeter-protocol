@@ -486,6 +486,37 @@ describe("Pool", () => {
         firstLossAvailable
       );
     });
+
+    it("Allows defaults even if pool is closed", async () => {
+      const {
+        collateralAsset,
+        pool,
+        poolManager,
+        liquidityAsset,
+        loan,
+        borrower,
+        otherAccount
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolManager, liquidityAsset);
+      await collateralizeLoan(loan, borrower, collateralAsset);
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        await loan.principal()
+      );
+      await fundLoan(loan, pool, poolManager);
+      await loan.connect(borrower).drawdown();
+
+      // Fast forward to pool end date
+      await time.increaseTo((await pool.settings()).endDate);
+      expect(await pool.lifeCycleState()).to.equal(3); // Closed
+
+      // Default should proceed
+      await expect(pool.connect(poolManager).defaultLoan(loan.address)).not.to
+        .be.reverted;
+    });
   });
 
   describe("previewDeposit()", async () => {
