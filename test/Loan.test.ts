@@ -256,7 +256,7 @@ describe("Loan", () => {
     });
   });
 
-  describe.only("cancelFunded", () => {
+  describe("cancelFunded", () => {
     it("reverts if not in Funded state", async () => {
       const { borrower, liquidityAsset, loan, pool, poolManager } =
         await loadFixture(deployFixture);
