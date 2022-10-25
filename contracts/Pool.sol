@@ -296,13 +296,13 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
-     * @dev Updates the pool capacity. Can only be called by the Pool Manager.
+     * @inheritdoc IPool
      */
-    function updatePoolCapacity(uint256)
-        external
-        onlyManager
-        returns (uint256)
-    {}
+    function updatePoolCapacity(uint256 newCapacity) external onlyManager {
+        require(newCapacity >= totalAssets(), "Pool: invalid capacity");
+        _poolSettings.maxCapacity = newCapacity;
+        emit PoolSettingsUpdated();
+    }
 
     /**
      * @dev Updates the pool end date. Can only be called by the Pool Manager.

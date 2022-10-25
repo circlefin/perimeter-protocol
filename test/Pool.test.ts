@@ -452,6 +452,33 @@ describe("Pool", () => {
     });
   });
 
+  describe("updatePoolCapacity()", () => {
+    it("prevents setting capacity to less than current pool size", async () => {
+      const { pool, otherAccount, poolManager, liquidityAsset } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolManager, liquidityAsset);
+      await depositToPool(pool, otherAccount, liquidityAsset, 100);
+      await expect(
+        pool.connect(poolManager).updatePoolCapacity(1)
+      ).to.be.revertedWith("Pool: invalid capacity");
+    });
+
+    it("allows setting pool capacity", async () => {
+      const { pool, otherAccount, poolManager, liquidityAsset } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolManager, liquidityAsset);
+      await depositToPool(pool, otherAccount, liquidityAsset, 100);
+      await expect(pool.connect(poolManager).updatePoolCapacity(101)).to.emit(
+        pool,
+        "PoolSettingsUpdated"
+      );
+
+      expect((await pool.settings()).maxCapacity).to.equal(101);
+    });
+  });
+
   describe("Permissions", () => {
     describe("updatePoolCapacity()", () => {
       it("reverts if not called by Pool Manager", async () => {
