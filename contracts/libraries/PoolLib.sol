@@ -372,8 +372,11 @@ library PoolLib {
         address firstLossVault,
         address loan,
         address pool,
-        IPoolAccountings storage accountings
+        IPoolAccountings storage accountings,
+        EnumerableSet.AddressSet storage fundedLoans
     ) external {
+        require(fundedLoans.remove(loan), "Pool: unfunded loan");
+
         ILoan(loan).markDefaulted();
         accountings.outstandingLoanPrincipals -= ILoan(loan).principal();
 
