@@ -40,7 +40,8 @@ contract LoanFactory {
         uint256 apr,
         address liquidityAsset,
         uint256 principal,
-        uint256 dropDeadDate
+        uint256 dropDeadDate,
+        uint256 latePaymentFee
     ) public virtual returns (address LoanAddress) {
         require(
             _serviceConfiguration.paused() == false,
@@ -57,7 +58,8 @@ contract LoanFactory {
             apr,
             liquidityAsset,
             principal,
-            dropDeadDate
+            dropDeadDate,
+            latePaymentFee
         );
         address addr = address(loan);
         emit LoanCreated(addr);

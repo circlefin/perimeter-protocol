@@ -38,6 +38,7 @@ contract Loan is ILoan {
     uint256 public immutable payment;
     uint256 public paymentsRemaining;
     uint256 public paymentDueDate;
+    uint256 public latePaymentFee;
 
     /**
      * @dev Modifier that requires the Loan be in the given `state_`
@@ -96,7 +97,8 @@ contract Loan is ILoan {
         uint256 apr_,
         address liquidityAsset_,
         uint256 principal_,
-        uint256 dropDeadTimestamp
+        uint256 dropDeadTimestamp,
+        uint256 latePaymentFee_
     ) {
         _serviceConfiguration = serviceConfiguration;
         _factory = factory;
@@ -111,6 +113,7 @@ contract Loan is ILoan {
         apr = apr_;
         liquidityAsset = liquidityAsset_;
         principal = principal_;
+        latePaymentFee = latePaymentFee_;
 
         LoanLib.validateLoan(
             serviceConfiguration,
@@ -304,11 +307,17 @@ contract Loan is ILoan {
     {
         require(paymentsRemaining > 0, "Loan: No more payments remain");
 
-        (uint256 poolPayment, uint256 firstLossFee, uint256 poolFee) = LoanLib
-            .previewFees(
+        (
+            uint256 poolPayment,
+            uint256 firstLossFee,
+            uint256 poolFee,
+            uint256 latePayment
+        ) = LoanLib.previewFees(
                 payment,
                 _serviceConfiguration.firstLossFeeBps(),
-                IPool(_pool).poolFeePercentOfInterest()
+                IPool(_pool).poolFeePercentOfInterest(),
+                latePaymentFee,
+                paymentDueDate
             );
 
         LoanLib.payFees(
@@ -318,7 +327,11 @@ contract Loan is ILoan {
             IPool(_pool).feeVault(),
             poolFee
         );
-        LoanLib.completePayment(liquidityAsset, _pool, poolPayment);
+        LoanLib.completePayment(
+            liquidityAsset,
+            _pool,
+            poolPayment + latePayment
+        );
         paymentsRemaining -= 1;
         paymentDueDate += paymentPeriod * 1 days;
         return payment;
@@ -332,11 +345,17 @@ contract Loan is ILoan {
     {
         uint256 amount = payment.mul(paymentsRemaining);
 
-        (uint256 poolPayment, uint256 firstLossFee, uint256 poolFee) = LoanLib
-            .previewFees(
+        (
+            uint256 poolPayment,
+            uint256 firstLossFee,
+            uint256 poolFee,
+            uint256 latePayment
+        ) = LoanLib.previewFees(
                 amount,
                 _serviceConfiguration.firstLossFeeBps(),
-                IPool(_pool).poolFeePercentOfInterest()
+                IPool(_pool).poolFeePercentOfInterest(),
+                latePaymentFee,
+                paymentDueDate
             );
 
         LoanLib.payFees(
@@ -344,7 +363,8 @@ contract Loan is ILoan {
             IPool(_pool).firstLossVault(),
             firstLossFee,
             IPool(_pool).manager(),
-            poolFee
+            poolFee,
+            latePayment
         );
 
         LoanLib.completePayment(

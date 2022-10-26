@@ -234,11 +234,14 @@ library LoanLib {
     function previewFees(
         uint256 payment,
         uint256 firstLoss,
-        uint256 poolFeePercentOfInterest
+        uint256 poolFeePercentOfInterest,
+        uint256 latePaymentFee,
+        uint256 paymentDueDate
     )
         public
-        pure
+        view
         returns (
+            uint256,
             uint256,
             uint256,
             uint256
@@ -254,7 +257,13 @@ library LoanLib {
             .div(RAY);
         uint256 poolPayment = payment - poolFee - firstLossFee;
 
-        return (poolPayment, firstLossFee, poolFee);
+        // Late fee is applied on top of interest payment
+        uint256 lateFee;
+        if (block.timestamp > paymentDueDate) {
+            lateFee = latePaymentFee;
+        }
+
+        return (poolPayment, firstLossFee, poolFee, lateFee);
     }
 
     function payFees(
