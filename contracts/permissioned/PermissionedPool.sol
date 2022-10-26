@@ -60,8 +60,7 @@ contract PermissionedPool is Pool {
     {
         _poolAccessControl = new PoolAccessControl(
             address(this),
-            IServiceConfiguration(serviceConfiguration)
-                .termsOfServiceConsentRegistry()
+            IServiceConfiguration(serviceConfiguration).tosAcceptanceRegistry()
         );
     }
 

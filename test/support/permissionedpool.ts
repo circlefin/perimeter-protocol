@@ -2,7 +2,7 @@ import { ethers } from "hardhat";
 import { deployMockERC20 } from "./erc20";
 import { DEFAULT_POOL_SETTINGS } from "./pool";
 import { deployServiceConfiguration } from "./serviceconfiguration";
-import { deployToSConsentRegistry } from "./tosconsentregistry";
+import { deployToSAcceptanceRegistry } from "./tosacceptanceregistry";
 
 /**
  * Deploy an "Initialized" Pool
@@ -14,11 +14,11 @@ export async function deployPermissionedPool(
   const { mockERC20: liquidityAsset } = await deployMockERC20();
 
   const { serviceConfiguration } = await deployServiceConfiguration();
-  const { termsOfServiceConsentRegistry } = await deployToSConsentRegistry(
+  const { tosAcceptanceRegistry } = await deployToSAcceptanceRegistry(
     serviceConfiguration
   );
-  await serviceConfiguration.setTermsOfServiceConsentRegistry(
-    termsOfServiceConsentRegistry.address
+  await serviceConfiguration.setToSAcceptanceRegistry(
+    tosAcceptanceRegistry.address
   );
 
   const PoolLib = await ethers.getContractFactory("PoolLib");
@@ -45,5 +45,5 @@ export async function deployPermissionedPool(
     poolSettings.firstLossInitialMinimum
   );
 
-  return { pool, liquidityAsset, termsOfServiceConsentRegistry };
+  return { pool, liquidityAsset, tosAcceptanceRegistry };
 }

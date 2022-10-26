@@ -18,7 +18,7 @@ interface IServiceConfiguration is IAccessControl {
 
     function isLiquidityAsset(address addr) external view returns (bool);
 
-    function termsOfServiceConsentRegistry() external view returns (address);
+    function tosAcceptanceRegistry() external view returns (address);
 
     /**
      * @dev checks if an address is a valid loan factory
@@ -35,8 +35,8 @@ interface IServiceConfiguration is IAccessControl {
     function setLoanFactory(address addr, bool isValid) external;
 
     /**
-     * @dev Sets the TermsOfServiceConsentRegistry for the protocol
+     * @dev Sets the ToSAcceptanceRegistry for the protocol
      * @param addr Address of registry
      */
-    function setTermsOfServiceConsentRegistry(address addr) external;
+    function setToSAcceptanceRegistry(address addr) external;
 }

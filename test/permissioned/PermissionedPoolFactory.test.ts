@@ -3,7 +3,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { deployMockERC20 } from "../support/erc20";
 import { DEFAULT_POOL_SETTINGS } from "../support/pool";
-import { deployToSConsentRegistry } from "../support/tosconsentregistry";
+import { deployToSAcceptanceRegistry } from "../support/tosacceptanceregistry";
 
 describe("PermissionedPoolFactory", () => {
   async function deployFixture() {
@@ -23,15 +23,15 @@ describe("PermissionedPoolFactory", () => {
     await permissionedServiceConfiguration.deployed();
 
     // Deploy ToS Registry
-    const { termsOfServiceConsentRegistry } = await deployToSConsentRegistry(
+    const { tosAcceptanceRegistry } = await deployToSAcceptanceRegistry(
       permissionedServiceConfiguration
     );
 
     // Configure ToS
     await permissionedServiceConfiguration
       .connect(operator)
-      .setTermsOfServiceConsentRegistry(termsOfServiceConsentRegistry.address);
-    await termsOfServiceConsentRegistry
+      .setToSAcceptanceRegistry(tosAcceptanceRegistry.address);
+    await tosAcceptanceRegistry
       .connect(operator)
       .updateTermsOfService("https://terms.example");
 
@@ -75,7 +75,7 @@ describe("PermissionedPoolFactory", () => {
       operator,
       otherAccount,
       liquidityAsset,
-      termsOfServiceConsentRegistry
+      tosAcceptanceRegistry
     };
   }
 
@@ -85,12 +85,11 @@ describe("PermissionedPoolFactory", () => {
       poolManagerAccessControl,
       otherAccount,
       liquidityAsset,
-      termsOfServiceConsentRegistry
+      tosAcceptanceRegistry
     } = await loadFixture(deployFixture);
 
-    await termsOfServiceConsentRegistry.connect(otherAccount).recordConsent();
+    await tosAcceptanceRegistry.connect(otherAccount).acceptTermsOfService();
     await poolManagerAccessControl.allow(otherAccount.getAddress());
-    await termsOfServiceConsentRegistry.connect(otherAccount).recordConsent();
 
     await expect(
       poolFactory
@@ -108,10 +107,10 @@ describe("PermissionedPoolFactory", () => {
       poolManagerAccessControl,
       otherAccount,
       liquidityAsset,
-      termsOfServiceConsentRegistry
+      tosAcceptanceRegistry
     } = await loadFixture(deployFixture);
 
-    await termsOfServiceConsentRegistry.connect(otherAccount).recordConsent();
+    await tosAcceptanceRegistry.connect(otherAccount).acceptTermsOfService();
     await poolManagerAccessControl.allow(otherAccount.getAddress());
 
     await expect(
@@ -123,12 +122,9 @@ describe("PermissionedPoolFactory", () => {
   });
 
   it("access control reverts if PM hasn't accepted ToS", async () => {
-    const {
-      poolFactory,
-      poolManagerAccessControl,
-      otherAccount,
-      liquidityAsset
-    } = await loadFixture(deployFixture);
+    const { poolManagerAccessControl, otherAccount } = await loadFixture(
+      deployFixture
+    );
 
     await expect(
       poolManagerAccessControl.allow(otherAccount.getAddress())

@@ -23,7 +23,7 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
 
     uint256 public firstLossFeeBps = 500;
 
-    address public termsOfServiceConsentRegistry;
+    address public tosAcceptanceRegistry;
 
     /**
      * @dev Holds a reference to valid LoanFactories
@@ -118,12 +118,12 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     /**
      * @inheritdoc IServiceConfiguration
      */
-    function setTermsOfServiceConsentRegistry(address addr)
+    function setToSAcceptanceRegistry(address addr)
         external
         override
         onlyOperator
     {
-        termsOfServiceConsentRegistry = addr;
+        tosAcceptanceRegistry = addr;
         emit TermsOfServiceRegistrySet(addr);
     }
 }

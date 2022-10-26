@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
-import "./interfaces/ITermsOfServiceConsentRegistry.sol";
+import "./interfaces/IToSAcceptanceRegistry.sol";
 import "../interfaces/IServiceConfiguration.sol";
 
-contract TermsOfServiceConsentRegistry is ITermsOfServiceConsentRegistry {
+contract ToSAcceptanceRegistry is IToSAcceptanceRegistry {
     /**
-     * @inheritdoc ITermsOfServiceConsentRegistry
+     * @inheritdoc IToSAcceptanceRegistry
      */
-    mapping(address => bool) public hasConsented;
+    mapping(address => bool) public hasAccepted;
 
     /**
      * @dev ToS URL.
@@ -21,7 +21,7 @@ contract TermsOfServiceConsentRegistry is ITermsOfServiceConsentRegistry {
     bool private _termsSet;
 
     /**
-     * @dev PermissionedServiceConfiguration
+     * @dev ServiceConfiguration
      */
     IServiceConfiguration private _serviceConfig;
 
@@ -38,17 +38,17 @@ contract TermsOfServiceConsentRegistry is ITermsOfServiceConsentRegistry {
     }
 
     /**
-     * @inheritdoc ITermsOfServiceConsentRegistry
+     * @inheritdoc IToSAcceptanceRegistry
      */
-    function recordConsent() external override {
+    function acceptTermsOfService() external override {
         require(_termsSet, "ToS: not set");
 
-        hasConsented[msg.sender] = true;
-        emit ConsentRecorded(msg.sender);
+        hasAccepted[msg.sender] = true;
+        emit AcceptanceRecorded(msg.sender);
     }
 
     /**
-     * @inheritdoc ITermsOfServiceConsentRegistry
+     * @inheritdoc IToSAcceptanceRegistry
      */
     function updateTermsOfService(string memory url)
         external
@@ -61,7 +61,7 @@ contract TermsOfServiceConsentRegistry is ITermsOfServiceConsentRegistry {
     }
 
     /**
-     * @inheritdoc ITermsOfServiceConsentRegistry
+     * @inheritdoc IToSAcceptanceRegistry
      */
     function termsOfService() external view override returns (string memory) {
         return _termsOfService;

@@ -3,7 +3,7 @@ pragma solidity ^0.8.16;
 
 import "./interfaces/IPoolManagerAccessControl.sol";
 import "./interfaces/IPermissionedServiceConfiguration.sol";
-import "./interfaces/ITermsOfServiceConsentRegistry.sol";
+import "./interfaces/IToSAcceptanceRegistry.sol";
 
 /**
  * @title The PoolManagerAccessControl contract
@@ -19,9 +19,9 @@ contract PoolManagerAccessControl is IPoolManagerAccessControl {
     IPermissionedServiceConfiguration private _serviceConfiguration;
 
     /**
-     * @dev Reference to the ToS Consent Registry
+     * @dev Reference to the ToS Acceptance Registry
      */
-    ITermsOfServiceConsentRegistry private _tosRegistry;
+    IToSAcceptanceRegistry private _tosRegistry;
 
     /**
      * @dev A mapping of addresses to whether they are allowed as a Pool Manager
@@ -51,8 +51,8 @@ contract PoolManagerAccessControl is IPoolManagerAccessControl {
         _serviceConfiguration = IPermissionedServiceConfiguration(
             serviceConfiguration
         );
-        _tosRegistry = ITermsOfServiceConsentRegistry(
-            _serviceConfiguration.termsOfServiceConsentRegistry()
+        _tosRegistry = IToSAcceptanceRegistry(
+            _serviceConfiguration.tosAcceptanceRegistry()
         );
 
         require(
@@ -77,7 +77,7 @@ contract PoolManagerAccessControl is IPoolManagerAccessControl {
      */
     function allow(address addr) external onlyOperator {
         require(
-            _tosRegistry.hasConsented(addr),
+            _tosRegistry.hasAccepted(addr),
             "Pool: no ToS consent recorded"
         );
         _allowList[addr] = true;
