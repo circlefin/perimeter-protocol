@@ -307,12 +307,8 @@ contract Loan is ILoan {
     {
         require(paymentsRemaining > 0, "Loan: No more payments remain");
 
-        (
-            uint256 poolPayment,
-            uint256 firstLossFee,
-            uint256 poolFee,
-            uint256 latePayment
-        ) = LoanLib.previewFees(
+        (uint256 poolPayment, uint256 firstLossFee, uint256 poolFee) = LoanLib
+            .previewFees(
                 payment,
                 _serviceConfiguration.firstLossFeeBps(),
                 IPool(_pool).poolFeePercentOfInterest(),
@@ -327,11 +323,7 @@ contract Loan is ILoan {
             IPool(_pool).feeVault(),
             poolFee
         );
-        LoanLib.completePayment(
-            liquidityAsset,
-            _pool,
-            poolPayment + latePayment
-        );
+        LoanLib.completePayment(liquidityAsset, _pool, poolPayment);
         paymentsRemaining -= 1;
         paymentDueDate += paymentPeriod * 1 days;
         return payment;
@@ -345,12 +337,8 @@ contract Loan is ILoan {
     {
         uint256 amount = payment.mul(paymentsRemaining);
 
-        (
-            uint256 poolPayment,
-            uint256 firstLossFee,
-            uint256 poolFee,
-            uint256 latePayment
-        ) = LoanLib.previewFees(
+        (uint256 poolPayment, uint256 firstLossFee, uint256 poolFee) = LoanLib
+            .previewFees(
                 amount,
                 _serviceConfiguration.firstLossFeeBps(),
                 IPool(_pool).poolFeePercentOfInterest(),
@@ -363,8 +351,7 @@ contract Loan is ILoan {
             IPool(_pool).firstLossVault(),
             firstLossFee,
             IPool(_pool).manager(),
-            poolFee,
-            latePayment
+            poolFee
         );
 
         LoanLib.completePayment(

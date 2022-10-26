@@ -243,7 +243,6 @@ library LoanLib {
         returns (
             uint256,
             uint256,
-            uint256,
             uint256
         )
     {
@@ -255,7 +254,6 @@ library LoanLib {
             .mul(payment)
             .div(10000)
             .div(RAY);
-        uint256 poolPayment = payment - poolFee - firstLossFee;
 
         // Late fee is applied on top of interest payment
         uint256 lateFee;
@@ -263,7 +261,9 @@ library LoanLib {
             lateFee = latePaymentFee;
         }
 
-        return (poolPayment, firstLossFee, poolFee, lateFee);
+        uint256 poolPayment = payment - poolFee - firstLossFee + lateFee;
+
+        return (poolPayment, firstLossFee, poolFee);
     }
 
     function payFees(
