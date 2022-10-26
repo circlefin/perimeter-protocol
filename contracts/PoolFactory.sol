@@ -38,6 +38,12 @@ contract PoolFactory {
             settings.withdrawRequestPeriodDuration > 0,
             "PoolFactory: Invalid duration"
         );
+        if (settings.fixedFee > 0) {
+            require(
+                settings.fixedFeeInterval > 0,
+                "PoolFactory: Invalid fixed fee interval"
+            );
+        }
 
         Pool pool = new Pool(
             liquidityAsset,
