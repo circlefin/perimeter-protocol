@@ -34,7 +34,8 @@ contract PoolFactory {
         uint256 withdrawGateBps,
         uint256 withdrawRequestPeriodDuration,
         uint256 fixedFee,
-        uint256 fixedFeeInterval
+        uint256 fixedFeeInterval,
+        uint256 poolFeePercentOfInterest
     ) public virtual returns (address poolAddress) {
         require(
             _serviceConfiguration.paused() == false,
@@ -61,7 +62,8 @@ contract PoolFactory {
             withdrawRequestPeriodDuration,
             fixedFee,
             fixedFeeInterval,
-            0
+            0,
+            poolFeePercentOfInterest
         );
         Pool pool = new Pool(
             liquidityAsset,

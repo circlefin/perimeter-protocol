@@ -12,7 +12,8 @@ enum ILoanLifeCycleState {
     Canceled,
     Defaulted,
     Funded,
-    Matured
+    Matured,
+    Active
 }
 
 enum ILoanType {
@@ -61,6 +62,14 @@ interface ILoan {
      */
     event WithdrewNonFungibleCollateral(address asset, uint256 tokenId);
 
+    /**
+     * @dev Emitted when a loan is canceled and principal returned to the pool.
+     */
+    event CanceledLoanPrincipalReturned(
+        address indexed pool,
+        uint256 principal
+    );
+
     function state() external view returns (ILoanLifeCycleState);
 
     function borrower() external view returns (address);
@@ -74,6 +83,13 @@ interface ILoan {
     function cancelRequested() external returns (ILoanLifeCycleState);
 
     function cancelCollateralized() external returns (ILoanLifeCycleState);
+
+    /**
+     * @dev Allows borrower to PM to cancel a Funded loan, after the dropdead date.
+     * This cancels a loan, allowing collateral to be returned and principal reclaimed to
+     * the pool.
+     */
+    function cancelFunded() external returns (ILoanLifeCycleState);
 
     /**
      * @dev Number of payments remaining
@@ -105,6 +121,11 @@ interface ILoan {
         view
         returns (ILoanNonFungibleCollateral[] memory);
 
+    function claimCollateral(
+        address[] memory assets,
+        ILoanNonFungibleCollateral[] memory nonFungibleAssets
+    ) external;
+
     function fund() external returns (ILoanLifeCycleState);
 
     function drawdown() external returns (uint256);
@@ -113,7 +134,7 @@ interface ILoan {
 
     function duration() external returns (uint256);
 
-    function paymentPeriod() external returns (uint256);
+    function paymentPeriod() external view returns (uint256);
 
     function loanType() external returns (ILoanType);
 

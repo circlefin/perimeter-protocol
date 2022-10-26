@@ -17,6 +17,10 @@ describe("Pool", () => {
       poolManager
     );
 
+    const CollateralAsset = await ethers.getContractFactory("MockERC20");
+    const collateralAsset = await CollateralAsset.deploy("Test Coin", "TC");
+    await collateralAsset.deployed();
+
     const { loan } = await deployLoan(
       pool.address,
       borrower.address,
@@ -26,6 +30,7 @@ describe("Pool", () => {
 
     return {
       pool,
+      collateralAsset,
       liquidityAsset,
       poolManager,
       borrower,
@@ -84,6 +89,19 @@ describe("Pool", () => {
       expect(withdrawRequestPeriodDuration).to.equal(
         DEFAULT_POOL_SETTINGS.withdrawRequestPeriodDuration
       );
+    });
+  });
+
+  describe("lifeCycleState()", () => {
+    it("is closed when pool end date passes", async () => {
+      const { pool } = await loadFixture(loadPoolFixture);
+
+      expect(await pool.lifeCycleState()).to.equal(0); // initialized
+
+      const poolEndDate = (await pool.settings()).endDate;
+      await time.increaseTo(poolEndDate);
+
+      expect(await pool.lifeCycleState()).to.equal(3); // closed
     });
   });
 
@@ -320,15 +338,13 @@ describe("Pool", () => {
 
   describe("defaultLoan()", () => {
     it("reverts if Pool state is initialized", async () => {
-      const { pool, poolManager, otherAccount } = await loadFixture(
-        loadPoolFixture
-      );
+      const { pool, poolManager, loan } = await loadFixture(loadPoolFixture);
       await expect(
-        pool.connect(poolManager).defaultLoan(otherAccount.address)
+        pool.connect(poolManager).defaultLoan(loan.address)
       ).to.be.revertedWith("Pool: FunctionInvalidAtThisLifeCycleState");
     });
 
-    it("reverts if loan is not in a valid state", async () => {
+    it("reverts if loan if Pool hasn't funded loan yet", async () => {
       const { pool, poolManager, liquidityAsset, loan } = await loadFixture(
         loadPoolFixture
       );
@@ -338,8 +354,9 @@ describe("Pool", () => {
       ).to.be.revertedWith("Loan: FunctionInvalidAtThisILoanLifeCycleState");
     });
 
-    it("defaults loan if loan is funded, and pool is active", async () => {
+    it("defaults loan if loan is active, and pool is active", async () => {
       const {
+        collateralAsset,
         pool,
         poolManager,
         liquidityAsset,
@@ -350,19 +367,20 @@ describe("Pool", () => {
       await activatePool(pool, poolManager, liquidityAsset);
 
       // Collateralize loan
-      await collateralizeLoan(loan, borrower);
+      await collateralizeLoan(loan, borrower, collateralAsset);
 
       // Deposit to pool and fund loan
       const loanPrincipal = await loan.principal();
       await depositToPool(pool, otherAccount, liquidityAsset, loanPrincipal);
       await fundLoan(loan, pool, poolManager);
+      await loan.connect(borrower).drawdown();
 
       // Confirm that pool liquidity reserve is now empty
       expect(await liquidityAsset.balanceOf(pool.address)).to.equal(0);
 
       // Get an accounting snapshot prior to the default
-      const activeLoanPrincipalBefore = (await pool.accountings())
-        .activeLoanPrincipals;
+      const outstandingLoanPrincipalsBefore = (await pool.accountings())
+        .outstandingLoanPrincipals;
       const firstLossAvailable = await pool.firstLoss();
 
       // Expected loan outstanding stand = principal + numberPayments * payments
@@ -389,8 +407,8 @@ describe("Pool", () => {
 
       // Check accountings after
       // Pool accountings should be updated
-      expect((await pool.accountings()).activeLoanPrincipals).is.equal(
-        activeLoanPrincipalBefore.sub(loanPrincipal)
+      expect((await pool.accountings()).outstandingLoanPrincipals).is.equal(
+        outstandingLoanPrincipalsBefore.sub(loanPrincipal)
       );
 
       // First loss vault should be empty
@@ -400,6 +418,85 @@ describe("Pool", () => {
       expect(await liquidityAsset.balanceOf(pool.address)).to.equal(
         firstLossAvailable
       );
+    });
+  });
+
+  describe("previewDeposit()", async () => {
+    it("includes interest when calculating deposit exchange rate", async () => {
+      const lender = (await ethers.getSigners())[10];
+      const {
+        collateralAsset,
+        pool,
+        poolManager,
+        liquidityAsset,
+        loan,
+        borrower
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolManager, liquidityAsset);
+      await collateralizeLoan(loan, borrower, collateralAsset);
+
+      // setup lender
+      const loanAmount = await loan.principal();
+      const depositAmount = loanAmount.mul(2);
+      await liquidityAsset.mint(lender.address, depositAmount);
+      await liquidityAsset
+        .connect(lender)
+        .increaseAllowance(pool.address, depositAmount);
+
+      // Deposit initial amount to pool and fund the loan
+      const depositPreviewBefore = await pool
+        .connect(lender)
+        .previewDeposit(loanAmount);
+      expect(depositPreviewBefore).to.equal(loanAmount).to.equal(1_000_000); // 1:1
+
+      // Deposit and fund / drawdown loan
+      await depositToPool(pool, lender, liquidityAsset, loanAmount);
+      await fundLoan(loan, pool, poolManager);
+      await loan.connect(borrower).drawdown();
+      const drawdownTime = await time.latest();
+
+      // Fast forward to halfway through 1st payment term
+      const halfwayThroughFirstTermSeconds = (await loan.paymentPeriod())
+        .mul(86400)
+        .div(2)
+        .add(drawdownTime);
+      await time.increaseTo(halfwayThroughFirstTermSeconds);
+      const depositPreviewAfter = await pool
+        .connect(lender)
+        .previewDeposit(loanAmount);
+
+      // Expect this to be less than before
+      await expect(depositPreviewAfter)
+        .to.be.lessThan(depositPreviewBefore)
+        .to.equal(997921);
+    });
+  });
+
+  describe("updatePoolCapacity()", () => {
+    it("prevents setting capacity to less than current pool size", async () => {
+      const { pool, otherAccount, poolManager, liquidityAsset } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolManager, liquidityAsset);
+      await depositToPool(pool, otherAccount, liquidityAsset, 100);
+      await expect(
+        pool.connect(poolManager).updatePoolCapacity(1)
+      ).to.be.revertedWith("Pool: invalid capacity");
+    });
+
+    it("allows setting pool capacity", async () => {
+      const { pool, otherAccount, poolManager, liquidityAsset } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolManager, liquidityAsset);
+      await depositToPool(pool, otherAccount, liquidityAsset, 100);
+      await expect(pool.connect(poolManager).updatePoolCapacity(101)).to.emit(
+        pool,
+        "PoolSettingsUpdated"
+      );
+
+      expect((await pool.settings()).maxCapacity).to.equal(101);
     });
   });
 
@@ -971,7 +1068,7 @@ describe("Pool", () => {
       });
     });
 
-    describe("totalRedeemableBalance()", () => {
+    describe("totalRedeemableShares()", () => {
       it("returns the redeemable number of shares in this pool", async () => {
         const {
           pool,
@@ -992,7 +1089,7 @@ describe("Pool", () => {
         await time.increase(withdrawRequestPeriodDuration);
         await pool.connect(poolManager).crank();
 
-        expect(await pool.totalRedeemableBalance()).to.equal(40);
+        expect(await pool.totalRedeemableShares()).to.equal(40);
       });
     });
 
@@ -1013,7 +1110,7 @@ describe("Pool", () => {
       });
     });
 
-    describe("totalWithdrawableBalance()", () => {
+    describe("totalWithdrawableAssets()", () => {
       it("returns the withdrawable number of shares in this pool", async () => {
         const {
           pool,
@@ -1034,7 +1131,7 @@ describe("Pool", () => {
         await time.increase(withdrawRequestPeriodDuration);
         await pool.connect(poolManager).crank();
 
-        expect(await pool.totalWithdrawableBalance()).to.equal(40);
+        expect(await pool.totalWithdrawableAssets()).to.equal(40);
       });
     });
   });

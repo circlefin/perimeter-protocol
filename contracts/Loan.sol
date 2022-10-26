@@ -69,7 +69,7 @@ contract Loan is ILoan {
     /**
      * @dev Modifier that requires the loan not be in a terminal state.
      */
-    modifier onlyActiveLoan() {
+    modifier onlyNonTerminalState() {
         require(
             _state != ILoanLifeCycleState.Canceled,
             "Loan: loan is in terminal state"
@@ -156,17 +156,57 @@ contract Loan is ILoan {
             _dropDeadTimestamp < block.timestamp,
             "Loan: Drop dead date not met"
         );
-        LoanLib.withdrawFungibleCollateral(
-            _collateralVault,
-            _fungibleCollateral
-        );
-        LoanLib.withdrawNonFungibleCollateral(
-            _collateralVault,
-            _nonFungibleCollateral
-        );
 
         _state = ILoanLifeCycleState.Canceled;
         return _state;
+    }
+
+    /**
+     * @inheritdoc ILoan
+     */
+    function cancelFunded()
+        external
+        override
+        atState(ILoanLifeCycleState.Funded)
+        returns (ILoanLifeCycleState)
+    {
+        require(
+            msg.sender == _borrower || msg.sender == IPool(_pool).manager(),
+            "Loan: invalid caller"
+        );
+        require(
+            _dropDeadTimestamp < block.timestamp,
+            "Loan: Drop dead date not met"
+        );
+
+        LoanLib.returnCanceledLoanPrincipal(fundingVault, _pool, principal);
+        _state = ILoanLifeCycleState.Canceled;
+        return _state;
+    }
+
+    /**
+     * @dev Claims specific collateral types. Can be called by the borrower (when Canceled or Matured)
+     * or by the PA (when Defaulted)
+     */
+    function claimCollateral(
+        address[] memory assets,
+        ILoanNonFungibleCollateral[] memory nonFungibleAssets
+    ) external override {
+        require(
+            (_state == ILoanLifeCycleState.Canceled &&
+                msg.sender == _borrower) ||
+                (_state == ILoanLifeCycleState.Defaulted &&
+                    msg.sender == IPool(_pool).manager()) ||
+                (_state == ILoanLifeCycleState.Matured &&
+                    msg.sender == _borrower),
+            "Loan: unable to claim collateral"
+        );
+
+        LoanLib.withdrawFungibleCollateral(_collateralVault, assets);
+        LoanLib.withdrawNonFungibleCollateral(
+            _collateralVault,
+            nonFungibleAssets
+        );
     }
 
     /**
@@ -175,7 +215,7 @@ contract Loan is ILoan {
     function postFungibleCollateral(address asset, uint256 amount)
         external
         onlyBorrower
-        onlyActiveLoan
+        onlyNonTerminalState
         returns (ILoanLifeCycleState)
     {
         _state = LoanLib.postFungibleCollateral(
@@ -198,7 +238,7 @@ contract Loan is ILoan {
     function postNonFungibleCollateral(address asset, uint256 tokenId)
         external
         onlyBorrower
-        onlyActiveLoan
+        onlyNonTerminalState
         returns (ILoanLifeCycleState)
     {
         _state = LoanLib.postNonFungibleCollateral(
@@ -252,13 +292,14 @@ contract Loan is ILoan {
             address(fundingVault)
         );
         LoanLib.drawdown(fundingVault, amount, msg.sender);
+        _state = ILoanLifeCycleState.Active;
         return amount;
     }
 
     function completeNextPayment()
         public
         onlyBorrower
-        atState(ILoanLifeCycleState.Funded)
+        atState(ILoanLifeCycleState.Active)
         returns (uint256)
     {
         require(paymentsRemaining > 0, "Loan: No more payments remain");
@@ -267,7 +308,7 @@ contract Loan is ILoan {
             .previewFees(
                 payment,
                 _serviceConfiguration.firstLossFeeBps(),
-                _serviceConfiguration.poolFeePercentOfInterest()
+                IPool(_pool).poolFeePercentOfInterest()
             );
 
         LoanLib.payFees(
@@ -286,7 +327,7 @@ contract Loan is ILoan {
     function completeFullPayment()
         public
         onlyBorrower
-        atState(ILoanLifeCycleState.Funded)
+        atState(ILoanLifeCycleState.Active)
         returns (uint256)
     {
         uint256 amount = payment.mul(paymentsRemaining);
@@ -295,7 +336,7 @@ contract Loan is ILoan {
             .previewFees(
                 amount,
                 _serviceConfiguration.firstLossFeeBps(),
-                _serviceConfiguration.poolFeePercentOfInterest()
+                IPool(_pool).poolFeePercentOfInterest()
             );
 
         LoanLib.payFees(
@@ -313,6 +354,7 @@ contract Loan is ILoan {
         );
         paymentsRemaining = 0;
         _state = ILoanLifeCycleState.Matured;
+        IPool(_pool).notifyLoanPrincipalReturned();
         return amount;
     }
 
@@ -323,7 +365,7 @@ contract Loan is ILoan {
         external
         override
         onlyPool
-        atState(ILoanLifeCycleState.Funded)
+        atState(ILoanLifeCycleState.Active)
         returns (ILoanLifeCycleState)
     {
         _state = ILoanLifeCycleState.Defaulted;

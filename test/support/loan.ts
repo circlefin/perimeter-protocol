@@ -56,23 +56,49 @@ export async function deployLoan(
   return { loan, loanFactory, serviceConfiguration };
 }
 
-export async function collateralizeLoan(loan: any, borrower: any) {
-  const CollateralAsset = await ethers.getContractFactory("MockERC20");
-  const collateralAsset = await CollateralAsset.deploy(
-    "Test Collateral Coin",
-    "TCC"
-  );
-  await collateralAsset.deployed();
-
-  await collateralAsset.mint(borrower.address, 1_000_000);
-  await collateralAsset.connect(borrower).approve(loan.address, 100);
+export async function collateralizeLoan(
+  loan: any,
+  borrower: any,
+  fungibleAsset: any,
+  fungibleAmount = 100
+) {
+  await fungibleAsset.mint(borrower.address, fungibleAmount);
+  await fungibleAsset.connect(borrower).approve(loan.address, fungibleAmount);
   await loan
     .connect(borrower)
-    .postFungibleCollateral(collateralAsset.address, 100);
+    .postFungibleCollateral(fungibleAsset.address, fungibleAmount);
+  return { loan, borrower, fungibleAsset, fungibleAmount };
+}
 
-  return { loan, borrower, collateralAsset };
+export async function collateralizeLoanNFT(loan: any, borrower: any, nft: any) {
+  await nft.mint(borrower.address);
+  const tokenId = await nft.tokenOfOwnerByIndex(borrower.address, 0);
+  await nft.connect(borrower).approve(loan.address, tokenId);
+  await loan.connect(borrower).postNonFungibleCollateral(nft.address, tokenId);
+  return { loan, borrower, nft, tokenId };
 }
 
 export async function fundLoan(loan: any, pool: any, pm: any) {
   await pool.connect(pm).fundLoan(loan.address);
+}
+
+export async function matureLoan(
+  loan: any,
+  borrower: any,
+  liquidityAsset: any
+) {
+  let fullPayment = await loan.principal(); // principal
+  fullPayment = fullPayment.add(
+    // plus all payments
+    (await loan.paymentsRemaining()).mul(await loan.payment())
+  );
+
+  const borrowerBalance = await liquidityAsset.balanceOf(borrower.address);
+  if (fullPayment > borrowerBalance) {
+    await liquidityAsset.mint(borrower.address, fullPayment - borrowerBalance);
+  }
+
+  await liquidityAsset.connect(borrower).approve(loan.address, fullPayment);
+
+  await loan.connect(borrower).completeFullPayment();
 }

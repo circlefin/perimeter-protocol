@@ -8,7 +8,7 @@ import "./IERC4626.sol";
  */
 struct IPoolAccountings {
     uint256 defaultsTotal;
-    uint256 activeLoanPrincipals;
+    uint256 outstandingLoanPrincipals;
 }
 
 /**
@@ -34,6 +34,7 @@ struct IPoolConfigurableSettings {
     uint256 fixedFee;
     uint256 fixedFeeInterval;
     uint256 fixedFeeDueDate;
+    uint256 poolFeePercentOfInterest; // bips
 }
 
 /**
@@ -88,7 +89,7 @@ interface IPool is IERC4626 {
     /**
      * @dev Emitted when pool settings are updated.
      */
-    event PoolSettingsUpdated(IPoolConfigurableSettings settings);
+    event PoolSettingsUpdated();
 
     /**
      * @dev Emitted when first loss capital is used to cover loan defaults
@@ -138,6 +139,11 @@ interface IPool is IERC4626 {
     function accountings() external view returns (IPoolAccountings memory);
 
     /**
+     * @dev The pool fee, in bps, taken from each interest payment
+     */
+    function poolFeePercentOfInterest() external view returns (uint256);
+
+    /**
      * @dev Deposits first-loss to the pool. Can only be called by the Pool Manager.
      */
     function depositFirstLoss(uint256 amount, address spender) external;
@@ -152,7 +158,7 @@ interface IPool is IERC4626 {
     /**
      * @dev Updates the pool capacity. Can only be called by the Pool Manager.
      */
-    function updatePoolCapacity(uint256) external returns (uint256);
+    function updatePoolCapacity(uint256) external;
 
     /**
      * @dev Updates the pool end date. Can only be called by the Pool Manager.
@@ -173,6 +179,12 @@ interface IPool is IERC4626 {
      * @dev Called by the pool manager, this transfers liquidity from the pool to a given loan.
      */
     function fundLoan(address) external;
+
+    /**
+     * @dev Called by a loan, it notifies the pool that the loan has returned principal
+     * to the pool.
+     */
+    function notifyLoanPrincipalReturned() external;
 
     /**
      * @dev Called by the pool manager, this marks a loan as in default, triggering liquiditation

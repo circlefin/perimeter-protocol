@@ -53,6 +53,14 @@ library LoanLib {
     event WithdrewNonFungibleCollateral(address asset, uint256 tokenId);
 
     /**
+     * @dev See ILoan
+     */
+    event CanceledLoanPrincipalReturned(
+        address indexed pool,
+        uint256 principal
+    );
+
+    /**
      * @dev Validate Loan constructor arguments
      */
     function validateLoan(
@@ -138,17 +146,15 @@ library LoanLib {
      */
     function withdrawFungibleCollateral(
         CollateralVault collateralVault,
-        address[] storage collateral
+        address[] memory collateralToWithdraw
     ) external {
-        for (uint256 i = 0; i < collateral.length; i++) {
-            address asset = collateral[i];
+        for (uint256 i = 0; i < collateralToWithdraw.length; i++) {
+            address asset = collateralToWithdraw[i];
+
+            // Perform transfer
             uint256 amount = IERC20(asset).balanceOf(address(collateralVault));
             collateralVault.withdraw(asset, amount, msg.sender);
             emit WithdrewCollateral(asset, amount);
-        }
-
-        for (uint256 i = 0; i < collateral.length; i++) {
-            collateral.pop();
         }
     }
 
@@ -157,18 +163,15 @@ library LoanLib {
      */
     function withdrawNonFungibleCollateral(
         CollateralVault collateralVault,
-        ILoanNonFungibleCollateral[] storage collateral
+        ILoanNonFungibleCollateral[] memory collateralToWithdraw
     ) external {
-        for (uint256 i = 0; i < collateral.length; i++) {
-            ILoanNonFungibleCollateral memory c = collateral[i];
-            address asset = c.asset;
-            uint256 tokenId = c.tokenId;
+        for (uint256 i = 0; i < collateralToWithdraw.length; i++) {
+            ILoanNonFungibleCollateral memory wc = collateralToWithdraw[i];
+            address asset = wc.asset;
+            uint256 tokenId = wc.tokenId;
+
             collateralVault.withdrawERC721(asset, tokenId, msg.sender);
             emit WithdrewNonFungibleCollateral(asset, tokenId);
-        }
-
-        for (uint256 i = 0; i < collateral.length; i++) {
-            collateral.pop();
         }
     }
 
@@ -211,6 +214,18 @@ library LoanLib {
     ) public {
         IERC20(liquidityAsset).safeTransferFrom(msg.sender, pool, amount);
         emit LoanPaymentMade(pool, liquidityAsset, amount);
+    }
+
+    /**
+     * Make a payment
+     */
+    function returnCanceledLoanPrincipal(
+        FundingVault fundingVault,
+        address pool,
+        uint256 amount
+    ) public {
+        fundingVault.withdraw(amount, pool);
+        emit CanceledLoanPrincipalReturned(pool, amount);
     }
 
     /**

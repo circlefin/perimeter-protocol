@@ -1,4 +1,4 @@
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { deployLoan } from "../support/loan";
@@ -7,6 +7,7 @@ import { buildWithdrawState } from "../support/pool";
 
 describe("PoolLib", () => {
   const FIRST_LOSS_AMOUNT = 100;
+  const ONE_MONTH_SECONDS = 3600 * 24 * 30;
 
   async function deployFixture() {
     const [caller, otherAccount] = await ethers.getSigners();
@@ -46,6 +47,13 @@ describe("PoolLib", () => {
       liquidityAsset.address
     );
 
+    const MockILoan = await ethers.getContractFactory("MockILoan");
+    const mockILoanOne = await MockILoan.deploy();
+    await mockILoanOne.deployed();
+
+    const mockILoanTwo = await MockILoan.deploy();
+    await mockILoanTwo.deployed();
+
     return {
       poolLibWrapper,
       caller,
@@ -54,7 +62,9 @@ describe("PoolLib", () => {
       otherAccount,
       loanFactory,
       loan,
-      serviceConfiguration
+      serviceConfiguration,
+      mockILoanOne,
+      mockILoanTwo
     };
   }
 
@@ -225,7 +235,7 @@ describe("PoolLib", () => {
   });
 
   describe("calculateTotalAssets()", async () => {
-    it("combines balance of vault with oustanding loan principals", async () => {
+    it("combines balance of vault with outstanding loan principals", async () => {
       const { poolLibWrapper, liquidityAsset } = await loadFixture(
         deployFixture
       );
@@ -239,6 +249,182 @@ describe("PoolLib", () => {
           50
         )
       ).to.equal(250);
+    });
+  });
+
+  describe("calculateExpectedInterest()", async () => {
+    async function setupActiveMockILoan(mock: any, start: number) {
+      await mock.setPayment(1000);
+      await mock.setPaymentPeriod(30); // days
+      await mock.setPaymentDueDate(start + ONE_MONTH_SECONDS);
+      await mock.setPaymentsRemaining(3);
+      await mock.setState(6); // Active
+    }
+
+    it("returns 0 interest at beginning of payment term", async () => {
+      const { poolLibWrapper, mockILoanOne } = await loadFixture(deployFixture);
+      await setupActiveMockILoan(mockILoanOne, await time.latest());
+
+      // set mock
+      await poolLibWrapper.setMockActiveLoans([mockILoanOne.address]);
+
+      expect(
+        await poolLibWrapper.calculateExpectedInterestFromMocks()
+      ).to.equal(0);
+    });
+
+    it("returns half of payment midway through 1st payment interval", async () => {
+      const { poolLibWrapper, mockILoanOne } = await loadFixture(deployFixture);
+
+      const start = await time.latest();
+      await setupActiveMockILoan(mockILoanOne, start);
+
+      // set mock on the pool lib
+      await poolLibWrapper.setMockActiveLoans([mockILoanOne.address]);
+
+      // Fast-forward to midway through first payment
+      await time.increaseTo(start + ONE_MONTH_SECONDS / 2);
+
+      expect(
+        await poolLibWrapper.calculateExpectedInterestFromMocks()
+      ).to.equal(1000 / 2);
+    });
+
+    it("returns half of payment, if midway through 2nd period and first was paid on time", async () => {
+      const { poolLibWrapper, mockILoanOne } = await loadFixture(deployFixture);
+
+      const start = await time.latest();
+
+      // setup mock
+      await setupActiveMockILoan(mockILoanOne, start);
+
+      // set mock on the pool lib
+      await poolLibWrapper.setMockActiveLoans([mockILoanOne.address]);
+
+      // Fast-forward to midway through 2nd payment
+      await time.increaseTo(start + (ONE_MONTH_SECONDS * 3) / 2);
+      await mockILoanOne.setPaymentsRemaining(2); // simulate payment
+      await mockILoanOne.setPaymentDueDate(
+        (
+          await mockILoanOne.paymentDueDate()
+        ).add((await mockILoanOne.paymentPeriod()).mul(86400))
+      ); // Bump payment due date
+
+      expect(
+        await poolLibWrapper.calculateExpectedInterestFromMocks()
+      ).to.equal(1000 / 2);
+    });
+
+    it("returns whole first payment + a portion of the 2nd, if late on the first payment", async () => {
+      const { poolLibWrapper, mockILoanOne } = await loadFixture(deployFixture);
+
+      const start = await time.latest();
+      // setup mock
+      await setupActiveMockILoan(mockILoanOne, start);
+
+      // set mock on the pool lib
+      await poolLibWrapper.setMockActiveLoans([mockILoanOne.address]);
+
+      // Fast-forward to midway through SECOND payment
+      await time.increaseTo(start + (ONE_MONTH_SECONDS * 3) / 2);
+
+      expect(
+        await poolLibWrapper.calculateExpectedInterestFromMocks()
+      ).to.equal((1000 * 3) / 2);
+    });
+
+    it("returns sum of all payments if late on all payments", async () => {
+      const { poolLibWrapper, mockILoanOne } = await loadFixture(deployFixture);
+
+      const start = await time.latest();
+      // setup mock
+      await setupActiveMockILoan(mockILoanOne, start);
+
+      // set mock on the pool lib
+      await poolLibWrapper.setMockActiveLoans([mockILoanOne.address]);
+
+      // Fast-forward to midway through first payment
+      // bump the time further past to ensure nothing extra accrues
+      await time.increaseTo(start + ONE_MONTH_SECONDS * 4);
+
+      expect(
+        await poolLibWrapper.calculateExpectedInterestFromMocks()
+      ).to.equal(1000 * 3);
+    });
+
+    it("returns the sum of interest accross multiple loans", async () => {
+      const { poolLibWrapper, mockILoanOne, mockILoanTwo } = await loadFixture(
+        deployFixture
+      );
+
+      const start = await time.latest();
+
+      // setup mock
+      await setupActiveMockILoan(mockILoanOne, start);
+      await setupActiveMockILoan(mockILoanTwo, start);
+
+      // set mock on the pool lib
+      await poolLibWrapper.setMockActiveLoans([
+        mockILoanOne.address,
+        mockILoanTwo.address
+      ]);
+
+      // Fast-forward to midway through first payment
+      await time.increaseTo(start + (ONE_MONTH_SECONDS * 1) / 2);
+
+      expect(
+        await poolLibWrapper.calculateExpectedInterestFromMocks()
+      ).to.equal(500 * 2);
+    });
+  });
+
+  describe("calculateTotalAvailableAssets()", async () => {
+    it("combines balance of vault with outstanding loan principals and subtracts withdrawable assets", async () => {
+      const { poolLibWrapper, liquidityAsset } = await loadFixture(
+        deployFixture
+      );
+
+      liquidityAsset.mint(poolLibWrapper.address, 200);
+
+      expect(
+        await poolLibWrapper.calculateTotalAvailableAssets(
+          liquidityAsset.address,
+          poolLibWrapper.address,
+          50,
+          100
+        )
+      ).to.equal(150);
+    });
+  });
+
+  describe("calculateTotalAvailableShares()", async () => {
+    it("returns the totalSupply minus redeemable shares", async () => {
+      const { poolLibWrapper, liquidityAsset, caller } = await loadFixture(
+        deployFixture
+      );
+
+      expect(await poolLibWrapper.balanceOf(caller.address)).to.equal(0);
+      const depositAmount = 10;
+
+      // Deposit
+      await poolLibWrapper.executeDeposit(
+        liquidityAsset.address,
+        poolLibWrapper.address,
+        caller.address,
+        depositAmount,
+        5,
+        10
+      );
+
+      // Check that shares were minted
+      expect(await poolLibWrapper.balanceOf(caller.address)).to.equal(5);
+
+      expect(
+        await poolLibWrapper.calculateTotalAvailableShares(
+          /* vault address */ poolLibWrapper.address,
+          /* redeemableShares */ 2
+        )
+      ).to.equal(3);
     });
   });
 
@@ -356,20 +542,20 @@ describe("PoolLib", () => {
       );
     });
 
-    it("calculates <1:1 if nav has increased in value", async () => {
+    it("calculates <1:1 if nav has increased in value, and properly rounds down", async () => {
       const { poolLibWrapper } = await loadFixture(deployFixture);
 
       expect(
         await poolLibWrapper.calculateAssetsToShares(500, 500, 525)
-      ).to.equal(476);
+      ).to.equal(476) /* 476.19 rounded down */;
     });
 
-    it("calculates >1:1 if nav has decreased in value", async () => {
+    it("calculates >1:1 if nav has decreased in value, and properly rounds down", async () => {
       const { poolLibWrapper } = await loadFixture(deployFixture);
 
       expect(
-        await poolLibWrapper.calculateAssetsToShares(500, 500, 400)
-      ).to.equal(625);
+        await poolLibWrapper.calculateAssetsToShares(500, 500, 399)
+      ).to.equal(626); /* 626.53 rounded down */
     });
   });
 
@@ -382,20 +568,20 @@ describe("PoolLib", () => {
       );
     });
 
-    it("calculates <1:1 if nav has increased in value", async () => {
+    it("calculates <1:1 if nav has increased in value, and properly rounds down", async () => {
       const { poolLibWrapper } = await loadFixture(deployFixture);
 
       expect(
         await poolLibWrapper.calculateAssetsToShares(500, 500, 525)
-      ).to.equal(476);
+      ).to.equal(476); /* 476.19 rounded down */
     });
 
-    it("calculates >1:1 if nav has decreased in value", async () => {
+    it("calculates >1:1 if nav has decreased in value, and properly rounds down", async () => {
       const { poolLibWrapper } = await loadFixture(deployFixture);
 
       expect(
-        await poolLibWrapper.calculateAssetsToShares(500, 500, 400)
-      ).to.equal(625);
+        await poolLibWrapper.calculateAssetsToShares(500, 500, 399)
+      ).to.equal(626); /* 626.53 rounded down */
     });
   });
 
