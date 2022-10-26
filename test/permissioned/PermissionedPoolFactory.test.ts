@@ -128,6 +128,6 @@ describe("PermissionedPoolFactory", () => {
 
     await expect(
       poolManagerAccessControl.allow(otherAccount.getAddress())
-    ).to.be.revertedWith("Pool: no ToS consent recorded");
+    ).to.be.revertedWith("Pool: no ToS acceptance recorded");
   });
 });

@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 
 /**
- * Deploy TermsOfServiceConsentRegistry
+ * Deploy ToServiceAcceptanceRegistry
  */
 export async function deployToSAcceptanceRegistry(serviceConfig: any) {
   const ToSAcceptanceRegistry = await ethers.getContractFactory(

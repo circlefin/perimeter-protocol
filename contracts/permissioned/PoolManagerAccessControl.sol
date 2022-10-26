@@ -78,7 +78,7 @@ contract PoolManagerAccessControl is IPoolManagerAccessControl {
     function allow(address addr) external onlyOperator {
         require(
             _tosRegistry.hasAccepted(addr),
-            "Pool: no ToS consent recorded"
+            "Pool: no ToS acceptance recorded"
         );
         _allowList[addr] = true;
 

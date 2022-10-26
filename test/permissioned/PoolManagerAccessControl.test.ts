@@ -68,20 +68,20 @@ describe("PoolManagerAccessControl", () => {
   });
 
   describe("allow()", () => {
-    it("reverts when adding an address to the allowList if they haven't consented to ToS", async () => {
+    it("reverts when adding an address to the allowList if they haven't accepted ToS", async () => {
       const { poolManagerAccessControl, otherAccount, tosAcceptanceRegistry } =
         await loadFixture(deployFixture);
 
-      // No ToS Consent
+      // No ToS acceptance
       expect(await tosAcceptanceRegistry.hasAccepted(otherAccount.address)).to
         .be.false;
 
       await expect(
         poolManagerAccessControl.allow(otherAccount.address)
-      ).to.be.revertedWith("Pool: no ToS consent recorded");
+      ).to.be.revertedWith("Pool: no ToS acceptance recorded");
     });
 
-    it("adds an address to the allowList if they have consented to ToS", async () => {
+    it("adds an address to the allowList if they have accepted the ToS", async () => {
       const { poolManagerAccessControl, otherAccount, tosAcceptanceRegistry } =
         await loadFixture(deployFixture);
 

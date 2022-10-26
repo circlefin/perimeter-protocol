@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 /**
- * @title The interface for interacting with Terms of Service consent.
+ * @title The interface for interacting with Terms of Service Acceptance Registry.
  */
 interface IToSAcceptanceRegistry {
     /**
@@ -26,12 +26,12 @@ interface IToSAcceptanceRegistry {
     function updateTermsOfService(string memory url) external;
 
     /**
-     * @dev Records that msg.sender has consented to the TermsOfService.
+     * @dev Records that msg.sender has accepted the TermsOfService.
      */
     function acceptTermsOfService() external;
 
     /**
-     * @dev Returns whether an address has consented to the TermsOfService.
+     * @dev Returns whether an address has accepted the TermsOfService.
      */
     function hasAccepted(address addr) external view returns (bool);
 }
