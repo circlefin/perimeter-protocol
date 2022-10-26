@@ -9,6 +9,7 @@ import "./IERC4626.sol";
 struct IPoolAccountings {
     uint256 defaultsTotal;
     uint256 outstandingLoanPrincipals;
+    uint256 fixedFeeDueDate;
 }
 
 /**
@@ -33,7 +34,6 @@ struct IPoolConfigurableSettings {
     uint256 withdrawRequestPeriodDuration; // seconds (e.g. 30 days)
     uint256 fixedFee;
     uint256 fixedFeeInterval;
-    uint256 fixedFeeDueDate;
     uint256 poolFeePercentOfInterest; // bips
 }
 

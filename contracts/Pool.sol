@@ -395,18 +395,12 @@ contract Pool is IPool, ERC20 {
         );
     }
 
-    function claimFixedFee()
-        external
-        onlyManager
-        atState(IPoolLifeCycleState.Active)
-    {
+    function claimFixedFee() external onlyManager {
         require(
-            _poolSettings.fixedFeeDueDate < block.timestamp,
+            _accountings.fixedFeeDueDate < block.timestamp,
             "Pool: fixed fee not due"
         );
-        _poolSettings.fixedFeeDueDate +=
-            _poolSettings.fixedFeeInterval *
-            1 days;
+        _accountings.fixedFeeDueDate += _poolSettings.fixedFeeInterval * 1 days;
         IERC20(_liquidityAsset).safeTransfer(
             msg.sender,
             _poolSettings.fixedFee
@@ -777,7 +771,7 @@ contract Pool is IPool, ERC20 {
                 poolActivatedAt = block.timestamp;
 
                 if (_poolSettings.fixedFee != 0) {
-                    _poolSettings.fixedFeeDueDate =
+                    _accountings.fixedFeeDueDate =
                         block.timestamp +
                         _poolSettings.fixedFeeInterval *
                         1 days;
