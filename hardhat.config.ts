@@ -3,11 +3,6 @@ import "@nomicfoundation/hardhat-toolbox";
 import "hardhat-contract-sizer";
 
 const config: HardhatUserConfig = {
-  networks: {
-    hardhat: {
-      allowUnlimitedContractSize: true
-    }
-  },
   solidity: {
     version: "0.8.16",
     settings: {
@@ -15,6 +10,11 @@ const config: HardhatUserConfig = {
         enabled: true,
         runs: 10
       }
+    }
+  },
+  networks: {
+    hardhat: {
+      allowUnlimitedContractSize: true
     }
   }
 };
