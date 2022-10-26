@@ -28,34 +28,23 @@ contract PoolFactory {
      */
     function createPool(
         address liquidityAsset,
-        uint256 maxCapacity,
-        uint256 endDate,
-        uint256 requestFeeBps,
-        uint256 requestCancellationFeeBps,
-        uint256 withdrawGateBps,
-        uint256 withdrawRequestPeriodDuration,
-        uint256 poolFeePercentOfInterest
+        IPoolConfigurableSettings calldata settings
     ) public virtual returns (address poolAddress) {
         require(
             _serviceConfiguration.paused() == false,
             "PoolFactory: Protocol paused"
         );
         require(
-            withdrawRequestPeriodDuration > 0,
+            settings.withdrawRequestPeriodDuration > 0,
             "PoolFactory: Invalid duration"
         );
+        if (settings.fixedFee > 0) {
+            require(
+                settings.fixedFeeInterval > 0,
+                "PoolFactory: Invalid fixed fee interval"
+            );
+        }
 
-        uint256 firstLossInitialMinimum = 0; // TODO: take from ServiceConfig
-        IPoolConfigurableSettings memory settings = IPoolConfigurableSettings(
-            maxCapacity,
-            endDate,
-            requestFeeBps,
-            requestCancellationFeeBps,
-            withdrawGateBps,
-            firstLossInitialMinimum,
-            withdrawRequestPeriodDuration,
-            poolFeePercentOfInterest
-        );
         Pool pool = new Pool(
             liquidityAsset,
             msg.sender,

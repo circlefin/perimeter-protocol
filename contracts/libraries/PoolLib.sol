@@ -170,6 +170,9 @@ library PoolLib {
 
         for (uint256 i = 0; i < activeLoans.length(); i++) {
             ILoan loan = ILoan(activeLoans.at(i));
+            if (loan.state() != ILoanLifeCycleState.Active) {
+                continue;
+            }
 
             paymentsRemaining = loan.paymentsRemaining();
             paymentDueDate = loan.paymentDueDate();
@@ -369,8 +372,11 @@ library PoolLib {
         address firstLossVault,
         address loan,
         address pool,
-        IPoolAccountings storage accountings
+        IPoolAccountings storage accountings,
+        EnumerableSet.AddressSet storage fundedLoans
     ) external {
+        require(fundedLoans.remove(loan), "Pool: unfunded loan");
+
         ILoan(loan).markDefaulted();
         accountings.outstandingLoanPrincipals -= ILoan(loan).principal();
 

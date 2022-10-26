@@ -9,6 +9,7 @@ import "./IERC4626.sol";
 struct IPoolAccountings {
     uint256 defaultsTotal;
     uint256 outstandingLoanPrincipals;
+    uint256 fixedFeeDueDate;
 }
 
 /**
@@ -32,6 +33,8 @@ struct IPoolConfigurableSettings {
     uint256 withdrawGateBps; // Percent of liquidity pool available to withdraw, represented in BPS
     uint256 firstLossInitialMinimum; // amount
     uint256 withdrawRequestPeriodDuration; // seconds (e.g. 30 days)
+    uint256 fixedFee;
+    uint256 fixedFeeInterval;
     uint256 poolFeePercentOfInterest; // bips
 }
 
@@ -96,7 +99,7 @@ interface IPool is IERC4626 {
     /**
      * @dev Emitted when pool settings are updated.
      */
-    event PoolSettingsUpdated(IPoolConfigurableSettings settings);
+    event PoolSettingsUpdated();
 
     /**
      * @dev Emitted when first loss capital is used to cover loan defaults
@@ -165,7 +168,7 @@ interface IPool is IERC4626 {
     /**
      * @dev Updates the pool capacity. Can only be called by the Pool Manager.
      */
-    function updatePoolCapacity(uint256) external returns (uint256);
+    function updatePoolCapacity(uint256) external;
 
     /**
      * @dev Updates the pool end date. Can only be called by the Pool Manager.
@@ -188,13 +191,20 @@ interface IPool is IERC4626 {
     function fundLoan(address) external;
 
     /**
-     * @dev Called by a loan, it notifies the pool that the loan has been drawn down.
+     * @dev Called by a loan, it notifies the pool that the loan has returned principal
+     * to the pool.
      */
-    function notifyLoanDrawndown() external;
+    function notifyLoanPrincipalReturned() external;
 
     /**
      * @dev Called by the pool manager, this marks a loan as in default, triggering liquiditation
      * proceedings and updating pool accounting.
      */
     function defaultLoan(address) external;
+
+    /**
+     * @dev Called by the pool manager, this claims a fixed fee from the pool. Fee can only be
+     * claimed once every interval, as set on the pool.
+     */
+    function claimFixedFee() external;
 }

@@ -2,6 +2,7 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { deployMockERC20 } from "../support/erc20";
+import { DEFAULT_POOL_SETTINGS } from "../support/pool";
 
 describe("PermissionedPoolFactory", () => {
   async function deployFixture() {
@@ -78,13 +79,7 @@ describe("PermissionedPoolFactory", () => {
         .connect(otherAccount)
         .createPool(
           /* liquidityAsset */ liquidityAsset.address,
-          /* maxCapacity */ 0,
-          /* endDate */ 0,
-          /* requestFeeBps */ 0,
-          /* requestCancellationFeeBps */ 0,
-          /* withdrawGateBps */ 0,
-          /* withdrawRequestPeriodDuration: */ 1,
-          /* poolFeePercentOfInterest */ 0
+          DEFAULT_POOL_SETTINGS
         )
     ).to.emit(poolFactory, "PoolCreated");
   });
@@ -102,13 +97,7 @@ describe("PermissionedPoolFactory", () => {
     await expect(
       poolFactory.createPool(
         /* liquidityAsset */ liquidityAsset.address,
-        /* maxCapacity */ 0,
-        /* endDate */ 0,
-        /* requestFeeBps */ 0,
-        /* requestCancellationFeeBps */ 0,
-        /* withdrawGateBps */ 0,
-        /* withdrawRequestPeriodDuration: */ 1,
-        /* poolFeePercentOfInterest */ 0
+        DEFAULT_POOL_SETTINGS
       )
     ).to.be.revertedWith("caller is not a pool manager");
   });

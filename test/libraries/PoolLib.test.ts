@@ -253,18 +253,20 @@ describe("PoolLib", () => {
   });
 
   describe("calculateExpectedInterest()", async () => {
-    async function setupMockILoan(mock: any, start: number) {
+    async function setupActiveMockILoan(mock: any, start: number) {
       await mock.setPayment(1000);
       await mock.setPaymentPeriod(30); // days
       await mock.setPaymentDueDate(start + ONE_MONTH_SECONDS);
       await mock.setPaymentsRemaining(3);
+      await mock.setState(6); // Active
     }
 
     it("returns 0 interest at beginning of payment term", async () => {
-      const { poolLibWrapper, loan } = await loadFixture(deployFixture);
+      const { poolLibWrapper, mockILoanOne } = await loadFixture(deployFixture);
+      await setupActiveMockILoan(mockILoanOne, await time.latest());
 
       // set mock
-      await poolLibWrapper.setMockActiveLoans([loan.address]);
+      await poolLibWrapper.setMockActiveLoans([mockILoanOne.address]);
 
       expect(
         await poolLibWrapper.calculateExpectedInterestFromMocks()
@@ -275,8 +277,7 @@ describe("PoolLib", () => {
       const { poolLibWrapper, mockILoanOne } = await loadFixture(deployFixture);
 
       const start = await time.latest();
-      // setup mock
-      await setupMockILoan(mockILoanOne, start);
+      await setupActiveMockILoan(mockILoanOne, start);
 
       // set mock on the pool lib
       await poolLibWrapper.setMockActiveLoans([mockILoanOne.address]);
@@ -295,7 +296,7 @@ describe("PoolLib", () => {
       const start = await time.latest();
 
       // setup mock
-      await setupMockILoan(mockILoanOne, start);
+      await setupActiveMockILoan(mockILoanOne, start);
 
       // set mock on the pool lib
       await poolLibWrapper.setMockActiveLoans([mockILoanOne.address]);
@@ -319,7 +320,7 @@ describe("PoolLib", () => {
 
       const start = await time.latest();
       // setup mock
-      await setupMockILoan(mockILoanOne, start);
+      await setupActiveMockILoan(mockILoanOne, start);
 
       // set mock on the pool lib
       await poolLibWrapper.setMockActiveLoans([mockILoanOne.address]);
@@ -337,7 +338,7 @@ describe("PoolLib", () => {
 
       const start = await time.latest();
       // setup mock
-      await setupMockILoan(mockILoanOne, start);
+      await setupActiveMockILoan(mockILoanOne, start);
 
       // set mock on the pool lib
       await poolLibWrapper.setMockActiveLoans([mockILoanOne.address]);
@@ -359,8 +360,8 @@ describe("PoolLib", () => {
       const start = await time.latest();
 
       // setup mock
-      await setupMockILoan(mockILoanOne, start);
-      await setupMockILoan(mockILoanTwo, start);
+      await setupActiveMockILoan(mockILoanOne, start);
+      await setupActiveMockILoan(mockILoanTwo, start);
 
       // set mock on the pool lib
       await poolLibWrapper.setMockActiveLoans([
