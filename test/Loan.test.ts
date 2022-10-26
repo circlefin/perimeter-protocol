@@ -99,7 +99,8 @@ describe("Loan", () => {
       500,
       liquidityAsset.address,
       500_000,
-      Math.floor(Date.now() / 1000) + SEVEN_DAYS
+      Math.floor(Date.now() / 1000) + SEVEN_DAYS,
+      1_000
     );
     const tx2Receipt = await tx2.wait();
 
@@ -935,6 +936,44 @@ describe("Loan", () => {
       await expect(tx).to.not.be.reverted;
       await expect(tx).to.changeTokenBalance(liquidityAsset, borrower, -2083);
       await expect(tx).to.changeTokenBalance(liquidityAsset, pool, 1979);
+      await expect(tx).to.changeTokenBalance(liquidityAsset, firstLoss, 104);
+      expect(await loan.paymentsRemaining()).to.equal(5);
+      const newDueDate = await loan.paymentDueDate();
+      expect(newDueDate).to.equal(dueDate.add(THIRTY_DAYS));
+    });
+
+    it("can complete the next payment if late", async () => {
+      const fixture = await loadFixture(deployFixture);
+      const {
+        borrower,
+        collateralAsset,
+        liquidityAsset,
+        loan,
+        pool,
+        poolManager
+      } = fixture;
+
+      // Setup
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await loan
+        .connect(borrower)
+        .postFungibleCollateral(collateralAsset.address, 100);
+      await pool.connect(poolManager).fundLoan(loan.address);
+      await loan.connect(borrower).drawdown();
+
+      // Advance time to drop dead timestamp
+      const foo = await loan.paymentDueDate();
+      await time.increaseTo(foo.add(100));
+
+      // Make payment
+      const firstLoss = await pool.firstLossVault();
+      const dueDate = await loan.paymentDueDate();
+      expect(await loan.paymentsRemaining()).to.equal(6);
+      await liquidityAsset.connect(borrower).approve(loan.address, 3083);
+      const tx = loan.connect(borrower).completeNextPayment();
+      await expect(tx).to.not.be.reverted;
+      await expect(tx).to.changeTokenBalance(liquidityAsset, borrower, -3083);
+      await expect(tx).to.changeTokenBalance(liquidityAsset, pool, 1979 + 1000);
       await expect(tx).to.changeTokenBalance(liquidityAsset, firstLoss, 104);
       expect(await loan.paymentsRemaining()).to.equal(5);
       const newDueDate = await loan.paymentDueDate();
