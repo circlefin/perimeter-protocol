@@ -41,34 +41,13 @@ contract PermissionedPoolFactory is PoolFactory {
      */
     function createPool(
         address liquidityAsset,
-        uint256 maxCapacity,
-        uint256 endDate,
-        uint256 requestFeeBps,
-        uint256 withdrawGateBps,
-        uint256 withdrawRequestPeriodDuration,
-        uint256 fixedFee,
-        uint256 fixedFeeInterval,
-        uint256 poolFeePercentOfInterest
+        IPoolConfigurableSettings calldata settings
     ) public override onlyVerifiedPoolManager returns (address poolAddress) {
         require(
-            withdrawRequestPeriodDuration > 0,
+            settings.withdrawRequestPeriodDuration > 0,
             "PoolFactory: Invalid duration"
         );
 
-        uint256 firstLossInitialMinimum = 0; // TODO: take from ServiceConfig
-
-        IPoolConfigurableSettings memory settings = IPoolConfigurableSettings(
-            maxCapacity,
-            endDate,
-            requestFeeBps,
-            withdrawGateBps,
-            firstLossInitialMinimum,
-            withdrawRequestPeriodDuration,
-            fixedFee,
-            fixedFeeInterval,
-            0,
-            poolFeePercentOfInterest
-        );
         PermissionedPool pool = new PermissionedPool(
             liquidityAsset,
             msg.sender,

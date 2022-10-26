@@ -60,17 +60,7 @@ describe("Loan", () => {
     // Create a pool
     const tx1 = await poolFactory
       .connect(poolManager)
-      .createPool(
-        liquidityAsset.address,
-        poolSettings.maxCapacity,
-        poolSettings.endDate,
-        poolSettings.requestFeeBps,
-        poolSettings.withdrawGateBps,
-        poolSettings.withdrawRequestPeriodDuration,
-        poolSettings.fixedFee,
-        poolSettings.fixedFeeInterval,
-        poolSettings.poolFeePercentOfInterest
-      );
+      .createPool(liquidityAsset.address, poolSettings);
     const tx1Receipt = await tx1.wait();
 
     // Extract its address from the PoolCreated event
@@ -85,7 +75,8 @@ describe("Loan", () => {
 
     const { firstLossInitialMinimum } = await pool.settings();
 
-    await pool
+    await liquidityAsset.mint(poolManager.address, firstLossInitialMinimum);
+    await liquidityAsset
       .connect(poolManager)
       .approve(pool.address, firstLossInitialMinimum);
 
@@ -875,7 +866,7 @@ describe("Loan", () => {
       // Check Loan is in requested state; defaults should revert
       expect(await loan.state()).to.equal(0);
       await expect(pool.defaultLoan(loan.address)).to.be.revertedWith(
-        "Loan: FunctionInvalidAtThisILoanLifeCycleState"
+        "Pool: unfunded loan"
       );
 
       // Loan is collateralized; defaults should still revert
@@ -883,7 +874,7 @@ describe("Loan", () => {
       await loan.postFungibleCollateral(collateralAsset.address, 100);
       expect(await loan.state()).to.equal(1);
       await expect(pool.defaultLoan(loan.address)).to.be.revertedWith(
-        "Loan: FunctionInvalidAtThisILoanLifeCycleState"
+        "Pool: unfunded loan"
       );
 
       // Loan is funded; defaults should still revert
