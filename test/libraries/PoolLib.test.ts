@@ -676,14 +676,18 @@ describe("PoolLib", () => {
     });
   });
 
-  describe("caclulateWithdrawState", () => {
+  describe("calculateWithdrawStateForRequest", () => {
     it("increments the requested shares of the lender", async () => {
       const { poolLibWrapper } = await loadFixture(deployFixture);
 
       const withdrawState = buildWithdrawState();
 
       expect(
-        await poolLibWrapper.caclulateWithdrawState(withdrawState, 0, 1, 22)
+        await poolLibWrapper.calculateWithdrawStateForRequest(
+          withdrawState,
+          0,
+          22
+        )
       ).to.deep.equal(
         Object.values(
           buildWithdrawState({
@@ -703,7 +707,11 @@ describe("PoolLib", () => {
       });
 
       expect(
-        await poolLibWrapper.caclulateWithdrawState(withdrawState, 1, 2, 33)
+        await poolLibWrapper.calculateWithdrawStateForRequest(
+          withdrawState,
+          1,
+          33
+        )
       ).to.deep.equal(
         Object.values(
           buildWithdrawState({
@@ -713,6 +721,49 @@ describe("PoolLib", () => {
           })
         )
       );
+    });
+  });
+
+  describe("calculateWithdrawStateForCancellation", () => {
+    it("subtracts the requested shares of the lender, followed by eligible shares", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      const withdrawState = buildWithdrawState({
+        requestedShares: 10,
+        eligibleShares: 20
+      });
+
+      expect(
+        await poolLibWrapper.calculateWithdrawStateForCancellation(
+          withdrawState,
+          0,
+          22
+        )
+      ).to.deep.equal(
+        Object.values(
+          buildWithdrawState({
+            requestedShares: 0,
+            eligibleShares: 8
+          })
+        )
+      );
+    });
+
+    it("returns an error if not enough shares available to cancel", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      const withdrawState = buildWithdrawState({
+        requestedShares: 20,
+        latestRequestPeriod: 1
+      });
+
+      await expect(
+        poolLibWrapper.calculateWithdrawStateForCancellation(
+          withdrawState,
+          1,
+          33
+        )
+      ).to.be.revertedWith("Pool: Invalid cancelled shares");
     });
   });
 
@@ -735,6 +786,30 @@ describe("PoolLib", () => {
       expect(await poolLibWrapper.calculateRequestFee(shares, bps)).to.equal(
         10
       ); // 9.09 rounded up
+    });
+  });
+
+  describe("calculateCancellationFee()", () => {
+    it("calculates the fee for a cancellation", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      const shares = 500;
+      const bps = 127; // 1.27%
+
+      expect(
+        await poolLibWrapper.calculateCancellationFee(shares, bps)
+      ).to.equal(7);
+    });
+
+    it("rounds the fee up", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      const shares = 101;
+      const bps = 900; // 9%
+
+      expect(
+        await poolLibWrapper.calculateCancellationFee(shares, bps)
+      ).to.equal(10); // 9.09 rounded up
     });
   });
 
@@ -777,6 +852,40 @@ describe("PoolLib", () => {
           fees
         )
       ).to.equal(26);
+    });
+  });
+
+  describe("calculateMaxCancellation()", () => {
+    it("returns the number of shares the owner can cancel from a request", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      const fees = 0;
+      const withdrawState = buildWithdrawState({
+        requestedShares: 50,
+        eligibleShares: 22,
+        redeemableShares: 28,
+        latestRequestPeriod: 2
+      });
+
+      expect(
+        await poolLibWrapper.calculateMaxCancellation(withdrawState, fees)
+      ).to.equal(72);
+    });
+
+    it("returns the number of shares minus fees", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      const fees = 1200; // 12%
+      const withdrawState = buildWithdrawState({
+        requestedShares: 50,
+        eligibleShares: 22,
+        redeemableShares: 28,
+        latestRequestPeriod: 2
+      });
+
+      expect(
+        await poolLibWrapper.calculateMaxCancellation(withdrawState, fees)
+      ).to.equal(63);
     });
   });
 });

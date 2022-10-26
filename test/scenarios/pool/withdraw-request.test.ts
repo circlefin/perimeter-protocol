@@ -111,9 +111,9 @@ describe("Withdraw Requests", () => {
     // crank it
     await pool.crank();
 
-    // 170 assets, 25% withdraw gate = 42 assets.
-    expect(await pool.totalWithdrawableAssets()).to.equal(41); // 42?
+    // 170 assets = 160 shares. 25% withdraw gate = 40
     expect(await pool.totalRedeemableShares()).to.equal(40);
+    expect(await pool.totalWithdrawableAssets()).to.equal(41);
 
     // verify the global state is updated
     expect(await pool.totalRequestedBalance()).to.equal(0);
@@ -130,5 +130,13 @@ describe("Withdraw Requests", () => {
       6
     ); /* 10 * (41/60) */
     expect(await pool.maxWithdraw(bobLender.address)).to.equal(6);
+
+    // Cancel a request
+    expect(await pool.maxRequestCancellation(aliceLender.address)).to.equal(16);
+    expect(await pool.maxRequestCancellation(bobLender.address)).to.equal(3);
+
+    // Cancel Bob's request
+    expect(await pool.connect(bobLender).cancelRedeemRequest(3));
+    expect(await pool.maxRequestCancellation(bobLender.address)).to.equal(0);
   });
 });

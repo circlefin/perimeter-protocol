@@ -511,8 +511,21 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
-     * @dev
+     * @dev Returns the maximum number of `shares` that can be
+     * cancelled from being requested for a redemption.
+     *
+     * Note: This is equivalent of EIP-4626 `maxRedeem`
      */
+    function maxRequestCancellation(address owner)
+        public
+        view
+        returns (uint256 maxShares)
+    {
+        maxShares = PoolLib.calculateMaxCancellation(
+            _withdrawState[owner],
+            _poolSettings.requestCancellationFeeBps
+        );
+    }
 
     /**
      * @dev Returns the maximum number of `shares` that can be
@@ -558,7 +571,7 @@ contract Pool is IPool, ERC20 {
      * returns an estimated amount of underlying that will be received if this
      * were immeidately executed.
      *
-     * Emits a {RedeemRequested} event.
+     * Emits a {WithdrawRequested} event.
      */
     function requestRedeem(uint256 shares)
         external
@@ -568,6 +581,23 @@ contract Pool is IPool, ERC20 {
     {
         assets = convertToAssets(shares);
         _requestWithdraw(msg.sender, assets, shares);
+    }
+
+    /**
+     * @dev Cancels a redeem request for a specific number of `shares` from
+     * owner and returns an estimated amnount of underlying that equates to
+     * this number of shares.
+     *
+     * Emits a {WithdrawRequestCancelled} event.
+     */
+    function cancelRedeemRequest(uint256 shares)
+        external
+        onlyActivatedPool
+        onlyLender
+        returns (uint256 assets)
+    {
+        assets = convertToAssets(shares);
+        _cancelWithdraw(msg.sender, assets, shares);
     }
 
     /**
@@ -620,6 +650,23 @@ contract Pool is IPool, ERC20 {
     {
         shares = convertToShares(assets);
         _requestWithdraw(msg.sender, assets, shares);
+    }
+
+    /**
+     * @dev Cancels a withdraw request for a specific values of `assets` from
+     * owner and returns an estimated number of shares that equates to
+     * this number of assets.
+     *
+     * Emits a {WithdrawRequestCancelled} event.
+     */
+    function cancelWithdrawRequest(uint256 assets)
+        external
+        onlyActivatedPool
+        onlyLender
+        returns (uint256 shares)
+    {
+        shares = convertToShares(assets);
+        _cancelWithdraw(msg.sender, assets, shares);
     }
 
     /**
@@ -720,7 +767,7 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
-     * @dev Performs a redeem request for the owner, including paying any fees.
+     * @dev Performs a withdraw request for the owner, including paying any fees.
      */
     function _requestWithdraw(
         address owner,
@@ -730,7 +777,6 @@ contract Pool is IPool, ERC20 {
         require(maxRedeemRequest(owner) >= shares, "Pool: InsufficientBalance");
 
         uint256 currentPeriod = withdrawPeriod();
-        uint256 nextPeriod = withdrawPeriod().add(1);
         uint256 feeShares = PoolLib.calculateRequestFee(
             shares,
             _poolSettings.requestFeeBps
@@ -740,10 +786,9 @@ contract Pool is IPool, ERC20 {
         _burn(owner, feeShares);
 
         // Update the requested amount from the user
-        _withdrawState[owner] = PoolLib.caclulateWithdrawState(
+        _withdrawState[owner] = PoolLib.calculateWithdrawStateForRequest(
             _withdrawState[owner],
             currentPeriod,
-            nextPeriod,
             shares
         );
 
@@ -751,14 +796,57 @@ contract Pool is IPool, ERC20 {
         _withdrawAddresses.add(owner);
 
         // Update the global amount
-        _globalWithdrawState = PoolLib.caclulateWithdrawState(
+        _globalWithdrawState = PoolLib.calculateWithdrawStateForRequest(
             _globalWithdrawState,
             currentPeriod,
-            nextPeriod,
             shares
         );
 
         emit WithdrawRequested(msg.sender, assets, shares);
+    }
+
+    /**
+     * @dev Cancels a withdraw request for the owner, including paying any fees.
+     * A cancellation can only occur before the
+     */
+    function _cancelWithdraw(
+        address owner,
+        uint256 assets,
+        uint256 shares
+    ) internal {
+        // TODO: If we move to a lighter crank, we must run it here before this method continues
+        require(
+            maxRequestCancellation(owner) >= shares,
+            "Pool: InsufficientBalance"
+        );
+
+        uint256 currentPeriod = withdrawPeriod();
+        uint256 feeShares = PoolLib.calculateRequestFee(
+            shares,
+            _poolSettings.requestFeeBps
+        );
+
+        // Pay the Fee
+        _burn(owner, feeShares);
+
+        // Update the requested amount from the user
+        _withdrawState[owner] = PoolLib.calculateWithdrawStateForCancellation(
+            _withdrawState[owner],
+            currentPeriod,
+            shares
+        );
+
+        // Add the address to the addresslist
+        _withdrawAddresses.add(owner);
+
+        // Update the global amount
+        _globalWithdrawState = PoolLib.calculateWithdrawStateForCancellation(
+            _globalWithdrawState,
+            currentPeriod,
+            shares
+        );
+
+        emit WithdrawRequestCancelled(msg.sender, assets, shares);
     }
 
     /**
