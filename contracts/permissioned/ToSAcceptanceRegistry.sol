@@ -16,7 +16,7 @@ contract ToSAcceptanceRegistry is IToSAcceptanceRegistry {
     string private _termsOfService;
 
     /**
-     * @dev ToS URL.
+     * @dev Flag to track when the ToS are "initialized"
      */
     bool private _termsSet;
 

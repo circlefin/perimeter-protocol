@@ -62,7 +62,7 @@ contract PoolManagerAccessControl is IPoolManagerAccessControl {
     }
 
     /**
-     * @dev Checks against an allowLisd.
+     * @dev Checks against an allowList to see if the given address is allowed.
      * @inheritdoc IPoolManagerAccessControl
      */
     function isAllowed(address addr) external view returns (bool) {
