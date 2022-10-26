@@ -58,7 +58,11 @@ contract PermissionedPool is Pool {
             tokenSymbol
         )
     {
-        _poolAccessControl = new PoolAccessControl(address(this));
+        _poolAccessControl = new PoolAccessControl(
+            address(this),
+            IServiceConfiguration(serviceConfiguration)
+                .termsOfServiceConsentRegistry()
+        );
     }
 
     /**

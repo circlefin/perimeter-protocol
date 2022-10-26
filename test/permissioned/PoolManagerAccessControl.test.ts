@@ -1,6 +1,7 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { deployToSConsentRegistry } from "../support/tosconsentregistry";
 
 describe("PoolManagerAccessControl", () => {
   // We define a fixture to reuse the same setup in every test.
@@ -18,6 +19,16 @@ describe("PoolManagerAccessControl", () => {
     const serviceConfiguration = await ServiceConfiguration.deploy();
     await serviceConfiguration.deployed();
 
+    const { termsOfServiceConsentRegistry } = await deployToSConsentRegistry(
+      serviceConfiguration
+    );
+    await termsOfServiceConsentRegistry.updateTermsOfService(
+      "https://terms.xyz"
+    );
+    await serviceConfiguration.setTermsOfServiceConsentRegistry(
+      termsOfServiceConsentRegistry.address
+    );
+
     // Deploy the PoolManagerAccessControl contract
     const PoolManagerAccessControl = await ethers.getContractFactory(
       "PoolManagerAccessControl"
@@ -29,7 +40,8 @@ describe("PoolManagerAccessControl", () => {
 
     return {
       poolManagerAccessControl,
-      otherAccount
+      otherAccount,
+      termsOfServiceConsentRegistry
     };
   }
 
@@ -45,10 +57,13 @@ describe("PoolManagerAccessControl", () => {
     });
 
     it("returns true if the address is on the allow list", async () => {
-      const { poolManagerAccessControl, otherAccount } = await loadFixture(
-        deployFixture
-      );
+      const {
+        poolManagerAccessControl,
+        otherAccount,
+        termsOfServiceConsentRegistry
+      } = await loadFixture(deployFixture);
 
+      await termsOfServiceConsentRegistry.connect(otherAccount).recordConsent();
       await poolManagerAccessControl.allow(otherAccount.address);
 
       expect(
@@ -58,10 +73,34 @@ describe("PoolManagerAccessControl", () => {
   });
 
   describe("allow()", () => {
-    it("adds an address to the allowList", async () => {
-      const { poolManagerAccessControl, otherAccount } = await loadFixture(
-        deployFixture
-      );
+    it("reverts when adding an address to the allowList if they haven't consented to ToS", async () => {
+      const {
+        poolManagerAccessControl,
+        otherAccount,
+        termsOfServiceConsentRegistry
+      } = await loadFixture(deployFixture);
+
+      // No ToS Consent
+      expect(
+        await termsOfServiceConsentRegistry.hasConsented(otherAccount.address)
+      ).to.be.false;
+
+      await expect(
+        poolManagerAccessControl.allow(otherAccount.address)
+      ).to.be.revertedWith("Pool: no ToS consent recorded");
+    });
+
+    it("adds an address to the allowList if they have consented to ToS", async () => {
+      const {
+        poolManagerAccessControl,
+        otherAccount,
+        termsOfServiceConsentRegistry
+      } = await loadFixture(deployFixture);
+
+      await termsOfServiceConsentRegistry.connect(otherAccount).recordConsent();
+      expect(
+        await termsOfServiceConsentRegistry.hasConsented(otherAccount.address)
+      ).to.be.true;
 
       await poolManagerAccessControl.allow(otherAccount.address);
 
@@ -71,10 +110,12 @@ describe("PoolManagerAccessControl", () => {
     });
 
     it("succeeds if the address is already in the allowList", async () => {
-      const { poolManagerAccessControl, otherAccount } = await loadFixture(
-        deployFixture
-      );
-
+      const {
+        poolManagerAccessControl,
+        otherAccount,
+        termsOfServiceConsentRegistry
+      } = await loadFixture(deployFixture);
+      await termsOfServiceConsentRegistry.connect(otherAccount).recordConsent();
       await poolManagerAccessControl.allow(otherAccount.address);
       await poolManagerAccessControl.allow(otherAccount.address);
 
@@ -99,9 +140,14 @@ describe("PoolManagerAccessControl", () => {
 
     describe("events", () => {
       it("emits an AllowListUpdated event upon adding an address", async () => {
-        const { poolManagerAccessControl, otherAccount } = await loadFixture(
-          deployFixture
-        );
+        const {
+          poolManagerAccessControl,
+          otherAccount,
+          termsOfServiceConsentRegistry
+        } = await loadFixture(deployFixture);
+        await termsOfServiceConsentRegistry
+          .connect(otherAccount)
+          .recordConsent();
 
         expect(await poolManagerAccessControl.allow(otherAccount.address))
           .to.emit(poolManagerAccessControl, "AllowListUpdated")
@@ -124,7 +170,7 @@ describe("PoolManagerAccessControl", () => {
       ).to.equal(false);
     });
 
-    it("succeeds if the address is not in the allowList", async () => {
+    it("returns false if the address is not in the allowList", async () => {
       const { poolManagerAccessControl, otherAccount } = await loadFixture(
         deployFixture
       );
