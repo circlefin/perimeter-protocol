@@ -41,6 +41,7 @@ contract LoanFactory {
         address liquidityAsset,
         uint256 principal,
         uint256 dropDeadDate,
+        uint256 latePaymentFee,
         uint256 originationFee
     ) public virtual returns (address LoanAddress) {
         require(
@@ -59,6 +60,7 @@ contract LoanFactory {
             liquidityAsset,
             principal,
             dropDeadDate,
+            latePaymentFee,
             originationFee
         );
         address addr = address(loan);

@@ -3,6 +3,7 @@ pragma solidity ^0.8.16;
 
 import "./interfaces/IPoolAccessControl.sol";
 import "./interfaces/IPermissionedServiceConfiguration.sol";
+import "./interfaces/IToSAcceptanceRegistry.sol";
 import "../interfaces/IPool.sol";
 
 /**
@@ -17,6 +18,11 @@ contract PoolAccessControl is IPoolAccessControl {
      * @dev Reference to the pool
      */
     IPool private _pool;
+
+    /**
+     * @dev Reference to the ToS Acceptance Registry
+     */
+    IToSAcceptanceRegistry private _tosRegistry;
 
     /**
      * @dev A mapping of addresses to whether they are allowed as a Lender
@@ -39,8 +45,14 @@ contract PoolAccessControl is IPoolAccessControl {
     /**
      * The constructor for the PoolAccessControl contract
      */
-    constructor(address pool) {
+    constructor(address pool, address tosAcceptanceRegistry) {
+        require(
+            tosAcceptanceRegistry != address(0),
+            "Pool: invalid ToS registry"
+        );
+
         _pool = IPool(pool);
+        _tosRegistry = IToSAcceptanceRegistry(tosAcceptanceRegistry);
     }
 
     /**
@@ -57,6 +69,10 @@ contract PoolAccessControl is IPoolAccessControl {
      * Emits an {AllowedLenderListUpdated} event.
      */
     function allowLender(address addr) external onlyManagerOfPool {
+        require(
+            _tosRegistry.hasAccepted(addr),
+            "Pool: lender not accepted ToS"
+        );
         _allowedLenders[addr] = true;
 
         emit AllowedLenderListUpdated(addr, true);

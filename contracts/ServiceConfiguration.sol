@@ -23,6 +23,8 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
 
     uint256 public firstLossFeeBps = 500;
 
+    address public tosAcceptanceRegistry;
+
     /**
      * @dev Holds a reference to valid LoanFactories
      */
@@ -52,6 +54,11 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
      * @dev Emitted when a loan factory is set
      */
     event LoanFactorySet(address indexed factory, bool isValid);
+
+    /**
+     * @dev Emitted when the TermsOfServiceRegistry is set
+     */
+    event TermsOfServiceRegistrySet(address indexed registry);
 
     /**
      * @dev Constructor for the contract, which sets up the default roles and
@@ -106,5 +113,17 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     {
         isLoanFactory[addr] = isValid;
         emit LoanFactorySet(addr, isValid);
+    }
+
+    /**
+     * @inheritdoc IServiceConfiguration
+     */
+    function setToSAcceptanceRegistry(address addr)
+        external
+        override
+        onlyOperator
+    {
+        tosAcceptanceRegistry = addr;
+        emit TermsOfServiceRegistrySet(addr);
     }
 }

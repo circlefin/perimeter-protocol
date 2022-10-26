@@ -38,6 +38,7 @@ contract Loan is ILoan {
     uint256 public immutable payment;
     uint256 public paymentsRemaining;
     uint256 public paymentDueDate;
+    uint256 public latePaymentFee;
     uint256 public originationFeeBps;
     uint256 public originationFee;
 
@@ -99,6 +100,7 @@ contract Loan is ILoan {
         address liquidityAsset_,
         uint256 principal_,
         uint256 dropDeadTimestamp,
+        uint256 latePaymentFee_,
         uint256 originationFeeBps_
     ) {
         _serviceConfiguration = serviceConfiguration;
@@ -114,6 +116,7 @@ contract Loan is ILoan {
         apr = apr_;
         liquidityAsset = liquidityAsset_;
         principal = principal_;
+        latePaymentFee = latePaymentFee_;
 
         LoanLib.validateLoan(
             serviceConfiguration,
@@ -320,7 +323,9 @@ contract Loan is ILoan {
             .previewFees(
                 payment,
                 _serviceConfiguration.firstLossFeeBps(),
-                IPool(_pool).poolFeePercentOfInterest()
+                IPool(_pool).poolFeePercentOfInterest(),
+                latePaymentFee,
+                paymentDueDate
             );
 
         LoanLib.payFees(
@@ -349,7 +354,9 @@ contract Loan is ILoan {
             .previewFees(
                 amount,
                 _serviceConfiguration.firstLossFeeBps(),
-                IPool(_pool).poolFeePercentOfInterest()
+                IPool(_pool).poolFeePercentOfInterest(),
+                latePaymentFee,
+                paymentDueDate
             );
 
         LoanLib.payFees(

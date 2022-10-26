@@ -431,9 +431,7 @@ library PoolLib {
         // given request period, we need to move "requested" shares over
         // to be "eligible".
         if (state.latestRequestPeriod <= currentPeriod) {
-            state.eligibleShares = state.eligibleShares.add(
-                state.requestedShares
-            );
+            state.eligibleShares = state.eligibleShares + state.requestedShares;
             state.requestedShares = 0;
         }
 
@@ -444,22 +442,52 @@ library PoolLib {
      * @dev Calculate the current IPoolWithdrawState based on the existing
      * request state and the current request period.
      */
-    function caclulateWithdrawState(
+    function calculateWithdrawStateForRequest(
         IPoolWithdrawState memory state,
         uint256 currentPeriod,
-        uint256 requestedPeriod,
         uint256 requestedShares
     ) public pure returns (IPoolWithdrawState memory updatedState) {
-        require(requestedPeriod > 0, "Pool: Invalid request period");
+        require(currentPeriod >= 0, "Pool: Invalid request period");
 
         updatedState = progressWithdrawState(state, currentPeriod);
 
         // Increment the requested shares count, and ensure the "latestRequestPeriod"
         // is set to the current request period.
-        updatedState.requestedShares = state.requestedShares.add(
-            requestedShares
-        );
-        updatedState.latestRequestPeriod = requestedPeriod;
+        updatedState.requestedShares = state.requestedShares + requestedShares;
+        updatedState.latestRequestPeriod = currentPeriod + 1;
+    }
+
+    /**
+     * @dev Calculate the current IPoolWithdrawState based on the existing
+     * request state and the current request period.
+     */
+    function calculateWithdrawStateForCancellation(
+        IPoolWithdrawState memory state,
+        uint256 currentPeriod,
+        uint256 cancelledShares
+    ) public pure returns (IPoolWithdrawState memory updatedState) {
+        updatedState = progressWithdrawState(state, currentPeriod);
+
+        // Decrease the requested, eligible shares count, and ensure the "latestRequestPeriod"
+        // is set to the current request period.
+        if (updatedState.requestedShares > cancelledShares) {
+            updatedState.requestedShares -= cancelledShares;
+            cancelledShares = 0;
+        } else {
+            cancelledShares -= updatedState.requestedShares;
+            updatedState.requestedShares = 0;
+        }
+
+        if (updatedState.eligibleShares > cancelledShares) {
+            updatedState.eligibleShares -= cancelledShares;
+            cancelledShares = 0;
+        } else {
+            cancelledShares -= updatedState.eligibleShares;
+            updatedState.eligibleShares = 0;
+        }
+
+        // Sanity check that we've cancelled all shares.
+        require(cancelledShares == 0, "Pool: Invalid cancelled shares");
     }
 
     /**
@@ -475,6 +503,17 @@ library PoolLib {
     }
 
     /**
+     * @dev Calculate the fee for cancelling a withdrawRequest or a redeemRequest.
+     * Per the EIP-4626 spec, this method rounds up.
+     */
+    function calculateCancellationFee(
+        uint256 shares,
+        uint256 requestCancellationFeeBps
+    ) public pure returns (uint256) {
+        return divideCeil(shares * requestCancellationFeeBps, 10_000);
+    }
+
+    /**
      * @dev Calculates the Maximum amount of shares that can be requested
      */
     function calculateMaxRedeemRequest(
@@ -482,14 +521,32 @@ library PoolLib {
         uint256 shareBalance,
         uint256 requestFeeBps
     ) public pure returns (uint256) {
-        uint256 sharesRemaining = shareBalance
-            .sub(state.requestedShares)
-            .sub(state.eligibleShares)
-            .sub(state.redeemableShares);
+        uint256 sharesRemaining = shareBalance -
+            state.requestedShares -
+            state.eligibleShares -
+            state.redeemableShares;
 
         uint256 sharesFee = calculateRequestFee(sharesRemaining, requestFeeBps);
 
-        return Math.max(sharesRemaining.sub(sharesFee), 0);
+        return Math.max(sharesRemaining - sharesFee, 0);
+    }
+
+    /**
+     * @dev Calculates the Maximum amount of shares that can be cancelled
+     * from the current withdraw request.
+     */
+    function calculateMaxCancellation(
+        IPoolWithdrawState memory state,
+        uint256 requestCancellationFeeBps
+    ) public pure returns (uint256) {
+        uint256 sharesRemaining = state.requestedShares + state.eligibleShares;
+
+        uint256 sharesFee = calculateCancellationFee(
+            sharesRemaining,
+            requestCancellationFeeBps
+        );
+
+        return Math.max(sharesRemaining - sharesFee, 0);
     }
 
     /**
