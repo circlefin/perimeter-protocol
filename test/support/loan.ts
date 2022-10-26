@@ -3,6 +3,10 @@ import { deployServiceConfiguration } from "./serviceconfiguration";
 
 const SEVEN_DAYS = 6 * 60 * 60 * 24;
 
+export const DEFAULT_LOAN_SETTINGS = {
+  originationFee: 0
+};
+
 /**
  * Deploy a loan
  */
@@ -42,7 +46,8 @@ export async function deployLoan(
     500,
     liquidityAsset,
     1_000_000,
-    Math.floor(Date.now() / 1000) + SEVEN_DAYS
+    Math.floor(Date.now() / 1000) + SEVEN_DAYS,
+    0
   );
 
   const txnReceipt = await txn.wait();

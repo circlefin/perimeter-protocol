@@ -38,6 +38,8 @@ contract Loan is ILoan {
     uint256 public immutable payment;
     uint256 public paymentsRemaining;
     uint256 public paymentDueDate;
+    uint256 public originationFeeBps;
+    uint256 public originationFee;
 
     /**
      * @dev Modifier that requires the Loan be in the given `state_`
@@ -96,7 +98,8 @@ contract Loan is ILoan {
         uint256 apr_,
         address liquidityAsset_,
         uint256 principal_,
-        uint256 dropDeadTimestamp
+        uint256 dropDeadTimestamp,
+        uint256 originationFeeBps_
     ) {
         _serviceConfiguration = serviceConfiguration;
         _factory = factory;
@@ -128,6 +131,15 @@ contract Loan is ILoan {
             .div(RAY)
             .div(10000);
         payment = paymentsTotal.mul(RAY).div(paymentsRemaining).div(RAY);
+
+        // Persist origination fee and cache the computed value
+        originationFeeBps = originationFeeBps_;
+        originationFee = principal
+            .mul(originationFeeBps)
+            .mul(duration.mul(RAY).div(360))
+            .div(paymentsRemaining)
+            .div(RAY)
+            .div(10000);
     }
 
     /**
@@ -316,7 +328,8 @@ contract Loan is ILoan {
             IPool(_pool).firstLossVault(),
             firstLossFee,
             IPool(_pool).feeVault(),
-            poolFee
+            poolFee,
+            originationFee
         );
         LoanLib.completePayment(liquidityAsset, _pool, poolPayment);
         paymentsRemaining -= 1;
@@ -344,7 +357,8 @@ contract Loan is ILoan {
             IPool(_pool).firstLossVault(),
             firstLossFee,
             IPool(_pool).manager(),
-            poolFee
+            poolFee,
+            originationFee
         );
 
         LoanLib.completePayment(

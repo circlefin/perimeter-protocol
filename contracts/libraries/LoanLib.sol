@@ -262,7 +262,8 @@ library LoanLib {
         address firstLossVault,
         uint256 firstLoss,
         address poolAdmin,
-        uint256 poolFeePercentOfInterest
+        uint256 poolFeePercentOfInterest,
+        uint256 originationFee
     ) public {
         if (firstLoss > 0) {
             IERC20(asset).safeTransferFrom(
@@ -276,6 +277,13 @@ library LoanLib {
                 msg.sender,
                 poolAdmin,
                 poolFeePercentOfInterest
+            );
+        }
+        if (originationFee > 0) {
+            IERC20(asset).safeTransferFrom(
+                msg.sender,
+                poolAdmin,
+                originationFee
             );
         }
     }
