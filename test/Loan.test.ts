@@ -60,15 +60,7 @@ describe("Loan", () => {
     // Create a pool
     const tx1 = await poolFactory
       .connect(poolManager)
-      .createPool(
-        liquidityAsset.address,
-        poolSettings.maxCapacity,
-        poolSettings.endDate,
-        poolSettings.requestFeeBps,
-        poolSettings.withdrawGateBps,
-        poolSettings.withdrawRequestPeriodDuration,
-        poolSettings.poolFeePercentOfInterest
-      );
+      .createPool(liquidityAsset.address, poolSettings);
     const tx1Receipt = await tx1.wait();
 
     // Extract its address from the PoolCreated event
@@ -83,7 +75,8 @@ describe("Loan", () => {
 
     const { firstLossInitialMinimum } = await pool.settings();
 
-    await pool
+    await liquidityAsset.mint(poolManager.address, firstLossInitialMinimum);
+    await liquidityAsset
       .connect(poolManager)
       .approve(pool.address, firstLossInitialMinimum);
 

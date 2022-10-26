@@ -10,7 +10,6 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "./libraries/PoolLib.sol";
 import "./FeeVault.sol";
 import "./FirstLossVault.sol";
@@ -25,14 +24,14 @@ contract Pool is IPool, ERC20 {
     using SafeMath for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    IPoolLifeCycleState private _poolLifeCycleState;
     address private _manager;
     IServiceConfiguration private _serviceConfiguration;
     IERC20 private _liquidityAsset;
-    IPoolConfigurableSettings private _poolSettings;
-    FeeVault private immutable _feeVault;
+    FeeVault private _feeVault;
     FirstLossVault private _firstLossVault;
+    IPoolConfigurableSettings private _poolSettings;
     IPoolAccountings private _accountings;
+    IPoolLifeCycleState private _poolLifeCycleState;
 
     /**
      * @dev list of all active loan addresses for this Pool. Active loans have been
