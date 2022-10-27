@@ -64,20 +64,14 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
             );
     }
 
-    function calculateAssetsToShares(
-        uint256 assets,
-        uint256 sharesTotalSupply,
-        uint256 nav
+    function calculateConversion(
+        uint256 input,
+        uint256 numerator,
+        uint256 denominator,
+        bool roundUp
     ) external pure returns (uint256) {
-        return PoolLib.calculateAssetsToShares(assets, sharesTotalSupply, nav);
-    }
-
-    function calculateSharesToAssets(
-        uint256 shares,
-        uint256 sharesTotalSupply,
-        uint256 nav
-    ) external pure returns (uint256 assets) {
-        return PoolLib.calculateSharesToAssets(shares, sharesTotalSupply, nav);
+        return
+            PoolLib.calculateConversion(input, numerator, denominator, roundUp);
     }
 
     function calculateTotalAssets(

@@ -896,6 +896,7 @@ contract Pool is IPool, ERC20 {
 
     /**
      * @dev Calculates the amount of shares that would be exchanged by the vault for the amount of assets provided.
+     * Rounds DOWN per EIP4626.
      */
     function convertToShares(uint256 assets)
         public
@@ -904,15 +905,17 @@ contract Pool is IPool, ERC20 {
         returns (uint256)
     {
         return
-            PoolLib.calculateAssetsToShares(
+            PoolLib.calculateConversion(
                 assets,
                 totalAvailableSupply(),
-                totalAvailableAssets()
+                totalAvailableAssets(),
+                false
             );
     }
 
     /**
      * @dev Calculates the amount of assets that would be exchanged by the vault for the amount of shares provided.
+     * Rounds DOWN per EIP4626.
      */
     function convertToAssets(uint256 shares)
         public
@@ -921,10 +924,11 @@ contract Pool is IPool, ERC20 {
         returns (uint256)
     {
         return
-            PoolLib.calculateSharesToAssets(
+            PoolLib.calculateConversion(
                 shares,
+                totalAvailableAssets(),
                 totalAvailableSupply(),
-                totalAvailableAssets()
+                false
             );
     }
 
@@ -948,6 +952,7 @@ contract Pool is IPool, ERC20 {
 
     /**
      * @dev Allows users to simulate the effects of their deposit at the current block.
+     * Rounds DOWN per EIP4626
      */
     function previewDeposit(uint256 assets)
         public
@@ -956,10 +961,12 @@ contract Pool is IPool, ERC20 {
         returns (uint256)
     {
         return
-            PoolLib.calculateAssetsToShares(
+            PoolLib.calculateConversion(
                 assets,
                 totalSupply(),
-                totalAssets() + PoolLib.calculateExpectedInterest(_fundedLoans)
+                totalAvailableAssets() +
+                    PoolLib.calculateExpectedInterest(_fundedLoans),
+                false
             );
     }
 
@@ -1000,6 +1007,7 @@ contract Pool is IPool, ERC20 {
 
     /**
      * @dev Allows users to simulate the effects of their mint at the current block.
+     * Rounds UP per EIP4626, to determine the number of assets to be provided for shares.
      */
     function previewMint(uint256 shares)
         public
@@ -1008,10 +1016,12 @@ contract Pool is IPool, ERC20 {
         returns (uint256 assets)
     {
         return
-            PoolLib.calculateSharesToAssets(
+            PoolLib.calculateConversion(
                 shares,
-                totalSupply(),
-                totalAssets() + PoolLib.calculateExpectedInterest(_fundedLoans)
+                totalAvailableAssets() +
+                    PoolLib.calculateExpectedInterest(_fundedLoans),
+                totalAvailableSupply(),
+                true
             );
     }
 
@@ -1047,6 +1057,7 @@ contract Pool is IPool, ERC20 {
 
     /**
      * @dev Simulate the effects of their withdrawal at the current block.
+     * Per EIP4626, should round UP on the number of shares required for assets.
      */
     function previewWithdraw(uint256 assets)
         external
@@ -1054,16 +1065,18 @@ contract Pool is IPool, ERC20 {
         override
         returns (uint256 shares)
     {
-        shares = PoolLib.calculateAssetsToShares(
+        shares = PoolLib.calculateConversion(
             assets,
             _withdrawState[msg.sender].redeemableShares,
-            _withdrawState[msg.sender].withdrawableAssets
+            _withdrawState[msg.sender].withdrawableAssets,
+            true
         );
     }
 
     /**
      * @dev Burns shares from owner and send exactly assets token from the vault to receiver.
      * Emits a {Withdraw} event.
+     * Should round UP for EIP4626.
      */
     function withdraw(
         uint256 assets,
@@ -1076,10 +1089,11 @@ contract Pool is IPool, ERC20 {
         require(maxWithdraw(owner) >= assets, "Pool: InsufficientBalance");
 
         // Calculate how many shares should be burned
-        shares = PoolLib.calculateAssetsToShares(
+        shares = PoolLib.calculateConversion(
             assets,
             _withdrawState[owner].redeemableShares,
-            _withdrawState[owner].withdrawableAssets
+            _withdrawState[owner].withdrawableAssets,
+            true
         );
 
         // Update the withdraw state, transfer assets, and burn the shares
@@ -1100,6 +1114,7 @@ contract Pool is IPool, ERC20 {
 
     /**
      * @dev Simulates the effects of their redeemption at the current block.
+     * Per EIP4626, should round DOWN.
      */
     function previewRedeem(uint256 shares)
         external
@@ -1107,16 +1122,18 @@ contract Pool is IPool, ERC20 {
         override
         returns (uint256 assets)
     {
-        assets = PoolLib.calculateSharesToAssets(
+        assets = PoolLib.calculateConversion(
             shares,
             _withdrawState[msg.sender].withdrawableAssets,
-            _withdrawState[msg.sender].redeemableShares
+            _withdrawState[msg.sender].redeemableShares,
+            false
         );
     }
 
     /**
      * @dev Redeems a specific number of shares from owner and send assets of underlying token from the vault to receiver.
      * Emits a {Withdraw} event.
+     * Per EIP4626, should round DOWN.
      */
     function redeem(
         uint256 shares,
@@ -1129,10 +1146,11 @@ contract Pool is IPool, ERC20 {
         require(maxRedeem(owner) >= shares, "Pool: InsufficientBalance");
 
         // Calculate how many assets should be transferred
-        assets = PoolLib.calculateSharesToAssets(
+        assets = PoolLib.calculateConversion(
             shares,
             _withdrawState[owner].withdrawableAssets,
-            _withdrawState[owner].redeemableShares
+            _withdrawState[owner].redeemableShares,
+            false
         );
 
         // Update the withdraw state, transfer assets, and burn the shares

@@ -60,6 +60,27 @@ describe("Pool", () => {
     return { pool, liquidityAsset, poolManager, otherAccount, loan };
   }
 
+  async function loanPoolFixtureWithMaturedLoan() {
+    const { pool, otherAccount, borrower, liquidityAsset, poolManager, loan } =
+      await loadFixture(loadPoolFixture);
+
+    await activatePool(pool, poolManager, liquidityAsset);
+
+    await liquidityAsset.connect(otherAccount).approve(pool.address, 1_000_000);
+
+    await depositToPool(pool, otherAccount, liquidityAsset, 1_000_000);
+    await collateralizeLoan(loan, borrower, liquidityAsset);
+    await fundLoan(loan, pool, poolManager);
+    await loan.connect(borrower).drawdown();
+
+    await liquidityAsset.connect(borrower).approve(loan.address, 2_000_000);
+    await liquidityAsset.approve(loan.address, 2_000_000);
+    await liquidityAsset.mint(borrower.address, 200_000);
+    await loan.connect(borrower).completeFullPayment();
+
+    return { pool, otherAccount, loan, borrower, liquidityAsset };
+  }
+
   describe("Deployment", () => {
     it("initializes the lifecycle on construction", async () => {
       const { pool } = await loadFixture(loadPoolFixture);
@@ -615,6 +636,68 @@ describe("Pool", () => {
       );
 
       expect((await pool.settings()).maxCapacity).to.equal(101);
+    });
+  });
+
+  describe("Rounding", async () => {
+    describe("convertToAssets()", () => {
+      it("rounds down", async () => {
+        const { pool } = await loanPoolFixtureWithMaturedLoan();
+        expect(await pool.convertToAssets(1000)).to.equal(1023); // 1023.747 rounded DOWN
+      });
+    });
+
+    describe("convertToShares()", () => {
+      it("rounds down", async () => {
+        const { pool } = await loanPoolFixtureWithMaturedLoan();
+        expect(await pool.convertToShares(1000)).to.equal(976); // 976.804 rounded DOWN
+      });
+    });
+
+    describe("previewDeposit()", () => {
+      it("rounds down", async () => {
+        const { pool } = await loanPoolFixtureWithMaturedLoan();
+        expect(await pool.previewDeposit(1000)).to.equal(976); // 976.804 rounded DOWN
+      });
+    });
+
+    describe("previewMint()", () => {
+      it("rounds up", async () => {
+        const { pool } = await loanPoolFixtureWithMaturedLoan();
+        expect(await pool.previewMint(1000)).to.equal(1024); // 1023.747 rounded UP
+      });
+    });
+
+    describe("mint()", () => {
+      it("rounds up", async () => {
+        const { pool, liquidityAsset, otherAccount } =
+          await loanPoolFixtureWithMaturedLoan();
+        await liquidityAsset.connect(otherAccount).approve(pool.address, 1024);
+        await liquidityAsset.mint(otherAccount.address, 1024);
+
+        const txn = await pool
+          .connect(otherAccount)
+          .mint(1000, otherAccount.address);
+        expect(txn).to.changeTokenBalance(
+          liquidityAsset,
+          otherAccount.address,
+          -1024
+        ); // 1023.747 rounded UP
+      });
+    });
+
+    describe("deposit()", () => {
+      it("rounds down", async () => {
+        const { pool, otherAccount, liquidityAsset } =
+          await loanPoolFixtureWithMaturedLoan();
+        await liquidityAsset.connect(otherAccount).approve(pool.address, 1000);
+        await liquidityAsset.mint(otherAccount.address, 1000);
+
+        const txn = await pool
+          .connect(otherAccount)
+          .deposit(1000, otherAccount.address);
+        expect(txn).to.changeTokenBalance(pool, otherAccount, +976); // 976.804 rounded DOWN
+      });
     });
   });
 

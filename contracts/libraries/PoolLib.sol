@@ -219,48 +219,28 @@ library PoolLib {
 
     /**
      * @dev Computes the exchange rate for converting assets to shares
-     * @param assets Amount of assets to exchange
-     * @param totalAvailableShares Supply of Vault's ERC20 shares (excluding marked for redemption)
-     * @param totalAvailableAssets Pool total available assets (excluding marked for withdrawal)
-     * @return shares The amount of shares
+     * @param input The input to the conversion
+     * @param numerator Numerator of the conversion rate
+     * @param denominator Denominator of the conversion rate
+     * @param roundUp Whether it should be rounded up or down.
+     * @return output The converted amount
      */
-    function calculateAssetsToShares(
-        uint256 assets,
-        uint256 totalAvailableShares,
-        uint256 totalAvailableAssets
-    ) external pure returns (uint256 shares) {
-        if (totalAvailableAssets == 0) {
-            return assets;
+    function calculateConversion(
+        uint256 input,
+        uint256 numerator,
+        uint256 denominator,
+        bool roundUp
+    ) external pure returns (uint256 output) {
+        if (numerator == 0) {
+            return input;
         }
 
-        // TODO: add in interest rate.
-        uint256 rate = (totalAvailableShares.mul(RAY)).div(
-            totalAvailableAssets
-        );
-        shares = (rate.mul(assets)).div(RAY);
-    }
-
-    /**
-     * @dev Computes the exchange rate for converting shares to assets
-     * @param shares Amount of shares to exchange
-     * @param totalAvailableShares Supply of Vault's ERC20 shares (excluding marked for redemption)
-     * @param totalAvailableAssets Pool total available assets (excluding marked for withdrawal)
-     * @return assets The amount of shares
-     */
-    function calculateSharesToAssets(
-        uint256 shares,
-        uint256 totalAvailableShares,
-        uint256 totalAvailableAssets
-    ) external pure returns (uint256 assets) {
-        if (totalAvailableShares == 0) {
-            return shares;
+        uint256 rate = numerator.mul(RAY).div(denominator);
+        if (roundUp) {
+            return divideCeil(rate.mul(input), RAY);
+        } else {
+            return rate.mul(input).div(RAY);
         }
-
-        // TODO: add in interest rate.
-        uint256 rate = (totalAvailableAssets.mul(RAY)).div(
-            totalAvailableShares
-        );
-        assets = (rate.mul(shares)).div(RAY);
     }
 
     /**

@@ -533,55 +533,61 @@ describe("PoolLib", () => {
     });
   });
 
-  describe("calculateAssetsToShares()", async () => {
-    it("calculates 1:1 shares if token supply is zero", async () => {
-      const { poolLibWrapper } = await loadFixture(deployFixture);
-
-      expect(await poolLibWrapper.calculateAssetsToShares(500, 0, 0)).to.equal(
-        500
-      );
-    });
-
-    it("calculates <1:1 if nav has increased in value, and properly rounds down", async () => {
+  describe("calculateConversion()", async () => {
+    it("calculates 1:1 if starting from 0", async () => {
       const { poolLibWrapper } = await loadFixture(deployFixture);
 
       expect(
-        await poolLibWrapper.calculateAssetsToShares(500, 500, 525)
+        await poolLibWrapper.calculateConversion(500, 0, 0, false)
+      ).to.equal(500);
+    });
+
+    it("calculates <1:1 ratio correctly rounding down", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      expect(
+        await poolLibWrapper.calculateConversion(500, 500, 525, false)
       ).to.equal(476) /* 476.19 rounded down */;
     });
 
-    it("calculates >1:1 if nav has decreased in value, and properly rounds down", async () => {
+    it("calculates 1:1 ratio correctly rounding down", async () => {
       const { poolLibWrapper } = await loadFixture(deployFixture);
 
       expect(
-        await poolLibWrapper.calculateAssetsToShares(500, 500, 399)
+        await poolLibWrapper.calculateConversion(500, 500, 500, false)
+      ).to.equal(500);
+    });
+
+    it("calculates >1:1 ratio correctly rounding down", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      expect(
+        await poolLibWrapper.calculateConversion(500, 500, 399, false)
       ).to.equal(626); /* 626.53 rounded down */
     });
-  });
 
-  describe("calculateSharesToAssets()", async () => {
-    it("calculates 1:1 assets if token supply is zero", async () => {
-      const { poolLibWrapper } = await loadFixture(deployFixture);
-
-      expect(await poolLibWrapper.calculateAssetsToShares(500, 0, 0)).to.equal(
-        500
-      );
-    });
-
-    it("calculates <1:1 if nav has increased in value, and properly rounds down", async () => {
+    it("calculates <1:1 ratio correctly rounding up", async () => {
       const { poolLibWrapper } = await loadFixture(deployFixture);
 
       expect(
-        await poolLibWrapper.calculateAssetsToShares(500, 500, 525)
-      ).to.equal(476); /* 476.19 rounded down */
+        await poolLibWrapper.calculateConversion(500, 500, 525, true)
+      ).to.equal(477) /* 476.19 rounded up */;
     });
 
-    it("calculates >1:1 if nav has decreased in value, and properly rounds down", async () => {
+    it("calculates 1:1 ratio correctly rounding up", async () => {
       const { poolLibWrapper } = await loadFixture(deployFixture);
 
       expect(
-        await poolLibWrapper.calculateAssetsToShares(500, 500, 399)
-      ).to.equal(626); /* 626.53 rounded down */
+        await poolLibWrapper.calculateConversion(500, 500, 500, true)
+      ).to.equal(500);
+    });
+
+    it("calculates >1:1 ratio correctly rounding up", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      expect(
+        await poolLibWrapper.calculateConversion(500, 500, 399, true)
+      ).to.equal(627); /* 626.53 rounded up */
     });
   });
 
