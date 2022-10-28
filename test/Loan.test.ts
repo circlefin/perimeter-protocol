@@ -104,8 +104,10 @@ describe("Loan", () => {
       liquidityAsset.address,
       500_000,
       Math.floor(Date.now() / 1000) + SEVEN_DAYS,
-      1_000,
-      loanSettings.originationFee
+      {
+        latePayment: 1_000,
+        originationBps: loanSettings.originationFee
+      }
     );
     const tx2Receipt = await tx2.wait();
 
