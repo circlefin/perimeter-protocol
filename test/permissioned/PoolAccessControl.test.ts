@@ -35,19 +35,8 @@ describe("PoolAccessControl", () => {
   }
 
   describe("isValidLender()", () => {
-    it("returns false if the address has not accepted ToS", async () => {
+    it("returns false if the address is not on the allow list and has not verified via Verite", async () => {
       const { poolAccessControl, lender } = await loadFixture(deployFixture);
-
-      expect(await poolAccessControl.isValidLender(lender.address)).to.equal(
-        false
-      );
-    });
-
-    it("returns false if the address accepted Terms but is not on the allow list and has not verified via Verite", async () => {
-      const { poolAccessControl, lender, tosAcceptanceRegistry } =
-        await loadFixture(deployFixture);
-
-      await tosAcceptanceRegistry.connect(lender).acceptTermsOfService();
 
       expect(await poolAccessControl.isValidLender(lender.address)).to.equal(
         false

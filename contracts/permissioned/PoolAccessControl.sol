@@ -111,9 +111,8 @@ contract PoolAccessControl is
      */
     function isValidLender(address addr) external view returns (bool) {
         return
-            _tosRegistry.hasAccepted(addr) &&
-            (_allowedLenders[addr] ||
-                _credentialVerifications[addr] > block.timestamp);
+            _allowedLenders[addr] ||
+            _credentialVerifications[addr] > block.timestamp;
     }
 
     /**
