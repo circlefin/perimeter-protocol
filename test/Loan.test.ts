@@ -5,6 +5,7 @@ import { DEFAULT_POOL_SETTINGS } from "./support/pool";
 import {
   collateralizeLoan,
   collateralizeLoanNFT,
+  DEFAULT_LOAN_SETTINGS,
   fundLoan,
   matureLoan
 } from "./support/loan";
@@ -14,7 +15,10 @@ describe("Loan", () => {
   const SEVEN_DAYS = 6 * 60 * 60 * 24;
   const THIRTY_DAYS = 30 * 60 * 60 * 24;
 
-  async function deployFixture(poolSettings = DEFAULT_POOL_SETTINGS) {
+  async function deployFixture(
+    poolSettings = DEFAULT_POOL_SETTINGS,
+    loanSettings = DEFAULT_LOAN_SETTINGS
+  ) {
     // Contracts are deployed using the first signer/account by default
     const [operator, poolManager, borrower, lender, other] =
       await ethers.getSigners();
@@ -100,7 +104,10 @@ describe("Loan", () => {
       liquidityAsset.address,
       500_000,
       Math.floor(Date.now() / 1000) + SEVEN_DAYS,
-      1_000
+      {
+        latePayment: 1_000,
+        originationBps: loanSettings.originationFee
+      }
     );
     const tx2Receipt = await tx2.wait();
 
@@ -147,6 +154,15 @@ describe("Loan", () => {
       poolFeePercentOfInterest: 100
     });
     return deployFixture(poolSettings);
+  }
+
+  async function deployFixtureOriginationFees() {
+    return deployFixture(
+      DEFAULT_POOL_SETTINGS,
+      Object.assign({}, DEFAULT_LOAN_SETTINGS, {
+        originationFee: 100
+      })
+    );
   }
 
   describe("after initialization", () => {
@@ -1094,6 +1110,47 @@ describe("Loan", () => {
       await expect(tx).to.changeTokenBalance(liquidityAsset, borrower, -2083);
       await expect(tx).to.changeTokenBalance(liquidityAsset, pool, 1959);
       await expect(tx).to.changeTokenBalance(liquidityAsset, feeVault, 20);
+      await expect(tx).to.changeTokenBalance(liquidityAsset, firstLoss, 104);
+      expect(await loan.paymentsRemaining()).to.equal(5);
+      const newDueDate = await loan.paymentDueDate();
+      expect(newDueDate).to.equal(dueDate.add(THIRTY_DAYS));
+    });
+
+    it("can collect origination fees from the next payment", async () => {
+      const fixture = await loadFixture(deployFixtureOriginationFees);
+      const {
+        borrower,
+        collateralAsset,
+        liquidityAsset,
+        loan,
+        pool,
+        poolManager
+      } = fixture;
+
+      // Setup
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await loan
+        .connect(borrower)
+        .postFungibleCollateral(collateralAsset.address, 100);
+      await pool.connect(poolManager).fundLoan(loan.address);
+      await loan.connect(borrower).drawdown();
+      expect(await loan.originationFee()).to.equal(416);
+
+      // Make payment
+      const firstLoss = await pool.firstLossVault();
+      const feeVault = await pool.feeVault();
+      const dueDate = await loan.paymentDueDate();
+      expect(await loan.paymentsRemaining()).to.equal(6);
+      await liquidityAsset.connect(borrower).approve(loan.address, 2083 + 416);
+      const tx = loan.connect(borrower).completeNextPayment();
+      await expect(tx).to.not.be.reverted;
+      await expect(tx).to.changeTokenBalance(
+        liquidityAsset,
+        borrower,
+        -2083 - 416
+      );
+      await expect(tx).to.changeTokenBalance(liquidityAsset, pool, 1979);
+      await expect(tx).to.changeTokenBalance(liquidityAsset, feeVault, 416);
       await expect(tx).to.changeTokenBalance(liquidityAsset, firstLoss, 104);
       expect(await loan.paymentsRemaining()).to.equal(5);
       const newDueDate = await loan.paymentDueDate();

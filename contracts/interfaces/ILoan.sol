@@ -26,6 +26,11 @@ struct ILoanNonFungibleCollateral {
     uint256 tokenId;
 }
 
+struct ILoanFees {
+    uint256 latePayment;
+    uint256 originationBps;
+}
+
 interface ILoan {
     /**
      * @dev Emitted when loan is funded.

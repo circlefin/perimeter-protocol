@@ -38,7 +38,8 @@ contract Loan is ILoan {
     uint256 public immutable payment;
     uint256 public paymentsRemaining;
     uint256 public paymentDueDate;
-    uint256 public latePaymentFee;
+    uint256 public originationFee;
+    ILoanFees fees;
 
     /**
      * @dev Modifier that requires the Loan be in the given `state_`
@@ -98,7 +99,7 @@ contract Loan is ILoan {
         address liquidityAsset_,
         uint256 principal_,
         uint256 dropDeadTimestamp,
-        uint256 latePaymentFee_
+        ILoanFees memory fees_
     ) {
         _serviceConfiguration = serviceConfiguration;
         _factory = factory;
@@ -113,7 +114,7 @@ contract Loan is ILoan {
         apr = apr_;
         liquidityAsset = liquidityAsset_;
         principal = principal_;
-        latePaymentFee = latePaymentFee_;
+        fees = fees_;
 
         LoanLib.validateLoan(
             serviceConfiguration,
@@ -131,6 +132,14 @@ contract Loan is ILoan {
             .div(RAY)
             .div(10000);
         payment = paymentsTotal.mul(RAY).div(paymentsRemaining).div(RAY);
+
+        // Persist origination fee per payment period
+        originationFee = principal
+            .mul(fees.originationBps)
+            .mul(duration.mul(RAY).div(360))
+            .div(paymentsRemaining)
+            .div(RAY)
+            .div(10000);
     }
 
     /**
@@ -312,7 +321,7 @@ contract Loan is ILoan {
                 payment,
                 _serviceConfiguration.firstLossFeeBps(),
                 IPool(_pool).poolFeePercentOfInterest(),
-                latePaymentFee,
+                fees.latePayment,
                 paymentDueDate
             );
 
@@ -321,7 +330,8 @@ contract Loan is ILoan {
             IPool(_pool).firstLossVault(),
             firstLossFee,
             IPool(_pool).feeVault(),
-            poolFee
+            poolFee,
+            originationFee
         );
         LoanLib.completePayment(liquidityAsset, _pool, poolPayment);
         paymentsRemaining -= 1;
@@ -342,7 +352,7 @@ contract Loan is ILoan {
                 amount,
                 _serviceConfiguration.firstLossFeeBps(),
                 IPool(_pool).poolFeePercentOfInterest(),
-                latePaymentFee,
+                fees.latePayment,
                 paymentDueDate
             );
 
@@ -351,7 +361,8 @@ contract Loan is ILoan {
             IPool(_pool).firstLossVault(),
             firstLossFee,
             IPool(_pool).manager(),
-            poolFee
+            poolFee,
+            originationFee
         );
 
         LoanLib.completePayment(
