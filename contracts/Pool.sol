@@ -305,13 +305,11 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
-     * @dev Updates the pool end date. Can only be called by the Pool Manager.
+     * @inheritdoc IPool
      */
-    function updatePoolEndDate(uint256)
-        external
-        onlyManager
-        returns (uint256)
-    {}
+    function updatePoolEndDate(uint256 endDate) external onlyManager {
+        PoolLib.executeUpdateEndDate(endDate, _poolSettings);
+    }
 
     /**
      * @dev Called by the pool manager, this transfers liquidity from the pool to a given loan.

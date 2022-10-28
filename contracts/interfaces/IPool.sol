@@ -173,7 +173,7 @@ interface IPool is IERC4626 {
     /**
      * @dev Updates the pool end date. Can only be called by the Pool Manager.
      */
-    function updatePoolEndDate(uint256) external returns (uint256);
+    function updatePoolEndDate(uint256) external;
 
     /**
      * @dev Returns the withdrawal fee for a given withdrawal amount at the current block.

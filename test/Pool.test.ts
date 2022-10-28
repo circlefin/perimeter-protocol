@@ -701,6 +701,39 @@ describe("Pool", () => {
     });
   });
 
+  describe("updatePoolEndDate()", () => {
+    it("reverts if trying to move up end date", async () => {
+      const { pool, poolManager } = await loadFixture(loadPoolFixture);
+
+      const newEndDate = (await pool.settings()).endDate.add(1);
+
+      await expect(
+        pool.connect(poolManager).updatePoolEndDate(newEndDate)
+      ).to.be.revertedWith("Pool: can't move end date up");
+    });
+
+    it("reverts if trying to set end date to be in the past", async () => {
+      const { pool, poolManager } = await loadFixture(loadPoolFixture);
+
+      const now = time.latest();
+
+      await expect(
+        pool.connect(poolManager).updatePoolEndDate(now)
+      ).to.be.revertedWith("Pool: can't move end date into the past");
+    });
+
+    it("allows moving up the pool end date", async () => {
+      const { pool, poolManager } = await loadFixture(loadPoolFixture);
+
+      const newEndDate = (await pool.settings()).endDate.sub(1);
+
+      await expect(
+        pool.connect(poolManager).updatePoolEndDate(newEndDate)
+      ).to.emit(pool, "PoolSettingsUpdated");
+      expect((await pool.settings()).endDate).to.equal(newEndDate);
+    });
+  });
+
   describe("Permissions", () => {
     describe("updatePoolCapacity()", () => {
       it("reverts if not called by Pool Manager", async () => {
