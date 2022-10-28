@@ -61,6 +61,16 @@ library PoolLib {
     );
 
     /**
+     * @dev See IPool for event definition
+     */
+    event LoanDefaulted(address indexed loan);
+
+    /**
+     * @dev Emitted when pool settings are updated.
+     */
+    event PoolSettingsUpdated();
+
+    /**
      * @dev Determines whether an address corresponds to a pool loan
      * @param loan address of loan
      * @param serviceConfiguration address of service configuration
@@ -81,11 +91,6 @@ library PoolLib {
     }
 
     /**
-     * @dev See IPool for event definition
-     */
-    event LoanDefaulted(address indexed loan);
-
-    /**
      * @dev Divide two numbers and round the result up
      */
     function divideCeil(uint256 lhs, uint256 rhs)
@@ -94,6 +99,22 @@ library PoolLib {
         returns (uint256)
     {
         return (lhs + rhs - 1) / rhs;
+    }
+
+    /**
+     * @dev Updates the Pool End Date.
+     */
+    function executeUpdateEndDate(
+        uint256 endDate,
+        IPoolConfigurableSettings storage settings
+    ) external {
+        require(settings.endDate > endDate, "Pool: can't move end date up");
+        require(
+            endDate > block.timestamp,
+            "Pool: can't move end date into the past"
+        );
+        settings.endDate = endDate;
+        emit PoolSettingsUpdated();
     }
 
     /**
