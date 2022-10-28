@@ -12,14 +12,14 @@ contract PermissionedPool is Pool {
     /**
      * @dev The reference to the access control contract
      */
-    IPoolAccessControl private _poolAccessControl;
+    IPoolAccessControl public poolAccessControl;
 
     /**
      * @dev a modifier to only allow valid lenders to perform an action
      */
     modifier onlyValidLender() {
         require(
-            _poolAccessControl.isValidLender(msg.sender),
+            poolAccessControl.isValidLender(msg.sender),
             "caller is not a valid lender"
         );
         _;
@@ -30,7 +30,7 @@ contract PermissionedPool is Pool {
      */
     modifier onlyValidReceiver(address receiver) {
         require(
-            _poolAccessControl.isValidLender(receiver),
+            poolAccessControl.isValidLender(receiver),
             "receiver is not a valid lender"
         );
         _;
@@ -58,7 +58,7 @@ contract PermissionedPool is Pool {
             tokenSymbol
         )
     {
-        _poolAccessControl = new PoolAccessControl(
+        poolAccessControl = new PoolAccessControl(
             address(this),
             IServiceConfiguration(serviceConfiguration).tosAcceptanceRegistry()
         );
@@ -74,8 +74,8 @@ contract PermissionedPool is Pool {
         returns (uint256)
     {
         if (
-            !_poolAccessControl.isValidLender(msg.sender) ||
-            !_poolAccessControl.isValidLender(receiver)
+            !poolAccessControl.isValidLender(msg.sender) ||
+            !poolAccessControl.isValidLender(receiver)
         ) {
             return 0;
         }
@@ -101,8 +101,8 @@ contract PermissionedPool is Pool {
      */
     function maxMint(address receiver) public view override returns (uint256) {
         if (
-            !_poolAccessControl.isValidLender(msg.sender) ||
-            !_poolAccessControl.isValidLender(receiver)
+            !poolAccessControl.isValidLender(msg.sender) ||
+            !poolAccessControl.isValidLender(receiver)
         ) {
             return 0;
         }
