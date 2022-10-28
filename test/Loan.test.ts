@@ -114,7 +114,7 @@ describe("Loan", () => {
     const loan = Loan.attach(loanAddress);
 
     const CollateralAsset = await ethers.getContractFactory("MockERC20");
-    const collateralAsset = await CollateralAsset.deploy("Test Coin", "TC");
+    const collateralAsset = await CollateralAsset.deploy("Test Coin", "TC", 18);
     await collateralAsset.deployed();
 
     const NftAsset = await ethers.getContractFactory("MockERC721");
@@ -1202,6 +1202,8 @@ describe("Loan", () => {
       await pool.connect(poolManager).fundLoan(loan.address);
       await loan.connect(borrower).drawdown(await loan.principal());
       expect(await loan.originationFee()).to.equal(416);
+
+      833.333333333;
 
       // Make payment
       const firstLoss = await pool.firstLossVault();

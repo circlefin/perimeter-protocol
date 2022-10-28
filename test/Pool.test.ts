@@ -18,7 +18,7 @@ describe("Pool", () => {
     );
 
     const CollateralAsset = await ethers.getContractFactory("MockERC20");
-    const collateralAsset = await CollateralAsset.deploy("Test Coin", "TC");
+    const collateralAsset = await CollateralAsset.deploy("Test Coin", "TC", 18);
     await collateralAsset.deployed();
 
     const { loan } = await deployLoan(

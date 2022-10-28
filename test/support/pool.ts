@@ -21,9 +21,13 @@ export const DEFAULT_POOL_SETTINGS = {
  */
 export async function deployPool(
   poolManager: any,
-  settings?: Partial<typeof DEFAULT_POOL_SETTINGS>
+  settings?: Partial<typeof DEFAULT_POOL_SETTINGS>,
+  liquidityAsset: any = null
 ) {
-  const { mockERC20: liquidityAsset } = await deployMockERC20();
+  if (liquidityAsset == null) {
+    liquidityAsset = (await deployMockERC20()).mockERC20;
+  }
+
   const poolSettings = {
     ...DEFAULT_POOL_SETTINGS,
     ...settings

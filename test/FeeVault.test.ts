@@ -16,7 +16,7 @@ describe("FeeVault", () => {
     await feeVault.deployed();
 
     const Asset = await ethers.getContractFactory("MockERC20");
-    const asset = await Asset.deploy("Test Coin", "TC");
+    const asset = await Asset.deploy("Test Coin", "TC", 18);
     await asset.deployed();
     await asset.mint(feeVault.address, VAULT_BALANCE);
 
