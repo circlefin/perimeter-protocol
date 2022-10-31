@@ -29,7 +29,6 @@ contract Loan is ILoan {
     ILoanNonFungibleCollateral[] private _nonFungibleCollateral;
     uint256 private immutable _dropDeadTimestamp;
     uint256 public immutable createdAt;
-    uint256 public immutable duration;
     uint256 public immutable paymentPeriod;
     uint256 public immutable apr;
     uint256 public immutable principal;
@@ -92,7 +91,6 @@ contract Loan is ILoan {
         address factory,
         address borrower,
         address pool,
-        uint256 duration_,
         uint256 paymentPeriod_,
         ILoanType loanType_,
         uint256 apr_,
@@ -109,7 +107,6 @@ contract Loan is ILoan {
         fundingVault = new FundingVault(address(this), liquidityAsset_);
         _dropDeadTimestamp = dropDeadTimestamp;
         createdAt = block.timestamp;
-        duration = duration_;
         paymentPeriod = paymentPeriod_;
         apr = apr_;
         liquidityAsset = liquidityAsset_;
@@ -118,17 +115,17 @@ contract Loan is ILoan {
 
         LoanLib.validateLoan(
             serviceConfiguration,
-            duration,
+            settings.duration,
             paymentPeriod,
             loanType,
             principal,
             liquidityAsset
         );
 
-        paymentsRemaining = duration.div(paymentPeriod);
+        paymentsRemaining = settings.duration.div(paymentPeriod);
         uint256 paymentsTotal = principal
             .mul(apr)
-            .mul(duration.mul(RAY).div(360))
+            .mul(settings.duration.mul(RAY).div(360))
             .div(RAY)
             .div(10000);
         payment = paymentsTotal.mul(RAY).div(paymentsRemaining).div(RAY);
@@ -136,7 +133,7 @@ contract Loan is ILoan {
         // Persist origination fee per payment period
         originationFee = principal
             .mul(settings.originationBps)
-            .mul(duration.mul(RAY).div(360))
+            .mul(settings.duration.mul(RAY).div(360))
             .div(paymentsRemaining)
             .div(RAY)
             .div(10000);
@@ -409,5 +406,9 @@ contract Loan is ILoan {
 
     function dropDeadTimestamp() external view returns (uint256) {
         return _dropDeadTimestamp;
+    }
+
+    function duration() external view returns (uint256) {
+        return settings.duration;
     }
 }

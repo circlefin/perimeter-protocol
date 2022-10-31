@@ -4,6 +4,7 @@ import { deployServiceConfiguration } from "./serviceconfiguration";
 const SEVEN_DAYS = 6 * 60 * 60 * 24;
 
 export const DEFAULT_LOAN_SETTINGS = {
+  duration: 180,
   latePayment: 0,
   originationFee: 0
 };
@@ -41,7 +42,6 @@ export async function deployLoan(
   const txn = await loanFactory.createLoan(
     borrower,
     pool,
-    180,
     30,
     0,
     500,
@@ -49,6 +49,7 @@ export async function deployLoan(
     1_000_000,
     Math.floor(Date.now() / 1000) + SEVEN_DAYS,
     {
+      duration: 180,
       latePayment: 1_000,
       originationBps: 0
     }

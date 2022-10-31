@@ -97,7 +97,6 @@ describe("Loan", () => {
     const tx2 = await loanFactory.createLoan(
       borrower.address,
       poolAddress,
-      180,
       30,
       0,
       500,
@@ -105,6 +104,7 @@ describe("Loan", () => {
       500_000,
       Math.floor(Date.now() / 1000) + SEVEN_DAYS,
       {
+        duration: 180,
         latePayment: 1_000,
         originationBps: loanSettings.originationFee
       }
