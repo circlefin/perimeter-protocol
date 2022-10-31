@@ -89,7 +89,6 @@ contract Loan is ILoan {
         address factory,
         address borrower,
         address pool,
-        ILoanType loanType_,
         address liquidityAsset_,
         uint256 principal_,
         uint256 dropDeadTimestamp,
