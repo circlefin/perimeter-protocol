@@ -39,6 +39,7 @@ contract Loan is ILoan {
     uint256 public paymentsRemaining;
     uint256 public paymentDueDate;
     uint256 public originationFee;
+    uint256 public callbackTimestamp;
     ILoanFees fees;
 
     /**
@@ -65,6 +66,14 @@ contract Loan is ILoan {
      */
     modifier onlyBorrower() {
         require(msg.sender == _borrower, "Loan: caller is not borrower");
+        _;
+    }
+
+    modifier onlyPoolAdmin() {
+        require(
+            msg.sender == IPool(_pool).manager(),
+            "Loan: caller is not pool admin"
+        );
         _;
     }
 
@@ -389,6 +398,13 @@ contract Loan is ILoan {
         _state = ILoanLifeCycleState.Defaulted;
         emit LifeCycleStateTransition(_state);
         return _state;
+    }
+
+    /**
+     * @inheritdoc ILoan
+     */
+    function markCallback() external override onlyPoolAdmin {
+        callbackTimestamp = block.timestamp;
     }
 
     function state() external view returns (ILoanLifeCycleState) {

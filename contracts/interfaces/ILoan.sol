@@ -13,7 +13,8 @@ enum ILoanLifeCycleState {
     Defaulted,
     Funded,
     Matured,
-    Active
+    Active,
+    Callback
 }
 
 enum ILoanType {
@@ -150,4 +151,6 @@ interface ILoan {
     function fundingVault() external returns (FundingVault);
 
     function markDefaulted() external returns (ILoanLifeCycleState);
+
+    function markCallback() external;
 }

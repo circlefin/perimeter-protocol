@@ -1158,6 +1158,33 @@ describe("Loan", () => {
     });
   });
 
+  describe("callbacks", () => {
+    it("can be called back by pool admin", async () => {
+      const fixture = await loadFixture(deployFixture);
+      const { poolManager, loan } = fixture;
+
+      // Callback timestamp defaults to 0
+      expect(await loan.callbackTimestamp()).to.equal(0);
+
+      const tx = loan.connect(poolManager).markCallback();
+      await expect(tx).not.to.be.reverted;
+
+      // Callback timestamp should be set to latest block timestamp
+      const latestBlock = await ethers.provider.getBlock("latest");
+      const now = latestBlock.timestamp;
+      expect(await loan.callbackTimestamp()).to.equal(now);
+    });
+
+    it("can only be called back by pool admin", async () => {
+      const fixture = await loadFixture(deployFixture);
+      const { loan, other } = fixture;
+
+      // Setup
+      const tx = loan.connect(other).markCallback();
+      await expect(tx).to.be.reverted;
+    });
+  });
+
   const findEventByName = (receipt, name) => {
     return receipt.events?.find((event) => event.event == name);
   };
