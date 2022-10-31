@@ -6,7 +6,7 @@ const SEVEN_DAYS = 6 * 60 * 60 * 24;
 export const DEFAULT_LOAN_SETTINGS = {
   duration: 180,
   latePayment: 0,
-  originationFee: 0
+  originationBps: 0
 };
 
 /**

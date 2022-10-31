@@ -106,7 +106,7 @@ describe("Loan", () => {
       {
         duration: 180,
         latePayment: 1_000,
-        originationBps: loanSettings.originationFee
+        originationBps: loanSettings.originationBps
       }
     );
     const tx2Receipt = await tx2.wait();
@@ -160,7 +160,7 @@ describe("Loan", () => {
     return deployFixture(
       DEFAULT_POOL_SETTINGS,
       Object.assign({}, DEFAULT_LOAN_SETTINGS, {
-        originationFee: 100
+        originationBps: 100
       })
     );
   }
