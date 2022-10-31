@@ -27,7 +27,6 @@ contract Loan is ILoan {
     FundingVault public immutable fundingVault;
     address[] private _fungibleCollateral;
     ILoanNonFungibleCollateral[] private _nonFungibleCollateral;
-    uint256 private immutable _dropDeadTimestamp;
     uint256 public immutable createdAt;
     address public immutable liquidityAsset;
     ILoanType public immutable loanType = ILoanType.Fixed;
@@ -89,7 +88,6 @@ contract Loan is ILoan {
         address borrower,
         address pool,
         address liquidityAsset_,
-        uint256 dropDeadTimestamp,
         ILoanSettings memory settings_
     ) {
         _serviceConfiguration = serviceConfiguration;
@@ -98,7 +96,6 @@ contract Loan is ILoan {
         _pool = pool;
         _collateralVault = new CollateralVault(address(this));
         fundingVault = new FundingVault(address(this), liquidityAsset_);
-        _dropDeadTimestamp = dropDeadTimestamp;
         createdAt = block.timestamp;
         liquidityAsset = liquidityAsset_;
         settings = settings_;
@@ -154,7 +151,7 @@ contract Loan is ILoan {
         returns (ILoanLifeCycleState)
     {
         require(
-            _dropDeadTimestamp < block.timestamp,
+            settings.dropDeadTimestamp < block.timestamp,
             "Loan: Drop dead date not met"
         );
 
@@ -176,7 +173,7 @@ contract Loan is ILoan {
             "Loan: invalid caller"
         );
         require(
-            _dropDeadTimestamp < block.timestamp,
+            settings.dropDeadTimestamp < block.timestamp,
             "Loan: Drop dead date not met"
         );
 
@@ -407,7 +404,7 @@ contract Loan is ILoan {
     }
 
     function dropDeadTimestamp() external view returns (uint256) {
-        return _dropDeadTimestamp;
+        return settings.dropDeadTimestamp;
     }
 
     function duration() external view returns (uint256) {

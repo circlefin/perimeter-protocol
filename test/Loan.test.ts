@@ -100,7 +100,6 @@ describe("Loan", () => {
       borrower.address,
       poolAddress,
       liquidityAsset.address,
-      Math.floor(Date.now() / 1000) + SEVEN_DAYS,
       loanSettings
     );
     const tx2Receipt = await tx2.wait();

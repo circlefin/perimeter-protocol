@@ -9,6 +9,7 @@ export const DEFAULT_LOAN_SETTINGS = {
   loanType: 0,
   duration: 180,
   paymentPeriod: 30,
+  dropDeadTimestamp: Math.floor(Date.now() / 1000) + SEVEN_DAYS,
   latePayment: 0,
   originationBps: 0
 };
@@ -43,20 +44,15 @@ export async function deployLoan(
 
   await serviceConfiguration.setLoanFactory(loanFactory.address, true);
 
-  const txn = await loanFactory.createLoan(
-    borrower,
-    pool,
-    liquidityAsset,
-    Math.floor(Date.now() / 1000) + SEVEN_DAYS,
-    {
-      principal: 1_000_000,
-      apr: 500,
-      duration: 180,
-      paymentPeriod: 30,
-      latePayment: 1_000,
-      originationBps: 0
-    }
-  );
+  const txn = await loanFactory.createLoan(borrower, pool, liquidityAsset, {
+    principal: 1_000_000,
+    apr: 500,
+    duration: 180,
+    paymentPeriod: 30,
+    dropDeadTimestamp: Math.floor(Date.now() / 1000) + SEVEN_DAYS,
+    latePayment: 1_000,
+    originationBps: 0
+  });
 
   const txnReceipt = await txn.wait();
 
