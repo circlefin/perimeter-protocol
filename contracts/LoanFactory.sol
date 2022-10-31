@@ -35,7 +35,6 @@ contract LoanFactory {
         address borrower,
         address pool,
         address liquidityAsset,
-        uint256 principal,
         uint256 dropDeadDate,
         ILoanSettings memory settings
     ) public virtual returns (address LoanAddress) {
@@ -49,7 +48,6 @@ contract LoanFactory {
             borrower,
             pool,
             liquidityAsset,
-            principal,
             dropDeadDate,
             settings
         );

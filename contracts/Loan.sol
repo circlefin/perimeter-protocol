@@ -29,7 +29,6 @@ contract Loan is ILoan {
     ILoanNonFungibleCollateral[] private _nonFungibleCollateral;
     uint256 private immutable _dropDeadTimestamp;
     uint256 public immutable createdAt;
-    uint256 public immutable principal;
     address public immutable liquidityAsset;
     ILoanType public immutable loanType = ILoanType.Fixed;
     uint256 public immutable payment;
@@ -90,7 +89,6 @@ contract Loan is ILoan {
         address borrower,
         address pool,
         address liquidityAsset_,
-        uint256 principal_,
         uint256 dropDeadTimestamp,
         ILoanSettings memory settings_
     ) {
@@ -103,7 +101,6 @@ contract Loan is ILoan {
         _dropDeadTimestamp = dropDeadTimestamp;
         createdAt = block.timestamp;
         liquidityAsset = liquidityAsset_;
-        principal = principal_;
         settings = settings_;
 
         LoanLib.validateLoan(
@@ -111,12 +108,13 @@ contract Loan is ILoan {
             settings.duration,
             settings.paymentPeriod,
             loanType,
-            principal,
+            settings.principal,
             liquidityAsset
         );
 
         paymentsRemaining = settings.duration.div(settings.paymentPeriod);
-        uint256 paymentsTotal = principal
+        uint256 paymentsTotal = settings
+            .principal
             .mul(settings.apr)
             .mul(settings.duration.mul(RAY).div(360))
             .div(RAY)
@@ -124,7 +122,8 @@ contract Loan is ILoan {
         payment = paymentsTotal.mul(RAY).div(paymentsRemaining).div(RAY);
 
         // Persist origination fee per payment period
-        originationFee = principal
+        originationFee = settings
+            .principal
             .mul(settings.originationBps)
             .mul(settings.duration.mul(RAY).div(360))
             .div(paymentsRemaining)
@@ -181,7 +180,11 @@ contract Loan is ILoan {
             "Loan: Drop dead date not met"
         );
 
-        LoanLib.returnCanceledLoanPrincipal(fundingVault, _pool, principal);
+        LoanLib.returnCanceledLoanPrincipal(
+            fundingVault,
+            _pool,
+            settings.principal
+        );
         _state = ILoanLifeCycleState.Canceled;
         return _state;
     }
@@ -271,7 +274,11 @@ contract Loan is ILoan {
         atState(ILoanLifeCycleState.Collateralized)
         returns (ILoanLifeCycleState)
     {
-        _state = LoanLib.fundLoan(liquidityAsset, fundingVault, principal);
+        _state = LoanLib.fundLoan(
+            liquidityAsset,
+            fundingVault,
+            settings.principal
+        );
         return _state;
     }
 
@@ -360,7 +367,7 @@ contract Loan is ILoan {
         LoanLib.completePayment(
             liquidityAsset,
             _pool,
-            poolPayment.add(principal)
+            poolPayment.add(settings.principal)
         );
         paymentsRemaining = 0;
         _state = ILoanLifeCycleState.Matured;
@@ -413,5 +420,9 @@ contract Loan is ILoan {
 
     function apr() external view returns (uint256) {
         return settings.apr;
+    }
+
+    function principal() external view returns (uint256) {
+        return settings.principal;
     }
 }

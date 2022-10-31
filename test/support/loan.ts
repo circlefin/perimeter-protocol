@@ -4,6 +4,7 @@ import { deployServiceConfiguration } from "./serviceconfiguration";
 const SEVEN_DAYS = 6 * 60 * 60 * 24;
 
 export const DEFAULT_LOAN_SETTINGS = {
+  principal: 1_000_000,
   apr: 500,
   loanType: 0,
   duration: 180,
@@ -46,9 +47,9 @@ export async function deployLoan(
     borrower,
     pool,
     liquidityAsset,
-    1_000_000,
     Math.floor(Date.now() / 1000) + SEVEN_DAYS,
     {
+      principal: 1_000_000,
       apr: 500,
       duration: 180,
       paymentPeriod: 30,

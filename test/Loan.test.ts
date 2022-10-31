@@ -17,7 +17,9 @@ describe("Loan", () => {
 
   async function deployFixture(
     poolSettings = DEFAULT_POOL_SETTINGS,
-    loanSettings = DEFAULT_LOAN_SETTINGS
+    loanSettings = Object.assign({}, DEFAULT_LOAN_SETTINGS, {
+      principal: 500_000
+    })
   ) {
     // Contracts are deployed using the first signer/account by default
     const [operator, poolManager, borrower, lender, other] =
@@ -98,7 +100,6 @@ describe("Loan", () => {
       borrower.address,
       poolAddress,
       liquidityAsset.address,
-      500_000,
       Math.floor(Date.now() / 1000) + SEVEN_DAYS,
       loanSettings
     );
@@ -153,6 +154,7 @@ describe("Loan", () => {
     return deployFixture(
       DEFAULT_POOL_SETTINGS,
       Object.assign({}, DEFAULT_LOAN_SETTINGS, {
+        principal: 500_000,
         originationBps: 100
       })
     );
@@ -162,6 +164,7 @@ describe("Loan", () => {
     return deployFixture(
       DEFAULT_POOL_SETTINGS,
       Object.assign({}, DEFAULT_LOAN_SETTINGS, {
+        principal: 500_000,
         latePayment: 1_000
       })
     );
