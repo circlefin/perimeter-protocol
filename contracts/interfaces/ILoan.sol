@@ -26,7 +26,7 @@ struct ILoanNonFungibleCollateral {
     uint256 tokenId;
 }
 
-struct ILoanFees {
+struct ILoanSettings {
     uint256 latePayment;
     uint256 originationBps;
 }

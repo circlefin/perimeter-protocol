@@ -39,7 +39,7 @@ contract Loan is ILoan {
     uint256 public paymentsRemaining;
     uint256 public paymentDueDate;
     uint256 public originationFee;
-    ILoanFees fees;
+    ILoanSettings settings;
 
     /**
      * @dev Modifier that requires the Loan be in the given `state_`
@@ -99,7 +99,7 @@ contract Loan is ILoan {
         address liquidityAsset_,
         uint256 principal_,
         uint256 dropDeadTimestamp,
-        ILoanFees memory fees_
+        ILoanSettings memory settings_
     ) {
         _serviceConfiguration = serviceConfiguration;
         _factory = factory;
@@ -114,7 +114,7 @@ contract Loan is ILoan {
         apr = apr_;
         liquidityAsset = liquidityAsset_;
         principal = principal_;
-        fees = fees_;
+        settings = settings_;
 
         LoanLib.validateLoan(
             serviceConfiguration,
@@ -135,7 +135,7 @@ contract Loan is ILoan {
 
         // Persist origination fee per payment period
         originationFee = principal
-            .mul(fees.originationBps)
+            .mul(settings.originationBps)
             .mul(duration.mul(RAY).div(360))
             .div(paymentsRemaining)
             .div(RAY)
@@ -321,7 +321,7 @@ contract Loan is ILoan {
                 payment,
                 _serviceConfiguration.firstLossFeeBps(),
                 IPool(_pool).poolFeePercentOfInterest(),
-                fees.latePayment,
+                settings.latePayment,
                 paymentDueDate
             );
 
@@ -352,7 +352,7 @@ contract Loan is ILoan {
                 amount,
                 _serviceConfiguration.firstLossFeeBps(),
                 IPool(_pool).poolFeePercentOfInterest(),
-                fees.latePayment,
+                settings.latePayment,
                 paymentDueDate
             );
 
