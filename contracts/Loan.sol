@@ -29,7 +29,6 @@ contract Loan is ILoan {
     ILoanNonFungibleCollateral[] private _nonFungibleCollateral;
     uint256 private immutable _dropDeadTimestamp;
     uint256 public immutable createdAt;
-    uint256 public immutable paymentPeriod;
     uint256 public immutable apr;
     uint256 public immutable principal;
     address public immutable liquidityAsset;
@@ -91,7 +90,6 @@ contract Loan is ILoan {
         address factory,
         address borrower,
         address pool,
-        uint256 paymentPeriod_,
         ILoanType loanType_,
         uint256 apr_,
         address liquidityAsset_,
@@ -107,7 +105,6 @@ contract Loan is ILoan {
         fundingVault = new FundingVault(address(this), liquidityAsset_);
         _dropDeadTimestamp = dropDeadTimestamp;
         createdAt = block.timestamp;
-        paymentPeriod = paymentPeriod_;
         apr = apr_;
         liquidityAsset = liquidityAsset_;
         principal = principal_;
@@ -116,13 +113,13 @@ contract Loan is ILoan {
         LoanLib.validateLoan(
             serviceConfiguration,
             settings.duration,
-            paymentPeriod,
+            settings.paymentPeriod,
             loanType,
             principal,
             liquidityAsset
         );
 
-        paymentsRemaining = settings.duration.div(paymentPeriod);
+        paymentsRemaining = settings.duration.div(settings.paymentPeriod);
         uint256 paymentsTotal = principal
             .mul(apr)
             .mul(settings.duration.mul(RAY).div(360))
@@ -293,7 +290,9 @@ contract Loan is ILoan {
     {
         // First drawdown kicks off the payment schedule
         if (paymentDueDate == 0) {
-            paymentDueDate = block.timestamp + (paymentPeriod * 1 days);
+            paymentDueDate =
+                block.timestamp +
+                (settings.paymentPeriod * 1 days);
         }
 
         // Fixed term loans require the borrower to drawdown the full amount
@@ -332,7 +331,7 @@ contract Loan is ILoan {
         );
         LoanLib.completePayment(liquidityAsset, _pool, poolPayment);
         paymentsRemaining -= 1;
-        paymentDueDate += paymentPeriod * 1 days;
+        paymentDueDate += settings.paymentPeriod * 1 days;
         return payment;
     }
 
@@ -410,5 +409,9 @@ contract Loan is ILoan {
 
     function duration() external view returns (uint256) {
         return settings.duration;
+    }
+
+    function paymentPeriod() external view returns (uint256) {
+        return settings.paymentPeriod;
     }
 }

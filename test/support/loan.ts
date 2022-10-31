@@ -5,6 +5,7 @@ const SEVEN_DAYS = 6 * 60 * 60 * 24;
 
 export const DEFAULT_LOAN_SETTINGS = {
   duration: 180,
+  paymentPeriod: 30,
   latePayment: 0,
   originationBps: 0
 };
@@ -42,7 +43,6 @@ export async function deployLoan(
   const txn = await loanFactory.createLoan(
     borrower,
     pool,
-    30,
     0,
     500,
     liquidityAsset,
@@ -50,6 +50,7 @@ export async function deployLoan(
     Math.floor(Date.now() / 1000) + SEVEN_DAYS,
     {
       duration: 180,
+      paymentPeriod: 30,
       latePayment: 1_000,
       originationBps: 0
     }

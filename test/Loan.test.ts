@@ -97,17 +97,12 @@ describe("Loan", () => {
     const tx2 = await loanFactory.createLoan(
       borrower.address,
       poolAddress,
-      30,
       0,
       500,
       liquidityAsset.address,
       500_000,
       Math.floor(Date.now() / 1000) + SEVEN_DAYS,
-      {
-        duration: 180,
-        latePayment: 1_000,
-        originationBps: loanSettings.originationBps
-      }
+      loanSettings
     );
     const tx2Receipt = await tx2.wait();
 
@@ -161,6 +156,15 @@ describe("Loan", () => {
       DEFAULT_POOL_SETTINGS,
       Object.assign({}, DEFAULT_LOAN_SETTINGS, {
         originationBps: 100
+      })
+    );
+  }
+
+  async function deployFixtureWithLateFees() {
+    return deployFixture(
+      DEFAULT_POOL_SETTINGS,
+      Object.assign({}, DEFAULT_LOAN_SETTINGS, {
+        latePayment: 1_000
       })
     );
   }
@@ -959,7 +963,7 @@ describe("Loan", () => {
     });
 
     it("can complete the next payment if late", async () => {
-      const fixture = await loadFixture(deployFixture);
+      const fixture = await loadFixture(deployFixtureWithLateFees);
       const {
         borrower,
         collateralAsset,

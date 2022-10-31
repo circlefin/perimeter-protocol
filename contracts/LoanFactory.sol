@@ -34,7 +34,6 @@ contract LoanFactory {
     function createLoan(
         address borrower,
         address pool,
-        uint256 paymentPeriod,
         ILoanType loanType,
         uint256 apr,
         address liquidityAsset,
@@ -51,7 +50,6 @@ contract LoanFactory {
             address(this),
             borrower,
             pool,
-            paymentPeriod,
             loanType,
             apr,
             liquidityAsset,

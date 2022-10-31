@@ -28,6 +28,7 @@ struct ILoanNonFungibleCollateral {
 
 struct ILoanSettings {
     uint256 duration;
+    uint256 paymentPeriod;
     uint256 latePayment;
     uint256 originationBps;
 }
