@@ -98,7 +98,6 @@ describe("Loan", () => {
       borrower.address,
       poolAddress,
       0,
-      500,
       liquidityAsset.address,
       500_000,
       Math.floor(Date.now() / 1000) + SEVEN_DAYS,

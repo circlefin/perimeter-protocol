@@ -29,7 +29,6 @@ contract Loan is ILoan {
     ILoanNonFungibleCollateral[] private _nonFungibleCollateral;
     uint256 private immutable _dropDeadTimestamp;
     uint256 public immutable createdAt;
-    uint256 public immutable apr;
     uint256 public immutable principal;
     address public immutable liquidityAsset;
     ILoanType public immutable loanType = ILoanType.Fixed;
@@ -91,7 +90,6 @@ contract Loan is ILoan {
         address borrower,
         address pool,
         ILoanType loanType_,
-        uint256 apr_,
         address liquidityAsset_,
         uint256 principal_,
         uint256 dropDeadTimestamp,
@@ -105,7 +103,6 @@ contract Loan is ILoan {
         fundingVault = new FundingVault(address(this), liquidityAsset_);
         _dropDeadTimestamp = dropDeadTimestamp;
         createdAt = block.timestamp;
-        apr = apr_;
         liquidityAsset = liquidityAsset_;
         principal = principal_;
         settings = settings_;
@@ -121,7 +118,7 @@ contract Loan is ILoan {
 
         paymentsRemaining = settings.duration.div(settings.paymentPeriod);
         uint256 paymentsTotal = principal
-            .mul(apr)
+            .mul(settings.apr)
             .mul(settings.duration.mul(RAY).div(360))
             .div(RAY)
             .div(10000);
@@ -413,5 +410,9 @@ contract Loan is ILoan {
 
     function paymentPeriod() external view returns (uint256) {
         return settings.paymentPeriod;
+    }
+
+    function apr() external view returns (uint256) {
+        return settings.apr;
     }
 }
