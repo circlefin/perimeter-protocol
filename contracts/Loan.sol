@@ -298,14 +298,15 @@ contract Loan is ILoan {
     {
         uint256 amount;
 
-        (_state, amount, paymentDueDate) = LoanLib.drawdown(
-            fundingVault,
-            msg.sender,
-            paymentDueDate,
-            settings,
-            _state
-        );
-
+        if (settings.loanType == ILoanType.Fixed) {
+            (_state, amount, paymentDueDate) = LoanLib.drawdownFixed(
+                fundingVault,
+                msg.sender,
+                paymentDueDate,
+                settings,
+                _state
+            );
+        }
         return amount;
     }
 

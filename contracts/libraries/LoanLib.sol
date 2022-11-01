@@ -195,7 +195,7 @@ library LoanLib {
     /**
      * Drawdown a loan
      */
-    function drawdown(
+    function drawdownFixed(
         FundingVault fundingVault,
         address receiver,
         uint256 paymentDueDate,
