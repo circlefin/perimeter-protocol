@@ -197,11 +197,32 @@ library LoanLib {
      */
     function drawdown(
         FundingVault fundingVault,
-        uint256 amount,
-        address receiver
-    ) public {
+        address receiver,
+        uint256 paymentDueDate,
+        ILoanSettings storage settings,
+        ILoanLifeCycleState state
+    )
+        public
+        returns (
+            ILoanLifeCycleState,
+            uint256,
+            uint256
+        )
+    {
+        // First drawdown kicks off the payment schedule
+        if (paymentDueDate == 0) {
+            paymentDueDate =
+                block.timestamp +
+                (settings.paymentPeriod * 1 days);
+        }
+
+        IERC20 asset = fundingVault.asset();
+
+        // Fixed term loans require the borrower to drawdown the full amount
+        uint256 amount = IERC20(asset).balanceOf(address(fundingVault));
         fundingVault.withdraw(amount, receiver);
-        emit LoanDrawnDown(address(fundingVault.asset()), amount);
+        emit LoanDrawnDown(address(asset), amount);
+        return (ILoanLifeCycleState.Active, amount, paymentDueDate);
     }
 
     /**

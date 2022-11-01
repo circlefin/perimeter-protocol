@@ -297,19 +297,20 @@ contract Loan is ILoan {
         atState(ILoanLifeCycleState.Funded)
         returns (uint256)
     {
-        // First drawdown kicks off the payment schedule
-        if (paymentDueDate == 0) {
-            paymentDueDate =
-                block.timestamp +
-                (settings.paymentPeriod * 1 days);
-        }
+        (
+            ILoanLifeCycleState state,
+            uint256 amount,
+            uint256 paymentDueDate_
+        ) = LoanLib.drawdown(
+                fundingVault,
+                msg.sender,
+                paymentDueDate,
+                settings,
+                _state
+            );
+        _state = state;
+        paymentDueDate = paymentDueDate_;
 
-        // Fixed term loans require the borrower to drawdown the full amount
-        uint256 amount = IERC20(liquidityAsset).balanceOf(
-            address(fundingVault)
-        );
-        LoanLib.drawdown(fundingVault, amount, msg.sender);
-        _state = ILoanLifeCycleState.Active;
         return amount;
     }
 
