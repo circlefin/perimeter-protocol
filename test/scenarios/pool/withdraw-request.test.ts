@@ -5,14 +5,18 @@ import { deployPool, depositToPool, activatePool } from "../../support/pool";
 
 describe("Withdraw Requests", () => {
   async function loadPoolFixture() {
-    const [poolManager, aliceLender, bobLender] = await ethers.getSigners();
-    const { pool, liquidityAsset } = await deployPool(poolManager);
+    const [operator, poolManager, aliceLender, bobLender] =
+      await ethers.getSigners();
+    const { pool, liquidityAsset } = await deployPool({
+      operator,
+      poolAdmin: poolManager
+    });
 
     // Set the request fee to 10%
-    await pool.setRequestFee(1000);
+    await pool.connect(poolManager).setRequestFee(1000);
 
     // Set the withdraw gate to 25%
-    await pool.setWithdrawGate(2500);
+    await pool.connect(poolManager).setWithdrawGate(2500);
 
     // activate the pool
     await activatePool(pool, poolManager, liquidityAsset);
@@ -23,15 +27,18 @@ describe("Withdraw Requests", () => {
     // deposit 70 tokens from Bob
     await depositToPool(pool, bobLender, liquidityAsset, 70);
 
-    return { pool, liquidityAsset, poolManager, aliceLender, bobLender };
+    return {
+      pool,
+      liquidityAsset,
+      poolManager,
+      aliceLender,
+      bobLender
+    };
   }
 
   it("allows requesting of a withdraw", async () => {
     const { pool, aliceLender, bobLender } = await loadFixture(loadPoolFixture);
     const { withdrawRequestPeriodDuration } = await pool.settings();
-
-    // Expect the pool just started, and nothing can be withdrawn
-    expect(await pool.withdrawPeriod()).to.equal(0);
 
     // Expect Alice to be able to request her full balance, minus fees
     // TODO: Update this to have a non 1:1 ratio!

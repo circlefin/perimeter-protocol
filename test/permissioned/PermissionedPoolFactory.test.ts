@@ -69,13 +69,27 @@ describe("PermissionedPoolFactory", () => {
       );
     await tx.wait();
 
+    const PoolWithdrawManagerFactory = await ethers.getContractFactory(
+      "PoolWithdrawManagerFactory",
+      {
+        libraries: {
+          PoolLib: poolLib.address
+        }
+      }
+    );
+    const poolWithdrawManagerFactory = await PoolWithdrawManagerFactory.deploy(
+      permissionedServiceConfiguration.address
+    );
+    await poolWithdrawManagerFactory.deployed();
+
     return {
       poolFactory,
       poolManagerAccessControl,
       operator,
       otherAccount,
       liquidityAsset,
-      tosAcceptanceRegistry
+      tosAcceptanceRegistry,
+      poolWithdrawManagerFactory
     };
   }
 
@@ -85,7 +99,8 @@ describe("PermissionedPoolFactory", () => {
       poolManagerAccessControl,
       otherAccount,
       liquidityAsset,
-      tosAcceptanceRegistry
+      tosAcceptanceRegistry,
+      poolWithdrawManagerFactory
     } = await loadFixture(deployFixture);
 
     await tosAcceptanceRegistry.connect(otherAccount).acceptTermsOfService();
@@ -95,7 +110,8 @@ describe("PermissionedPoolFactory", () => {
       poolFactory
         .connect(otherAccount)
         .createPool(
-          /* liquidityAsset */ liquidityAsset.address,
+          liquidityAsset.address,
+          poolWithdrawManagerFactory.address,
           DEFAULT_POOL_SETTINGS
         )
     ).to.emit(poolFactory, "PoolCreated");
@@ -107,7 +123,8 @@ describe("PermissionedPoolFactory", () => {
       poolManagerAccessControl,
       otherAccount,
       liquidityAsset,
-      tosAcceptanceRegistry
+      tosAcceptanceRegistry,
+      poolWithdrawManagerFactory
     } = await loadFixture(deployFixture);
 
     await tosAcceptanceRegistry.connect(otherAccount).acceptTermsOfService();
@@ -115,7 +132,8 @@ describe("PermissionedPoolFactory", () => {
 
     await expect(
       poolFactory.createPool(
-        /* liquidityAsset */ liquidityAsset.address,
+        liquidityAsset.address,
+        poolWithdrawManagerFactory.address,
         DEFAULT_POOL_SETTINGS
       )
     ).to.be.revertedWith("caller is not allowed pool manager");

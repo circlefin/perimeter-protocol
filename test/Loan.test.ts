@@ -1,7 +1,11 @@
 import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { DEFAULT_POOL_SETTINGS } from "./support/pool";
+import {
+  activatePool,
+  DEFAULT_POOL_SETTINGS,
+  deployPool
+} from "./support/pool";
 import {
   collateralizeLoan,
   collateralizeLoanNFT,
@@ -25,33 +29,17 @@ describe("Loan", () => {
     const [operator, poolManager, borrower, lender, other] =
       await ethers.getSigners();
 
-    // deploy mock liquidity
-    const { mockERC20 } = await deployMockERC20();
-    const liquidityAsset = mockERC20;
+    // Create a pool
+    const { pool, liquidityAsset, serviceConfiguration } = await deployPool({
+      operator,
+      poolAdmin: poolManager,
+      settings: poolSettings
+    });
 
-    // Deploy the Service Configuration contract
-    const ServiceConfiguration = await ethers.getContractFactory(
-      "ServiceConfiguration",
-      operator
-    );
-    const serviceConfiguration = await ServiceConfiguration.deploy();
-    await serviceConfiguration.deployed();
-
-    await serviceConfiguration.setLiquidityAsset(liquidityAsset.address, true);
-
-    const PoolLib = await ethers.getContractFactory("PoolLib");
-    const poolLib = await PoolLib.deploy();
+    await activatePool(pool, poolManager, liquidityAsset);
 
     const LoanLib = await ethers.getContractFactory("LoanLib");
     const loanLib = await LoanLib.deploy();
-
-    const PoolFactory = await ethers.getContractFactory("PoolFactory", {
-      libraries: {
-        PoolLib: poolLib.address
-      }
-    });
-    const poolFactory = await PoolFactory.deploy(serviceConfiguration.address);
-    await poolFactory.deployed();
 
     const LoanFactory = await ethers.getContractFactory("LoanFactory", {
       libraries: {
@@ -63,33 +51,6 @@ describe("Loan", () => {
 
     await serviceConfiguration.setLoanFactory(loanFactory.address, true);
 
-    // Create a pool
-    const tx1 = await poolFactory
-      .connect(poolManager)
-      .createPool(liquidityAsset.address, poolSettings);
-    const tx1Receipt = await tx1.wait();
-
-    // Extract its address from the PoolCreated event
-    const poolCreatedEvent = findEventByName(tx1Receipt, "PoolCreated");
-    const poolAddress = poolCreatedEvent?.args?.[0];
-    const Pool = await ethers.getContractFactory("Pool", {
-      libraries: {
-        PoolLib: poolLib.address
-      }
-    });
-    const pool = Pool.attach(poolAddress);
-
-    const { firstLossInitialMinimum } = await pool.settings();
-
-    await liquidityAsset.mint(poolManager.address, firstLossInitialMinimum);
-    await liquidityAsset
-      .connect(poolManager)
-      .approve(pool.address, firstLossInitialMinimum);
-
-    await pool
-      .connect(poolManager)
-      .depositFirstLoss(firstLossInitialMinimum, poolManager.address);
-
     const depositAmount = 1_000_000;
     await liquidityAsset.mint(lender.address, 10_000_000);
     await liquidityAsset.connect(lender).approve(pool.address, depositAmount);
@@ -98,7 +59,7 @@ describe("Loan", () => {
     // Create the Loan
     const tx2 = await loanFactory.createLoan(
       borrower.address,
-      poolAddress,
+      pool.address,
       liquidityAsset.address,
       loanSettings
     );

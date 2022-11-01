@@ -51,7 +51,7 @@ describe("Business Scenario 1", () => {
   }
 
   async function loadFixtures() {
-    const [poolManager, lenderA, lenderB, borrowerOne, borrowerTwo] =
+    const [operator, poolManager, lenderA, lenderB, borrowerOne, borrowerTwo] =
       await ethers.getSigners();
 
     const startTime = await time.latest();
@@ -65,11 +65,12 @@ describe("Business Scenario 1", () => {
       "MUSDC",
       6
     );
-    const { pool, serviceConfiguration } = await deployPool(
-      poolManager,
-      poolSettings,
-      mockUSDC
-    );
+    const { pool, serviceConfiguration } = await deployPool({
+      operator,
+      poolAdmin: poolManager,
+      settings: poolSettings,
+      liquidityAsset: mockUSDC
+    });
 
     // Confirm FL fee is set to 5%
     expect(await serviceConfiguration.firstLossFeeBps()).to.equal(500);

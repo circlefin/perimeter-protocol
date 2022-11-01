@@ -1,16 +1,17 @@
 import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { deployPermissionedPool } from "../support/permissionedpool";
+import { deployPermissionedPool } from "../support/pool";
 import { getSignedVerificationResult } from "../support/verite";
 
 describe("PoolAccessControl", () => {
   async function deployFixture() {
-    const [poolAdmin, verifier, lender, ...otherAccounts] =
+    const [operator, poolAdmin, verifier, lender, ...otherAccounts] =
       await ethers.getSigners();
-    const { pool, tosAcceptanceRegistry } = await deployPermissionedPool(
+    const { pool, tosAcceptanceRegistry } = await deployPermissionedPool({
+      operator,
       poolAdmin
-    );
+    });
 
     await tosAcceptanceRegistry.updateTermsOfService("http://circle.com");
 
@@ -139,20 +140,24 @@ describe("PoolAccessControl", () => {
 
   describe("allowLender()", () => {
     it("requires the lender agreed to the ToS", async () => {
-      const { poolAccessControl, lender } = await loadFixture(deployFixture);
+      const { poolAccessControl, poolAdmin, lender } = await loadFixture(
+        deployFixture
+      );
 
       await expect(
-        poolAccessControl.allowLender(lender.address)
+        poolAccessControl.connect(poolAdmin).allowLender(lender.address)
       ).to.be.revertedWith("Pool: lender not accepted ToS");
     });
 
     it("adds a new lender", async () => {
-      const { poolAccessControl, lender, tosAcceptanceRegistry } =
+      const { poolAccessControl, poolAdmin, lender, tosAcceptanceRegistry } =
         await loadFixture(deployFixture);
 
       await tosAcceptanceRegistry.connect(lender).acceptTermsOfService();
 
-      await expect(poolAccessControl.allowLender(lender.address))
+      await expect(
+        poolAccessControl.connect(poolAdmin).allowLender(lender.address)
+      )
         .to.emit(poolAccessControl, "LenderAllowed")
         .withArgs(lender.address);
     });
@@ -160,9 +165,13 @@ describe("PoolAccessControl", () => {
 
   describe("removeLender()", () => {
     it("removes a lender", async () => {
-      const { poolAccessControl, lender } = await loadFixture(deployFixture);
+      const { poolAccessControl, poolAdmin, lender } = await loadFixture(
+        deployFixture
+      );
 
-      await expect(poolAccessControl.removeLender(lender.address))
+      await expect(
+        poolAccessControl.connect(poolAdmin).removeLender(lender.address)
+      )
         .to.emit(poolAccessControl, "LenderRemoved")
         .withArgs(lender.address);
     });
@@ -170,9 +179,13 @@ describe("PoolAccessControl", () => {
 
   describe("addVerifier()", () => {
     it("adds a new verifier", async () => {
-      const { poolAccessControl, verifier } = await loadFixture(deployFixture);
+      const { poolAccessControl, poolAdmin, verifier } = await loadFixture(
+        deployFixture
+      );
 
-      await expect(poolAccessControl.addVerifier(verifier.address))
+      await expect(
+        poolAccessControl.connect(poolAdmin).addVerifier(verifier.address)
+      )
         .to.emit(poolAccessControl, "VerifierAdded")
         .withArgs(verifier.address);
     });
@@ -180,9 +193,13 @@ describe("PoolAccessControl", () => {
 
   describe("removeVerifier()", () => {
     it("removes a verifier", async () => {
-      const { poolAccessControl, verifier } = await loadFixture(deployFixture);
+      const { poolAccessControl, poolAdmin, verifier } = await loadFixture(
+        deployFixture
+      );
 
-      await expect(poolAccessControl.removeVerifier(verifier.address))
+      await expect(
+        poolAccessControl.connect(poolAdmin).removeVerifier(verifier.address)
+      )
         .to.emit(poolAccessControl, "VerifierRemoved")
         .withArgs(verifier.address);
     });
@@ -190,9 +207,11 @@ describe("PoolAccessControl", () => {
 
   describe("addSchema()", () => {
     it("adds a new verifier", async () => {
-      const { poolAccessControl } = await loadFixture(deployFixture);
+      const { poolAccessControl, poolAdmin } = await loadFixture(deployFixture);
 
-      await expect(poolAccessControl.addSchema("schema://kyc"))
+      await expect(
+        poolAccessControl.connect(poolAdmin).addSchema("schema://kyc")
+      )
         .to.emit(poolAccessControl, "CredentialSchemaAdded")
         .withArgs("schema://kyc");
     });
@@ -200,9 +219,11 @@ describe("PoolAccessControl", () => {
 
   describe("removeSchema()", () => {
     it("removes a verifier", async () => {
-      const { poolAccessControl } = await loadFixture(deployFixture);
+      const { poolAccessControl, poolAdmin } = await loadFixture(deployFixture);
 
-      await expect(poolAccessControl.removeSchema("schema://kyc"))
+      await expect(
+        poolAccessControl.connect(poolAdmin).removeSchema("schema://kyc")
+      )
         .to.emit(poolAccessControl, "CredentialSchemaRemoved")
         .withArgs("schema://kyc");
     });
