@@ -506,11 +506,7 @@ library PoolLib {
             state.eligibleShares -
             state.redeemableShares;
 
-        return
-            Math.max(
-                sharesRemaining.mul(10_000).div(requestFeeBps + 10_000),
-                0
-            );
+        return sharesRemaining.mul(10_000).div(requestFeeBps + 10_000);
     }
 
     /**
