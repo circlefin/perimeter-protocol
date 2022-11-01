@@ -1203,8 +1203,6 @@ describe("Loan", () => {
       await loan.connect(borrower).drawdown(await loan.principal());
       expect(await loan.originationFee()).to.equal(416);
 
-      833.333333333;
-
       // Make payment
       const firstLoss = await pool.firstLossVault();
       const feeVault = await pool.feeVault();
