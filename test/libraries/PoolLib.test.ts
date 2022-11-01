@@ -859,6 +859,26 @@ describe("PoolLib", () => {
         )
       ).to.equal(26);
     });
+
+    it("returns the number of shares minus fees with large numbers", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      const balance = 1_000_000;
+      const fees = 500; // 5%
+      const withdrawState = buildWithdrawState({
+        requestedShares: 0,
+        eligibleShares: 0,
+        latestRequestPeriod: 1
+      });
+
+      expect(
+        await poolLibWrapper.calculateMaxRedeemRequest(
+          withdrawState,
+          balance,
+          fees
+        )
+      ).to.equal(952380);
+    });
   });
 
   describe("calculateMaxCancellation()", () => {

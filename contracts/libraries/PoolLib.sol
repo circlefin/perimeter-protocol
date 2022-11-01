@@ -527,9 +527,7 @@ library PoolLib {
             state.eligibleShares -
             state.redeemableShares;
 
-        uint256 sharesFee = calculateRequestFee(sharesRemaining, requestFeeBps);
-
-        return Math.max(sharesRemaining - sharesFee, 0);
+        return sharesRemaining.mul(10_000).div(requestFeeBps + 10_000);
     }
 
     /**
