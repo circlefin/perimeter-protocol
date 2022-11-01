@@ -29,7 +29,6 @@ contract Loan is ILoan {
     ILoanNonFungibleCollateral[] private _nonFungibleCollateral;
     uint256 public immutable createdAt;
     address public immutable liquidityAsset;
-    ILoanType public immutable loanType = ILoanType.Fixed;
     uint256 public immutable payment;
     uint256 public paymentsRemaining;
     uint256 public paymentDueDate;
@@ -113,7 +112,7 @@ contract Loan is ILoan {
             serviceConfiguration,
             settings.duration,
             settings.paymentPeriod,
-            loanType,
+            settings.loanType,
             settings.principal,
             liquidityAsset
         );
@@ -438,5 +437,9 @@ contract Loan is ILoan {
 
     function principal() external view returns (uint256) {
         return settings.principal;
+    }
+
+    function loanType() external view returns (ILoanType) {
+        return settings.loanType;
     }
 }

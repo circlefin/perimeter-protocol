@@ -45,6 +45,7 @@ export async function deployLoan(
   await serviceConfiguration.setLoanFactory(loanFactory.address, true);
 
   const txn = await loanFactory.createLoan(borrower, pool, liquidityAsset, {
+    loanType: 0,
     principal: 1_000_000,
     apr: 500,
     duration: 180,

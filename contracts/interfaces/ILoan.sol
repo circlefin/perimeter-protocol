@@ -28,6 +28,7 @@ struct ILoanNonFungibleCollateral {
 }
 
 struct ILoanSettings {
+    ILoanType loanType;
     uint256 principal;
     uint256 apr;
     uint256 duration;
