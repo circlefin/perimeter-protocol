@@ -296,19 +296,15 @@ contract Loan is ILoan {
         atState(ILoanLifeCycleState.Funded)
         returns (uint256)
     {
-        (
-            ILoanLifeCycleState state,
-            uint256 amount,
-            uint256 paymentDueDate_
-        ) = LoanLib.drawdown(
-                fundingVault,
-                msg.sender,
-                paymentDueDate,
-                settings,
-                _state
-            );
-        _state = state;
-        paymentDueDate = paymentDueDate_;
+        uint256 amount;
+
+        (_state, amount, paymentDueDate) = LoanLib.drawdown(
+            fundingVault,
+            msg.sender,
+            paymentDueDate,
+            settings,
+            _state
+        );
 
         return amount;
     }
