@@ -71,7 +71,7 @@ describe("Pool", () => {
     await depositToPool(pool, otherAccount, liquidityAsset, 1_000_000);
     await collateralizeLoan(loan, borrower, liquidityAsset);
     await fundLoan(loan, pool, poolManager);
-    await loan.connect(borrower).drawdown();
+    await loan.connect(borrower).drawdown(await loan.principal());
 
     await liquidityAsset.connect(borrower).approve(loan.address, 2_000_000);
     await liquidityAsset.approve(loan.address, 2_000_000);
@@ -273,7 +273,7 @@ describe("Pool", () => {
       );
       await collateralizeLoan(loan, borrower, liquidityAsset);
       await fundLoan(loan, pool, poolManager);
-      await loan.connect(borrower).drawdown();
+      await loan.connect(borrower).drawdown(await loan.principal());
 
       // Fast forward past pool close
       await time.increaseTo((await pool.settings()).endDate);
@@ -303,7 +303,7 @@ describe("Pool", () => {
       );
       await collateralizeLoan(loan, borrower, liquidityAsset);
       await fundLoan(loan, pool, poolManager);
-      await loan.connect(borrower).drawdown();
+      await loan.connect(borrower).drawdown(await loan.principal());
 
       // Pay down loan
       // Give borrower arbitrary amount to fully paydown loan
@@ -481,7 +481,7 @@ describe("Pool", () => {
       const loanPrincipal = await loan.principal();
       await depositToPool(pool, otherAccount, liquidityAsset, loanPrincipal);
       await fundLoan(loan, pool, poolManager);
-      await loan.connect(borrower).drawdown();
+      await loan.connect(borrower).drawdown(await loan.principal());
 
       // Confirm that pool liquidity reserve is now empty
       expect(await liquidityAsset.balanceOf(pool.address)).to.equal(0);
@@ -548,7 +548,7 @@ describe("Pool", () => {
         await loan.principal()
       );
       await fundLoan(loan, pool, poolManager);
-      await loan.connect(borrower).drawdown();
+      await loan.connect(borrower).drawdown(await loan.principal());
 
       // Fast forward to pool end date
       await time.increaseTo((await pool.settings()).endDate);
@@ -592,7 +592,7 @@ describe("Pool", () => {
       // Deposit and fund / drawdown loan
       await depositToPool(pool, lender, liquidityAsset, loanAmount);
       await fundLoan(loan, pool, poolManager);
-      await loan.connect(borrower).drawdown();
+      await loan.connect(borrower).drawdown(await loan.principal());
       const drawdownTime = await time.latest();
 
       // Fast forward to halfway through 1st payment term

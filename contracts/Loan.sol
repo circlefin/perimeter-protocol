@@ -290,23 +290,16 @@ contract Loan is ILoan {
     /**
      * @dev Drawdown the Loan
      */
-    function drawdown()
-        external
-        onlyBorrower
-        atState(ILoanLifeCycleState.Funded)
-        returns (uint256)
-    {
-        uint256 amount;
+    function drawdown(uint256 amount) external onlyBorrower returns (uint256) {
+        (_state, paymentDueDate) = LoanLib.drawdown(
+            amount,
+            fundingVault,
+            msg.sender,
+            paymentDueDate,
+            settings,
+            _state
+        );
 
-        if (settings.loanType == ILoanType.Fixed) {
-            (_state, amount, paymentDueDate) = LoanLib.drawdownFixed(
-                fundingVault,
-                msg.sender,
-                paymentDueDate,
-                settings,
-                _state
-            );
-        }
         return amount;
     }
 

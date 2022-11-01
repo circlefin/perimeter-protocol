@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
+import {console} from "hardhat/console.sol";
+
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -195,20 +197,14 @@ library LoanLib {
     /**
      * Drawdown a loan
      */
-    function drawdownFixed(
+    function drawdown(
+        uint256 amount,
         FundingVault fundingVault,
         address receiver,
         uint256 paymentDueDate,
         ILoanSettings storage settings,
         ILoanLifeCycleState state
-    )
-        public
-        returns (
-            ILoanLifeCycleState,
-            uint256,
-            uint256
-        )
-    {
+    ) public returns (ILoanLifeCycleState, uint256) {
         // First drawdown kicks off the payment schedule
         if (paymentDueDate == 0) {
             paymentDueDate =
@@ -219,10 +215,26 @@ library LoanLib {
         IERC20 asset = fundingVault.asset();
 
         // Fixed term loans require the borrower to drawdown the full amount
-        uint256 amount = IERC20(asset).balanceOf(address(fundingVault));
+        if (settings.loanType == ILoanType.Fixed) {
+            require(
+                state == ILoanLifeCycleState.Funded,
+                "LoanLib: invalid state"
+            );
+            require(
+                amount == IERC20(asset).balanceOf(address(fundingVault)),
+                "LoanLib: invalid amount"
+            );
+        } else {
+            // Open Term
+            require(
+                state == ILoanLifeCycleState.Funded ||
+                    state == ILoanLifeCycleState.Active,
+                "LoanLib: invalid state"
+            );
+        }
         fundingVault.withdraw(amount, receiver);
         emit LoanDrawnDown(address(asset), amount);
-        return (ILoanLifeCycleState.Active, amount, paymentDueDate);
+        return (ILoanLifeCycleState.Active, paymentDueDate);
     }
 
     /**
