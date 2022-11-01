@@ -1188,6 +1188,10 @@ contract Pool is IPool, ERC20 {
             .withdrawableAssets
             .sub(assets);
 
+        // update global state
+        _globalWithdrawState.redeemableShares -= shares;
+        _globalWithdrawState.withdrawableAssets -= assets;
+
         // Transfer assets
         _liquidityAsset.safeTransferFrom(address(this), receiver, assets);
 

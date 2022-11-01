@@ -1320,10 +1320,22 @@ describe("Pool", () => {
         await depositToPool(pool, bob, liquidityAsset, 100);
         await pool.connect(bob).requestRedeem(30);
 
+        // before the crank, check that redeemableShares is zero
+        expect(await pool.connect(bob).totalRedeemableShares()).to.equal(0);
+
         await time.increase(withdrawRequestPeriodDuration);
         await pool.connect(poolManager).crank();
 
-        expect(await pool.totalRedeemableShares()).to.equal(40);
+        expect(await pool.totalRedeemableShares()).to.equal(40); // 30 + 10
+
+        // redeem, and see that it's decremented
+        await pool.connect(bob).redeem(30, bob.address, bob.address);
+        expect(await pool.totalRedeemableShares()).to.equal(10); // other account needs to redeem
+
+        await pool
+          .connect(otherAccount)
+          .redeem(10, otherAccount.address, otherAccount.address);
+        expect(await pool.totalRedeemableShares()).to.equal(0);
       });
     });
 
@@ -1366,6 +1378,15 @@ describe("Pool", () => {
         await pool.connect(poolManager).crank();
 
         expect(await pool.totalWithdrawableAssets()).to.equal(40);
+
+        // Redeem, expect it to decrement
+        await pool
+          .connect(otherAccount)
+          .redeem(10, otherAccount.address, otherAccount.address);
+        expect(await pool.totalWithdrawableAssets()).to.equal(30);
+
+        await pool.connect(bob).redeem(30, bob.address, bob.address);
+        expect(await pool.totalWithdrawableAssets()).to.equal(0);
       });
     });
   });
@@ -1401,6 +1422,7 @@ describe("Pool", () => {
         otherAccount.address
       );
       expect(await pool.maxRedeem(otherAccount.address)).to.equal(10);
+
       await pool
         .connect(otherAccount)
         .redeem(10, otherAccount.address, otherAccount.address);
