@@ -4,8 +4,14 @@ import { deployServiceConfiguration } from "./serviceconfiguration";
 const SEVEN_DAYS = 6 * 60 * 60 * 24;
 
 export const DEFAULT_LOAN_SETTINGS = {
+  principal: 1_000_000,
+  apr: 500,
+  loanType: 0,
+  duration: 180,
+  paymentPeriod: 30,
+  dropDeadTimestamp: Math.floor(Date.now() / 1000) + SEVEN_DAYS,
   latePayment: 0,
-  originationFee: 0
+  originationBps: 0
 };
 
 /**
@@ -38,21 +44,15 @@ export async function deployLoan(
 
   await serviceConfiguration.setLoanFactory(loanFactory.address, true);
 
-  const txn = await loanFactory.createLoan(
-    borrower,
-    pool,
-    180,
-    30,
-    0,
-    500,
-    liquidityAsset,
-    1_000_000,
-    Math.floor(Date.now() / 1000) + SEVEN_DAYS,
-    {
-      latePayment: 1_000,
-      originationBps: 0
-    }
-  );
+  const txn = await loanFactory.createLoan(borrower, pool, liquidityAsset, {
+    principal: 1_000_000,
+    apr: 500,
+    duration: 180,
+    paymentPeriod: 30,
+    dropDeadTimestamp: Math.floor(Date.now() / 1000) + SEVEN_DAYS,
+    latePayment: 1_000,
+    originationBps: 0
+  });
 
   const txnReceipt = await txn.wait();
 

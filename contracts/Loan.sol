@@ -27,19 +27,14 @@ contract Loan is ILoan {
     FundingVault public immutable fundingVault;
     address[] private _fungibleCollateral;
     ILoanNonFungibleCollateral[] private _nonFungibleCollateral;
-    uint256 private immutable _dropDeadTimestamp;
     uint256 public immutable createdAt;
-    uint256 public immutable duration;
-    uint256 public immutable paymentPeriod;
-    uint256 public immutable apr;
-    uint256 public immutable principal;
     address public immutable liquidityAsset;
     ILoanType public immutable loanType = ILoanType.Fixed;
     uint256 public immutable payment;
     uint256 public paymentsRemaining;
     uint256 public paymentDueDate;
     uint256 public originationFee;
-    ILoanFees fees;
+    ILoanSettings settings;
 
     /**
      * @dev Modifier that requires the Loan be in the given `state_`
@@ -92,14 +87,8 @@ contract Loan is ILoan {
         address factory,
         address borrower,
         address pool,
-        uint256 duration_,
-        uint256 paymentPeriod_,
-        ILoanType loanType_,
-        uint256 apr_,
         address liquidityAsset_,
-        uint256 principal_,
-        uint256 dropDeadTimestamp,
-        ILoanFees memory fees_
+        ILoanSettings memory settings_
     ) {
         _serviceConfiguration = serviceConfiguration;
         _factory = factory;
@@ -107,36 +96,33 @@ contract Loan is ILoan {
         _pool = pool;
         _collateralVault = new CollateralVault(address(this));
         fundingVault = new FundingVault(address(this), liquidityAsset_);
-        _dropDeadTimestamp = dropDeadTimestamp;
         createdAt = block.timestamp;
-        duration = duration_;
-        paymentPeriod = paymentPeriod_;
-        apr = apr_;
         liquidityAsset = liquidityAsset_;
-        principal = principal_;
-        fees = fees_;
+        settings = settings_;
 
         LoanLib.validateLoan(
             serviceConfiguration,
-            duration,
-            paymentPeriod,
+            settings.duration,
+            settings.paymentPeriod,
             loanType,
-            principal,
+            settings.principal,
             liquidityAsset
         );
 
-        paymentsRemaining = duration.div(paymentPeriod);
-        uint256 paymentsTotal = principal
-            .mul(apr)
-            .mul(duration.mul(RAY).div(360))
+        paymentsRemaining = settings.duration.div(settings.paymentPeriod);
+        uint256 paymentsTotal = settings
+            .principal
+            .mul(settings.apr)
+            .mul(settings.duration.mul(RAY).div(360))
             .div(RAY)
             .div(10000);
         payment = paymentsTotal.mul(RAY).div(paymentsRemaining).div(RAY);
 
         // Persist origination fee per payment period
-        originationFee = principal
-            .mul(fees.originationBps)
-            .mul(duration.mul(RAY).div(360))
+        originationFee = settings
+            .principal
+            .mul(settings.originationBps)
+            .mul(settings.duration.mul(RAY).div(360))
             .div(paymentsRemaining)
             .div(RAY)
             .div(10000);
@@ -165,7 +151,7 @@ contract Loan is ILoan {
         returns (ILoanLifeCycleState)
     {
         require(
-            _dropDeadTimestamp < block.timestamp,
+            settings.dropDeadTimestamp < block.timestamp,
             "Loan: Drop dead date not met"
         );
 
@@ -187,11 +173,15 @@ contract Loan is ILoan {
             "Loan: invalid caller"
         );
         require(
-            _dropDeadTimestamp < block.timestamp,
+            settings.dropDeadTimestamp < block.timestamp,
             "Loan: Drop dead date not met"
         );
 
-        LoanLib.returnCanceledLoanPrincipal(fundingVault, _pool, principal);
+        LoanLib.returnCanceledLoanPrincipal(
+            fundingVault,
+            _pool,
+            settings.principal
+        );
         _state = ILoanLifeCycleState.Canceled;
         return _state;
     }
@@ -281,7 +271,11 @@ contract Loan is ILoan {
         atState(ILoanLifeCycleState.Collateralized)
         returns (ILoanLifeCycleState)
     {
-        _state = LoanLib.fundLoan(liquidityAsset, fundingVault, principal);
+        _state = LoanLib.fundLoan(
+            liquidityAsset,
+            fundingVault,
+            settings.principal
+        );
         return _state;
     }
 
@@ -296,7 +290,9 @@ contract Loan is ILoan {
     {
         // First drawdown kicks off the payment schedule
         if (paymentDueDate == 0) {
-            paymentDueDate = block.timestamp + (paymentPeriod * 1 days);
+            paymentDueDate =
+                block.timestamp +
+                (settings.paymentPeriod * 1 days);
         }
 
         // Fixed term loans require the borrower to drawdown the full amount
@@ -321,7 +317,7 @@ contract Loan is ILoan {
                 payment,
                 _serviceConfiguration.firstLossFeeBps(),
                 IPool(_pool).poolFeePercentOfInterest(),
-                fees.latePayment,
+                settings.latePayment,
                 paymentDueDate
             );
 
@@ -335,7 +331,7 @@ contract Loan is ILoan {
         );
         LoanLib.completePayment(liquidityAsset, _pool, poolPayment);
         paymentsRemaining -= 1;
-        paymentDueDate += paymentPeriod * 1 days;
+        paymentDueDate += settings.paymentPeriod * 1 days;
         return payment;
     }
 
@@ -352,7 +348,7 @@ contract Loan is ILoan {
                 amount,
                 _serviceConfiguration.firstLossFeeBps(),
                 IPool(_pool).poolFeePercentOfInterest(),
-                fees.latePayment,
+                settings.latePayment,
                 paymentDueDate
             );
 
@@ -368,7 +364,7 @@ contract Loan is ILoan {
         LoanLib.completePayment(
             liquidityAsset,
             _pool,
-            poolPayment.add(principal)
+            poolPayment.add(settings.principal)
         );
         paymentsRemaining = 0;
         _state = ILoanLifeCycleState.Matured;
@@ -408,6 +404,22 @@ contract Loan is ILoan {
     }
 
     function dropDeadTimestamp() external view returns (uint256) {
-        return _dropDeadTimestamp;
+        return settings.dropDeadTimestamp;
+    }
+
+    function duration() external view returns (uint256) {
+        return settings.duration;
+    }
+
+    function paymentPeriod() external view returns (uint256) {
+        return settings.paymentPeriod;
+    }
+
+    function apr() external view returns (uint256) {
+        return settings.apr;
+    }
+
+    function principal() external view returns (uint256) {
+        return settings.principal;
     }
 }

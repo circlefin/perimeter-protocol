@@ -34,14 +34,8 @@ contract LoanFactory {
     function createLoan(
         address borrower,
         address pool,
-        uint256 duration,
-        uint256 paymentPeriod,
-        ILoanType loanType,
-        uint256 apr,
         address liquidityAsset,
-        uint256 principal,
-        uint256 dropDeadDate,
-        ILoanFees memory fees
+        ILoanSettings memory settings
     ) public virtual returns (address LoanAddress) {
         require(
             _serviceConfiguration.paused() == false,
@@ -52,14 +46,8 @@ contract LoanFactory {
             address(this),
             borrower,
             pool,
-            duration,
-            paymentPeriod,
-            loanType,
-            apr,
             liquidityAsset,
-            principal,
-            dropDeadDate,
-            fees
+            settings
         );
         address addr = address(loan);
         emit LoanCreated(addr);
