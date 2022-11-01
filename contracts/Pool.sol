@@ -472,6 +472,9 @@ contract Pool is IPool, ERC20 {
         }
 
         // Update the global withdraw state
+        // We update it after the for loop, otherwise the exchange rate
+        // for each user gets distorted as the pool winds down and totalAvailableAssets
+        // goes to zero.
         _globalWithdrawState = PoolLib.updateWithdrawStateForWithdraw(
             globalState,
             convertToAssets(redeemableShares),
