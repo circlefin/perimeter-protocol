@@ -1429,6 +1429,42 @@ describe("Pool", () => {
         pool.connect(otherAccount).redeem(10, alice.address, alice.address)
       ).to.be.revertedWith("Pool: Must transfer to msg.sender");
     });
+
+    it("redeems the maxReedable amount", async () => {
+      const { pool, poolManager, liquidityAsset, otherAccount } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolManager, liquidityAsset);
+      await depositToPool(pool, otherAccount, liquidityAsset, 1000);
+
+      // Check that lender now has 1000 pool tokens and no USDC
+      expect(await pool.balanceOf(otherAccount.address)).to.equal(1000);
+      expect(await liquidityAsset.balanceOf(otherAccount.address)).to.equal(0);
+      // Check that the pool has 1000 in USDC
+      expect(await liquidityAsset.balanceOf(pool.address)).to.equal(1000);
+
+      // Request redeem
+      await pool
+        .connect(otherAccount)
+        .requestRedeem(await pool.maxRedeemRequest(otherAccount.address));
+
+      // Crank it
+      const { withdrawRequestPeriodDuration } = await pool.settings();
+      await time.increase(withdrawRequestPeriodDuration);
+      await pool.crank();
+
+      // Redeem full amount
+      const maxRedeem = await pool.maxRedeem(otherAccount.address);
+      const txn = await pool
+        .connect(otherAccount)
+        .redeem(maxRedeem, otherAccount.address, otherAccount.address);
+      expect(txn).to.changeTokenBalance(
+        liquidityAsset,
+        otherAccount.address,
+        999
+      );
+      expect(await pool.totalSupply()).to.equal(0);
+    });
   });
 
   describe("withdraw()", () => {

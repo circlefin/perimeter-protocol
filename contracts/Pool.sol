@@ -445,13 +445,6 @@ contract Pool is IPool, ERC20 {
             globalState.eligibleShares
         );
 
-        // Update the global withdraw state
-        _globalWithdrawState = PoolLib.updateWithdrawStateForWithdraw(
-            globalState,
-            convertToAssets(redeemableShares),
-            redeemableShares
-        );
-
         // iterate over every address that has made a withdraw request, and
         // determine how many shares they should be receiveing out of this
         // bucket of redeemableShares
@@ -477,6 +470,13 @@ contract Pool is IPool, ERC20 {
                 shares
             );
         }
+
+        // Update the global withdraw state
+        _globalWithdrawState = PoolLib.updateWithdrawStateForWithdraw(
+            globalState,
+            convertToAssets(redeemableShares),
+            redeemableShares
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
