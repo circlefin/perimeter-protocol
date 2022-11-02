@@ -4,14 +4,15 @@ import { deployServiceConfiguration } from "./serviceconfiguration";
 const SEVEN_DAYS = 6 * 60 * 60 * 24;
 
 export const DEFAULT_LOAN_SETTINGS = {
-  principal: 1_000_000,
-  apr: 500,
-  loanType: 0,
   duration: 180,
   paymentPeriod: 30,
+  apr: 500,
+  principal: 1_000_000,
   dropDeadTimestamp: Math.floor(Date.now() / 1000) + SEVEN_DAYS,
+  latePaymentFee: 0,
   latePayment: 0,
-  originationBps: 0
+  originationBps: 0,
+  loanType: 0
 };
 
 /**
@@ -21,7 +22,8 @@ export async function deployLoan(
   pool: any,
   borrower: any,
   liquidityAsset: any,
-  existingServiceConfiguration: any = null
+  existingServiceConfiguration: any = null,
+  overriddenLoanTerms: Partial<typeof DEFAULT_LOAN_SETTINGS>
 ) {
   const { serviceConfiguration } = await (existingServiceConfiguration == null
     ? deployServiceConfiguration()
@@ -30,6 +32,11 @@ export async function deployLoan(
       });
 
   await serviceConfiguration.setLiquidityAsset(liquidityAsset, true);
+
+  const loanSettings = {
+    ...DEFAULT_LOAN_SETTINGS,
+    ...overriddenLoanTerms
+  };
 
   const LoanLib = await ethers.getContractFactory("LoanLib");
   const loanLib = await LoanLib.deploy();
@@ -45,14 +52,14 @@ export async function deployLoan(
   await serviceConfiguration.setLoanFactory(loanFactory.address, true);
 
   const txn = await loanFactory.createLoan(borrower, pool, liquidityAsset, {
-    loanType: 0,
-    principal: 1_000_000,
-    apr: 500,
-    duration: 180,
-    paymentPeriod: 30,
-    dropDeadTimestamp: Math.floor(Date.now() / 1000) + SEVEN_DAYS,
-    latePayment: 1_000,
-    originationBps: 0
+    loanType: loanSettings.loanType,
+    principal: loanSettings.principal,
+    apr: loanSettings.apr,
+    duration: loanSettings.duration,
+    paymentPeriod: loanSettings.paymentPeriod,
+    dropDeadTimestamp: loanSettings.dropDeadTimestamp,
+    latePayment: loanSettings.latePayment,
+    originationBps: loanSettings.originationBps
   });
 
   const txnReceipt = await txn.wait();

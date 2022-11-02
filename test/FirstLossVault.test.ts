@@ -9,7 +9,7 @@ describe("FirstLossVault", () => {
     const [liquidityProvider, pool, otherAccount] = await ethers.getSigners();
 
     const LiquidityAsset = await ethers.getContractFactory("MockERC20");
-    const liquidityAsset = await LiquidityAsset.deploy("Test Coin", "TC");
+    const liquidityAsset = await LiquidityAsset.deploy("Test Coin", "TC", 18);
     await liquidityAsset.deployed();
 
     const FirstLossVault = await ethers.getContractFactory("FirstLossVault");

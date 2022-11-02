@@ -114,7 +114,7 @@ describe("Loan", () => {
     const loan = Loan.attach(loanAddress);
 
     const CollateralAsset = await ethers.getContractFactory("MockERC20");
-    const collateralAsset = await CollateralAsset.deploy("Test Coin", "TC");
+    const collateralAsset = await CollateralAsset.deploy("Test Coin", "TC", 18);
     await collateralAsset.deployed();
 
     const NftAsset = await ethers.getContractFactory("MockERC721");

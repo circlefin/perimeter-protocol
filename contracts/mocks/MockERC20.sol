@@ -7,7 +7,17 @@ import {ERC20PresetMinterPauser} from "@openzeppelin/contracts/token/ERC20/prese
  * @title A Mock ERC20 contract used for testing
  */
 contract MockERC20 is ERC20PresetMinterPauser {
-    constructor(string memory name, string memory symbol)
-        ERC20PresetMinterPauser(name, symbol)
-    {}
+    uint8 private _decimals;
+
+    constructor(
+        string memory name,
+        string memory symbol,
+        uint8 decimals_
+    ) ERC20PresetMinterPauser(name, symbol) {
+        _decimals = decimals_;
+    }
+
+    function decimals() public view override returns (uint8) {
+        return _decimals;
+    }
 }
