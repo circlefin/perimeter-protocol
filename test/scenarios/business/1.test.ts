@@ -164,7 +164,7 @@ describe("Business Scenario 1", () => {
     // +4 days, loanOne is funded
     await advanceToDay(startTime, 4);
     await fundLoan(loanOne, pool, poolManager);
-    await loanOne.connect(borrowerOne).drawdown();
+    await loanOne.connect(borrowerOne).drawdown(INPUTS.loanOne.principal);
 
     // +8 days, lenderB deposits
     await advanceToDay(startTime, 8);
@@ -180,7 +180,7 @@ describe("Business Scenario 1", () => {
     // +9 days, loanTwo funded
     await advanceToDay(startTime, 9);
     await fundLoan(loanTwo, pool, poolManager);
-    await loanTwo.connect(borrowerTwo).drawdown();
+    await loanTwo.connect(borrowerTwo).drawdown(INPUTS.loanTwo.principal);
 
     // +11 days, loan one matures
     await advanceToDay(startTime, 11);

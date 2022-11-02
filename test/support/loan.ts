@@ -28,8 +28,8 @@ export async function deployLoan(
   const { serviceConfiguration } = await (existingServiceConfiguration == null
     ? deployServiceConfiguration()
     : {
-      serviceConfiguration: existingServiceConfiguration
-    });
+        serviceConfiguration: existingServiceConfiguration
+      });
 
   await serviceConfiguration.setLiquidityAsset(liquidityAsset, true);
 
