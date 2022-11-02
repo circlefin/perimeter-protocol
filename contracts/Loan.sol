@@ -303,6 +303,10 @@ contract Loan is ILoan {
         return amount;
     }
 
+    function paydownPrincipal(uint256 amount) external onlyBorrower {
+        LoanLib.paydownPrincipal(liquidityAsset, amount, fundingVault);
+    }
+
     function completeNextPayment()
         public
         onlyBorrower
