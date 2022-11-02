@@ -29,7 +29,6 @@ contract Loan is ILoan {
     ILoanNonFungibleCollateral[] private _nonFungibleCollateral;
     uint256 public immutable createdAt;
     address public immutable liquidityAsset;
-    ILoanType public immutable loanType = ILoanType.Fixed;
     uint256 public immutable payment;
     uint256 public paymentsRemaining;
     uint256 public paymentDueDate;
@@ -113,7 +112,7 @@ contract Loan is ILoan {
             serviceConfiguration,
             settings.duration,
             settings.paymentPeriod,
-            loanType,
+            settings.loanType,
             settings.principal,
             liquidityAsset
         );
@@ -291,25 +290,16 @@ contract Loan is ILoan {
     /**
      * @dev Drawdown the Loan
      */
-    function drawdown()
-        external
-        onlyBorrower
-        atState(ILoanLifeCycleState.Funded)
-        returns (uint256)
-    {
-        // First drawdown kicks off the payment schedule
-        if (paymentDueDate == 0) {
-            paymentDueDate =
-                block.timestamp +
-                (settings.paymentPeriod * 1 days);
-        }
-
-        // Fixed term loans require the borrower to drawdown the full amount
-        uint256 amount = IERC20(liquidityAsset).balanceOf(
-            address(fundingVault)
+    function drawdown(uint256 amount) external onlyBorrower returns (uint256) {
+        (_state, paymentDueDate) = LoanLib.drawdown(
+            amount,
+            fundingVault,
+            msg.sender,
+            paymentDueDate,
+            settings,
+            _state
         );
-        LoanLib.drawdown(fundingVault, amount, msg.sender);
-        _state = ILoanLifeCycleState.Active;
+
         return amount;
     }
 
@@ -437,5 +427,9 @@ contract Loan is ILoan {
 
     function principal() external view returns (uint256) {
         return settings.principal;
+    }
+
+    function loanType() external view returns (ILoanType) {
+        return settings.loanType;
     }
 }

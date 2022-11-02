@@ -169,6 +169,15 @@ describe("Loan", () => {
     );
   }
 
+  async function deployFixtureOpenTerm() {
+    return deployFixture(
+      DEFAULT_POOL_SETTINGS,
+      Object.assign({}, DEFAULT_LOAN_SETTINGS, {
+        loanType: 1
+      })
+    );
+  }
+
   describe("after initialization", () => {
     it("is initialized!", async () => {
       const { loan, pool, borrower, loanFactory } = await loadFixture(
@@ -287,7 +296,7 @@ describe("Loan", () => {
       );
 
       await fundLoan(loan, pool, poolManager);
-      await loan.connect(borrower).drawdown();
+      await loan.connect(borrower).drawdown(await loan.principal());
       expect(await loan.state()).to.equal(6); // Active
       await expect(loan.connect(borrower).cancelFunded()).to.be.revertedWith(
         "Loan: FunctionInvalidAtThisILoanLifeCycleState"
@@ -491,7 +500,7 @@ describe("Loan", () => {
           // fund loan and default it
           await collateralizeLoan(loan, borrower, collateralAsset);
           await pool.connect(poolManager).fundLoan(loan.address);
-          await loan.connect(borrower).drawdown();
+          await loan.connect(borrower).drawdown(await loan.principal());
           await pool.connect(poolManager).defaultLoan(loan.address);
           expect(await loan.state()).to.equal(3); // defaulted
 
@@ -507,7 +516,7 @@ describe("Loan", () => {
           // fund loan and default it
           await collateralizeLoan(loan, borrower, collateralAsset);
           await pool.connect(poolManager).fundLoan(loan.address);
-          await loan.connect(borrower).drawdown();
+          await loan.connect(borrower).drawdown(await loan.principal());
           await pool.connect(poolManager).defaultLoan(loan.address);
           expect(await loan.state()).to.equal(3); // defaulted
 
@@ -530,7 +539,7 @@ describe("Loan", () => {
           // fund and mature loan
           await collateralizeLoan(loan, borrower, collateralAsset);
           await fundLoan(loan, pool, poolManager);
-          await loan.connect(borrower).drawdown();
+          await loan.connect(borrower).drawdown(await loan.principal());
           await matureLoan(loan, borrower, liquidityAsset);
           expect(await loan.state()).to.equal(5); // matured
 
@@ -552,7 +561,7 @@ describe("Loan", () => {
           // fund and mature loan
           await collateralizeLoan(loan, borrower, collateralAsset);
           await fundLoan(loan, pool, poolManager);
-          await loan.connect(borrower).drawdown();
+          await loan.connect(borrower).drawdown(await loan.principal());
           await matureLoan(loan, borrower, liquidityAsset);
           expect(await loan.state()).to.equal(5); // matured
 
@@ -840,8 +849,14 @@ describe("Loan", () => {
         .reverted;
       expect(await loan.state()).to.equal(4);
 
+      // Fixed term loans must drawdown the full amount
+      const invalidDrawDownTx = loan.connect(borrower).drawdown(1);
+      await expect(invalidDrawDownTx).to.be.reverted;
+
       // Draw down the funds
-      const drawDownTx = loan.connect(borrower).drawdown();
+      const drawDownTx = loan
+        .connect(borrower)
+        .drawdown(await loan.principal());
       await expect(drawDownTx).not.to.be.reverted;
       await expect(drawDownTx).to.changeTokenBalance(
         liquidityAsset,
@@ -862,10 +877,58 @@ describe("Loan", () => {
       expect(await loan.paymentDueDate()).to.equal(now + THIRTY_DAYS);
 
       // Try again
-      const drawDownTx2 = loan.connect(borrower).drawdown();
-      await expect(drawDownTx2).to.be.revertedWith(
-        "Loan: FunctionInvalidAtThisILoanLifeCycleState"
+      const drawDownTx2 = loan
+        .connect(borrower)
+        .drawdown(await loan.principal());
+      await expect(drawDownTx2).to.be.revertedWith("LoanLib: invalid state");
+    });
+
+    it("open term loans can draw down up to their remaining principal", async () => {
+      const fixture = await loadFixture(deployFixtureOpenTerm);
+      const {
+        borrower,
+        collateralAsset,
+        liquidityAsset,
+        loan,
+        pool,
+        poolManager
+      } = fixture;
+
+      // Setup and fund loan
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await expect(
+        loan
+          .connect(borrower)
+          .postFungibleCollateral(collateralAsset.address, 100)
+      ).not.to.be.reverted;
+      await expect(pool.connect(poolManager).fundLoan(loan.address)).not.to.be
+        .reverted;
+      expect(await loan.state()).to.equal(4);
+
+      // Draw down the funds
+      const drawDownTx = loan.connect(borrower).drawdown(1_000);
+      await expect(drawDownTx).not.to.be.reverted;
+      await expect(drawDownTx).to.changeTokenBalance(
+        liquidityAsset,
+        borrower.address,
+        1_000
       );
+      await expect(drawDownTx).to.changeTokenBalance(
+        liquidityAsset,
+        await loan.fundingVault(),
+        -1_000
+      );
+      await expect(drawDownTx)
+        .to.emit(loan, "LoanDrawnDown")
+        .withArgs(loan.liquidityAsset, 1_000);
+
+      const latestBlock = await ethers.provider.getBlock("latest");
+      const now = latestBlock.timestamp;
+      expect(await loan.paymentDueDate()).to.equal(now + THIRTY_DAYS);
+
+      // Open term loans can drawdown repeatedly until funding is no longer available.
+      const drawDownTx2 = loan.connect(borrower).drawdown(100);
+      await expect(drawDownTx2).not.to.be.reverted;
     });
   });
 
@@ -906,7 +969,7 @@ describe("Loan", () => {
       );
 
       // Loan is now Active
-      await loan.connect(borrower).drawdown();
+      await loan.connect(borrower).drawdown(await loan.principal());
       expect(await loan.state()).to.equal(6); // active
 
       // Default should proceed
@@ -945,7 +1008,7 @@ describe("Loan", () => {
         .connect(borrower)
         .postFungibleCollateral(collateralAsset.address, 100);
       await pool.connect(poolManager).fundLoan(loan.address);
-      await loan.connect(borrower).drawdown();
+      await loan.connect(borrower).drawdown(await loan.principal());
 
       // Make payment
       const firstLoss = await pool.firstLossVault();
@@ -979,7 +1042,7 @@ describe("Loan", () => {
         .connect(borrower)
         .postFungibleCollateral(collateralAsset.address, 100);
       await pool.connect(poolManager).fundLoan(loan.address);
-      await loan.connect(borrower).drawdown();
+      await loan.connect(borrower).drawdown(await loan.principal());
 
       // Advance time to drop dead timestamp
       const foo = await loan.paymentDueDate();
@@ -1017,7 +1080,7 @@ describe("Loan", () => {
         .connect(borrower)
         .postFungibleCollateral(collateralAsset.address, 100);
       await pool.connect(poolManager).fundLoan(loan.address);
-      await loan.connect(borrower).drawdown();
+      await loan.connect(borrower).drawdown(await loan.principal());
 
       // Mint additional tokens to cover the interest payments
       await liquidityAsset.mint(borrower.address, 12498);
@@ -1062,7 +1125,7 @@ describe("Loan", () => {
         .connect(borrower)
         .postFungibleCollateral(collateralAsset.address, 100);
       await pool.connect(poolManager).fundLoan(loan.address);
-      await loan.connect(borrower).drawdown();
+      await loan.connect(borrower).drawdown(await loan.principal());
 
       // Mint additional tokens to cover the interest payments
       await liquidityAsset.mint(borrower.address, 12498);
@@ -1100,7 +1163,7 @@ describe("Loan", () => {
         .connect(borrower)
         .postFungibleCollateral(collateralAsset.address, 100);
       await pool.connect(poolManager).fundLoan(loan.address);
-      await loan.connect(borrower).drawdown();
+      await loan.connect(borrower).drawdown(await loan.principal());
       expect(await pool.poolFeePercentOfInterest()).to.equal(100);
 
       // Make payment
@@ -1137,7 +1200,7 @@ describe("Loan", () => {
         .connect(borrower)
         .postFungibleCollateral(collateralAsset.address, 100);
       await pool.connect(poolManager).fundLoan(loan.address);
-      await loan.connect(borrower).drawdown();
+      await loan.connect(borrower).drawdown(await loan.principal());
       expect(await loan.originationFee()).to.equal(416);
 
       // Make payment
