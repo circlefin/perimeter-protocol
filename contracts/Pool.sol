@@ -417,7 +417,7 @@ contract Pool is IPool, ERC20 {
         uint256 liquidAssets = liquidityPoolAssets();
 
         uint256 availableAssets = liquidAssets
-            .mul(_poolSettings.withdrawGateBps)
+            .mul(withdrawGate())
             .mul(PoolLib.RAY)
             .div(10_000)
             .div(PoolLib.RAY);
