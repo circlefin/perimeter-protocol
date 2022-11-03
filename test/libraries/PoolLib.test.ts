@@ -698,7 +698,7 @@ describe("PoolLib", () => {
         Object.values(
           buildWithdrawState({
             requestedShares: 22,
-            latestRequestPeriod: 1
+            latestRequestPeriod: 0
           })
         )
       );
@@ -709,7 +709,7 @@ describe("PoolLib", () => {
 
       const withdrawState = buildWithdrawState({
         requestedShares: 50,
-        latestRequestPeriod: 1
+        latestRequestPeriod: 0
       });
 
       expect(
@@ -723,7 +723,7 @@ describe("PoolLib", () => {
           buildWithdrawState({
             requestedShares: 33,
             eligibleShares: 50,
-            latestRequestPeriod: 2
+            latestRequestPeriod: 1
           })
         )
       );

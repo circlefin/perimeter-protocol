@@ -56,6 +56,8 @@ contract Pool is IPool, ERC20 {
         _;
     }
 
+    mapping(uint256 => IPoolSnapshotState) private _snapshots; // window => snapshots
+
     /**
      * @dev Modifier that checks that the caller is the pool's admin.
      */
@@ -457,6 +459,60 @@ contract Pool is IPool, ERC20 {
         }
     }
 
+    function crank() external returns (uint256 redeemableShares) {
+        uint256 period = withdrawPeriod();
+        require(
+            _globalWithdrawState.latestCrankPeriod < period,
+            "Snapshot already run"
+        );
+
+        // Calculate the amount available for withdrawal
+        uint256 liquidAssets = liquidityPoolAssets();
+
+        uint256 availableAssets = liquidAssets
+            .mul(withdrawGate())
+            .mul(PoolLib.RAY)
+            .div(10_000)
+            .div(PoolLib.RAY);
+
+        uint256 availableShares = convertToShares(availableAssets);
+
+        if (availableAssets <= 0 || availableShares <= 0) {
+            // unable to redeem anything
+            redeemableShares = 0;
+            return 0;
+        }
+
+        IPoolWithdrawState memory globalState = _currentGlobalWithdrawState();
+
+        // Determine the amount of shares that we will actually distribute.
+        redeemableShares = Math.min(
+            availableShares,
+            globalState.eligibleShares
+        );
+
+        // Calculate the redeemable rate for each lender
+        uint256 redeemableRateRay = redeemableShares.mul(PoolLib.RAY).div(
+            globalState.eligibleShares
+        );
+
+        uint256 withdrawableAssets = convertToAssets(redeemableShares);
+
+        IPoolSnapshotState memory newSnapshot = IPoolSnapshotState(
+            redeemableRateRay,
+            redeemableShares,
+            withdrawableAssets
+        );
+        _snapshots[period] = newSnapshot;
+
+        _globalWithdrawState = PoolLib.updateWithdrawStateForWithdraw(
+            globalState,
+            convertToAssets(redeemableShares),
+            redeemableShares
+        );
+        _globalWithdrawState.latestCrankPeriod = period;
+    }
+
     /*//////////////////////////////////////////////////////////////
                 Withdraw Manager Proxy Methods
     //////////////////////////////////////////////////////////////*/
@@ -669,14 +725,13 @@ contract Pool is IPool, ERC20 {
         uint256 shares,
         uint256 assets
     ) internal {
-        // TODO: If we move to a lighter crank, we must run it here before this method continues
         require(
             maxRequestCancellation(owner) >= shares,
             "Pool: InsufficientBalance"
         );
+        _poolWithdrawManager.performRequestCancellation(owner, shares);
         uint256 feeShares = (shares);
         _burn(owner, feeShares);
-        _poolWithdrawManager.performRequestCancellation(owner, shares);
         emit WithdrawRequestCancelled(owner, assets, shares);
     }
 
@@ -687,8 +742,8 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev Crank the protocol. Issues withdrawals
      */
-    function crank() external returns (uint256 redeemableShares) {
-        redeemableShares = _poolWithdrawManager.crank();
+    function crankPool() external returns (uint256 redeemableShares) {
+        redeemableShares = _poolWithdrawManager.crankPool();
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -954,7 +1009,6 @@ contract Pool is IPool, ERC20 {
         require(receiver == owner, "Pool: Withdrawal to unrelated address");
         require(receiver == msg.sender, "Pool: Must transfer to msg.sender");
         require(shares > 0, "Pool: 0 redeem not allowed");
-        require(maxRedeem(owner) >= shares, "Pool: InsufficientBalance");
 
         // Update the withdraw state
         assets = _poolWithdrawManager.redeem(owner, shares);
