@@ -1,12 +1,16 @@
-import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { deployPermissionedPool } from "../support/permissionedpool";
+import { deployPermissionedPool } from "../support/pool";
 
 describe("PermissionedPool", () => {
   async function loadPoolFixture() {
-    const [poolManager, otherAccount, thirdAccount] = await ethers.getSigners();
-    const { pool, liquidityAsset } = await deployPermissionedPool(poolManager);
+    const [operator, poolManager, otherAccount, thirdAccount] =
+      await ethers.getSigners();
+    const { pool, liquidityAsset } = await deployPermissionedPool({
+      operator,
+      poolAdmin: poolManager
+    });
 
     return { pool, liquidityAsset, poolManager, otherAccount, thirdAccount };
   }

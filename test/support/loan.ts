@@ -23,7 +23,7 @@ export async function deployLoan(
   borrower: any,
   liquidityAsset: any,
   existingServiceConfiguration: any = null,
-  overriddenLoanTerms: Partial<typeof DEFAULT_LOAN_SETTINGS>
+  overriddenLoanTerms?: Partial<typeof DEFAULT_LOAN_SETTINGS>
 ) {
   const { serviceConfiguration } = await (existingServiceConfiguration == null
     ? deployServiceConfiguration()

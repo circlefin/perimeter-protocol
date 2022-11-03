@@ -124,6 +124,12 @@ interface IPool is IERC4626 {
         returns (IPoolConfigurableSettings memory settings);
 
     /**
+     * @dev Returns the current withdraw gate in bps. If the pool is closed,
+     * this is set to 10_000 (100%)
+     */
+    function withdrawGate() external view returns (uint256);
+
+    /**
      * @dev The manager for the pool.
      */
     function manager() external view returns (address);
@@ -147,6 +153,11 @@ interface IPool is IERC4626 {
      * @dev The pool accounting variables;
      */
     function accountings() external view returns (IPoolAccountings memory);
+
+    /**
+     * @dev The activation timestamp of the pool.
+     */
+    function poolActivatedAt() external view returns (uint256);
 
     /**
      * @dev The pool fee, in bps, taken from each interest payment
@@ -183,7 +194,18 @@ interface IPool is IERC4626 {
     /**
      * @dev Submits a withdrawal request, incurring a fee.
      */
+    function requestRedeem(uint256) external returns (uint256);
+
+    /**
+     * @dev Submits a withdrawal request, incurring a fee.
+     */
     function requestWithdraw(uint256) external returns (uint256);
+
+    /**
+     * @dev The sum of all assets available in the liquidity pool, excluding
+     * any assets that are marked for withdrawal.
+     */
+    function liquidityPoolAssets() external view returns (uint256);
 
     /**
      * @dev Called by the pool manager, this transfers liquidity from the pool to a given loan.

@@ -11,11 +11,12 @@ import { deployLoan, collateralizeLoan, fundLoan } from "./support/loan";
 
 describe("Pool", () => {
   async function loadPoolFixture() {
-    const [poolManager, borrower, otherAccount, ...otherAccounts] =
+    const [operator, poolManager, borrower, otherAccount, ...otherAccounts] =
       await ethers.getSigners();
-    const { pool, liquidityAsset, serviceConfiguration } = await deployPool(
-      poolManager
-    );
+    const { pool, liquidityAsset, serviceConfiguration } = await deployPool({
+      operator,
+      poolAdmin: poolManager
+    });
 
     const CollateralAsset = await ethers.getContractFactory("MockERC20");
     const collateralAsset = await CollateralAsset.deploy("Test Coin", "TC", 18);
@@ -41,14 +42,15 @@ describe("Pool", () => {
   }
 
   async function loadPoolFixtureWithFees() {
-    const [poolManager, otherAccount] = await ethers.getSigners();
+    const [operator, poolManager, otherAccount] = await ethers.getSigners();
     const settings = Object.assign({}, DEFAULT_POOL_SETTINGS);
     settings.fixedFee = 100;
     settings.fixedFeeInterval = 30;
-    const { pool, liquidityAsset, serviceConfiguration } = await deployPool(
-      poolManager,
+    const { pool, liquidityAsset, serviceConfiguration } = await deployPool({
+      operator,
+      poolAdmin: poolManager,
       settings
-    );
+    });
 
     const { loan } = await deployLoan(
       pool.address,
@@ -80,38 +82,6 @@ describe("Pool", () => {
 
     return { pool, otherAccount, loan, borrower, liquidityAsset };
   }
-
-  describe("Deployment", () => {
-    it("initializes the lifecycle on construction", async () => {
-      const { pool } = await loadFixture(loadPoolFixture);
-
-      expect(await pool.lifeCycleState()).to.equal(0); // Enums are treated as uint8
-    });
-
-    it("sets the pool manager", async () => {
-      const { pool, poolManager } = await loadFixture(loadPoolFixture);
-
-      expect(await pool.manager()).to.equal(poolManager.address);
-    });
-
-    it("sets the pool settings", async () => {
-      const { pool } = await loadFixture(loadPoolFixture);
-
-      const {
-        endDate,
-        maxCapacity,
-        requestFeeBps,
-        withdrawRequestPeriodDuration
-      } = await pool.settings();
-
-      expect(endDate).to.equal(DEFAULT_POOL_SETTINGS.endDate);
-      expect(maxCapacity).to.equal(DEFAULT_POOL_SETTINGS.maxCapacity);
-      expect(requestFeeBps).to.equal(DEFAULT_POOL_SETTINGS.requestFeeBps);
-      expect(withdrawRequestPeriodDuration).to.equal(
-        DEFAULT_POOL_SETTINGS.withdrawRequestPeriodDuration
-      );
-    });
-  });
 
   describe("lifeCycleState()", () => {
     it("is closed when pool end date passes", async () => {
@@ -905,9 +875,9 @@ describe("Pool", () => {
 
     describe("requestFee()", () => {
       it("returns the number of shares that will be charged to make this request", async () => {
-        const { pool } = await loadFixture(loadPoolFixture);
+        const { pool, poolManager } = await loadFixture(loadPoolFixture);
 
-        await pool.setRequestFee(500); // 5%
+        await pool.connect(poolManager).setRequestFee(500); // 5%
 
         expect(await pool.requestFee(1_000)).to.equal(50);
       });
@@ -975,7 +945,7 @@ describe("Pool", () => {
         const { pool, poolManager, liquidityAsset } = await loadFixture(
           loadPoolFixture
         );
-        await pool.setRequestFee(1000); // 10%
+        await pool.connect(poolManager).setRequestFee(1000); // 10%
         await activatePool(pool, poolManager, liquidityAsset);
 
         // TODO: Show a non 1:1 share value
@@ -1110,7 +1080,7 @@ describe("Pool", () => {
         const { pool, poolManager, liquidityAsset } = await loadFixture(
           loadPoolFixture
         );
-        await pool.setRequestFee(1000); // 10%
+        await pool.connect(poolManager).setRequestFee(1000); // 10%
         await activatePool(pool, poolManager, liquidityAsset);
 
         // TODO: Show a non 1:1 share value
@@ -1186,6 +1156,11 @@ describe("Pool", () => {
         await activatePool(pool, poolManager, liquidityAsset);
 
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
+
+        expect(
+          await pool.interestBearingBalanceOf(otherAccount.address)
+        ).to.equal(100);
+
         await pool.connect(otherAccount).requestRedeem(50);
         const { withdrawRequestPeriodDuration } = await pool.settings();
         await time.increase(withdrawRequestPeriodDuration);

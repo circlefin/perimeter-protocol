@@ -7,9 +7,9 @@ describe("FeeVault", () => {
   const VAULT_BALANCE = ethers.BigNumber.from(100);
 
   async function deployFixture() {
-    const [poolAdmin, otherAccount] = await ethers.getSigners();
+    const [operator, poolAdmin, otherAccount] = await ethers.getSigners();
 
-    const { pool } = await deployPool(poolAdmin);
+    const { pool } = await deployPool({ operator, poolAdmin });
 
     const FeeVault = await ethers.getContractFactory("FeeVault");
     const feeVault = await FeeVault.deploy(pool.address);
