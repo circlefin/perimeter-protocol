@@ -8,6 +8,8 @@ import "../libraries/PoolLib.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @title WithdrawState
  */
@@ -81,6 +83,9 @@ contract WithdrawController is IWithdrawController {
             _withdrawState[owner],
             withdrawPeriod()
         );
+
+        return
+            simulateCrank(state, currentPeriod - state.latestCrankPeriod + 1);
     }
 
     /**
@@ -255,10 +260,13 @@ contract WithdrawController is IWithdrawController {
         view
         returns (uint256 shares)
     {
+        IPoolWithdrawState memory withdrawState = _currentWithdrawState(
+            msg.sender
+        );
         shares = PoolLib.calculateConversion(
             assets,
-            _currentWithdrawState(owner).redeemableShares,
-            _currentWithdrawState(owner).withdrawableAssets,
+            withdrawState.redeemableShares,
+            withdrawState.withdrawableAssets,
             true
         );
     }
@@ -271,6 +279,8 @@ contract WithdrawController is IWithdrawController {
      * @inheritdoc IWithdrawController
      */
     function performRequest(address owner, uint256 shares) external onlyPool {
+        this.crankUser(owner);
+
         uint256 currentPeriod = withdrawPeriod();
 
         // Update the requested amount from the user
@@ -279,9 +289,6 @@ contract WithdrawController is IWithdrawController {
             currentPeriod,
             shares
         );
-
-        // Add the address to the addresslist
-        _withdrawAddresses.add(owner);
 
         // Update the global amount
         _globalWithdrawState = PoolLib.calculateWithdrawStateForRequest(
@@ -316,6 +323,7 @@ contract WithdrawController is IWithdrawController {
         external
         onlyPool
     {
+        this.crankUser(owner);
         uint256 currentPeriod = withdrawPeriod();
 
         // Update the requested amount from the user
@@ -340,7 +348,13 @@ contract WithdrawController is IWithdrawController {
     /**
      * @inheritdoc IWithdrawController
      */
-    function crank() external onlyPool returns (uint256 redeemableShares) {
+    function crankPool() external onlyPool returns (uint256 redeemableShares) {
+        uint256 currentPeriod = withdrawPeriod();
+        IPoolWithdrawState memory globalState = _currentGlobalWithdrawState();
+        if (_globalWithdrawState.latestCrankPeriod >= currentPeriod) {
+            return 0;
+        }
+
         // Calculate the amount available for withdrawal
         uint256 liquidAssets = _pool.liquidityPoolAssets();
         IPoolController _poolController = IPoolController(
@@ -373,42 +387,109 @@ contract WithdrawController is IWithdrawController {
         uint256 redeemableRateRay = redeemableShares.mul(PoolLib.RAY).div(
             globalState.eligibleShares
         );
+        uint256 withdrawableAssets = _pool.convertToAssets(redeemableShares);
 
-        // iterate over every address that has made a withdraw request, and
-        // determine how many shares they should be receiveing out of this
-        // bucket of redeemableShares
-        for (uint256 i; i < _withdrawAddresses.length(); i++) {
-            address _addr = _withdrawAddresses.at(i);
-
-            // crank the address's withdraw state
-            IPoolWithdrawState memory state = _currentWithdrawState(_addr);
-
-            // We're not eligible, move on to the next address
-            if (state.eligibleShares == 0) {
-                continue;
-            }
-
-            // calculate the shares able to be withdrawn
-            uint256 shares = state.eligibleShares.mul(redeemableRateRay).div(
-                PoolLib.RAY
-            );
-
-            _withdrawState[_addr] = PoolLib.updateWithdrawStateForWithdraw(
-                state,
-                _pool.convertToAssets(shares),
-                shares
-            );
-        }
+        // Record snapshot
+        _snapshots[currentPeriod] = IPoolSnapshotState(
+            redeemableRateRay,
+            withdrawableAssets.mul(PoolLib.RAY).div(redeemableShares)
+        );
 
         // Update the global withdraw state
-        // We update it after the for loop, otherwise the exchange rate
-        // for each user gets distorted as the pool winds down and totalAvailableAssets
-        // goes to zero.
-        _globalWithdrawState = PoolLib.updateWithdrawStateForWithdraw(
+        globalState = PoolLib.updateWithdrawStateForWithdraw(
             globalState,
             _pool.convertToAssets(redeemableShares),
             redeemableShares
         );
+        globalState.latestCrankPeriod = currentPeriod;
+        _globalWithdrawState = globalState;
+    }
+
+    /**
+     * @inheritdoc IPoolWithdrawManager
+     */
+    function crank(address owner) external {
+        uint256 currentPeriod = withdrawPeriod();
+        IPoolWithdrawState memory state = PoolLib.progressWithdrawState(
+            _withdrawState[owner],
+            currentPeriod
+        );
+
+        _withdrawState[owner] = simulateCrank(state, MAX_SNAPSHOTS_PER_CRANK);
+    }
+
+    /**
+     * @inheritdoc IPoolWithdrawManager
+     */
+    function needsCrank(address owner) external view override returns (bool) {
+        return
+            _withdrawState[owner].latestCrankPeriod <
+            _globalWithdrawState.latestCrankPeriod;
+    }
+
+    /**
+     * @dev Simulates the effects of multiple snapshots against a lenders
+     * requested withdrawal.
+     */
+    function simulateCrank(
+        IPoolWithdrawState memory withdrawState,
+        uint256 maxSnapshots
+    ) internal view returns (IPoolWithdrawState memory) {
+        uint256 currentPeriod = withdrawPeriod();
+        uint256 lastPoolCrank = _globalWithdrawState.latestCrankPeriod;
+
+        // No further cranking needed
+        if (withdrawState.latestCrankPeriod == currentPeriod) {
+            return withdrawState;
+        }
+
+        // Start from the latest time cranked, or the last time requested,
+        // +1
+        uint256 crankFrom = Math.max(
+            withdrawState.latestRequestPeriod,
+            withdrawState.latestCrankPeriod
+        ) + 1;
+
+        // Exit early if the global crank hasn't been run in the current period
+        if (crankFrom > lastPoolCrank) {
+            return withdrawState;
+        }
+
+        // Calculate the "last" snapshot to process, bounded by maxSnapshots.
+        uint256 crankTo = crankFrom +
+            Math.min(maxSnapshots, lastPoolCrank - crankFrom);
+
+        // Loop over snapshots and accumulate elligible shares / assets
+        for (uint256 i = crankFrom; i <= crankTo; i++) {
+            if (withdrawState.eligibleShares == 0) {
+                break;
+            }
+
+            IPoolSnapshotState memory snapshot = _snapshots[i];
+            if (snapshot.fxRateRayAssetsOverShares == 0) {
+                continue;
+            }
+
+            uint256 snapshotShares = withdrawState
+                .eligibleShares
+                .mul(snapshot.redeemableRateRay)
+                .div(PoolLib.RAY);
+
+            uint256 snapshotAssets = snapshotShares
+                .mul(snapshot.fxRateRayAssetsOverShares)
+                .div(PoolLib.RAY);
+
+            withdrawState.redeemableShares += snapshotShares;
+            withdrawState.withdrawableAssets += snapshotAssets;
+            withdrawState.eligibleShares -= snapshotShares;
+        }
+
+        withdrawState.latestCrankPeriod = crankTo;
+        return withdrawState;
+    }
+
+    function crankUser(address addr) external {
+        _withdrawState[addr] = _currentWithdrawState(addr);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -424,10 +505,11 @@ contract WithdrawController is IWithdrawController {
         returns (uint256 assets)
     {
         // Calculate how many assets should be transferred
+        IPoolWithdrawState memory state = _currentWithdrawState(owner);
         assets = PoolLib.calculateConversion(
             shares,
-            _currentWithdrawState(owner).withdrawableAssets,
-            _currentWithdrawState(owner).redeemableShares,
+            state.withdrawableAssets,
+            state.redeemableShares,
             false
         );
 
@@ -443,10 +525,11 @@ contract WithdrawController is IWithdrawController {
         returns (uint256 shares)
     {
         // Calculate how many shares should be burned
+        IPoolWithdrawState memory state = _currentWithdrawState(owner);
         shares = PoolLib.calculateConversion(
             assets,
-            _currentWithdrawState(owner).redeemableShares,
-            _currentWithdrawState(owner).withdrawableAssets,
+            state.redeemableShares,
+            state.withdrawableAssets,
             true
         );
 
@@ -461,6 +544,10 @@ contract WithdrawController is IWithdrawController {
         uint256 shares,
         uint256 assets
     ) internal {
+        // TODO: make modifier?
+        this.crankUser(owner);
+        IPoolWithdrawState memory currentState = _currentWithdrawState(owner);
+
         require(
             assets <= _currentWithdrawState(owner).withdrawableAssets,
             "Pool: InsufficientBalance"

@@ -435,7 +435,7 @@ library PoolLib {
         // If the latest withdrawlState has not been updated for this
         // given request period, we need to move "requested" shares over
         // to be "eligible".
-        if (state.latestRequestPeriod <= currentPeriod) {
+        if (state.latestRequestPeriod < currentPeriod) {
             state.eligibleShares = state.eligibleShares + state.requestedShares;
             state.requestedShares = 0;
         }
@@ -459,7 +459,7 @@ library PoolLib {
         // Increment the requested shares count, and ensure the "latestRequestPeriod"
         // is set to the current request period.
         updatedState.requestedShares = state.requestedShares + requestedShares;
-        updatedState.latestRequestPeriod = currentPeriod + 1;
+        updatedState.latestRequestPeriod = currentPeriod;
     }
 
     /**

@@ -100,7 +100,7 @@ describe("Withdraw Requests", () => {
         (100 /* initial balance */ -
           50 /* requested */ -
           5) /* previous request fee */ *
-          0.9 /* sub the request fee */
+        0.9 /* sub the request fee */
       )
     );
     expect(await pool.maxWithdrawRequest(aliceLender.address)).to.equal(41);
@@ -111,7 +111,7 @@ describe("Withdraw Requests", () => {
         (70 /* initial balance */ -
           10 /* requested */ -
           1) /* previous request fee */ *
-          0.9 /* sub the request fee */
+        0.9 /* sub the request fee */
       )
     );
     expect(await pool.maxWithdrawRequest(bobLender.address)).to.equal(54);
@@ -143,7 +143,7 @@ describe("Withdraw Requests", () => {
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(
       33
     ); /* 50 * (40/60) */
-    expect(await pool.maxWithdraw(aliceLender.address)).to.equal(34);
+    expect(await pool.maxWithdraw(aliceLender.address)).to.equal(33);
 
     // verify Bob's state is updated
     expect(await pool.maxRedeem(bobLender.address)).to.equal(

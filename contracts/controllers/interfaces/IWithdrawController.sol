@@ -153,7 +153,17 @@ interface IWithdrawController {
     /**
      * @dev Crank the protocol. Performs accounting for withdrawals
      */
-    function crank() external returns (uint256);
+    function crankPool() external returns (uint256);
+
+    /**
+     * @dev Cranks an individual lenders withdraw state
+     */
+    function crank(address owner) external;
+
+    /**
+     * @dev Returns whether a lender's withdraw state needs to be cranked
+     */
+    function needsCrank(address owner) external view returns (bool);
 
     /*//////////////////////////////////////////////////////////////
                             Withdraw / Redeem

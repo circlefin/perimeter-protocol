@@ -23,6 +23,12 @@ struct IPoolWithdrawState {
     uint256 latestRequestPeriod; // Period where this was last updated
     uint256 redeemableShares; // The shares that are currently withdrawable
     uint256 withdrawableAssets; // The assets that are currently withdrawable
+    uint256 latestCrankPeriod; // window last cranked in
+}
+
+struct IPoolSnapshotState {
+    uint256 redeemableRateRay;
+    uint256 fxRateRayAssetsOverShares;
 }
 
 /**

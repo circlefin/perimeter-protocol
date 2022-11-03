@@ -266,7 +266,8 @@ export const buildWithdrawState = (
       eligibleShares: 0,
       latestRequestPeriod: 0,
       redeemableShares: 0,
-      withdrawableAssets: 0
+      withdrawableAssets: 0,
+      latestCrankPeriod: 0
     },
     overrides
   );
