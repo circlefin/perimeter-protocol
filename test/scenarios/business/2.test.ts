@@ -39,8 +39,8 @@ describe("Business Scenario 2", () => {
   }
 
   async function fixtures() {
-    const [poolManager, lenderA, lenderB, borrower] = await ethers.getSigners();
-
+    const [operator, poolManager, lenderA, lenderB, borrower] =
+      await ethers.getSigners();
     const endTime = (await time.latest()) + 5_184_000; // 60 days.
     const poolSettings = {
       endDate: endTime, // Jan 1, 2050
@@ -51,11 +51,12 @@ describe("Business Scenario 2", () => {
       "MUSDC",
       6
     );
-    const { pool, serviceConfiguration } = await deployPool(
-      poolManager,
-      poolSettings,
-      mockUSDC
-    );
+    const { pool, serviceConfiguration } = await deployPool({
+      operator,
+      poolAdmin: poolManager,
+      settings: poolSettings,
+      liquidityAsset: mockUSDC
+    });
 
     // Confirm FL fee is set to 5%
     expect(await serviceConfiguration.firstLossFeeBps()).to.equal(500);
