@@ -129,7 +129,7 @@ describe("Business Scenario 1", () => {
     };
   }
 
-  it("runs simulation 1", async () => {
+  it("runs simulation", async () => {
     const {
       startTime,
       pool,
