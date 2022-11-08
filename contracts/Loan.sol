@@ -345,8 +345,7 @@ contract Loan is ILoan {
             firstLossFee,
             IPool(_pool).feeVault(),
             poolFee,
-            originationFee,
-            RAY
+            originationFee
         );
         LoanLib.completePayment(liquidityAsset, _pool, poolPayment);
         paymentsRemaining -= 1;
@@ -416,8 +415,7 @@ contract Loan is ILoan {
             firstLossFee,
             IPool(_pool).feeVault(),
             poolFee,
-            originationFee.mul(scalingValue).div(RAY),
-            RAY
+            originationFee.mul(scalingValue).div(RAY)
         );
 
         LoanLib.completePayment(

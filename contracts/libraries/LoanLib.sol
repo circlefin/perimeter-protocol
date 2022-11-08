@@ -328,8 +328,7 @@ library LoanLib {
         uint256 firstLoss,
         address poolAdmin,
         uint256 poolFeePercentOfInterest,
-        uint256 originationFee,
-        uint256 scalar
+        uint256 originationFee
     ) public {
         if (firstLoss > 0) {
             IERC20(asset).safeTransferFrom(
