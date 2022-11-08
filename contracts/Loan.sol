@@ -30,11 +30,14 @@ contract Loan is ILoan {
     uint256 public immutable createdAt;
     address public immutable liquidityAsset;
     uint256 public immutable payment;
+    uint256 public outstandingPrincipal;
     uint256 public paymentsRemaining;
     uint256 public paymentDueDate;
     uint256 public originationFee;
     uint256 public callbackTimestamp;
     ILoanSettings settings;
+
+    event FundsReclaimed(uint256 amount, address pool);
 
     /**
      * @dev Modifier that requires the Loan be in the given `state_`
@@ -288,6 +291,16 @@ contract Loan is ILoan {
     }
 
     /**
+     * @dev Pool administrators can reclaim funds in open term loans.
+     */
+    function reclaimFunds(uint256 amount) external onlyPoolAdmin {
+        require(settings.loanType == ILoanType.Open);
+
+        fundingVault.withdraw(amount, _pool);
+        emit FundsReclaimed(amount, _pool);
+    }
+
+    /**
      * @dev Drawdown the Loan
      */
     function drawdown(uint256 amount) external onlyBorrower returns (uint256) {
@@ -299,12 +312,14 @@ contract Loan is ILoan {
             settings,
             _state
         );
+        outstandingPrincipal += amount;
 
         return amount;
     }
 
     function paydownPrincipal(uint256 amount) external onlyBorrower {
         LoanLib.paydownPrincipal(liquidityAsset, amount, fundingVault);
+        outstandingPrincipal -= amount;
     }
 
     function completeNextPayment()
@@ -367,7 +382,7 @@ contract Loan is ILoan {
         LoanLib.completePayment(
             liquidityAsset,
             _pool,
-            poolPayment.add(settings.principal)
+            poolPayment.add(outstandingPrincipal)
         );
         paymentsRemaining = 0;
         _state = ILoanLifeCycleState.Matured;

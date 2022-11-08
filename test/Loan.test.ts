@@ -173,6 +173,7 @@ describe("Loan", () => {
     return deployFixture(
       DEFAULT_POOL_SETTINGS,
       Object.assign({}, DEFAULT_LOAN_SETTINGS, {
+        principal: 500_000,
         loanType: 1
       })
     );
@@ -1249,6 +1250,92 @@ describe("Loan", () => {
       // Setup
       const tx = loan.connect(other).markCallback();
       await expect(tx).to.be.reverted;
+    });
+  });
+
+  describe("open term loans", () => {
+    it("open term loans can payoff the entire loan at once", async () => {
+      const fixture = await deployFixtureOpenTerm();
+      const {
+        borrower,
+        collateralAsset,
+        liquidityAsset,
+        loan,
+        pool,
+        poolManager
+      } = fixture;
+
+      // Setup
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await loan
+        .connect(borrower)
+        .postFungibleCollateral(collateralAsset.address, 100);
+      await pool.connect(poolManager).fundLoan(loan.address);
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      // Funding vault will now have no tokens.
+      const fundingVault = await loan.fundingVault();
+      expect(await liquidityAsset.balanceOf(fundingVault)).to.equal(0);
+
+      // Mint additional tokens to cover the interest payments
+      await liquidityAsset.mint(borrower.address, 12498);
+
+      // Repay some of the principal
+      const prepaidPrincipal = 1_000;
+      await liquidityAsset
+        .connect(borrower)
+        .approve(loan.address, prepaidPrincipal);
+      expect(await loan.outstandingPrincipal()).to.equal(500_000);
+      await loan.connect(borrower).paydownPrincipal(prepaidPrincipal);
+      expect(await loan.outstandingPrincipal()).to.equal(
+        500_000 - prepaidPrincipal
+      );
+      expect(await liquidityAsset.balanceOf(fundingVault)).to.equal(
+        prepaidPrincipal
+      );
+
+      // Make payment
+      await liquidityAsset
+        .connect(borrower)
+        .approve(loan.address, 12498 + 500_000);
+      const tx = loan.connect(borrower).completeFullPayment();
+      await expect(tx).to.not.be.reverted;
+      await expect(tx).to.changeTokenBalance(
+        liquidityAsset,
+        borrower,
+        -12498 - 500_000 + prepaidPrincipal
+      );
+      await expect(tx).to.changeTokenBalance(
+        liquidityAsset,
+        pool,
+        12498 + 500_000 - 624 - prepaidPrincipal
+      );
+      const firstLoss = await pool.firstLossVault();
+      await expect(tx).to.changeTokenBalance(liquidityAsset, firstLoss, 624);
+
+      expect(await loan.paymentsRemaining()).to.equal(0);
+      expect(await loan.state()).to.equal(5);
+
+      // Funding vault will still have funds in it
+      expect(await liquidityAsset.balanceOf(fundingVault)).to.equal(
+        prepaidPrincipal
+      );
+
+      // Pool Manager can then reclaim the funds
+      const reclaimFundsTx = loan
+        .connect(poolManager)
+        .reclaimFunds(prepaidPrincipal);
+      await expect(reclaimFundsTx).to.not.be.reverted;
+      await expect(reclaimFundsTx).to.changeTokenBalance(
+        liquidityAsset,
+        fundingVault,
+        -1 * prepaidPrincipal
+      );
+      await expect(reclaimFundsTx).to.changeTokenBalance(
+        liquidityAsset,
+        pool,
+        prepaidPrincipal
+      );
     });
   });
 
