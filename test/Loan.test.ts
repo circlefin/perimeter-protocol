@@ -174,7 +174,9 @@ describe("Loan", () => {
       DEFAULT_POOL_SETTINGS,
       Object.assign({}, DEFAULT_LOAN_SETTINGS, {
         principal: 500_000,
-        loanType: 1
+        loanType: 1,
+        originationBps: 100,
+        poolFeePercentOfInterest: 100
       })
     );
   }
@@ -1303,15 +1305,17 @@ describe("Loan", () => {
       // Relative to a full month payments, the fees will be halved
       await time.increase(THIRTY_DAYS / 2);
       const firstLossFee = 52;
+      const poolAdminFee = 208;
       const interestPayment = 1041;
       const principal = 500_000;
+      const originationFee = 208;
 
       const tx = loan.connect(borrower).completeFullPayment();
       await expect(tx).to.not.be.reverted;
       await expect(tx).to.changeTokenBalance(
         liquidityAsset,
         borrower,
-        0 - interestPayment - principal + prepaidPrincipal
+        0 - interestPayment - principal - originationFee + prepaidPrincipal
       );
       await expect(tx).to.changeTokenBalance(
         liquidityAsset,
@@ -1324,6 +1328,11 @@ describe("Loan", () => {
         liquidityAsset,
         firstLoss,
         firstLossFee
+      );
+      await expect(tx).to.changeTokenBalance(
+        liquidityAsset,
+        await pool.feeVault(),
+        poolAdminFee
       );
 
       expect(await loan.paymentsRemaining()).to.equal(0);
