@@ -883,54 +883,6 @@ describe("Loan", () => {
         .drawdown(await loan.principal());
       await expect(drawDownTx2).to.be.revertedWith("LoanLib: invalid state");
     });
-
-    it("open term loans can draw down up to their remaining principal", async () => {
-      const fixture = await loadFixture(deployFixtureOpenTerm);
-      const {
-        borrower,
-        collateralAsset,
-        liquidityAsset,
-        loan,
-        pool,
-        poolManager
-      } = fixture;
-
-      // Setup and fund loan
-      await collateralAsset.connect(borrower).approve(loan.address, 100);
-      await expect(
-        loan
-          .connect(borrower)
-          .postFungibleCollateral(collateralAsset.address, 100)
-      ).not.to.be.reverted;
-      await expect(pool.connect(poolManager).fundLoan(loan.address)).not.to.be
-        .reverted;
-      expect(await loan.state()).to.equal(4);
-
-      // Draw down the funds
-      const drawDownTx = loan.connect(borrower).drawdown(1_000);
-      await expect(drawDownTx).not.to.be.reverted;
-      await expect(drawDownTx).to.changeTokenBalance(
-        liquidityAsset,
-        borrower.address,
-        1_000
-      );
-      await expect(drawDownTx).to.changeTokenBalance(
-        liquidityAsset,
-        await loan.fundingVault(),
-        -1_000
-      );
-      await expect(drawDownTx)
-        .to.emit(loan, "LoanDrawnDown")
-        .withArgs(loan.liquidityAsset, 1_000);
-
-      const latestBlock = await ethers.provider.getBlock("latest");
-      const now = latestBlock.timestamp;
-      expect(await loan.paymentDueDate()).to.equal(now + THIRTY_DAYS);
-
-      // Open term loans can drawdown repeatedly until funding is no longer available.
-      const drawDownTx2 = loan.connect(borrower).drawdown(100);
-      await expect(drawDownTx2).not.to.be.reverted;
-    });
   });
 
   describe("markDefaulted", () => {
@@ -1254,6 +1206,54 @@ describe("Loan", () => {
   });
 
   describe("open term loans", () => {
+    it("open term loans can draw down up to their remaining principal", async () => {
+      const fixture = await loadFixture(deployFixtureOpenTerm);
+      const {
+        borrower,
+        collateralAsset,
+        liquidityAsset,
+        loan,
+        pool,
+        poolManager
+      } = fixture;
+
+      // Setup and fund loan
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await expect(
+        loan
+          .connect(borrower)
+          .postFungibleCollateral(collateralAsset.address, 100)
+      ).not.to.be.reverted;
+      await expect(pool.connect(poolManager).fundLoan(loan.address)).not.to.be
+        .reverted;
+      expect(await loan.state()).to.equal(4);
+
+      // Draw down the funds
+      const drawDownTx = loan.connect(borrower).drawdown(1_000);
+      await expect(drawDownTx).not.to.be.reverted;
+      await expect(drawDownTx).to.changeTokenBalance(
+        liquidityAsset,
+        borrower.address,
+        1_000
+      );
+      await expect(drawDownTx).to.changeTokenBalance(
+        liquidityAsset,
+        await loan.fundingVault(),
+        -1_000
+      );
+      await expect(drawDownTx)
+        .to.emit(loan, "LoanDrawnDown")
+        .withArgs(loan.liquidityAsset, 1_000);
+
+      const latestBlock = await ethers.provider.getBlock("latest");
+      const now = latestBlock.timestamp;
+      expect(await loan.paymentDueDate()).to.equal(now + THIRTY_DAYS);
+
+      // Open term loans can drawdown repeatedly until funding is no longer available.
+      const drawDownTx2 = loan.connect(borrower).drawdown(100);
+      await expect(drawDownTx2).not.to.be.reverted;
+    });
+
     it("open term loans can payoff the entire loan at once", async () => {
       const fixture = await deployFixtureOpenTerm();
       const {
@@ -1298,20 +1298,33 @@ describe("Loan", () => {
       await liquidityAsset
         .connect(borrower)
         .approve(loan.address, 12498 + 500_000);
+
+      // Fast forward half of the payment period
+      // Relative to a full month payments, the fees will be halved
+      await time.increase(THIRTY_DAYS / 2);
+      const firstLossFee = 52;
+      const interestPayment = 1041;
+      const principal = 500_000;
+
       const tx = loan.connect(borrower).completeFullPayment();
       await expect(tx).to.not.be.reverted;
       await expect(tx).to.changeTokenBalance(
         liquidityAsset,
         borrower,
-        -12498 - 500_000 + prepaidPrincipal
+        0 - interestPayment - principal + prepaidPrincipal
       );
       await expect(tx).to.changeTokenBalance(
         liquidityAsset,
         pool,
-        12498 + 500_000 - 624 - prepaidPrincipal
+        interestPayment + principal - prepaidPrincipal - firstLossFee
       );
+
       const firstLoss = await pool.firstLossVault();
-      await expect(tx).to.changeTokenBalance(liquidityAsset, firstLoss, 624);
+      await expect(tx).to.changeTokenBalance(
+        liquidityAsset,
+        firstLoss,
+        firstLossFee
+      );
 
       expect(await loan.paymentsRemaining()).to.equal(0);
       expect(await loan.state()).to.equal(5);

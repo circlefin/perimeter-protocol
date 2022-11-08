@@ -345,12 +345,34 @@ contract Loan is ILoan {
             firstLossFee,
             IPool(_pool).feeVault(),
             poolFee,
-            originationFee
+            originationFee,
+            RAY
         );
         LoanLib.completePayment(liquidityAsset, _pool, poolPayment);
         paymentsRemaining -= 1;
         paymentDueDate += settings.paymentPeriod * 1 days;
         return payment;
+    }
+
+    function previewFees(uint256 amount)
+        public
+        view
+        returns (
+            uint256,
+            uint256,
+            uint256
+        )
+    {
+        (uint256 poolPayment, uint256 firstLossFee, uint256 poolFee) = LoanLib
+            .previewFees(
+                amount,
+                _serviceConfiguration.firstLossFeeBps(),
+                IPool(_pool).poolFeePercentOfInterest(),
+                settings.latePayment,
+                paymentDueDate
+            );
+
+        return (poolPayment, firstLossFee, poolFee);
     }
 
     function completeFullPayment()
@@ -360,6 +382,24 @@ contract Loan is ILoan {
         returns (uint256)
     {
         uint256 amount = payment.mul(paymentsRemaining);
+        uint256 scalar = RAY;
+
+        // We will pro-rate open term loans for their last month of service
+        if (
+            settings.loanType == ILoanType.Open &&
+            paymentDueDate > block.timestamp
+        ) {
+            // If payment is overdue, it's just RAY
+
+            // Next due date - block timestamp
+            // Divided by duration * 1 day
+            scalar =
+                RAY -
+                (paymentDueDate - block.timestamp).mul(RAY).div(
+                    settings.paymentPeriod * 1 days
+                );
+            amount = (payment * scalar) / RAY;
+        }
 
         (uint256 poolPayment, uint256 firstLossFee, uint256 poolFee) = LoanLib
             .previewFees(
@@ -376,7 +416,8 @@ contract Loan is ILoan {
             firstLossFee,
             IPool(_pool).manager(),
             poolFee,
-            originationFee
+            originationFee,
+            RAY
         );
 
         LoanLib.completePayment(
