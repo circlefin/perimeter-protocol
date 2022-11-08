@@ -382,23 +382,23 @@ contract Loan is ILoan {
         returns (uint256)
     {
         uint256 amount = payment.mul(paymentsRemaining);
-        uint256 scalar = RAY;
+        uint256 scalingValue = RAY;
 
         // We will pro-rate open term loans for their last month of service
+        // If payment is overdue, we use default value of RAY. scalingValue is in RAYS.
         if (
             settings.loanType == ILoanType.Open &&
             paymentDueDate > block.timestamp
         ) {
-            // If payment is overdue, it's just RAY
-
-            // Next due date - block timestamp
-            // Divided by duration * 1 day
-            scalar =
-                RAY -
+            // Calculate the scaling value
+            // RAY - ((paymentDueDate - blocktimestamp) * RAY / paymentPeriod (seconds))
+            scalingValue = RAY.sub(
                 (paymentDueDate - block.timestamp).mul(RAY).div(
                     settings.paymentPeriod * 1 days
-                );
-            amount = (payment * scalar) / RAY;
+                )
+            );
+            // Adjust payment accordingly
+            amount = (payment * scalingValue) / RAY;
         }
 
         (uint256 poolPayment, uint256 firstLossFee, uint256 poolFee) = LoanLib
@@ -416,7 +416,7 @@ contract Loan is ILoan {
             firstLossFee,
             IPool(_pool).feeVault(),
             poolFee,
-            originationFee.mul(scalar).div(RAY),
+            originationFee.mul(scalingValue).div(RAY),
             RAY
         );
 
