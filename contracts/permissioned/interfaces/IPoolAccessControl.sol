@@ -6,11 +6,11 @@ pragma solidity ^0.8.16;
  */
 interface IPoolAccessControl {
     /**
-     * @dev Check if an address is allowed as a lender
+     * @dev Check if an address is allowed as a participant in the pool
      * @param addr The address to verify
-     * @return whether the address is allowed as a lender
+     * @return whether the address is allowed as a participant
      */
-    function isValidLender(address addr) external view returns (bool);
+    function isValidParticipant(address addr) external view returns (bool);
 }
 
 /**

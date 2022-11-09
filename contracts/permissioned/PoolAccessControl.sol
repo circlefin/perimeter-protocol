@@ -30,9 +30,9 @@ contract PoolAccessControl is
     IToSAcceptanceRegistry private _tosRegistry;
 
     /**
-     * @dev A mapping of addresses to whether they are allowed as a Lender
+     * @dev A mapping of addresses to whether they are allowed to lend or borrower in the pool.
      */
-    mapping(address => bool) private _allowedLenders;
+    mapping(address => bool) private _allowedParticipants;
 
     /**
      * @dev A mapping of address to their latest credential verification timestamp.
@@ -50,14 +50,14 @@ contract PoolAccessControl is
     mapping(string => bool) private _supportedCredentialSchemas;
 
     /**
-     * @dev Emitted when an address is added from the lender allow list.
+     * @dev Emitted when an address is added from the participant allow list.
      */
-    event LenderAllowed(address indexed addr);
+    event ParticipantAllowed(address indexed addr);
 
     /**
-     * @dev Emitted when an address is removed from the lender allow list.
+     * @dev Emitted when an address is removed from the participant allow list.
      */
-    event LenderRemoved(address indexed addr);
+    event ParticipantRemoved(address indexed addr);
 
     /**
      * @dev Emitted when an address validate via Verite
@@ -106,37 +106,37 @@ contract PoolAccessControl is
     }
 
     /**
-     * @dev Checks if the given address is allowed as a Lender.
+     * @dev Checks if the given address is allowed as a Participant.
      * @inheritdoc IPoolAccessControl
      */
-    function isValidLender(address addr) external view returns (bool) {
+    function isValidParticipant(address addr) external view returns (bool) {
         return
-            _allowedLenders[addr] ||
+            _allowedParticipants[addr] ||
             _credentialVerifications[addr] > block.timestamp;
     }
 
     /**
-     * @dev Adds an address to the lender allow list.
+     * @dev Adds an address to the participant allow list.
      *
-     * Emits an {AllowedLenderListUpdated} event.
+     * Emits an {AllowedParticipantListUpdated} event.
      */
-    function allowLender(address addr) external onlyPoolAdmin {
+    function allowParticipant(address addr) external onlyPoolAdmin {
         require(
             _tosRegistry.hasAccepted(addr),
-            "Pool: lender not accepted ToS"
+            "Pool: participant not accepted ToS"
         );
-        _allowedLenders[addr] = true;
-        emit LenderAllowed(addr);
+        _allowedParticipants[addr] = true;
+        emit ParticipantAllowed(addr);
     }
 
     /**
-     * @dev Removes an address from the lender allow list.
+     * @dev Removes an address from the participant allow list.
      *
-     * Emits an {AllowedLenderListUpdated} event.
+     * Emits an {AllowedParticipantListUpdated} event.
      */
-    function removeLender(address addr) external onlyPoolAdmin {
-        delete _allowedLenders[addr];
-        emit LenderRemoved(addr);
+    function removeParticipant(address addr) external onlyPoolAdmin {
+        delete _allowedParticipants[addr];
+        emit ParticipantRemoved(addr);
     }
 
     /**

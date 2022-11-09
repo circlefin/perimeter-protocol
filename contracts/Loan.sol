@@ -226,7 +226,8 @@ contract Loan is ILoan {
      * @dev Post ERC20 tokens as collateral
      */
     function postFungibleCollateral(address asset, uint256 amount)
-        external
+        public
+        virtual
         onlyBorrower
         onlyNonTerminalState
         returns (ILoanLifeCycleState)
@@ -249,7 +250,8 @@ contract Loan is ILoan {
      * @dev Post ERC721 tokens as collateral
      */
     function postNonFungibleCollateral(address asset, uint256 tokenId)
-        external
+        public
+        virtual
         onlyBorrower
         onlyNonTerminalState
         returns (ILoanLifeCycleState)
@@ -303,7 +305,12 @@ contract Loan is ILoan {
     /**
      * @dev Drawdown the Loan
      */
-    function drawdown(uint256 amount) external onlyBorrower returns (uint256) {
+    function drawdown(uint256 amount)
+        public
+        virtual
+        onlyBorrower
+        returns (uint256)
+    {
         (_state, paymentDueDate) = LoanLib.drawdown(
             amount,
             fundingVault,

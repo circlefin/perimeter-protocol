@@ -1,5 +1,8 @@
 import { ethers } from "hardhat";
-import { deployServiceConfiguration } from "./serviceconfiguration";
+import {
+  deployServiceConfiguration,
+  deployPermissionedServiceConfiguration
+} from "./serviceconfiguration";
 
 const SEVEN_DAYS = 6 * 60 * 60 * 24;
 
@@ -69,6 +72,70 @@ export async function deployLoan(
   );
   const loanAddress = loanCreatedEvent?.args?.[0];
   const loan = await ethers.getContractAt("Loan", loanAddress);
+
+  return { loan, loanFactory, serviceConfiguration };
+}
+
+export async function deployPermissionedLoan(
+  pool: any,
+  borrower: any,
+  liquidityAsset: any,
+  operator: any,
+  existingServiceConfiguration: any = null,
+  overriddenLoanTerms?: Partial<typeof DEFAULT_LOAN_SETTINGS>
+) {
+  const { serviceConfiguration } = await (existingServiceConfiguration == null
+    ? deployPermissionedServiceConfiguration(operator)
+    : {
+        serviceConfiguration: existingServiceConfiguration
+      });
+
+  await serviceConfiguration
+    .connect(operator)
+    .setLiquidityAsset(liquidityAsset, true);
+
+  const loanSettings = {
+    ...DEFAULT_LOAN_SETTINGS,
+    ...overriddenLoanTerms
+  };
+
+  const LoanLib = await ethers.getContractFactory("LoanLib");
+  const loanLib = await LoanLib.deploy();
+
+  const PermissionedLoanFactory = await ethers.getContractFactory(
+    "PermissionedLoanFactory",
+    {
+      libraries: {
+        LoanLib: loanLib.address
+      }
+    }
+  );
+
+  const loanFactory = await PermissionedLoanFactory.deploy(
+    serviceConfiguration.address
+  );
+  await loanFactory.deployed();
+
+  await serviceConfiguration.setLoanFactory(loanFactory.address, true);
+
+  const txn = await loanFactory.createLoan(borrower, pool, liquidityAsset, {
+    loanType: loanSettings.loanType,
+    principal: loanSettings.principal,
+    apr: loanSettings.apr,
+    duration: loanSettings.duration,
+    paymentPeriod: loanSettings.paymentPeriod,
+    dropDeadTimestamp: loanSettings.dropDeadTimestamp,
+    latePayment: loanSettings.latePayment,
+    originationBps: loanSettings.originationBps
+  });
+
+  const txnReceipt = await txn.wait();
+
+  const loanCreatedEvent = txnReceipt.events?.find(
+    (e) => e.event == "LoanCreated"
+  );
+  const loanAddress = loanCreatedEvent?.args?.[0];
+  const loan = await ethers.getContractAt("PermissionedLoan", loanAddress);
 
   return { loan, loanFactory, serviceConfiguration };
 }
