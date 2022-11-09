@@ -317,11 +317,20 @@ contract Loan is ILoan {
         return amount;
     }
 
+    /**
+     * @dev Prepay principal.
+     * @dev Only callable by open term loans
+     */
     function paydownPrincipal(uint256 amount) external onlyBorrower {
+        require(outstandingPrincipal >= amount, "Loan: amount too high");
+        require(settings.loanType == ILoanType.Open, "Loan: invalid loan type");
         LoanLib.paydownPrincipal(liquidityAsset, amount, fundingVault);
         outstandingPrincipal -= amount;
     }
 
+    /**
+     * @dev Complete the next payment according to loan schedule inclusive of all fees.
+     */
     function completeNextPayment()
         public
         onlyBorrower
@@ -353,6 +362,10 @@ contract Loan is ILoan {
         return payment;
     }
 
+    /**
+     * @dev Preview fees for a given interest payment amount.
+     * @param amount allows previewing the fee for a full or prorated payment.
+     */
     function previewFees(uint256 amount)
         public
         view
@@ -374,6 +387,9 @@ contract Loan is ILoan {
         return (poolPayment, firstLossFee, poolFee);
     }
 
+    /**
+     * @dev Complete the final payment of the loan.
+     */
     function completeFullPayment()
         public
         onlyBorrower

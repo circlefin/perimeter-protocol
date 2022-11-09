@@ -28,7 +28,7 @@ library LoanLib {
     event LoanDrawnDown(address asset, uint256 amount);
 
     /**
-     *
+     * @dev Emitted when loan principal is repaid ahead of schedule.
      */
     event LoanPrincipalPaid(
         address asset,
