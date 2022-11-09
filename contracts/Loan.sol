@@ -30,11 +30,14 @@ contract Loan is ILoan {
     uint256 public immutable createdAt;
     address public immutable liquidityAsset;
     uint256 public immutable payment;
+    uint256 public outstandingPrincipal;
     uint256 public paymentsRemaining;
     uint256 public paymentDueDate;
     uint256 public originationFee;
     uint256 public callbackTimestamp;
     ILoanSettings settings;
+
+    event FundsReclaimed(uint256 amount, address pool);
 
     /**
      * @dev Modifier that requires the Loan be in the given `state_`
@@ -288,6 +291,16 @@ contract Loan is ILoan {
     }
 
     /**
+     * @dev Pool administrators can reclaim funds in open term loans.
+     */
+    function reclaimFunds(uint256 amount) external onlyPoolAdmin {
+        require(settings.loanType == ILoanType.Open);
+
+        fundingVault.withdraw(amount, _pool);
+        emit FundsReclaimed(amount, _pool);
+    }
+
+    /**
      * @dev Drawdown the Loan
      */
     function drawdown(uint256 amount) external onlyBorrower returns (uint256) {
@@ -299,10 +312,25 @@ contract Loan is ILoan {
             settings,
             _state
         );
+        outstandingPrincipal += amount;
 
         return amount;
     }
 
+    /**
+     * @dev Prepay principal.
+     * @dev Only callable by open term loans
+     */
+    function paydownPrincipal(uint256 amount) external onlyBorrower {
+        require(outstandingPrincipal >= amount, "Loan: amount too high");
+        require(settings.loanType == ILoanType.Open, "Loan: invalid loan type");
+        LoanLib.paydownPrincipal(liquidityAsset, amount, fundingVault);
+        outstandingPrincipal -= amount;
+    }
+
+    /**
+     * @dev Complete the next payment according to loan schedule inclusive of all fees.
+     */
     function completeNextPayment()
         public
         onlyBorrower
@@ -334,6 +362,34 @@ contract Loan is ILoan {
         return payment;
     }
 
+    /**
+     * @dev Preview fees for a given interest payment amount.
+     * @param amount allows previewing the fee for a full or prorated payment.
+     */
+    function previewFees(uint256 amount)
+        public
+        view
+        returns (
+            uint256,
+            uint256,
+            uint256
+        )
+    {
+        (uint256 poolPayment, uint256 firstLossFee, uint256 poolFee) = LoanLib
+            .previewFees(
+                amount,
+                _serviceConfiguration.firstLossFeeBps(),
+                IPool(_pool).poolFeePercentOfInterest(),
+                settings.latePayment,
+                paymentDueDate
+            );
+
+        return (poolPayment, firstLossFee, poolFee);
+    }
+
+    /**
+     * @dev Complete the final payment of the loan.
+     */
     function completeFullPayment()
         public
         onlyBorrower
@@ -341,6 +397,24 @@ contract Loan is ILoan {
         returns (uint256)
     {
         uint256 amount = payment.mul(paymentsRemaining);
+        uint256 scalingValue = RAY;
+
+        // We will pro-rate open term loans for their last month of service
+        // If payment is overdue, we use default value of RAY. scalingValue is in RAYS.
+        if (
+            settings.loanType == ILoanType.Open &&
+            paymentDueDate > block.timestamp
+        ) {
+            // Calculate the scaling value
+            // RAY - ((paymentDueDate - blocktimestamp) * RAY / paymentPeriod (seconds))
+            scalingValue = RAY.sub(
+                (paymentDueDate - block.timestamp).mul(RAY).div(
+                    settings.paymentPeriod * 1 days
+                )
+            );
+            // Adjust payment accordingly
+            amount = (payment * scalingValue) / RAY;
+        }
 
         (uint256 poolPayment, uint256 firstLossFee, uint256 poolFee) = LoanLib
             .previewFees(
@@ -355,15 +429,15 @@ contract Loan is ILoan {
             liquidityAsset,
             IPool(_pool).firstLossVault(),
             firstLossFee,
-            IPool(_pool).manager(),
+            IPool(_pool).feeVault(),
             poolFee,
-            originationFee
+            originationFee.mul(scalingValue).div(RAY)
         );
 
         LoanLib.completePayment(
             liquidityAsset,
             _pool,
-            poolPayment.add(settings.principal)
+            poolPayment.add(outstandingPrincipal)
         );
         paymentsRemaining = 0;
         _state = ILoanLifeCycleState.Matured;

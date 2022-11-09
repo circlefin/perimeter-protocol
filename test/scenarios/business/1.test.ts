@@ -238,7 +238,7 @@ describe("Business Scenario 1", () => {
     expect(await pool.firstLoss()).to.equal(92361110);
 
     // Check that origination fees were paid to PM
-    expect(await mockUSDC.balanceOf(poolManager.address)).to.equal(116666666);
+    expect(await mockUSDC.balanceOf(pool.feeVault())).to.equal(116666666);
 
     // Lender balances
     const lenderABalance = await mockUSDC.balanceOf(lenderA.address);

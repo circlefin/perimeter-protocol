@@ -28,6 +28,15 @@ library LoanLib {
     event LoanDrawnDown(address asset, uint256 amount);
 
     /**
+     * @dev Emitted when loan principal is repaid ahead of schedule.
+     */
+    event LoanPrincipalPaid(
+        address asset,
+        uint256 amount,
+        address fundingVault
+    );
+
+    /**
      * @dev Emitted when a loan payment is made.
      */
     event LoanPaymentMade(address pool, address liquidityAsset, uint256 amount);
@@ -233,6 +242,22 @@ library LoanLib {
         fundingVault.withdraw(amount, receiver);
         emit LoanDrawnDown(address(asset), amount);
         return (ILoanLifeCycleState.Active, paymentDueDate);
+    }
+
+    /**
+     * Paydown principal
+     */
+    function paydownPrincipal(
+        address asset,
+        uint256 amount,
+        FundingVault fundingVault
+    ) external {
+        IERC20(asset).safeTransferFrom(
+            msg.sender,
+            address(fundingVault),
+            amount
+        );
+        emit LoanPrincipalPaid(asset, amount, address(fundingVault));
     }
 
     /**
