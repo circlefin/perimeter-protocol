@@ -68,7 +68,7 @@ contract Loan is ILoan {
 
     modifier onlyPoolAdmin() {
         require(
-            msg.sender == IPool(_pool).manager(),
+            msg.sender == IPool(_pool).admin(),
             "Loan: caller is not pool admin"
         );
         _;
@@ -180,7 +180,7 @@ contract Loan is ILoan {
         returns (ILoanLifeCycleState)
     {
         require(
-            msg.sender == _borrower || msg.sender == IPool(_pool).manager(),
+            msg.sender == _borrower || msg.sender == IPool(_pool).admin(),
             "Loan: invalid caller"
         );
         require(
@@ -209,7 +209,7 @@ contract Loan is ILoan {
             (_state == ILoanLifeCycleState.Canceled &&
                 msg.sender == _borrower) ||
                 (_state == ILoanLifeCycleState.Defaulted &&
-                    msg.sender == IPool(_pool).manager()) ||
+                    msg.sender == IPool(_pool).admin()) ||
                 (_state == ILoanLifeCycleState.Matured &&
                     msg.sender == _borrower),
             "Loan: unable to claim collateral"

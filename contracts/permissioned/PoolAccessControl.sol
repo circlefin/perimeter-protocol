@@ -13,7 +13,7 @@ import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
  * @dev Implementation of the {IPoolAccessControl} interface.
  *
  * This implementation implements a basic Allow-List of addresses, which can
- * be managed only by the Pool Manager.
+ * be managed only by the Pool Admin.
  */
 contract PoolAccessControl is
     IPoolAccessControl,
@@ -85,10 +85,10 @@ contract PoolAccessControl is
     event CredentialSchemaRemoved(string schema);
 
     /**
-     * @dev Modifier that checks that the caller is the pool's manager.
+     * @dev Modifier that checks that the caller is the pool's admin.
      */
     modifier onlyPoolAdmin() {
-        require(msg.sender == _pool.manager(), "Pool: caller is not manager");
+        require(msg.sender == _pool.admin(), "Pool: caller is not admin");
         _;
     }
 

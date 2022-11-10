@@ -12,7 +12,7 @@ contract FeeVault {
 
     modifier onlyPoolAdmin() {
         require(
-            msg.sender == IPool(pool).manager(),
+            msg.sender == IPool(pool).admin(),
             "FeeVault: caller not pool admin"
         );
         _;

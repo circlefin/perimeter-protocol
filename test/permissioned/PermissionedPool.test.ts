@@ -5,14 +5,14 @@ import { deployPermissionedPool } from "../support/pool";
 
 describe("PermissionedPool", () => {
   async function loadPoolFixture() {
-    const [operator, poolManager, otherAccount, thirdAccount] =
+    const [operator, poolAdmin, otherAccount, thirdAccount] =
       await ethers.getSigners();
     const { pool, liquidityAsset } = await deployPermissionedPool({
       operator,
-      poolAdmin: poolManager
+      poolAdmin: poolAdmin
     });
 
-    return { pool, liquidityAsset, poolManager, otherAccount, thirdAccount };
+    return { pool, liquidityAsset, poolAdmin, otherAccount, thirdAccount };
   }
 
   describe("maxMint()", async () => {

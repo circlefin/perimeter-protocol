@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
-import "./interfaces/IPoolManagerAccessControl.sol";
+import "./interfaces/IPoolAdminAccessControl.sol";
 import "../ServiceConfiguration.sol";
 
 /**
@@ -9,21 +9,21 @@ import "../ServiceConfiguration.sol";
  */
 contract PermissionedServiceConfiguration is ServiceConfiguration {
     /**
-     * @dev Access Control logic for the Pool Manager role
+     * @dev Access Control logic for the Pool Admin role
      */
-    IPoolManagerAccessControl public poolManagerAccessControl;
+    IPoolAdminAccessControl public poolAdminAccessControl;
 
     /**
-     * @dev Set the PoolManagerAccessControl contract.
+     * @dev Set the PoolAdminAccessControl contract.
      * @dev Emits `AddressSet` event.
      */
-    function setPoolManagerAccessControl(
-        IPoolManagerAccessControl _poolManagerAccessControl
+    function setPoolAdminAccessControl(
+        IPoolAdminAccessControl _poolAdminAccessControl
     ) public onlyOperator {
-        poolManagerAccessControl = _poolManagerAccessControl;
+        poolAdminAccessControl = _poolAdminAccessControl;
         emit AddressSet(
-            "POOL_MANAGER_PERMISSION",
-            address(poolManagerAccessControl)
+            "POOL_ADMIN_PERMISSION",
+            address(poolAdminAccessControl)
         );
     }
 }

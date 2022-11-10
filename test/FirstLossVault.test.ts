@@ -47,7 +47,7 @@ describe("FirstLossVault", () => {
   });
 
   describe("withdraw()", async () => {
-    it("pool manager can withdrawn amounts", async () => {
+    it("pool admin can withdrawn amounts", async () => {
       const { firstLossVault, liquidityAsset, pool } = await loadFixture(
         deployFixture
       );
@@ -69,7 +69,7 @@ describe("FirstLossVault", () => {
   });
 
   describe("Permissions", async () => {
-    it("only pool manager can withdraw", async () => {
+    it("only pool admin can withdraw", async () => {
       const { firstLossVault, pool, otherAccount } = await loadFixture(
         deployFixture
       );

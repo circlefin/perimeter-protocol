@@ -26,17 +26,17 @@ describe("Loan", () => {
     })
   ) {
     // Contracts are deployed using the first signer/account by default
-    const [operator, poolManager, borrower, lender, other] =
+    const [operator, poolAdmin, borrower, lender, other] =
       await ethers.getSigners();
 
     // Create a pool
     const { pool, liquidityAsset, serviceConfiguration } = await deployPool({
       operator,
-      poolAdmin: poolManager,
+      poolAdmin: poolAdmin,
       settings: poolSettings
     });
 
-    await activatePool(pool, poolManager, liquidityAsset);
+    await activatePool(pool, poolAdmin, liquidityAsset);
 
     const LoanLib = await ethers.getContractFactory("LoanLib");
     const loanLib = await LoanLib.deploy();
@@ -93,7 +93,7 @@ describe("Loan", () => {
       loan,
       loanFactory,
       operator,
-      poolManager,
+      poolAdmin,
       borrower,
       collateralAsset,
       liquidityAsset,
@@ -245,7 +245,7 @@ describe("Loan", () => {
 
   describe("cancelFunded", () => {
     it("reverts if not in Funded state", async () => {
-      const { borrower, liquidityAsset, loan, pool, poolManager } =
+      const { borrower, liquidityAsset, loan, pool, poolAdmin } =
         await loadFixture(deployFixture);
 
       expect(await loan.state()).to.equal(0); // Requested
@@ -259,14 +259,14 @@ describe("Loan", () => {
         "Loan: FunctionInvalidAtThisILoanLifeCycleState"
       );
 
-      await fundLoan(loan, pool, poolManager);
+      await fundLoan(loan, pool, poolAdmin);
       await loan.connect(borrower).drawdown(await loan.principal());
       expect(await loan.state()).to.equal(6); // Active
       await expect(loan.connect(borrower).cancelFunded()).to.be.revertedWith(
         "Loan: FunctionInvalidAtThisILoanLifeCycleState"
       );
 
-      await pool.connect(poolManager).defaultLoan(loan.address);
+      await pool.connect(poolAdmin).defaultLoan(loan.address);
       expect(await loan.state()).to.equal(3); // Defaulted
       await expect(loan.connect(borrower).cancelFunded()).to.be.revertedWith(
         "Loan: FunctionInvalidAtThisILoanLifeCycleState"
@@ -274,11 +274,11 @@ describe("Loan", () => {
     });
 
     it("reverts if not called by borrower or PM", async () => {
-      const { borrower, liquidityAsset, other, loan, pool, poolManager } =
+      const { borrower, liquidityAsset, other, loan, pool, poolAdmin } =
         await loadFixture(deployFixture);
 
       await collateralizeLoan(loan, borrower, liquidityAsset);
-      await fundLoan(loan, pool, poolManager);
+      await fundLoan(loan, pool, poolAdmin);
       await time.increaseTo(await loan.dropDeadTimestamp());
 
       await expect(loan.connect(other).cancelFunded()).to.be.revertedWith(
@@ -287,11 +287,11 @@ describe("Loan", () => {
     });
 
     it("reverts if dropdead hasn't been met", async () => {
-      const { borrower, liquidityAsset, loan, pool, poolManager } =
+      const { borrower, liquidityAsset, loan, pool, poolAdmin } =
         await loadFixture(deployFixture);
 
       await collateralizeLoan(loan, borrower, liquidityAsset);
-      await fundLoan(loan, pool, poolManager);
+      await fundLoan(loan, pool, poolAdmin);
       await expect(loan.connect(borrower).cancelFunded()).to.be.revertedWith(
         "Loan: Drop dead date not met"
       );
@@ -302,11 +302,11 @@ describe("Loan", () => {
     });
 
     it("returns principal to the pool ", async () => {
-      const { borrower, liquidityAsset, loan, pool, poolManager } =
+      const { borrower, liquidityAsset, loan, pool, poolAdmin } =
         await loadFixture(deployFixture);
 
       await collateralizeLoan(loan, borrower, liquidityAsset);
-      await fundLoan(loan, pool, poolManager);
+      await fundLoan(loan, pool, poolAdmin);
       const principal = await loan.principal();
 
       await time.increaseTo(await loan.dropDeadTimestamp());
@@ -325,11 +325,11 @@ describe("Loan", () => {
     });
 
     it("emits an event", async () => {
-      const { borrower, liquidityAsset, loan, pool, poolManager } =
+      const { borrower, liquidityAsset, loan, pool, poolAdmin } =
         await loadFixture(deployFixture);
 
       await collateralizeLoan(loan, borrower, liquidityAsset);
-      await fundLoan(loan, pool, poolManager);
+      await fundLoan(loan, pool, poolAdmin);
       await time.increaseTo(await loan.dropDeadTimestamp());
       const principal = await loan.principal();
       await expect(loan.connect(borrower).cancelFunded())
@@ -338,31 +338,31 @@ describe("Loan", () => {
     });
 
     it("can be called by PM", async () => {
-      const { borrower, liquidityAsset, loan, pool, poolManager } =
+      const { borrower, liquidityAsset, loan, pool, poolAdmin } =
         await loadFixture(deployFixture);
 
       await collateralizeLoan(loan, borrower, liquidityAsset);
-      await fundLoan(loan, pool, poolManager);
+      await fundLoan(loan, pool, poolAdmin);
       await time.increaseTo(await loan.dropDeadTimestamp());
-      await expect(loan.connect(poolManager).cancelFunded()).not.to.be.reverted;
+      await expect(loan.connect(poolAdmin).cancelFunded()).not.to.be.reverted;
     });
 
     it("can be called by borrower", async () => {
-      const { borrower, liquidityAsset, loan, pool, poolManager } =
+      const { borrower, liquidityAsset, loan, pool, poolAdmin } =
         await loadFixture(deployFixture);
 
       await collateralizeLoan(loan, borrower, liquidityAsset);
-      await fundLoan(loan, pool, poolManager);
+      await fundLoan(loan, pool, poolAdmin);
       await time.increaseTo(await loan.dropDeadTimestamp());
       await expect(loan.connect(borrower).cancelFunded()).not.to.be.reverted;
     });
 
     it("transitions loan to canceled state", async () => {
-      const { borrower, liquidityAsset, loan, pool, poolManager } =
+      const { borrower, liquidityAsset, loan, pool, poolAdmin } =
         await loadFixture(deployFixture);
 
       await collateralizeLoan(loan, borrower, liquidityAsset);
-      await fundLoan(loan, pool, poolManager);
+      await fundLoan(loan, pool, poolAdmin);
       await time.increaseTo(await loan.dropDeadTimestamp());
       expect(await loan.connect(borrower).cancelFunded());
 
@@ -374,14 +374,14 @@ describe("Loan", () => {
     describe("Permissions", () => {
       describe("Loan is Requested", () => {
         it("reverts if called by PM or borrower", async () => {
-          const { loan, borrower, poolManager } = await loadFixture(
+          const { loan, borrower, poolAdmin } = await loadFixture(
             deployFixture
           );
 
           expect(await loan.state()).to.equal(0); // Requested
 
           await expect(
-            loan.connect(poolManager).claimCollateral([], [])
+            loan.connect(poolAdmin).claimCollateral([], [])
           ).to.be.revertedWith("Loan: unable to claim collateral");
 
           await expect(
@@ -392,7 +392,7 @@ describe("Loan", () => {
 
       describe("Loan is Collateralized", () => {
         it("reverts if called by PM or borrower", async () => {
-          const { loan, poolManager, collateralAsset, borrower } =
+          const { loan, poolAdmin, collateralAsset, borrower } =
             await loadFixture(deployFixture);
 
           // Post collateral
@@ -400,7 +400,7 @@ describe("Loan", () => {
           expect(await loan.state()).to.equal(1); // Collateralized
 
           await expect(
-            loan.connect(poolManager).claimCollateral([], [])
+            loan.connect(poolAdmin).claimCollateral([], [])
           ).to.be.revertedWith("Loan: unable to claim collateral");
 
           await expect(
@@ -411,7 +411,7 @@ describe("Loan", () => {
 
       describe("Loan is Canceled", () => {
         it("reverts if called by PM", async () => {
-          const { loan, poolManager, borrower } = await loadFixture(
+          const { loan, poolAdmin, borrower } = await loadFixture(
             deployFixture
           );
 
@@ -420,7 +420,7 @@ describe("Loan", () => {
           expect(await loan.state()).to.equal(2); // canceled
 
           await expect(
-            loan.connect(poolManager).claimCollateral([], [])
+            loan.connect(poolAdmin).claimCollateral([], [])
           ).to.be.revertedWith("Loan: unable to claim collateral");
         });
 
@@ -438,16 +438,16 @@ describe("Loan", () => {
 
       describe("Loan is funded", () => {
         it("reverts if called by PM or borrower", async () => {
-          const { loan, poolManager, pool, borrower, collateralAsset } =
+          const { loan, poolAdmin, pool, borrower, collateralAsset } =
             await loadFixture(deployFixture);
 
           // collateralize and fund loan
           await collateralizeLoan(loan, borrower, collateralAsset);
-          await pool.connect(poolManager).fundLoan(loan.address);
+          await pool.connect(poolAdmin).fundLoan(loan.address);
           expect(await loan.state()).to.equal(4); // funded
 
           await expect(
-            loan.connect(poolManager).claimCollateral([], [])
+            loan.connect(poolAdmin).claimCollateral([], [])
           ).to.be.revertedWith("Loan: unable to claim collateral");
 
           await expect(
@@ -458,14 +458,14 @@ describe("Loan", () => {
 
       describe("Loan is Defaulted", () => {
         it("reverts if called by the borrower", async () => {
-          const { loan, poolManager, pool, borrower, collateralAsset } =
+          const { loan, poolAdmin, pool, borrower, collateralAsset } =
             await loadFixture(deployFixture);
 
           // fund loan and default it
           await collateralizeLoan(loan, borrower, collateralAsset);
-          await pool.connect(poolManager).fundLoan(loan.address);
+          await pool.connect(poolAdmin).fundLoan(loan.address);
           await loan.connect(borrower).drawdown(await loan.principal());
-          await pool.connect(poolManager).defaultLoan(loan.address);
+          await pool.connect(poolAdmin).defaultLoan(loan.address);
           expect(await loan.state()).to.equal(3); // defaulted
 
           await expect(
@@ -474,17 +474,17 @@ describe("Loan", () => {
         });
 
         it("PM can attempt claim", async () => {
-          const { loan, poolManager, pool, borrower, collateralAsset } =
+          const { loan, poolAdmin, pool, borrower, collateralAsset } =
             await loadFixture(deployFixture);
 
           // fund loan and default it
           await collateralizeLoan(loan, borrower, collateralAsset);
-          await pool.connect(poolManager).fundLoan(loan.address);
+          await pool.connect(poolAdmin).fundLoan(loan.address);
           await loan.connect(borrower).drawdown(await loan.principal());
-          await pool.connect(poolManager).defaultLoan(loan.address);
+          await pool.connect(poolAdmin).defaultLoan(loan.address);
           expect(await loan.state()).to.equal(3); // defaulted
 
-          await expect(loan.connect(poolManager).claimCollateral([], [])).to.not
+          await expect(loan.connect(poolAdmin).claimCollateral([], [])).to.not
             .be.reverted;
         });
       });
@@ -493,7 +493,7 @@ describe("Loan", () => {
         it("Reverts if called by PM", async () => {
           const {
             loan,
-            poolManager,
+            poolAdmin,
             liquidityAsset,
             pool,
             borrower,
@@ -502,20 +502,20 @@ describe("Loan", () => {
 
           // fund and mature loan
           await collateralizeLoan(loan, borrower, collateralAsset);
-          await fundLoan(loan, pool, poolManager);
+          await fundLoan(loan, pool, poolAdmin);
           await loan.connect(borrower).drawdown(await loan.principal());
           await matureLoan(loan, borrower, liquidityAsset);
           expect(await loan.state()).to.equal(5); // matured
 
           await expect(
-            loan.connect(poolManager).claimCollateral([], [])
+            loan.connect(poolAdmin).claimCollateral([], [])
           ).to.be.revertedWith("Loan: unable to claim collateral");
         });
 
         it("Allows borrower to claim collateral", async () => {
           const {
             loan,
-            poolManager,
+            poolAdmin,
             liquidityAsset,
             pool,
             borrower,
@@ -524,7 +524,7 @@ describe("Loan", () => {
 
           // fund and mature loan
           await collateralizeLoan(loan, borrower, collateralAsset);
-          await fundLoan(loan, pool, poolManager);
+          await fundLoan(loan, pool, poolAdmin);
           await loan.connect(borrower).drawdown(await loan.principal());
           await matureLoan(loan, borrower, liquidityAsset);
           expect(await loan.state()).to.equal(5); // matured
@@ -730,7 +730,7 @@ describe("Loan", () => {
     it("transitions Loan to Funded state", async () => {
       const fixture = await loadFixture(deployFixture);
       let { loan } = fixture;
-      const { borrower, collateralAsset, liquidityAsset, pool, poolManager } =
+      const { borrower, collateralAsset, liquidityAsset, pool, poolAdmin } =
         fixture;
 
       // Connect as borrower
@@ -741,7 +741,7 @@ describe("Loan", () => {
       await expect(loan.postFungibleCollateral(collateralAsset.address, 100))
         .not.to.be.reverted;
       expect(await loan.state()).to.equal(1);
-      const fundTx = pool.connect(poolManager).fundLoan(loan.address);
+      const fundTx = pool.connect(poolAdmin).fundLoan(loan.address);
       await expect(fundTx).not.to.be.reverted;
       await expect(fundTx)
         .to.emit(loan, "LoanFunded")
@@ -761,11 +761,11 @@ describe("Loan", () => {
     });
 
     it("reverts if not in the collateralized state", async () => {
-      const { pool, poolManager, loan } = await loadFixture(deployFixture);
+      const { pool, poolAdmin, loan } = await loadFixture(deployFixture);
 
       expect(await loan.state()).to.equal(0);
       await expect(
-        pool.connect(poolManager).fundLoan(loan.address)
+        pool.connect(poolAdmin).fundLoan(loan.address)
       ).to.be.revertedWith("Loan: FunctionInvalidAtThisILoanLifeCycleState");
       expect(await loan.state()).to.equal(0);
     });
@@ -799,7 +799,7 @@ describe("Loan", () => {
         liquidityAsset,
         loan,
         pool,
-        poolManager
+        poolAdmin
       } = fixture;
 
       // Setup and fund loan
@@ -809,7 +809,7 @@ describe("Loan", () => {
           .connect(borrower)
           .postFungibleCollateral(collateralAsset.address, 100)
       ).not.to.be.reverted;
-      await expect(pool.connect(poolManager).fundLoan(loan.address)).not.to.be
+      await expect(pool.connect(poolAdmin).fundLoan(loan.address)).not.to.be
         .reverted;
       expect(await loan.state()).to.equal(4);
 
@@ -859,9 +859,9 @@ describe("Loan", () => {
 
     it("transitions state only if defaulted while in an Active state", async () => {
       const fixture = await loadFixture(deployFixture);
-      const { borrower, collateralAsset, poolManager } = fixture;
+      const { borrower, collateralAsset, poolAdmin } = fixture;
       const loan = fixture.loan.connect(borrower);
-      const pool = fixture.pool.connect(poolManager);
+      const pool = fixture.pool.connect(poolAdmin);
 
       // Check Loan is in requested state; defaults should revert
       expect(await loan.state()).to.equal(0);
@@ -915,7 +915,7 @@ describe("Loan", () => {
         liquidityAsset,
         loan,
         pool,
-        poolManager
+        poolAdmin
       } = fixture;
 
       // Setup
@@ -923,7 +923,7 @@ describe("Loan", () => {
       await loan
         .connect(borrower)
         .postFungibleCollateral(collateralAsset.address, 100);
-      await pool.connect(poolManager).fundLoan(loan.address);
+      await pool.connect(poolAdmin).fundLoan(loan.address);
       await loan.connect(borrower).drawdown(await loan.principal());
 
       // Make payment
@@ -949,7 +949,7 @@ describe("Loan", () => {
         liquidityAsset,
         loan,
         pool,
-        poolManager
+        poolAdmin
       } = fixture;
 
       // Setup
@@ -957,7 +957,7 @@ describe("Loan", () => {
       await loan
         .connect(borrower)
         .postFungibleCollateral(collateralAsset.address, 100);
-      await pool.connect(poolManager).fundLoan(loan.address);
+      await pool.connect(poolAdmin).fundLoan(loan.address);
       await loan.connect(borrower).drawdown(await loan.principal());
 
       // Advance time to drop dead timestamp
@@ -987,7 +987,7 @@ describe("Loan", () => {
         liquidityAsset,
         loan,
         pool,
-        poolManager
+        poolAdmin
       } = fixture;
 
       // Setup
@@ -995,7 +995,7 @@ describe("Loan", () => {
       await loan
         .connect(borrower)
         .postFungibleCollateral(collateralAsset.address, 100);
-      await pool.connect(poolManager).fundLoan(loan.address);
+      await pool.connect(poolAdmin).fundLoan(loan.address);
       await loan.connect(borrower).drawdown(await loan.principal());
 
       // Mint additional tokens to cover the interest payments
@@ -1032,7 +1032,7 @@ describe("Loan", () => {
         liquidityAsset,
         loan,
         pool,
-        poolManager
+        poolAdmin
       } = fixture;
 
       // Setup
@@ -1040,7 +1040,7 @@ describe("Loan", () => {
       await loan
         .connect(borrower)
         .postFungibleCollateral(collateralAsset.address, 100);
-      await pool.connect(poolManager).fundLoan(loan.address);
+      await pool.connect(poolAdmin).fundLoan(loan.address);
       await loan.connect(borrower).drawdown(await loan.principal());
 
       // Mint additional tokens to cover the interest payments
@@ -1070,7 +1070,7 @@ describe("Loan", () => {
         liquidityAsset,
         loan,
         pool,
-        poolManager
+        poolAdmin
       } = fixture;
 
       // Setup
@@ -1078,7 +1078,7 @@ describe("Loan", () => {
       await loan
         .connect(borrower)
         .postFungibleCollateral(collateralAsset.address, 100);
-      await pool.connect(poolManager).fundLoan(loan.address);
+      await pool.connect(poolAdmin).fundLoan(loan.address);
       await loan.connect(borrower).drawdown(await loan.principal());
       expect(await pool.poolFeePercentOfInterest()).to.equal(100);
 
@@ -1107,7 +1107,7 @@ describe("Loan", () => {
         liquidityAsset,
         loan,
         pool,
-        poolManager
+        poolAdmin
       } = fixture;
 
       // Setup
@@ -1115,7 +1115,7 @@ describe("Loan", () => {
       await loan
         .connect(borrower)
         .postFungibleCollateral(collateralAsset.address, 100);
-      await pool.connect(poolManager).fundLoan(loan.address);
+      await pool.connect(poolAdmin).fundLoan(loan.address);
       await loan.connect(borrower).drawdown(await loan.principal());
       expect(await loan.originationFee()).to.equal(416);
 
@@ -1144,12 +1144,12 @@ describe("Loan", () => {
   describe("callbacks", () => {
     it("can be called back by pool admin", async () => {
       const fixture = await loadFixture(deployFixture);
-      const { poolManager, loan } = fixture;
+      const { poolAdmin, loan } = fixture;
 
       // Callback timestamp defaults to 0
       expect(await loan.callbackTimestamp()).to.equal(0);
 
-      const tx = loan.connect(poolManager).markCallback();
+      const tx = loan.connect(poolAdmin).markCallback();
       await expect(tx).not.to.be.reverted;
 
       // Callback timestamp should be set to latest block timestamp
@@ -1177,7 +1177,7 @@ describe("Loan", () => {
         liquidityAsset,
         loan,
         pool,
-        poolManager
+        poolAdmin
       } = fixture;
 
       // Setup and fund loan
@@ -1187,7 +1187,7 @@ describe("Loan", () => {
           .connect(borrower)
           .postFungibleCollateral(collateralAsset.address, 100)
       ).not.to.be.reverted;
-      await expect(pool.connect(poolManager).fundLoan(loan.address)).not.to.be
+      await expect(pool.connect(poolAdmin).fundLoan(loan.address)).not.to.be
         .reverted;
       expect(await loan.state()).to.equal(4);
 
@@ -1225,7 +1225,7 @@ describe("Loan", () => {
         liquidityAsset,
         loan,
         pool,
-        poolManager
+        poolAdmin
       } = fixture;
 
       // Setup
@@ -1233,7 +1233,7 @@ describe("Loan", () => {
       await loan
         .connect(borrower)
         .postFungibleCollateral(collateralAsset.address, 100);
-      await pool.connect(poolManager).fundLoan(loan.address);
+      await pool.connect(poolAdmin).fundLoan(loan.address);
       await loan.connect(borrower).drawdown(await loan.principal());
 
       // Funding vault will now have no tokens.
@@ -1304,9 +1304,9 @@ describe("Loan", () => {
         prepaidPrincipal
       );
 
-      // Pool Manager can then reclaim the funds
+      // Pool Admin can then reclaim the funds
       const reclaimFundsTx = loan
-        .connect(poolManager)
+        .connect(poolAdmin)
         .reclaimFunds(prepaidPrincipal);
       await expect(reclaimFundsTx).to.not.be.reverted;
       await expect(reclaimFundsTx).to.changeTokenBalance(

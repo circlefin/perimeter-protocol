@@ -23,7 +23,7 @@ contract Pool is IPool, ERC20 {
     using SafeMath for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    address private _manager;
+    address private _admin;
     address private immutable _factory;
     IServiceConfiguration private _serviceConfiguration;
     IERC20 private _liquidityAsset;
@@ -57,12 +57,12 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
-     * @dev Modifier that checks that the caller is the pool's manager.
+     * @dev Modifier that checks that the caller is the pool's admin.
      */
-    modifier onlyManager() {
+    modifier onlyAdmin() {
         require(
-            _manager != address(0) && msg.sender == _manager,
-            "Pool: caller is not manager"
+            _admin != address(0) && msg.sender == _admin,
+            "Pool: caller is not admin"
         );
         _;
     }
@@ -125,7 +125,7 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev Constructor for Pool
      * @param liquidityAsset asset held by the poo
-     * @param poolManager manager of the pool
+     * @param poolAdmin admin of the pool
      * @param poolSettings configurable settings for the pool
      * @param serviceConfiguration address of global service configuration
      * @param tokenName Name used for issued pool tokens
@@ -134,7 +134,7 @@ contract Pool is IPool, ERC20 {
     constructor(
         address factory,
         address liquidityAsset,
-        address poolManager,
+        address poolAdmin,
         address serviceConfiguration,
         IPoolConfigurableSettings memory poolSettings,
         string memory tokenName,
@@ -143,7 +143,7 @@ contract Pool is IPool, ERC20 {
         _factory = factory;
         _liquidityAsset = IERC20(liquidityAsset);
         _poolSettings = poolSettings;
-        _manager = poolManager;
+        _admin = poolAdmin;
         _serviceConfiguration = IServiceConfiguration(serviceConfiguration);
         _firstLossVault = new FirstLossVault(address(this), liquidityAsset);
         _feeVault = new FeeVault(address(this));
@@ -192,12 +192,12 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
-     * @dev Allow the current pool manager to update the pool fees
+     * @dev Allow the current pool admin to update the pool fees
      * before the pool has been activated.
      */
     function setRequestFee(uint256 feeBps)
         external
-        onlyManager
+        onlyAdmin
         atState(IPoolLifeCycleState.Initialized)
     {
         _poolSettings.requestFeeBps = feeBps;
@@ -219,12 +219,12 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
-     * @dev Allow the current pool manager to update the withdraw gate at any
+     * @dev Allow the current pool admin to update the withdraw gate at any
      * time if the pool is Initialized or Active
      */
     function setWithdrawGate(uint256 _withdrawGateBps)
         external
-        onlyManager
+        onlyAdmin
         atInitializedOrActiveState
     {
         _poolSettings.withdrawGateBps = _withdrawGateBps;
@@ -242,10 +242,10 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
-     * @dev The manager of the pool
+     * @dev The admin of the pool
      */
-    function manager() external view override returns (address) {
-        return _manager;
+    function admin() external view override returns (address) {
+        return _admin;
     }
 
     /**
@@ -284,11 +284,11 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
-     * @dev Supplies first-loss to the pool. Can only be called by the Pool Manager.
+     * @dev Supplies first-loss to the pool. Can only be called by the Pool Admin.
      */
     function depositFirstLoss(uint256 amount, address spender)
         external
-        onlyManager
+        onlyAdmin
         atInitializedOrActiveState
     {
         IPoolLifeCycleState poolLifeCycleState = PoolLib
@@ -309,7 +309,7 @@ contract Pool is IPool, ERC20 {
      */
     function withdrawFirstLoss(uint256 amount, address receiver)
         external
-        onlyManager
+        onlyAdmin
         atState(IPoolLifeCycleState.Closed)
         returns (uint256)
     {
@@ -325,7 +325,7 @@ contract Pool is IPool, ERC20 {
     /**
      * @inheritdoc IPool
      */
-    function updatePoolCapacity(uint256 newCapacity) external onlyManager {
+    function updatePoolCapacity(uint256 newCapacity) external onlyAdmin {
         require(newCapacity >= totalAssets(), "Pool: invalid capacity");
         _poolSettings.maxCapacity = newCapacity;
         emit PoolSettingsUpdated();
@@ -334,16 +334,16 @@ contract Pool is IPool, ERC20 {
     /**
      * @inheritdoc IPool
      */
-    function updatePoolEndDate(uint256 endDate) external onlyManager {
+    function updatePoolEndDate(uint256 endDate) external onlyAdmin {
         PoolLib.executeUpdateEndDate(endDate, _poolSettings);
     }
 
     /**
-     * @dev Called by the pool manager, this transfers liquidity from the pool to a given loan.
+     * @dev Called by the pool admin, this transfers liquidity from the pool to a given loan.
      */
     function fundLoan(address addr)
         external
-        onlyManager
+        onlyAdmin
         atState(IPoolLifeCycleState.Active)
         isPoolLoan(addr)
     {
@@ -365,7 +365,7 @@ contract Pool is IPool, ERC20 {
     /**
      * @inheritdoc IPool
      */
-    function defaultLoan(address loan) external onlyManager {
+    function defaultLoan(address loan) external onlyAdmin {
         require(loan != address(0), "Pool: 0 address");
         IPoolLifeCycleState state = lifeCycleState();
         require(
@@ -419,7 +419,7 @@ contract Pool is IPool, ERC20 {
         );
     }
 
-    function claimFixedFee() external onlyManager {
+    function claimFixedFee() external onlyAdmin {
         require(
             _accountings.fixedFeeDueDate < block.timestamp,
             "Pool: fixed fee not due"

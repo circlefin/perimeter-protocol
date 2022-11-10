@@ -35,14 +35,14 @@ describe("PermissionedPoolFactory", () => {
       .connect(operator)
       .updateTermsOfService("https://terms.example");
 
-    // Deploy the PoolManagerAccessControl contract
-    const PoolManagerAccessControl = await ethers.getContractFactory(
-      "PoolManagerAccessControl"
+    // Deploy the PoolAdminAccessControl contract
+    const PoolAdminAccessControl = await ethers.getContractFactory(
+      "PoolAdminAccessControl"
     );
-    const poolManagerAccessControl = await PoolManagerAccessControl.deploy(
+    const poolAdminAccessControl = await PoolAdminAccessControl.deploy(
       permissionedServiceConfiguration.address
     );
-    await poolManagerAccessControl.deployed();
+    await poolAdminAccessControl.deployed();
 
     // Deploy library for linking
     const PoolLib = await ethers.getContractFactory("PoolLib");
@@ -63,10 +63,9 @@ describe("PermissionedPoolFactory", () => {
     await poolFactory.deployed();
 
     // Initialize ServiceConfiguration
-    const tx =
-      await permissionedServiceConfiguration.setPoolManagerAccessControl(
-        poolManagerAccessControl.address
-      );
+    const tx = await permissionedServiceConfiguration.setPoolAdminAccessControl(
+      poolAdminAccessControl.address
+    );
     await tx.wait();
 
     const PoolWithdrawManagerFactory = await ethers.getContractFactory(
@@ -84,7 +83,7 @@ describe("PermissionedPoolFactory", () => {
 
     return {
       poolFactory,
-      poolManagerAccessControl,
+      poolAdminAccessControl,
       operator,
       otherAccount,
       liquidityAsset,
@@ -96,7 +95,7 @@ describe("PermissionedPoolFactory", () => {
   it("emits PoolCreated", async () => {
     const {
       poolFactory,
-      poolManagerAccessControl,
+      poolAdminAccessControl,
       otherAccount,
       liquidityAsset,
       tosAcceptanceRegistry,
@@ -104,7 +103,7 @@ describe("PermissionedPoolFactory", () => {
     } = await loadFixture(deployFixture);
 
     await tosAcceptanceRegistry.connect(otherAccount).acceptTermsOfService();
-    await poolManagerAccessControl.allow(otherAccount.getAddress());
+    await poolAdminAccessControl.allow(otherAccount.getAddress());
 
     await expect(
       poolFactory
@@ -117,10 +116,10 @@ describe("PermissionedPoolFactory", () => {
     ).to.emit(poolFactory, "PoolCreated");
   });
 
-  it("reverts if not called by a Pool Manager", async () => {
+  it("reverts if not called by a Pool Admin", async () => {
     const {
       poolFactory,
-      poolManagerAccessControl,
+      poolAdminAccessControl,
       otherAccount,
       liquidityAsset,
       tosAcceptanceRegistry,
@@ -128,7 +127,7 @@ describe("PermissionedPoolFactory", () => {
     } = await loadFixture(deployFixture);
 
     await tosAcceptanceRegistry.connect(otherAccount).acceptTermsOfService();
-    await poolManagerAccessControl.allow(otherAccount.getAddress());
+    await poolAdminAccessControl.allow(otherAccount.getAddress());
 
     await expect(
       poolFactory.createPool(
@@ -136,16 +135,16 @@ describe("PermissionedPoolFactory", () => {
         poolWithdrawManagerFactory.address,
         DEFAULT_POOL_SETTINGS
       )
-    ).to.be.revertedWith("caller is not allowed pool manager");
+    ).to.be.revertedWith("caller is not allowed pool admin");
   });
 
   it("access control reverts if PM hasn't accepted ToS", async () => {
-    const { poolManagerAccessControl, otherAccount } = await loadFixture(
+    const { poolAdminAccessControl, otherAccount } = await loadFixture(
       deployFixture
     );
 
     await expect(
-      poolManagerAccessControl.allow(otherAccount.getAddress())
+      poolAdminAccessControl.allow(otherAccount.getAddress())
     ).to.be.revertedWith("Pool: no ToS acceptance recorded");
   });
 });

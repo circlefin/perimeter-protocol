@@ -155,7 +155,7 @@ library PoolLib {
     }
 
     /**
-     * @dev Withdraws first loss capital. Can only be called by the Pool manager under certain conditions.
+     * @dev Withdraws first loss capital. Can only be called by the Pool admin under certain conditions.
      * @param amount Amount of first loss being withdrawn
      * @param withdrawReceiver Where the liquidity should be withdrawn to
      * @param firstLossVault Vault holding first loss

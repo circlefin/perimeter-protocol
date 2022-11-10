@@ -39,21 +39,21 @@ export async function deployPermissionedServiceConfiguration(operator: any) {
     .connect(operator)
     .setToSAcceptanceRegistry(tosAcceptanceRegistry.address);
 
-  const PoolManagerAccessControl = await ethers.getContractFactory(
-    "PoolManagerAccessControl"
+  const PoolAdminAccessControl = await ethers.getContractFactory(
+    "PoolAdminAccessControl"
   );
-  const poolManagerAccessControl = await PoolManagerAccessControl.deploy(
+  const poolAdminAccessControl = await PoolAdminAccessControl.deploy(
     serviceConfiguration.address
   );
-  await poolManagerAccessControl.deployed();
+  await poolAdminAccessControl.deployed();
 
   await serviceConfiguration
     .connect(operator)
-    .setPoolManagerAccessControl(poolManagerAccessControl.address);
+    .setPoolAdminAccessControl(poolAdminAccessControl.address);
 
   return {
     serviceConfiguration,
     tosAcceptanceRegistry,
-    poolManagerAccessControl
+    poolAdminAccessControl
   };
 }
