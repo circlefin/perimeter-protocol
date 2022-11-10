@@ -39,7 +39,7 @@ describe("Business Scenario 2", () => {
   }
 
   async function fixtures() {
-    const [operator, poolManager, lenderA, lenderB, borrower] =
+    const [operator, poolAdmin, lenderA, lenderB, borrower] =
       await ethers.getSigners();
     const endTime = (await time.latest()) + 5_184_000; // 60 days.
     const poolSettings = {
@@ -53,7 +53,7 @@ describe("Business Scenario 2", () => {
     );
     const { pool, serviceConfiguration } = await deployPool({
       operator,
-      poolAdmin: poolManager,
+      poolAdmin: poolAdmin,
       settings: poolSettings,
       liquidityAsset: mockUSDC
     });
@@ -62,7 +62,7 @@ describe("Business Scenario 2", () => {
     expect(await serviceConfiguration.firstLossFeeBps()).to.equal(500);
 
     // activate pool
-    await activatePool(pool, poolManager, mockUSDC);
+    await activatePool(pool, poolAdmin, mockUSDC);
     const startTime = (await pool.poolActivatedAt()).toNumber();
 
     // Mint for lenders
@@ -97,7 +97,7 @@ describe("Business Scenario 2", () => {
       lenderA,
       lenderB,
       mockUSDC,
-      poolManager,
+      poolAdmin,
       borrower,
       loan
     };
@@ -110,7 +110,7 @@ describe("Business Scenario 2", () => {
       lenderA,
       lenderB,
       mockUSDC,
-      poolManager,
+      poolAdmin,
       borrower,
       loan
     } = await loadFixture(fixtures);
@@ -119,7 +119,7 @@ describe("Business Scenario 2", () => {
     // check that FL is zero
     expect(await pool.firstLoss()).to.equal(0);
     // Check that PM has no USDC balance
-    expect(await mockUSDC.balanceOf(poolManager.address)).to.equal(0);
+    expect(await mockUSDC.balanceOf(poolAdmin.address)).to.equal(0);
 
     // +2 days, lenderA deposits
     await advanceToDay(startTime, 2);
@@ -149,7 +149,7 @@ describe("Business Scenario 2", () => {
 
     // +4  days, loan is funded
     await advanceToDay(startTime, 4);
-    await fundLoan(loan, pool, poolManager);
+    await fundLoan(loan, pool, poolAdmin);
     await loan.connect(borrower).drawdown(INPUTS.loan.principal);
 
     // +7 days, lenderA requests 200k PT redemption

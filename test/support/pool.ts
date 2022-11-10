@@ -116,11 +116,11 @@ export async function deployPermissionedPool({
   const {
     serviceConfiguration,
     tosAcceptanceRegistry,
-    poolManagerAccessControl
+    poolAdminAccessControl
   } = await deployPermissionedServiceConfiguration(operator);
 
   await tosAcceptanceRegistry.connect(poolAdmin).acceptTermsOfService();
-  await poolManagerAccessControl.connect(operator).allow(poolAdmin.address);
+  await poolAdminAccessControl.connect(operator).allow(poolAdmin.address);
 
   const PoolLib = await ethers.getContractFactory("PoolLib");
   const poolLib = await PoolLib.deploy();
@@ -181,7 +181,7 @@ export async function deployPermissionedPool({
     serviceConfiguration,
     poolWithdrawManager,
     tosAcceptanceRegistry,
-    poolManagerAccessControl
+    poolAdminAccessControl
   };
 }
 
@@ -190,19 +190,19 @@ export async function deployPermissionedPool({
  */
 export async function activatePool(
   pool: Pool,
-  poolManager: any,
+  poolAdmin: any,
   liquidityAsset: MockERC20
 ) {
   const { firstLossInitialMinimum } = await pool.settings();
 
   // Grant allowance
   await liquidityAsset
-    .connect(poolManager)
+    .connect(poolAdmin)
     .approve(pool.address, firstLossInitialMinimum);
 
   await pool
-    .connect(poolManager)
-    .depositFirstLoss(firstLossInitialMinimum, poolManager.address);
+    .connect(poolAdmin)
+    .depositFirstLoss(firstLossInitialMinimum, poolAdmin.address);
 
   return { pool, liquidityAsset };
 }

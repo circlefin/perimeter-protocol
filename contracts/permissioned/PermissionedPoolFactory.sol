@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
-import "./interfaces/IPoolManagerAccessControl.sol";
+import "./interfaces/IPoolAdminAccessControl.sol";
 import "./interfaces/IPermissionedServiceConfiguration.sol";
 import "../interfaces/IPoolWithdrawManagerFactory.sol";
 import "../PoolFactory.sol";
@@ -25,14 +25,14 @@ contract PermissionedPoolFactory is PoolFactory {
     }
 
     /**
-     * @dev Check that `msg.sender` is a PoolManager.
+     * @dev Check that `msg.sender` is a PoolAdmin.
      */
-    modifier onlyVerifiedPoolManager() {
+    modifier onlyVerifiedPoolAdmin() {
         require(
-            _serviceConfiguration.poolManagerAccessControl().isAllowed(
+            _serviceConfiguration.poolAdminAccessControl().isAllowed(
                 msg.sender
             ),
-            "caller is not allowed pool manager"
+            "caller is not allowed pool admin"
         );
         _;
     }
@@ -44,7 +44,7 @@ contract PermissionedPoolFactory is PoolFactory {
         address liquidityAsset,
         address poolWithdrawManagerFactory,
         IPoolConfigurableSettings calldata settings
-    ) public override onlyVerifiedPoolManager returns (address poolAddress) {
+    ) public override onlyVerifiedPoolAdmin returns (address poolAddress) {
         require(
             settings.withdrawRequestPeriodDuration > 0,
             "PoolFactory: Invalid duration"

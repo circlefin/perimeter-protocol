@@ -44,7 +44,7 @@ contract PermissionedPool is Pool {
     constructor(
         address factory,
         address liquidityAsset,
-        address poolManager,
+        address poolAdmin,
         address serviceConfiguration,
         IPoolConfigurableSettings memory poolSettings,
         string memory tokenName,
@@ -53,7 +53,7 @@ contract PermissionedPool is Pool {
         Pool(
             factory,
             liquidityAsset,
-            poolManager,
+            poolAdmin,
             serviceConfiguration,
             poolSettings,
             tokenName,

@@ -11,11 +11,11 @@ import { deployLoan, collateralizeLoan, fundLoan } from "./support/loan";
 
 describe("Pool", () => {
   async function loadPoolFixture() {
-    const [operator, poolManager, borrower, otherAccount, ...otherAccounts] =
+    const [operator, poolAdmin, borrower, otherAccount, ...otherAccounts] =
       await ethers.getSigners();
     const { pool, liquidityAsset, serviceConfiguration } = await deployPool({
       operator,
-      poolAdmin: poolManager
+      poolAdmin: poolAdmin
     });
 
     const CollateralAsset = await ethers.getContractFactory("MockERC20");
@@ -33,7 +33,7 @@ describe("Pool", () => {
       pool,
       collateralAsset,
       liquidityAsset,
-      poolManager,
+      poolAdmin,
       borrower,
       otherAccount,
       loan,
@@ -42,13 +42,13 @@ describe("Pool", () => {
   }
 
   async function loadPoolFixtureWithFees() {
-    const [operator, poolManager, otherAccount] = await ethers.getSigners();
+    const [operator, poolAdmin, otherAccount] = await ethers.getSigners();
     const settings = Object.assign({}, DEFAULT_POOL_SETTINGS);
     settings.fixedFee = 100;
     settings.fixedFeeInterval = 30;
     const { pool, liquidityAsset, serviceConfiguration } = await deployPool({
       operator,
-      poolAdmin: poolManager,
+      poolAdmin: poolAdmin,
       settings
     });
 
@@ -59,20 +59,20 @@ describe("Pool", () => {
       serviceConfiguration
     );
 
-    return { pool, liquidityAsset, poolManager, otherAccount, loan };
+    return { pool, liquidityAsset, poolAdmin, otherAccount, loan };
   }
 
   async function loanPoolFixtureWithMaturedLoan() {
-    const { pool, otherAccount, borrower, liquidityAsset, poolManager, loan } =
+    const { pool, otherAccount, borrower, liquidityAsset, poolAdmin, loan } =
       await loadFixture(loadPoolFixture);
 
-    await activatePool(pool, poolManager, liquidityAsset);
+    await activatePool(pool, poolAdmin, liquidityAsset);
 
     await liquidityAsset.connect(otherAccount).approve(pool.address, 1_000_000);
 
     await depositToPool(pool, otherAccount, liquidityAsset, 1_000_000);
     await collateralizeLoan(loan, borrower, liquidityAsset);
-    await fundLoan(loan, pool, poolManager);
+    await fundLoan(loan, pool, poolAdmin);
     await loan.connect(borrower).drawdown(await loan.principal());
 
     await liquidityAsset.connect(borrower).approve(loan.address, 2_000_000);
@@ -98,18 +98,18 @@ describe("Pool", () => {
 
   describe("setRequestFee()", () => {
     it("sets the request fee in Bps", async () => {
-      const { pool, poolManager } = await loadFixture(loadPoolFixture);
+      const { pool, poolAdmin } = await loadFixture(loadPoolFixture);
 
       const originalSettings = await pool.settings();
       expect(originalSettings.requestFeeBps).to.equal(500);
 
-      await pool.connect(poolManager).setRequestFee(1000);
+      await pool.connect(poolAdmin).setRequestFee(1000);
 
       const settings = await pool.settings();
       expect(settings.requestFeeBps).to.equal(1000);
     });
 
-    it("does not let anyone except the manager to set the fee", async () => {
+    it("does not let anyone except the admin to set the fee", async () => {
       const { pool, otherAccount } = await loadFixture(loadPoolFixture);
 
       const originalSettings = await pool.settings();
@@ -117,42 +117,42 @@ describe("Pool", () => {
 
       await expect(
         pool.connect(otherAccount).setRequestFee(10)
-      ).to.be.revertedWith("Pool: caller is not manager");
+      ).to.be.revertedWith("Pool: caller is not admin");
     });
 
     it("does not allow setting the request fee once the pool is active", async () => {
-      const { pool, poolManager, liquidityAsset } = await loadFixture(
+      const { pool, poolAdmin, liquidityAsset } = await loadFixture(
         loadPoolFixture
       );
 
       const originalSettings = await pool.settings();
       expect(originalSettings.requestFeeBps).to.equal(500);
 
-      await activatePool(pool, poolManager, liquidityAsset);
+      await activatePool(pool, poolAdmin, liquidityAsset);
 
       await expect(
-        pool.connect(poolManager).setRequestFee(10)
+        pool.connect(poolAdmin).setRequestFee(10)
       ).to.be.revertedWith("Pool: FunctionInvalidAtThisLifeCycleState");
     });
   });
 
   describe("setWithdrawGate()", () => {
     it("sets the withdraw gate in Bps", async () => {
-      const { pool, poolManager, liquidityAsset } = await loadFixture(
+      const { pool, poolAdmin, liquidityAsset } = await loadFixture(
         loadPoolFixture
       );
-      await activatePool(pool, poolManager, liquidityAsset);
+      await activatePool(pool, poolAdmin, liquidityAsset);
 
       const originalSettings = await pool.settings();
       expect(originalSettings.withdrawGateBps).to.equal(10_000);
 
-      await pool.connect(poolManager).setWithdrawGate(10);
+      await pool.connect(poolAdmin).setWithdrawGate(10);
 
       const settings = await pool.settings();
       expect(settings.withdrawGateBps).to.equal(10);
     });
 
-    it("does not let anyone except the manager to set the withdraw gate", async () => {
+    it("does not let anyone except the admin to set the withdraw gate", async () => {
       const { pool, otherAccount } = await loadFixture(loadPoolFixture);
 
       const originalSettings = await pool.settings();
@@ -160,7 +160,7 @@ describe("Pool", () => {
 
       await expect(
         pool.connect(otherAccount).setWithdrawGate(10)
-      ).to.be.revertedWith("Pool: caller is not manager");
+      ).to.be.revertedWith("Pool: caller is not admin");
     });
 
     it("does not allow setting the request fee if the pool is paused", async () => {
@@ -176,9 +176,9 @@ describe("Pool", () => {
     });
 
     it("returns 100% if the pool is closed", async () => {
-      const { pool, poolManager } = await loadFixture(loadPoolFixture);
+      const { pool, poolAdmin } = await loadFixture(loadPoolFixture);
 
-      await pool.connect(poolManager).setWithdrawGate(0);
+      await pool.connect(poolAdmin).setWithdrawGate(0);
       expect(await pool.withdrawGate()).to.equal(0);
 
       // TODO: Close Pool
@@ -188,7 +188,7 @@ describe("Pool", () => {
 
   describe("depositFirstLoss()", async () => {
     it("first loss can be deposited and transitions lifecycle state", async () => {
-      const { pool, poolManager, liquidityAsset } = await loadFixture(
+      const { pool, poolAdmin, liquidityAsset } = await loadFixture(
         loadPoolFixture
       );
 
@@ -197,14 +197,14 @@ describe("Pool", () => {
 
       // Grant allowance
       await liquidityAsset
-        .connect(poolManager)
+        .connect(poolAdmin)
         .approve(pool.address, firstLossAmount);
 
       // Contribute first loss
       expect(
         await pool
-          .connect(poolManager)
-          .depositFirstLoss(firstLossAmount, poolManager.address)
+          .connect(poolAdmin)
+          .depositFirstLoss(firstLossAmount, poolAdmin.address)
       ).to.emit(pool.address, "FirstLossDeposited");
 
       // Check balance
@@ -217,24 +217,18 @@ describe("Pool", () => {
 
   describe("withdrawFirstLoss()", async () => {
     it("reverts if pool is not closed", async () => {
-      const { pool, poolManager } = await loadFixture(loadPoolFixture);
+      const { pool, poolAdmin } = await loadFixture(loadPoolFixture);
 
       await expect(
-        pool.connect(poolManager).withdrawFirstLoss(10, poolManager.address)
+        pool.connect(poolAdmin).withdrawFirstLoss(10, poolAdmin.address)
       ).to.be.revertedWith("Pool: FunctionInvalidAtThisLifeCycleState");
     });
 
     it("reverts if pool is closed, but there are still active loans", async () => {
-      const {
-        pool,
-        poolManager,
-        borrower,
-        loan,
-        otherAccount,
-        liquidityAsset
-      } = await loadFixture(loadPoolFixture);
+      const { pool, poolAdmin, borrower, loan, otherAccount, liquidityAsset } =
+        await loadFixture(loadPoolFixture);
 
-      await activatePool(pool, poolManager, liquidityAsset);
+      await activatePool(pool, poolAdmin, liquidityAsset);
       await depositToPool(
         pool,
         otherAccount,
@@ -242,7 +236,7 @@ describe("Pool", () => {
         await loan.principal()
       );
       await collateralizeLoan(loan, borrower, liquidityAsset);
-      await fundLoan(loan, pool, poolManager);
+      await fundLoan(loan, pool, poolAdmin);
       await loan.connect(borrower).drawdown(await loan.principal());
 
       // Fast forward past pool close
@@ -250,21 +244,15 @@ describe("Pool", () => {
       expect(await pool.lifeCycleState()).to.equal(3); // Closed
 
       await expect(
-        pool.connect(poolManager).withdrawFirstLoss(10, poolManager.address)
+        pool.connect(poolAdmin).withdrawFirstLoss(10, poolAdmin.address)
       ).to.be.revertedWith("Pool: loans still active");
     });
 
     it("can withdraw first loss to a receiver", async () => {
-      const {
-        pool,
-        poolManager,
-        borrower,
-        loan,
-        otherAccount,
-        liquidityAsset
-      } = await loadFixture(loadPoolFixture);
+      const { pool, poolAdmin, borrower, loan, otherAccount, liquidityAsset } =
+        await loadFixture(loadPoolFixture);
 
-      await activatePool(pool, poolManager, liquidityAsset);
+      await activatePool(pool, poolAdmin, liquidityAsset);
       await depositToPool(
         pool,
         otherAccount,
@@ -272,7 +260,7 @@ describe("Pool", () => {
         await loan.principal()
       );
       await collateralizeLoan(loan, borrower, liquidityAsset);
-      await fundLoan(loan, pool, poolManager);
+      await fundLoan(loan, pool, poolAdmin);
       await loan.connect(borrower).drawdown(await loan.principal());
 
       // Pay down loan
@@ -291,17 +279,17 @@ describe("Pool", () => {
       const firstLossAmt = await pool.firstLoss();
       const firstLossVault = await pool.firstLossVault();
       const txn = await pool
-        .connect(poolManager)
-        .withdrawFirstLoss(firstLossAmt, poolManager.address);
+        .connect(poolAdmin)
+        .withdrawFirstLoss(firstLossAmt, poolAdmin.address);
       await txn.wait();
 
       expect(txn)
         .to.emit(pool, "FirstLossWithdrawn")
-        .withArgs(poolManager.address, poolManager.address, firstLossAmt);
+        .withArgs(poolAdmin.address, poolAdmin.address, firstLossAmt);
 
       await expect(txn).to.changeTokenBalance(
         liquidityAsset,
-        poolManager.address,
+        poolAdmin.address,
         +firstLossAmt
       );
       await expect(txn).to.changeTokenBalance(
@@ -324,22 +312,22 @@ describe("Pool", () => {
     });
 
     it("depositing mints shares to receiver", async () => {
-      const { pool, otherAccount, liquidityAsset, poolManager } =
+      const { pool, otherAccount, liquidityAsset, poolAdmin } =
         await loadFixture(loadPoolFixture);
 
       const { firstLossInitialMinimum } = await pool.settings();
 
       // First loss must be provided for deposits to open
       await liquidityAsset
-        .connect(poolManager)
+        .connect(poolAdmin)
         .approve(pool.address, firstLossInitialMinimum);
 
       // Contribute first loss
       await pool
-        .connect(poolManager)
+        .connect(poolAdmin)
         .depositFirstLoss(
           DEFAULT_POOL_SETTINGS.firstLossInitialMinimum,
-          poolManager.address
+          poolAdmin.address
         );
 
       // Provide capital to lender
@@ -375,22 +363,22 @@ describe("Pool", () => {
     });
 
     it("minting mints shares to receiver", async () => {
-      const { pool, otherAccount, liquidityAsset, poolManager } =
+      const { pool, otherAccount, liquidityAsset, poolAdmin } =
         await loadFixture(loadPoolFixture);
 
       const { firstLossInitialMinimum } = await pool.settings();
 
       // First loss must be provided for deposits to open
       await liquidityAsset
-        .connect(poolManager)
+        .connect(poolAdmin)
         .approve(pool.address, firstLossInitialMinimum);
 
       // Contribute first loss
       await pool
-        .connect(poolManager)
+        .connect(poolAdmin)
         .depositFirstLoss(
           DEFAULT_POOL_SETTINGS.firstLossInitialMinimum,
-          poolManager.address
+          poolAdmin.address
         );
 
       // Provide capital to lender
@@ -416,19 +404,19 @@ describe("Pool", () => {
 
   describe("defaultLoan()", () => {
     it("reverts if Pool state is initialized", async () => {
-      const { pool, poolManager, loan } = await loadFixture(loadPoolFixture);
+      const { pool, poolAdmin, loan } = await loadFixture(loadPoolFixture);
       await expect(
-        pool.connect(poolManager).defaultLoan(loan.address)
+        pool.connect(poolAdmin).defaultLoan(loan.address)
       ).to.be.revertedWith("Pool: FunctionInvalidAtThisLifeCycleState");
     });
 
     it("reverts if loan if Pool hasn't funded loan yet", async () => {
-      const { pool, poolManager, liquidityAsset, loan } = await loadFixture(
+      const { pool, poolAdmin, liquidityAsset, loan } = await loadFixture(
         loadPoolFixture
       );
-      await activatePool(pool, poolManager, liquidityAsset);
+      await activatePool(pool, poolAdmin, liquidityAsset);
       await expect(
-        pool.connect(poolManager).defaultLoan(loan.address)
+        pool.connect(poolAdmin).defaultLoan(loan.address)
       ).to.be.revertedWith("Pool: unfunded loan");
     });
 
@@ -436,13 +424,13 @@ describe("Pool", () => {
       const {
         collateralAsset,
         pool,
-        poolManager,
+        poolAdmin,
         liquidityAsset,
         loan,
         borrower,
         otherAccount
       } = await loadFixture(loadPoolFixture);
-      await activatePool(pool, poolManager, liquidityAsset);
+      await activatePool(pool, poolAdmin, liquidityAsset);
 
       // Collateralize loan
       await collateralizeLoan(loan, borrower, collateralAsset);
@@ -450,7 +438,7 @@ describe("Pool", () => {
       // Deposit to pool and fund loan
       const loanPrincipal = await loan.principal();
       await depositToPool(pool, otherAccount, liquidityAsset, loanPrincipal);
-      await fundLoan(loan, pool, poolManager);
+      await fundLoan(loan, pool, poolAdmin);
       await loan.connect(borrower).drawdown(await loan.principal());
 
       // Confirm that pool liquidity reserve is now empty
@@ -473,7 +461,7 @@ describe("Pool", () => {
 
       // Trigger default
       // Since first-loss is not enough to cover oustanding debt, all of it is used
-      await expect(pool.connect(poolManager).defaultLoan(loan.address))
+      await expect(pool.connect(poolAdmin).defaultLoan(loan.address))
         .to.emit(pool, "LoanDefaulted")
         .withArgs(loan.address)
         .to.emit(pool, "FirstLossApplied")
@@ -502,14 +490,14 @@ describe("Pool", () => {
       const {
         collateralAsset,
         pool,
-        poolManager,
+        poolAdmin,
         liquidityAsset,
         loan,
         borrower,
         otherAccount
       } = await loadFixture(loadPoolFixture);
 
-      await activatePool(pool, poolManager, liquidityAsset);
+      await activatePool(pool, poolAdmin, liquidityAsset);
       await collateralizeLoan(loan, borrower, collateralAsset);
       await depositToPool(
         pool,
@@ -517,7 +505,7 @@ describe("Pool", () => {
         liquidityAsset,
         await loan.principal()
       );
-      await fundLoan(loan, pool, poolManager);
+      await fundLoan(loan, pool, poolAdmin);
       await loan.connect(borrower).drawdown(await loan.principal());
 
       // Fast forward to pool end date
@@ -525,8 +513,8 @@ describe("Pool", () => {
       expect(await pool.lifeCycleState()).to.equal(3); // Closed
 
       // Default should proceed
-      await expect(pool.connect(poolManager).defaultLoan(loan.address)).not.to
-        .be.reverted;
+      await expect(pool.connect(poolAdmin).defaultLoan(loan.address)).not.to.be
+        .reverted;
     });
   });
 
@@ -536,13 +524,13 @@ describe("Pool", () => {
       const {
         collateralAsset,
         pool,
-        poolManager,
+        poolAdmin,
         liquidityAsset,
         loan,
         borrower
       } = await loadFixture(loadPoolFixture);
 
-      await activatePool(pool, poolManager, liquidityAsset);
+      await activatePool(pool, poolAdmin, liquidityAsset);
       await collateralizeLoan(loan, borrower, collateralAsset);
 
       // setup lender
@@ -561,7 +549,7 @@ describe("Pool", () => {
 
       // Deposit and fund / drawdown loan
       await depositToPool(pool, lender, liquidityAsset, loanAmount);
-      await fundLoan(loan, pool, poolManager);
+      await fundLoan(loan, pool, poolAdmin);
       await loan.connect(borrower).drawdown(await loan.principal());
       const drawdownTime = await time.latest();
 
@@ -584,23 +572,23 @@ describe("Pool", () => {
 
   describe("updatePoolCapacity()", () => {
     it("prevents setting capacity to less than current pool size", async () => {
-      const { pool, otherAccount, poolManager, liquidityAsset } =
+      const { pool, otherAccount, poolAdmin, liquidityAsset } =
         await loadFixture(loadPoolFixture);
 
-      await activatePool(pool, poolManager, liquidityAsset);
+      await activatePool(pool, poolAdmin, liquidityAsset);
       await depositToPool(pool, otherAccount, liquidityAsset, 100);
       await expect(
-        pool.connect(poolManager).updatePoolCapacity(1)
+        pool.connect(poolAdmin).updatePoolCapacity(1)
       ).to.be.revertedWith("Pool: invalid capacity");
     });
 
     it("allows setting pool capacity", async () => {
-      const { pool, otherAccount, poolManager, liquidityAsset } =
+      const { pool, otherAccount, poolAdmin, liquidityAsset } =
         await loadFixture(loadPoolFixture);
 
-      await activatePool(pool, poolManager, liquidityAsset);
+      await activatePool(pool, poolAdmin, liquidityAsset);
       await depositToPool(pool, otherAccount, liquidityAsset, 100);
-      await expect(pool.connect(poolManager).updatePoolCapacity(101)).to.emit(
+      await expect(pool.connect(poolAdmin).updatePoolCapacity(101)).to.emit(
         pool,
         "PoolSettingsUpdated"
       );
@@ -673,32 +661,32 @@ describe("Pool", () => {
 
   describe("updatePoolEndDate()", () => {
     it("reverts if trying to move up end date", async () => {
-      const { pool, poolManager } = await loadFixture(loadPoolFixture);
+      const { pool, poolAdmin } = await loadFixture(loadPoolFixture);
 
       const newEndDate = (await pool.settings()).endDate.add(1);
 
       await expect(
-        pool.connect(poolManager).updatePoolEndDate(newEndDate)
+        pool.connect(poolAdmin).updatePoolEndDate(newEndDate)
       ).to.be.revertedWith("Pool: can't move end date up");
     });
 
     it("reverts if trying to set end date to be in the past", async () => {
-      const { pool, poolManager } = await loadFixture(loadPoolFixture);
+      const { pool, poolAdmin } = await loadFixture(loadPoolFixture);
 
       const now = time.latest();
 
       await expect(
-        pool.connect(poolManager).updatePoolEndDate(now)
+        pool.connect(poolAdmin).updatePoolEndDate(now)
       ).to.be.revertedWith("Pool: can't move end date into the past");
     });
 
     it("allows moving up the pool end date", async () => {
-      const { pool, poolManager } = await loadFixture(loadPoolFixture);
+      const { pool, poolAdmin } = await loadFixture(loadPoolFixture);
 
       const newEndDate = (await pool.settings()).endDate.sub(1);
 
       await expect(
-        pool.connect(poolManager).updatePoolEndDate(newEndDate)
+        pool.connect(poolAdmin).updatePoolEndDate(newEndDate)
       ).to.emit(pool, "PoolSettingsUpdated");
       expect((await pool.settings()).endDate).to.equal(newEndDate);
     });
@@ -706,139 +694,139 @@ describe("Pool", () => {
 
   describe("Permissions", () => {
     describe("updatePoolCapacity()", () => {
-      it("reverts if not called by Pool Manager", async () => {
+      it("reverts if not called by Pool Admin", async () => {
         const { pool, otherAccount } = await loadFixture(loadPoolFixture);
 
         await expect(
           pool.connect(otherAccount).updatePoolCapacity(1)
-        ).to.be.revertedWith("Pool: caller is not manager");
+        ).to.be.revertedWith("Pool: caller is not admin");
       });
     });
 
     describe("updatePoolEndDate()", () => {
-      it("reverts if not called by Pool Manager", async () => {
+      it("reverts if not called by Pool Admin", async () => {
         const { pool, otherAccount } = await loadFixture(loadPoolFixture);
 
         await expect(
           pool.connect(otherAccount).updatePoolEndDate(1)
-        ).to.be.revertedWith("Pool: caller is not manager");
+        ).to.be.revertedWith("Pool: caller is not admin");
       });
     });
 
     describe("fundLoan()", () => {
-      it("reverts if not called by Pool Manager", async () => {
+      it("reverts if not called by Pool Admin", async () => {
         const { pool, otherAccount } = await loadFixture(loadPoolFixture);
 
         await expect(
           pool.connect(otherAccount).fundLoan(otherAccount.address)
-        ).to.be.revertedWith("Pool: caller is not manager");
+        ).to.be.revertedWith("Pool: caller is not admin");
       });
 
       it("reverts if pool is not active", async () => {
-        const { pool, otherAccount, poolManager } = await loadFixture(
+        const { pool, otherAccount, poolAdmin } = await loadFixture(
           loadPoolFixture
         );
 
         expect(await pool.lifeCycleState()).to.equal(0); // initialized
 
         await expect(
-          pool.connect(poolManager).fundLoan(otherAccount.address)
+          pool.connect(poolAdmin).fundLoan(otherAccount.address)
         ).to.be.revertedWith("Pool: FunctionInvalidAtThisLifeCycleState");
       });
 
       it("reverts if loan address is not recognized", async () => {
-        const { pool, liquidityAsset, otherAccount, poolManager } =
+        const { pool, liquidityAsset, otherAccount, poolAdmin } =
           await loadFixture(loadPoolFixture);
 
         expect(await pool.lifeCycleState()).to.equal(0); // initialized
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
 
-        await expect(pool.connect(poolManager).fundLoan(otherAccount.address))
-          .to.be.reverted;
+        await expect(pool.connect(poolAdmin).fundLoan(otherAccount.address)).to
+          .be.reverted;
       });
     });
 
     describe("defaultLoan()", () => {
-      it("reverts if not called by Pool Manager", async () => {
+      it("reverts if not called by Pool Admin", async () => {
         const { pool, otherAccount } = await loadFixture(loadPoolFixture);
 
         await expect(
           pool.connect(otherAccount).defaultLoan(otherAccount.address)
-        ).to.be.revertedWith("Pool: caller is not manager");
+        ).to.be.revertedWith("Pool: caller is not admin");
       });
     });
 
     describe("depositFirstLoss()", () => {
-      it("reverts if not called by Pool Manager", async () => {
+      it("reverts if not called by Pool Admin", async () => {
         const { pool, otherAccount } = await loadFixture(loadPoolFixture);
 
         await expect(
           pool.connect(otherAccount).depositFirstLoss(100, otherAccount.address)
-        ).to.be.revertedWith("Pool: caller is not manager");
+        ).to.be.revertedWith("Pool: caller is not admin");
       });
     });
 
     describe("withdrawFirstLoss()", () => {
-      it("reverts if not called by Pool Manager", async () => {
+      it("reverts if not called by Pool Admin", async () => {
         const { pool, otherAccount } = await loadFixture(loadPoolFixture);
 
         await expect(
           pool
             .connect(otherAccount)
             .withdrawFirstLoss(100, otherAccount.address)
-        ).to.be.revertedWith("Pool: caller is not manager");
+        ).to.be.revertedWith("Pool: caller is not admin");
       });
     });
   });
 
   describe("transfer()", async () => {
     it("transfers are disabled", async () => {
-      const { pool, poolManager, otherAccount } = await loadFixture(
+      const { pool, poolAdmin, otherAccount } = await loadFixture(
         loadPoolFixture
       );
 
-      pool.mint(10, poolManager.address);
+      pool.mint(10, poolAdmin.address);
       await expect(
-        pool.connect(poolManager).transfer(otherAccount.address, 10)
+        pool.connect(poolAdmin).transfer(otherAccount.address, 10)
       ).to.be.revertedWith("Pool: transfers disabled");
     });
 
     it("transfer to zero address is denied", async () => {
-      const { pool, poolManager } = await loadFixture(loadPoolFixture);
+      const { pool, poolAdmin } = await loadFixture(loadPoolFixture);
 
-      pool.mint(10, poolManager.address);
+      pool.mint(10, poolAdmin.address);
       await expect(
-        pool.connect(poolManager).transfer(ethers.constants.AddressZero, 10)
+        pool.connect(poolAdmin).transfer(ethers.constants.AddressZero, 10)
       ).to.be.revertedWith("ERC20: transfer to the zero address");
     });
   });
 
   describe("transferFrom()", async () => {
     it("transfers are disabled", async () => {
-      const { pool, poolManager, otherAccount } = await loadFixture(
+      const { pool, poolAdmin, otherAccount } = await loadFixture(
         loadPoolFixture
       );
 
-      pool.mint(10, poolManager.address);
-      pool.connect(poolManager).approve(otherAccount.address, 10);
+      pool.mint(10, poolAdmin.address);
+      pool.connect(poolAdmin).approve(otherAccount.address, 10);
       await expect(
         pool
           .connect(otherAccount)
-          .transferFrom(poolManager.address, otherAccount.address, 10)
+          .transferFrom(poolAdmin.address, otherAccount.address, 10)
       ).to.be.revertedWith("Pool: transfers disabled");
     });
 
     it("transfer to zero address is denied", async () => {
-      const { pool, poolManager, otherAccount } = await loadFixture(
+      const { pool, poolAdmin, otherAccount } = await loadFixture(
         loadPoolFixture
       );
 
-      pool.mint(10, poolManager.address);
-      pool.connect(poolManager).approve(otherAccount.address, 10);
+      pool.mint(10, poolAdmin.address);
+      pool.connect(poolAdmin).approve(otherAccount.address, 10);
       await expect(
         pool
           .connect(otherAccount)
-          .transferFrom(poolManager.address, ethers.constants.AddressZero, 10)
+          .transferFrom(poolAdmin.address, ethers.constants.AddressZero, 10)
       ).to.be.revertedWith("ERC20: transfer to the zero address");
     });
   });
@@ -852,19 +840,19 @@ describe("Pool", () => {
       });
 
       it("returns the first period when the pool is activated", async () => {
-        const { pool, poolManager, liquidityAsset } = await loadFixture(
+        const { pool, poolAdmin, liquidityAsset } = await loadFixture(
           loadPoolFixture
         );
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
 
         expect(await pool.withdrawPeriod()).to.equal(0);
       });
 
       it("returns the second period when the first period has ended", async () => {
-        const { pool, poolManager, liquidityAsset } = await loadFixture(
+        const { pool, poolAdmin, liquidityAsset } = await loadFixture(
           loadPoolFixture
         );
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
 
         const { withdrawRequestPeriodDuration } = await pool.settings();
         await time.increase(withdrawRequestPeriodDuration);
@@ -875,9 +863,9 @@ describe("Pool", () => {
 
     describe("requestFee()", () => {
       it("returns the number of shares that will be charged to make this request", async () => {
-        const { pool, poolManager } = await loadFixture(loadPoolFixture);
+        const { pool, poolAdmin } = await loadFixture(loadPoolFixture);
 
-        await pool.connect(poolManager).setRequestFee(500); // 5%
+        await pool.connect(poolAdmin).setRequestFee(500); // 5%
 
         expect(await pool.requestFee(1_000)).to.equal(50);
       });
@@ -885,9 +873,9 @@ describe("Pool", () => {
 
     describe("maxRedeemRequest()", () => {
       it("returns the current number of shares minus fees if no requests have been made", async () => {
-        const { pool, poolManager, otherAccount, liquidityAsset } =
+        const { pool, poolAdmin, otherAccount, liquidityAsset } =
           await loadFixture(loadPoolFixture);
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
 
         expect(
@@ -898,9 +886,9 @@ describe("Pool", () => {
       });
 
       it("returns the current number of shares minus existing requests and fees if any", async () => {
-        const { pool, poolManager, otherAccount, liquidityAsset } =
+        const { pool, poolAdmin, otherAccount, liquidityAsset } =
           await loadFixture(loadPoolFixture);
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
 
         await pool.connect(otherAccount).requestRedeem(51);
@@ -913,9 +901,9 @@ describe("Pool", () => {
       });
 
       it("returns 0 if the requested balance is > what is available", async () => {
-        const { pool, poolManager, otherAccount, liquidityAsset } =
+        const { pool, poolAdmin, otherAccount, liquidityAsset } =
           await loadFixture(loadPoolFixture);
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
 
         const max = await pool.maxRedeemRequest(otherAccount.address);
@@ -929,9 +917,9 @@ describe("Pool", () => {
       });
 
       it("allows calling this method to check another lender", async () => {
-        const { pool, poolManager, otherAccount, liquidityAsset } =
+        const { pool, poolAdmin, otherAccount, liquidityAsset } =
           await loadFixture(loadPoolFixture);
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
 
         await pool.connect(otherAccount).requestRedeem(51);
@@ -942,11 +930,11 @@ describe("Pool", () => {
 
     describe("previewRedeemRequest", () => {
       it("returns the number of assets, minus fees, rounded down, that would be transferred in this redeem request, regardless of caller balance", async () => {
-        const { pool, poolManager, liquidityAsset } = await loadFixture(
+        const { pool, poolAdmin, liquidityAsset } = await loadFixture(
           loadPoolFixture
         );
-        await pool.connect(poolManager).setRequestFee(1000); // 10%
-        await activatePool(pool, poolManager, liquidityAsset);
+        await pool.connect(poolAdmin).setRequestFee(1000); // 10%
+        await activatePool(pool, poolAdmin, liquidityAsset);
 
         // TODO: Show a non 1:1 share value
         expect(await pool.previewRedeemRequest(27)).to.equal(24);
@@ -963,10 +951,10 @@ describe("Pool", () => {
       });
 
       it("reverts if the lender has a zero balance", async () => {
-        const { pool, poolManager, liquidityAsset } = await loadFixture(
+        const { pool, poolAdmin, liquidityAsset } = await loadFixture(
           loadPoolFixture
         );
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
 
         await expect(pool.requestRedeem(100)).to.be.revertedWith(
           "Pool: caller is not a lender"
@@ -974,9 +962,9 @@ describe("Pool", () => {
       });
 
       it("reverts if the lender is requesting to redeem more than their balance", async () => {
-        const { pool, poolManager, liquidityAsset, otherAccount } =
+        const { pool, poolAdmin, liquidityAsset, otherAccount } =
           await loadFixture(loadPoolFixture);
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
 
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
 
@@ -988,9 +976,9 @@ describe("Pool", () => {
       });
 
       it("performs a redeem request, paying the fee", async () => {
-        const { pool, poolManager, liquidityAsset, otherAccount } =
+        const { pool, poolAdmin, liquidityAsset, otherAccount } =
           await loadFixture(loadPoolFixture);
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
 
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
 
@@ -1003,9 +991,9 @@ describe("Pool", () => {
       });
 
       it("emits a RedeemRequested event if the lender requests a valid amount", async () => {
-        const { pool, poolManager, liquidityAsset, otherAccount } =
+        const { pool, poolAdmin, liquidityAsset, otherAccount } =
           await loadFixture(loadPoolFixture);
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
 
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
         const max = await pool.maxRedeemRequest(otherAccount.address);
@@ -1018,9 +1006,9 @@ describe("Pool", () => {
 
     describe("maxWithdrawRequest(address)", () => {
       it("returns the current number of assets minus fees if no requests have been made", async () => {
-        const { pool, poolManager, otherAccount, liquidityAsset } =
+        const { pool, poolAdmin, otherAccount, liquidityAsset } =
           await loadFixture(loadPoolFixture);
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
 
         expect(
@@ -1031,9 +1019,9 @@ describe("Pool", () => {
       });
 
       it("returns the current number of assets minus existing requests and fees if any", async () => {
-        const { pool, poolManager, otherAccount, liquidityAsset } =
+        const { pool, poolAdmin, otherAccount, liquidityAsset } =
           await loadFixture(loadPoolFixture);
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
 
         await pool.connect(otherAccount).requestWithdraw(51);
@@ -1046,9 +1034,9 @@ describe("Pool", () => {
       });
 
       it("returns 0 if the requested balance is > what is available", async () => {
-        const { pool, poolManager, otherAccount, liquidityAsset } =
+        const { pool, poolAdmin, otherAccount, liquidityAsset } =
           await loadFixture(loadPoolFixture);
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
 
         const max = await pool.maxWithdrawRequest(otherAccount.address);
@@ -1062,9 +1050,9 @@ describe("Pool", () => {
       });
 
       it("allows calling this method to check another lender", async () => {
-        const { pool, poolManager, otherAccount, liquidityAsset } =
+        const { pool, poolAdmin, otherAccount, liquidityAsset } =
           await loadFixture(loadPoolFixture);
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
 
         await pool.connect(otherAccount).requestWithdraw(51);
@@ -1077,11 +1065,11 @@ describe("Pool", () => {
 
     describe("previewWithdrawRequest(assets)", () => {
       it("returns the share value of the provided assets, minus fees, regardless of caller balance", async () => {
-        const { pool, poolManager, liquidityAsset } = await loadFixture(
+        const { pool, poolAdmin, liquidityAsset } = await loadFixture(
           loadPoolFixture
         );
-        await pool.connect(poolManager).setRequestFee(1000); // 10%
-        await activatePool(pool, poolManager, liquidityAsset);
+        await pool.connect(poolAdmin).setRequestFee(1000); // 10%
+        await activatePool(pool, poolAdmin, liquidityAsset);
 
         // TODO: Show a non 1:1 share value
         expect(await pool.previewWithdrawRequest(27)).to.equal(30);
@@ -1098,10 +1086,10 @@ describe("Pool", () => {
       });
 
       it("reverts if the lender has a zero balance", async () => {
-        const { pool, poolManager, liquidityAsset } = await loadFixture(
+        const { pool, poolAdmin, liquidityAsset } = await loadFixture(
           loadPoolFixture
         );
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
 
         await expect(pool.requestWithdraw(100)).to.be.revertedWith(
           "Pool: caller is not a lender"
@@ -1109,9 +1097,9 @@ describe("Pool", () => {
       });
 
       it("reverts if the lender is requesting to withdraw more than their balance", async () => {
-        const { pool, poolManager, liquidityAsset, otherAccount } =
+        const { pool, poolAdmin, liquidityAsset, otherAccount } =
           await loadFixture(loadPoolFixture);
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
 
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
 
@@ -1121,9 +1109,9 @@ describe("Pool", () => {
       });
 
       it("performs a withdraw request, paying the fee", async () => {
-        const { pool, poolManager, liquidityAsset, otherAccount } =
+        const { pool, poolAdmin, liquidityAsset, otherAccount } =
           await loadFixture(loadPoolFixture);
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
 
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
 
@@ -1136,9 +1124,9 @@ describe("Pool", () => {
       });
 
       it("emits a WithdrawRequested event if the lender requests a valid amount", async () => {
-        const { pool, poolManager, liquidityAsset, otherAccount } =
+        const { pool, poolAdmin, liquidityAsset, otherAccount } =
           await loadFixture(loadPoolFixture);
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
 
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
         const max = await pool.maxWithdrawRequest(otherAccount.address);
@@ -1151,9 +1139,9 @@ describe("Pool", () => {
 
     describe("interestBearingBalanceOf()", () => {
       it("returns the number of shares minus the amount of redeemable shares", async () => {
-        const { pool, poolManager, liquidityAsset, otherAccount } =
+        const { pool, poolAdmin, liquidityAsset, otherAccount } =
           await loadFixture(loadPoolFixture);
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
 
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
 
@@ -1165,7 +1153,7 @@ describe("Pool", () => {
         const { withdrawRequestPeriodDuration } = await pool.settings();
         await time.increase(withdrawRequestPeriodDuration);
 
-        await pool.connect(poolManager).crank();
+        await pool.connect(poolAdmin).crank();
 
         const balance = await pool.balanceOf(otherAccount.address);
         const redeemable = await pool.maxRedeem(otherAccount.address);
@@ -1181,9 +1169,9 @@ describe("Pool", () => {
 
     describe("requestedBalanceOf()", () => {
       it("returns the requested, but not yet eligible number of shares for a given lender", async () => {
-        const { pool, poolManager, liquidityAsset, otherAccount } =
+        const { pool, poolAdmin, liquidityAsset, otherAccount } =
           await loadFixture(loadPoolFixture);
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
 
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
         await pool.connect(otherAccount).requestRedeem(50);
@@ -1196,16 +1184,11 @@ describe("Pool", () => {
 
     describe("totalRequestedBalance()", () => {
       it("returns the requested, but not yet eligible number of shares in this pool", async () => {
-        const {
-          pool,
-          poolManager,
-          liquidityAsset,
-          otherAccount,
-          otherAccounts
-        } = await loadFixture(loadPoolFixture);
+        const { pool, poolAdmin, liquidityAsset, otherAccount, otherAccounts } =
+          await loadFixture(loadPoolFixture);
 
         const bob = otherAccounts[0];
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
 
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
         await depositToPool(pool, bob, liquidityAsset, 200);
@@ -1218,10 +1201,10 @@ describe("Pool", () => {
 
     describe("eligibleBalanceOf()", () => {
       it("returns the eligible number of shares for a given lender", async () => {
-        const { pool, poolManager, liquidityAsset, otherAccount } =
+        const { pool, poolAdmin, liquidityAsset, otherAccount } =
           await loadFixture(loadPoolFixture);
         const { withdrawRequestPeriodDuration } = await pool.settings();
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
 
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
         await pool.connect(otherAccount).requestRedeem(50);
@@ -1236,16 +1219,11 @@ describe("Pool", () => {
 
     describe("totalEligibleBalance()", () => {
       it("returns the eligible number of shares in this pool", async () => {
-        const {
-          pool,
-          poolManager,
-          liquidityAsset,
-          otherAccount,
-          otherAccounts
-        } = await loadFixture(loadPoolFixture);
+        const { pool, poolAdmin, liquidityAsset, otherAccount, otherAccounts } =
+          await loadFixture(loadPoolFixture);
         const { withdrawRequestPeriodDuration } = await pool.settings();
         const bob = otherAccounts[0];
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
 
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
         await depositToPool(pool, bob, liquidityAsset, 200);
@@ -1262,16 +1240,16 @@ describe("Pool", () => {
 
     describe("maxRedeem()", () => {
       it("returns the redeemable number of shares for a given lender", async () => {
-        const { pool, poolManager, liquidityAsset, otherAccount } =
+        const { pool, poolAdmin, liquidityAsset, otherAccount } =
           await loadFixture(loadPoolFixture);
         const { withdrawRequestPeriodDuration } = await pool.settings();
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
 
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
         await pool.connect(otherAccount).requestRedeem(10);
 
         await time.increase(withdrawRequestPeriodDuration);
-        await pool.connect(poolManager).crank();
+        await pool.connect(poolAdmin).crank();
 
         expect(await pool.maxRedeem(otherAccount.address)).to.equal(10);
       });
@@ -1279,15 +1257,10 @@ describe("Pool", () => {
 
     describe("totalRedeemableShares()", () => {
       it("returns the redeemable number of shares in this pool", async () => {
-        const {
-          pool,
-          poolManager,
-          liquidityAsset,
-          otherAccount,
-          otherAccounts
-        } = await loadFixture(loadPoolFixture);
+        const { pool, poolAdmin, liquidityAsset, otherAccount, otherAccounts } =
+          await loadFixture(loadPoolFixture);
         const { withdrawRequestPeriodDuration } = await pool.settings();
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
         const bob = otherAccounts[0];
 
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
@@ -1299,7 +1272,7 @@ describe("Pool", () => {
         expect(await pool.connect(bob).totalRedeemableShares()).to.equal(0);
 
         await time.increase(withdrawRequestPeriodDuration);
-        await pool.connect(poolManager).crank();
+        await pool.connect(poolAdmin).crank();
 
         expect(await pool.totalRedeemableShares()).to.equal(40); // 30 + 10
 
@@ -1316,16 +1289,16 @@ describe("Pool", () => {
 
     describe("maxWithdraw()", () => {
       it("returns the withdrawable number of shares for a given lender", async () => {
-        const { pool, poolManager, liquidityAsset, otherAccount } =
+        const { pool, poolAdmin, liquidityAsset, otherAccount } =
           await loadFixture(loadPoolFixture);
         const { withdrawRequestPeriodDuration } = await pool.settings();
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
 
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
         await pool.connect(otherAccount).requestRedeem(10);
 
         await time.increase(withdrawRequestPeriodDuration);
-        await pool.connect(poolManager).crank();
+        await pool.connect(poolAdmin).crank();
 
         expect(await pool.maxWithdraw(otherAccount.address)).to.equal(10);
       });
@@ -1333,15 +1306,10 @@ describe("Pool", () => {
 
     describe("totalWithdrawableAssets()", () => {
       it("returns the withdrawable number of shares in this pool", async () => {
-        const {
-          pool,
-          poolManager,
-          liquidityAsset,
-          otherAccount,
-          otherAccounts
-        } = await loadFixture(loadPoolFixture);
+        const { pool, poolAdmin, liquidityAsset, otherAccount, otherAccounts } =
+          await loadFixture(loadPoolFixture);
         const { withdrawRequestPeriodDuration } = await pool.settings();
-        await activatePool(pool, poolManager, liquidityAsset);
+        await activatePool(pool, poolAdmin, liquidityAsset);
         const bob = otherAccounts[0];
 
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
@@ -1350,7 +1318,7 @@ describe("Pool", () => {
         await pool.connect(bob).requestRedeem(30);
 
         await time.increase(withdrawRequestPeriodDuration);
-        await pool.connect(poolManager).crank();
+        await pool.connect(poolAdmin).crank();
 
         expect(await pool.totalWithdrawableAssets()).to.equal(40);
 
@@ -1368,9 +1336,9 @@ describe("Pool", () => {
 
   describe("previewRedeem()", () => {
     it("returns the number of assets that will be returned if the requested shares were available on the current block", async () => {
-      const { pool, poolManager, liquidityAsset, otherAccount } =
+      const { pool, poolAdmin, liquidityAsset, otherAccount } =
         await loadFixture(loadPoolFixture);
-      await activatePool(pool, poolManager, liquidityAsset);
+      await activatePool(pool, poolAdmin, liquidityAsset);
 
       expect(await pool.connect(otherAccount).previewRedeem(100)).to.equal(100);
     });
@@ -1378,10 +1346,10 @@ describe("Pool", () => {
 
   describe("redeem()", () => {
     it("burns shares and transfers assets", async () => {
-      const { pool, poolManager, liquidityAsset, otherAccount, otherAccounts } =
+      const { pool, poolAdmin, liquidityAsset, otherAccount, otherAccounts } =
         await loadFixture(loadPoolFixture);
       const { withdrawRequestPeriodDuration } = await pool.settings();
-      await activatePool(pool, poolManager, liquidityAsset);
+      await activatePool(pool, poolAdmin, liquidityAsset);
       const bob = otherAccounts[0];
 
       await depositToPool(pool, otherAccount, liquidityAsset, 100);
@@ -1390,7 +1358,7 @@ describe("Pool", () => {
       await pool.connect(bob).requestRedeem(30);
 
       await time.increase(withdrawRequestPeriodDuration);
-      await pool.connect(poolManager).crank();
+      await pool.connect(poolAdmin).crank();
 
       const startingShares = await pool.balanceOf(otherAccount.address);
       const startingAssets = await liquidityAsset.balanceOf(
@@ -1411,10 +1379,10 @@ describe("Pool", () => {
     });
 
     it("reverts if the number of shares is too large", async () => {
-      const { pool, poolManager, liquidityAsset, otherAccount, otherAccounts } =
+      const { pool, poolAdmin, liquidityAsset, otherAccount, otherAccounts } =
         await loadFixture(loadPoolFixture);
       const { withdrawRequestPeriodDuration } = await pool.settings();
-      await activatePool(pool, poolManager, liquidityAsset);
+      await activatePool(pool, poolAdmin, liquidityAsset);
       const bob = otherAccounts[0];
 
       await depositToPool(pool, otherAccount, liquidityAsset, 100);
@@ -1423,7 +1391,7 @@ describe("Pool", () => {
       await pool.connect(bob).requestRedeem(30);
 
       await time.increase(withdrawRequestPeriodDuration);
-      await pool.connect(poolManager).crank();
+      await pool.connect(poolAdmin).crank();
 
       const max = await pool.maxRedeem(otherAccount.address);
 
@@ -1461,10 +1429,10 @@ describe("Pool", () => {
     });
 
     it("redeems the maxReedable amount", async () => {
-      const { pool, poolManager, liquidityAsset, otherAccount } =
+      const { pool, poolAdmin, liquidityAsset, otherAccount } =
         await loadFixture(loadPoolFixture);
 
-      await activatePool(pool, poolManager, liquidityAsset);
+      await activatePool(pool, poolAdmin, liquidityAsset);
       await depositToPool(pool, otherAccount, liquidityAsset, 1000);
 
       // Check that lender now has 1000 pool tokens and no USDC
@@ -1499,10 +1467,10 @@ describe("Pool", () => {
 
   describe("withdraw()", () => {
     it("burns shares and transfers assets", async () => {
-      const { pool, poolManager, liquidityAsset, otherAccount, otherAccounts } =
+      const { pool, poolAdmin, liquidityAsset, otherAccount, otherAccounts } =
         await loadFixture(loadPoolFixture);
       const { withdrawRequestPeriodDuration } = await pool.settings();
-      await activatePool(pool, poolManager, liquidityAsset);
+      await activatePool(pool, poolAdmin, liquidityAsset);
       const bob = otherAccounts[0];
 
       await depositToPool(pool, otherAccount, liquidityAsset, 100);
@@ -1511,7 +1479,7 @@ describe("Pool", () => {
       await pool.connect(bob).requestRedeem(30);
 
       await time.increase(withdrawRequestPeriodDuration);
-      await pool.connect(poolManager).crank();
+      await pool.connect(poolAdmin).crank();
 
       const startingShares = await pool.balanceOf(otherAccount.address);
       const startingAssets = await liquidityAsset.balanceOf(
@@ -1532,10 +1500,10 @@ describe("Pool", () => {
     });
 
     it("reverts if the number of shares is too large", async () => {
-      const { pool, poolManager, liquidityAsset, otherAccount, otherAccounts } =
+      const { pool, poolAdmin, liquidityAsset, otherAccount, otherAccounts } =
         await loadFixture(loadPoolFixture);
       const { withdrawRequestPeriodDuration } = await pool.settings();
-      await activatePool(pool, poolManager, liquidityAsset);
+      await activatePool(pool, poolAdmin, liquidityAsset);
       const bob = otherAccounts[0];
 
       await depositToPool(pool, otherAccount, liquidityAsset, 100);
@@ -1544,7 +1512,7 @@ describe("Pool", () => {
       await pool.connect(bob).requestRedeem(30);
 
       await time.increase(withdrawRequestPeriodDuration);
-      await pool.connect(poolManager).crank();
+      await pool.connect(poolAdmin).crank();
 
       const max = await pool.maxWithdraw(otherAccount.address);
 
@@ -1584,26 +1552,26 @@ describe("Pool", () => {
 
   describe("fixed fees", () => {
     it("claiming fees is only available to the pool admin", async () => {
-      const { pool, poolManager, otherAccount } = await loadFixture(
+      const { pool, poolAdmin, otherAccount } = await loadFixture(
         loadPoolFixtureWithFees
       );
 
       const tx = pool.connect(otherAccount).claimFixedFee();
-      await expect(tx).to.be.revertedWith("Pool: caller is not manager");
+      await expect(tx).to.be.revertedWith("Pool: caller is not admin");
     });
 
     it("cannot claim fees until they're due", async () => {
-      const { pool, poolManager, liquidityAsset, otherAccount } =
+      const { pool, poolAdmin, liquidityAsset, otherAccount } =
         await loadFixture(loadPoolFixtureWithFees);
-      await activatePool(pool, poolManager, liquidityAsset);
-      const tx = pool.connect(poolManager).claimFixedFee();
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      const tx = pool.connect(poolAdmin).claimFixedFee();
       await expect(tx).to.revertedWith("Pool: fixed fee not due");
     });
 
     it("can claim fees when they're due", async () => {
-      const { pool, poolManager, liquidityAsset, otherAccount } =
+      const { pool, poolAdmin, liquidityAsset, otherAccount } =
         await loadFixture(loadPoolFixtureWithFees);
-      await activatePool(pool, poolManager, liquidityAsset);
+      await activatePool(pool, poolAdmin, liquidityAsset);
 
       // Mint tokens to the liquidity reserve
       await liquidityAsset.mint(pool.address, 500_000);
@@ -1612,18 +1580,18 @@ describe("Pool", () => {
       await time.increase(30 * 96_400);
 
       // Claim Fees
-      const tx = pool.connect(poolManager).claimFixedFee();
-      await expect(tx).to.changeTokenBalance(liquidityAsset, poolManager, 100);
+      const tx = pool.connect(poolAdmin).claimFixedFee();
+      await expect(tx).to.changeTokenBalance(liquidityAsset, poolAdmin, 100);
 
       // Trying again will fail
-      const tx2 = pool.connect(poolManager).claimFixedFee();
+      const tx2 = pool.connect(poolAdmin).claimFixedFee();
       await expect(tx2).to.be.revertedWith("Pool: fixed fee not due");
     });
 
     it("can cumulatively claim fees when they're due", async () => {
-      const { pool, poolManager, liquidityAsset, otherAccount } =
+      const { pool, poolAdmin, liquidityAsset, otherAccount } =
         await loadFixture(loadPoolFixtureWithFees);
-      await activatePool(pool, poolManager, liquidityAsset);
+      await activatePool(pool, poolAdmin, liquidityAsset);
 
       // Mint tokens to the liquidity reserve
       await liquidityAsset.mint(pool.address, 500_000);
@@ -1632,11 +1600,11 @@ describe("Pool", () => {
       await time.increase(60 * 96_400);
 
       // Claim Fees
-      const tx = pool.connect(poolManager).claimFixedFee();
-      await expect(tx).to.changeTokenBalance(liquidityAsset, poolManager, 100);
+      const tx = pool.connect(poolAdmin).claimFixedFee();
+      await expect(tx).to.changeTokenBalance(liquidityAsset, poolAdmin, 100);
 
-      const tx2 = pool.connect(poolManager).claimFixedFee();
-      await expect(tx2).to.changeTokenBalance(liquidityAsset, poolManager, 100);
+      const tx2 = pool.connect(poolAdmin).claimFixedFee();
+      await expect(tx2).to.changeTokenBalance(liquidityAsset, poolAdmin, 100);
     });
   });
 });

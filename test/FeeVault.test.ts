@@ -38,7 +38,7 @@ describe("FeeVault", () => {
   });
 
   describe("withdraw()", async () => {
-    it("pool manager can withdraw amounts", async () => {
+    it("pool admin can withdraw amounts", async () => {
       const { feeVault, asset, pool, poolAdmin } = await loadFixture(
         deployFixture
       );

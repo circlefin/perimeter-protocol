@@ -5,21 +5,21 @@ import { deployPool, depositToPool, activatePool } from "../../support/pool";
 
 describe("Withdraw Requests", () => {
   async function loadPoolFixture() {
-    const [operator, poolManager, aliceLender, bobLender] =
+    const [operator, poolAdmin, aliceLender, bobLender] =
       await ethers.getSigners();
     const { pool, liquidityAsset } = await deployPool({
       operator,
-      poolAdmin: poolManager
+      poolAdmin: poolAdmin
     });
 
     // Set the request fee to 10%
-    await pool.connect(poolManager).setRequestFee(1000);
+    await pool.connect(poolAdmin).setRequestFee(1000);
 
     // Set the withdraw gate to 25%
-    await pool.connect(poolManager).setWithdrawGate(2500);
+    await pool.connect(poolAdmin).setWithdrawGate(2500);
 
     // activate the pool
-    await activatePool(pool, poolManager, liquidityAsset);
+    await activatePool(pool, poolAdmin, liquidityAsset);
 
     // deposit 100 tokens from Alice
     await depositToPool(pool, aliceLender, liquidityAsset, 100);
@@ -30,7 +30,7 @@ describe("Withdraw Requests", () => {
     return {
       pool,
       liquidityAsset,
-      poolManager,
+      poolAdmin,
       aliceLender,
       bobLender
     };

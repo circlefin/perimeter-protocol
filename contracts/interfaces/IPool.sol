@@ -130,9 +130,9 @@ interface IPool is IERC4626 {
     function withdrawGate() external view returns (uint256);
 
     /**
-     * @dev The manager for the pool.
+     * @dev The admin for the pool.
      */
-    function manager() external view returns (address);
+    function admin() external view returns (address);
 
     /**
      * @dev The amount of first loss available to the pool.
@@ -165,24 +165,24 @@ interface IPool is IERC4626 {
     function poolFeePercentOfInterest() external view returns (uint256);
 
     /**
-     * @dev Deposits first-loss to the pool. Can only be called by the Pool Manager.
+     * @dev Deposits first-loss to the pool. Can only be called by the Pool Admin.
      */
     function depositFirstLoss(uint256 amount, address spender) external;
 
     /**
-     * @dev Withdraws first-loss from the pool. Can only be called by the Pool Manager.
+     * @dev Withdraws first-loss from the pool. Can only be called by the Pool Admin.
      */
     function withdrawFirstLoss(uint256 amount, address receiver)
         external
         returns (uint256);
 
     /**
-     * @dev Updates the pool capacity. Can only be called by the Pool Manager.
+     * @dev Updates the pool capacity. Can only be called by the Pool Admin.
      */
     function updatePoolCapacity(uint256) external;
 
     /**
-     * @dev Updates the pool end date. Can only be called by the Pool Manager.
+     * @dev Updates the pool end date. Can only be called by the Pool Admin.
      */
     function updatePoolEndDate(uint256) external;
 
@@ -208,7 +208,7 @@ interface IPool is IERC4626 {
     function liquidityPoolAssets() external view returns (uint256);
 
     /**
-     * @dev Called by the pool manager, this transfers liquidity from the pool to a given loan.
+     * @dev Called by the pool admin, this transfers liquidity from the pool to a given loan.
      */
     function fundLoan(address) external;
 
@@ -219,13 +219,13 @@ interface IPool is IERC4626 {
     function notifyLoanPrincipalReturned() external;
 
     /**
-     * @dev Called by the pool manager, this marks a loan as in default, triggering liquiditation
+     * @dev Called by the pool admin, this marks a loan as in default, triggering liquiditation
      * proceedings and updating pool accounting.
      */
     function defaultLoan(address) external;
 
     /**
-     * @dev Called by the pool manager, this claims a fixed fee from the pool. Fee can only be
+     * @dev Called by the pool admin, this claims a fixed fee from the pool. Fee can only be
      * claimed once every interval, as set on the pool.
      */
     function claimFixedFee() external;
