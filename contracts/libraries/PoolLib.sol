@@ -362,6 +362,24 @@ library PoolLib {
     }
 
     /**
+     *
+     */
+    function executeFundLoan(
+        address addr,
+        IPoolAccountings storage accountings,
+        EnumerableSet.AddressSet storage fundedLoans
+    ) external {
+        ILoan loan = ILoan(addr);
+        IERC20(loan.liquidityAsset()).safeApprove(
+            address(loan),
+            loan.principal()
+        );
+        loan.fund();
+        accountings.outstandingLoanPrincipals += loan.principal();
+        fundedLoans.add(addr);
+    }
+
+    /**
      * @dev Executes a default, supplying first-loss to cover losses.
      * @param asset Pool liquidity asset
      * @param firstLossVault Vault holding first-loss capital

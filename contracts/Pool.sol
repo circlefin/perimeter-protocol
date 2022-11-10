@@ -347,11 +347,7 @@ contract Pool is IPool, ERC20 {
         atState(IPoolLifeCycleState.Active)
         isPoolLoan(addr)
     {
-        ILoan loan = ILoan(addr);
-        _liquidityAsset.safeApprove(address(loan), loan.principal());
-        loan.fund();
-        _accountings.outstandingLoanPrincipals += loan.principal();
-        _fundedLoans.add(addr);
+        PoolLib.executeFundLoan(addr, _accountings, _fundedLoans);
     }
 
     /**
