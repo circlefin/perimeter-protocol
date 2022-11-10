@@ -14,6 +14,10 @@ contract MockILoan {
     uint256 public principal;
     ILoanLifeCycleState public state;
 
+    uint256 public firstLossFee;
+    uint256 public poolFee;
+    uint256 public originationFee;
+
     // Setters for mocked values
     function setPrincipal(uint256 principal_) external {
         principal = principal_;

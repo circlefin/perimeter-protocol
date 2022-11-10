@@ -29,11 +29,16 @@ contract Loan is ILoan {
     ILoanNonFungibleCollateral[] private _nonFungibleCollateral;
     uint256 public immutable createdAt;
     address public immutable liquidityAsset;
-    uint256 public immutable payment;
     uint256 public outstandingPrincipal;
     uint256 public paymentsRemaining;
     uint256 public paymentDueDate;
-    uint256 public originationFee;
+
+    // Payments and fees
+    uint256 public payment; // interest payment transferred to pool
+    uint256 public firstLossFee; // deducted from interest payments and transferred to first loss vault
+    uint256 public poolFee; // deducted from interest payments and transferred to fee vault
+    uint256 public originationFee; // additional payment on top of interest payments and transferred to fee vault
+
     uint256 public callbackTimestamp;
     ILoanSettings settings;
 
@@ -128,6 +133,20 @@ contract Loan is ILoan {
             .div(RAY)
             .div(10000);
         payment = paymentsTotal.mul(RAY).div(paymentsRemaining).div(RAY);
+
+        (
+            uint256 poolPayment_,
+            uint256 firstLossFee_,
+            uint256 poolFee_
+        ) = LoanLib.previewFees(
+                payment,
+                IServiceConfiguration(_serviceConfiguration).firstLossFeeBps(),
+                IPool(_pool).poolFeePercentOfInterest(),
+                settings.latePayment,
+                paymentDueDate
+            );
+        firstLossFee = firstLossFee_;
+        poolFee = poolFee_;
 
         // Persist origination fee per payment period
         originationFee = settings
@@ -339,14 +358,13 @@ contract Loan is ILoan {
     {
         require(paymentsRemaining > 0, "Loan: No more payments remain");
 
-        (uint256 poolPayment, uint256 firstLossFee, uint256 poolFee) = LoanLib
-            .previewFees(
-                payment,
-                _serviceConfiguration.firstLossFeeBps(),
-                IPool(_pool).poolFeePercentOfInterest(),
-                settings.latePayment,
-                paymentDueDate
-            );
+        // Late fee is applied on top of interest payment
+        uint256 lateFee;
+        if (block.timestamp > paymentDueDate) {
+            lateFee = settings.latePayment;
+        }
+
+        uint256 poolPayment = payment - poolFee - firstLossFee + lateFee;
 
         LoanLib.payFees(
             liquidityAsset,
