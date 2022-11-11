@@ -8,8 +8,6 @@ import "../libraries/PoolLib.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
-import "hardhat/console.sol";
-
 /**
  * @title WithdrawState
  */
@@ -37,6 +35,16 @@ contract WithdrawController is IWithdrawController {
      * @dev Aggregate withdraw request information
      */
     IPoolWithdrawState private _globalWithdrawState;
+
+    /**
+     * @dev Mapping of withdrawPeriod to snapshot
+     */
+    mapping(uint256 => IPoolSnapshotState) private _snapshots;
+
+    /**
+     * @dev Max snapshots to process per crank
+     */
+    uint256 constant MAX_SNAPSHOTS_PER_CRANK = 30;
 
     /**
      * @dev Modifier that checks that the caller is a pool lender
@@ -79,9 +87,10 @@ contract WithdrawController is IWithdrawController {
         view
         returns (IPoolWithdrawState memory state)
     {
+        uint256 currentPeriod = withdrawPeriod();
         state = PoolLib.progressWithdrawState(
             _withdrawState[owner],
-            withdrawPeriod()
+            currentPeriod
         );
 
         return
@@ -279,7 +288,7 @@ contract WithdrawController is IWithdrawController {
      * @inheritdoc IWithdrawController
      */
     function performRequest(address owner, uint256 shares) external onlyPool {
-        this.crankUser(owner);
+        crankFully(owner);
 
         uint256 currentPeriod = withdrawPeriod();
 
@@ -323,7 +332,7 @@ contract WithdrawController is IWithdrawController {
         external
         onlyPool
     {
-        this.crankUser(owner);
+        crankFully(owner);
         uint256 currentPeriod = withdrawPeriod();
 
         // Update the requested amount from the user
@@ -351,7 +360,7 @@ contract WithdrawController is IWithdrawController {
     function crankPool() external onlyPool returns (uint256 redeemableShares) {
         uint256 currentPeriod = withdrawPeriod();
         IPoolWithdrawState memory globalState = _currentGlobalWithdrawState();
-        if (_globalWithdrawState.latestCrankPeriod >= currentPeriod) {
+        if (globalState.latestCrankPeriod == currentPeriod) {
             return 0;
         }
 
@@ -374,8 +383,6 @@ contract WithdrawController is IWithdrawController {
             redeemableShares = 0;
             return 0;
         }
-
-        IPoolWithdrawState memory globalState = _currentGlobalWithdrawState();
 
         // Determine the amount of shares that we will actually distribute.
         redeemableShares = Math.min(
@@ -408,7 +415,7 @@ contract WithdrawController is IWithdrawController {
     /**
      * @inheritdoc IPoolWithdrawManager
      */
-    function crank(address owner) external {
+    function crankIncrementally(address owner) external override {
         uint256 currentPeriod = withdrawPeriod();
         IPoolWithdrawState memory state = PoolLib.progressWithdrawState(
             _withdrawState[owner],
@@ -488,7 +495,10 @@ contract WithdrawController is IWithdrawController {
         return withdrawState;
     }
 
-    function crankUser(address addr) external {
+    /**
+     * @inheritdoc IPoolWithdrawManager
+     */
+    function crankFully(address addr) public override {
         _withdrawState[addr] = _currentWithdrawState(addr);
     }
 
@@ -544,8 +554,7 @@ contract WithdrawController is IWithdrawController {
         uint256 shares,
         uint256 assets
     ) internal {
-        // TODO: make modifier?
-        this.crankUser(owner);
+        crankFully(owner);
         IPoolWithdrawState memory currentState = _currentWithdrawState(owner);
 
         require(

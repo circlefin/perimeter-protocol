@@ -174,7 +174,11 @@ interface IPool is IERC4626 {
     function transferFromFirstLossVault(address, uint256) external;
 
     /**
-     * @dev Determines how many funded loans exist
+     * @dev Cranks the pool's withdrawals
+     */
+    function crank() external returns (uint256);
+
+    /**
      */
     function numFundedLoans() external view returns (uint256);
 
