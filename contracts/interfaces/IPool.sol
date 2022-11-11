@@ -208,6 +208,11 @@ interface IPool is IERC4626 {
     function requestWithdraw(uint256) external returns (uint256);
 
     /**
+     * @dev Cranks the pool's withdrawals
+     */
+    function crank() external returns (uint256);
+
+    /**
      * @dev The sum of all assets available in the liquidity pool, excluding
      * any assets that are marked for withdrawal.
      */
