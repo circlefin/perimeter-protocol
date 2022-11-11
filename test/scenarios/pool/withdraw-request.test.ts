@@ -27,9 +27,15 @@ describe("Withdraw Requests", () => {
     // deposit 70 tokens from Bob
     await depositToPool(pool, bobLender, liquidityAsset, 70);
 
+    const withdrawController = await ethers.getContractAt(
+      "WithdrawController",
+      await pool.withdrawController()
+    );
+
     return {
       pool,
       liquidityAsset,
+      withdrawController,
       poolAdmin,
       aliceLender,
       bobLender
@@ -37,7 +43,8 @@ describe("Withdraw Requests", () => {
   }
 
   it("allows requesting of a withdraw", async () => {
-    const { pool, aliceLender, bobLender } = await loadFixture(loadPoolFixture);
+    const { pool, aliceLender, bobLender, withdrawController } =
+      await loadFixture(loadPoolFixture);
     const { withdrawRequestPeriodDuration } = await pool.settings();
 
     // Expect Alice to be able to request her full balance, minus fees
@@ -66,22 +73,30 @@ describe("Withdraw Requests", () => {
     expect(await pool.balanceOf(bobLender.address)).to.equal(69);
 
     // Verify Alice's withdrawal state is updated
-    expect(await pool.requestedBalanceOf(aliceLender.address)).to.equal(50);
-    expect(await pool.eligibleBalanceOf(aliceLender.address)).to.equal(0);
+    expect(
+      await withdrawController.requestedBalanceOf(aliceLender.address)
+    ).to.equal(50);
+    expect(
+      await withdrawController.eligibleBalanceOf(aliceLender.address)
+    ).to.equal(0);
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(0);
     expect(await pool.maxWithdraw(aliceLender.address)).to.equal(0);
 
     // Verify Bob's withdrawal state is updated
-    expect(await pool.requestedBalanceOf(bobLender.address)).to.equal(10);
-    expect(await pool.eligibleBalanceOf(bobLender.address)).to.equal(0);
+    expect(
+      await withdrawController.requestedBalanceOf(bobLender.address)
+    ).to.equal(10);
+    expect(
+      await withdrawController.eligibleBalanceOf(bobLender.address)
+    ).to.equal(0);
     expect(await pool.maxRedeem(bobLender.address)).to.equal(0);
     expect(await pool.maxWithdraw(bobLender.address)).to.equal(0);
 
     // Verify the Global withdrawal state is updated
-    expect(await pool.totalRequestedBalance()).to.equal(60);
-    expect(await pool.totalEligibleBalance()).to.equal(0);
-    expect(await pool.totalRedeemableShares()).to.equal(0);
-    expect(await pool.totalWithdrawableAssets()).to.equal(0);
+    expect(await withdrawController.totalRequestedBalance()).to.equal(60);
+    expect(await withdrawController.totalEligibleBalance()).to.equal(0);
+    expect(await withdrawController.totalRedeemableShares()).to.equal(0);
+    expect(await withdrawController.totalWithdrawableAssets()).to.equal(0);
 
     // Expect Alice's maxWithdrawRequest amounts have decreased
     expect(await pool.maxRedeemRequest(aliceLender.address)).to.equal(
@@ -109,7 +124,7 @@ describe("Withdraw Requests", () => {
     await time.increase(withdrawRequestPeriodDuration);
 
     // expect the request and withdraw periods to have advanced
-    expect(await pool.withdrawPeriod()).to.equal(1);
+    expect(await withdrawController.withdrawPeriod()).to.equal(1);
 
     // nothing changes until we crank
     expect(await pool.maxWithdraw(aliceLender.address)).to.equal(0);
@@ -119,12 +134,14 @@ describe("Withdraw Requests", () => {
     await pool.crank();
 
     // 170 assets = 160 shares. 25% withdraw gate = 40
-    expect(await pool.totalRedeemableShares()).to.equal(40);
-    expect(await pool.totalWithdrawableAssets()).to.equal(41);
+    expect(await withdrawController.totalRedeemableShares()).to.equal(40);
+    expect(await withdrawController.totalWithdrawableAssets()).to.equal(41);
 
     // verify the global state is updated
-    expect(await pool.totalRequestedBalance()).to.equal(0);
-    expect(await pool.totalEligibleBalance()).to.equal(20); /* 60 - 40 */
+    expect(await withdrawController.totalRequestedBalance()).to.equal(0);
+    expect(await withdrawController.totalEligibleBalance()).to.equal(
+      20
+    ); /* 60 - 40 */
 
     // verify Alice's state is updated
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(
