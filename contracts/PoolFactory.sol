@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 import "./Pool.sol";
-import "./interfaces/IPoolWithdrawManagerFactory.sol";
+import "./interfaces/IWithdrawControllerFactory.sol";
 import "./interfaces/IServiceConfiguration.sol";
 
 /**
@@ -29,7 +29,7 @@ contract PoolFactory {
      */
     function createPool(
         address liquidityAsset,
-        address poolWithdrawManagerFactory,
+        address withdrawControllerFactory,
         IPoolConfigurableSettings calldata settings
     ) public virtual returns (address poolAddress) {
         require(
@@ -41,7 +41,7 @@ contract PoolFactory {
             "PoolFactory: Invalid duration"
         );
         require(
-            poolWithdrawManagerFactory != address(0),
+            withdrawControllerFactory != address(0),
             "PoolFactory: Invalid address"
         );
         if (settings.fixedFee > 0) {
@@ -64,13 +64,13 @@ contract PoolFactory {
 
         address addr = address(pool);
 
-        // Create the pool's withdraw manager factory
-        address poolWithdrawManager = IPoolWithdrawManagerFactory(
-            poolWithdrawManagerFactory
-        ).createPoolWithdrawManager(addr);
+        // Create the pool's withdraw controller factory
+        address withdrawController = IWithdrawControllerFactory(
+            withdrawControllerFactory
+        ).createWithdrawController(addr);
 
-        // Set the pools withdraw manager
-        pool.setWithdrawManager(poolWithdrawManager);
+        // Set the pools withdraw controller
+        pool.setWithdrawController(withdrawController);
 
         emit PoolCreated(addr);
         return addr;

@@ -57,24 +57,24 @@ export async function deployPool({
   const poolFactory = await PoolFactory.deploy(serviceConfiguration.address);
   await poolFactory.deployed();
 
-  const PoolWithdrawManagerFactory = await ethers.getContractFactory(
-    "PoolWithdrawManagerFactory",
+  const WithdrawControllerFactory = await ethers.getContractFactory(
+    "WithdrawControllerFactory",
     {
       libraries: {
         PoolLib: poolLib.address
       }
     }
   );
-  const poolWithdrawManagerFactory = await PoolWithdrawManagerFactory.deploy(
+  const withdrawControllerFactory = await WithdrawControllerFactory.deploy(
     serviceConfiguration.address
   );
-  await poolWithdrawManagerFactory.deployed();
+  await withdrawControllerFactory.deployed();
 
   const txn = await poolFactory
     .connect(poolAdmin)
     .createPool(
       liquidityAsset.address,
-      poolWithdrawManagerFactory.address,
+      withdrawControllerFactory.address,
       poolSettings
     );
 
@@ -90,12 +90,12 @@ export async function deployPool({
     poolSettings.firstLossInitialMinimum
   );
 
-  const poolWithdrawManager = await ethers.getContractAt(
-    "PoolWithdrawManager",
-    await pool.withdrawManager()
+  const withdrawController = await ethers.getContractAt(
+    "WithdrawController",
+    await pool.withdrawController()
   );
 
-  return { pool, liquidityAsset, serviceConfiguration, poolWithdrawManager };
+  return { pool, liquidityAsset, serviceConfiguration, withdrawController };
 }
 
 /**
@@ -137,24 +137,24 @@ export async function deployPermissionedPool({
   const poolFactory = await PoolFactory.deploy(serviceConfiguration.address);
   await poolFactory.deployed();
 
-  const PoolWithdrawManagerFactory = await ethers.getContractFactory(
-    "PoolWithdrawManagerFactory",
+  const WithdrawControllerFactory = await ethers.getContractFactory(
+    "WithdrawControllerFactory",
     {
       libraries: {
         PoolLib: poolLib.address
       }
     }
   );
-  const poolWithdrawManagerFactory = await PoolWithdrawManagerFactory.deploy(
+  const withdrawControllerFactory = await WithdrawControllerFactory.deploy(
     serviceConfiguration.address
   );
-  await poolWithdrawManagerFactory.deployed();
+  await withdrawControllerFactory.deployed();
 
   const txn = await poolFactory
     .connect(poolAdmin)
     .createPool(
       liquidityAsset.address,
-      poolWithdrawManagerFactory.address,
+      withdrawControllerFactory.address,
       poolSettings
     );
 
@@ -170,16 +170,16 @@ export async function deployPermissionedPool({
     poolSettings.firstLossInitialMinimum
   );
 
-  const poolWithdrawManager = await ethers.getContractAt(
-    "PoolWithdrawManager",
-    await pool.withdrawManager()
+  const withdrawController = await ethers.getContractAt(
+    "WithdrawController",
+    await pool.withdrawController()
   );
 
   return {
     pool,
     liquidityAsset,
     serviceConfiguration,
-    poolWithdrawManager,
+    withdrawController,
     tosAcceptanceRegistry,
     poolAdminAccessControl
   };

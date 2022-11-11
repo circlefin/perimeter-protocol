@@ -2,9 +2,9 @@
 pragma solidity ^0.8.16;
 
 /**
- * @title A Pool's Withdraw manager
+ * @title A Pool's Withdraw controller
  */
-interface IPoolWithdrawManager {
+interface IWithdrawController {
     function withdrawPeriod() external view returns (uint256);
 
     /*//////////////////////////////////////////////////////////////
@@ -142,7 +142,7 @@ interface IPoolWithdrawManager {
      * @dev Cancels a withdraw request for the owner,
      *
      * NOTE This method does not charge fees, as this should be handled outside
-     * of the WithdrawManager.
+     * of the WithdrawController.
      */
     function performRequestCancellation(address, uint256) external;
 

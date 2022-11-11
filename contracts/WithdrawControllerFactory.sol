@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
-import "./PoolWithdrawManager.sol";
-import "./interfaces/IPoolWithdrawManagerFactory.sol";
+import "./controllers/WithdrawController.sol";
+import "./interfaces/IWithdrawControllerFactory.sol";
 import "./interfaces/IServiceConfiguration.sol";
 
 /**
- * @title PoolWithdrawManager Factory
+ * @title WithdrawController Factory
  */
-contract PoolWithdrawManagerFactory is IPoolWithdrawManagerFactory {
+contract WithdrawControllerFactory is IWithdrawControllerFactory {
     /**
      * @dev Reference to the ServiceConfiguration contract
      */
@@ -19,20 +19,20 @@ contract PoolWithdrawManagerFactory is IPoolWithdrawManagerFactory {
     }
 
     /**
-     * @inheritdoc IPoolWithdrawManagerFactory
+     * @inheritdoc IWithdrawControllerFactory
      */
-    function createPoolWithdrawManager(address pool)
+    function createWithdrawController(address pool)
         public
         virtual
         returns (address addr)
     {
         require(
             _serviceConfiguration.paused() == false,
-            "PoolWithdrawManagerFactory: Protocol paused"
+            "WithdrawControllerFactory: Protocol paused"
         );
 
-        PoolWithdrawManager poolWithdrawManager = new PoolWithdrawManager(pool);
-        addr = address(poolWithdrawManager);
-        emit PoolWithdrawManagerCreated(addr);
+        WithdrawController withdrawController = new WithdrawController(pool);
+        addr = address(withdrawController);
+        emit WithdrawControllerCreated(addr);
     }
 }

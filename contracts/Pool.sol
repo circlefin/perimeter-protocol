@@ -4,7 +4,7 @@ pragma solidity ^0.8.16;
 import "./interfaces/ILoan.sol";
 import "./interfaces/IPool.sol";
 import "./interfaces/IServiceConfiguration.sol";
-import "./interfaces/IPoolWithdrawManager.sol";
+import "./controllers/interfaces/IWithdrawController.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -32,7 +32,7 @@ contract Pool is IPool, ERC20 {
     IPoolConfigurableSettings private _poolSettings;
     IPoolAccountings private _accountings;
     IPoolLifeCycleState private _poolLifeCycleState;
-    IPoolWithdrawManager private _poolWithdrawManager;
+    IWithdrawController private _withdrawController;
 
     /**
      * @dev list of all active loan addresses for this Pool. Active loans have been
@@ -154,19 +154,19 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
-     * @dev Returns the pool's withdraw manager
+     * @dev Returns the pool's withdraw controller
      */
-    function withdrawManager() public view returns (IPoolWithdrawManager) {
-        return _poolWithdrawManager;
+    function withdrawController() public view returns (IWithdrawController) {
+        return _withdrawController;
     }
 
-    function setWithdrawManager(address addr) public onlyFactory {
+    function setWithdrawController(address addr) public onlyFactory {
         require(
-            address(_poolWithdrawManager) == address(0),
-            "Pool: WithdrawManagerAlreadySet"
+            address(_withdrawController) == address(0),
+            "Pool: WithdrawControllerAlreadySet"
         );
 
-        _poolWithdrawManager = IPoolWithdrawManager(addr);
+        _withdrawController = IWithdrawController(addr);
     }
 
     /**
@@ -397,7 +397,7 @@ contract Pool is IPool, ERC20 {
             address(_liquidityAsset),
             address(this),
             _accountings.outstandingLoanPrincipals,
-            _poolWithdrawManager.totalWithdrawableAssets()
+            _withdrawController.totalWithdrawableAssets()
         );
     }
 
@@ -407,7 +407,7 @@ contract Pool is IPool, ERC20 {
     function totalAvailableSupply() public view returns (uint256 shares) {
         shares = PoolLib.calculateTotalAvailableShares(
             address(this),
-            _poolWithdrawManager.totalRedeemableShares()
+            _withdrawController.totalRedeemableShares()
         );
     }
 
@@ -419,7 +419,7 @@ contract Pool is IPool, ERC20 {
             address(_liquidityAsset),
             address(this),
             0, // do not include any loan principles
-            _poolWithdrawManager.totalWithdrawableAssets()
+            _withdrawController.totalWithdrawableAssets()
         );
     }
 
@@ -458,11 +458,11 @@ contract Pool is IPool, ERC20 {
     }
 
     /*//////////////////////////////////////////////////////////////
-                Withdraw Manager Proxy Methods
+                Withdraw Controller Proxy Methods
     //////////////////////////////////////////////////////////////*/
 
     function withdrawPeriod() public view returns (uint256 period) {
-        period = _poolWithdrawManager.withdrawPeriod();
+        period = _withdrawController.withdrawPeriod();
     }
 
     function interestBearingBalanceOf(address owner)
@@ -470,7 +470,7 @@ contract Pool is IPool, ERC20 {
         view
         returns (uint256 shares)
     {
-        shares = _poolWithdrawManager.interestBearingBalanceOf(owner);
+        shares = _withdrawController.interestBearingBalanceOf(owner);
     }
 
     function requestedBalanceOf(address owner)
@@ -478,11 +478,11 @@ contract Pool is IPool, ERC20 {
         view
         returns (uint256 shares)
     {
-        shares = _poolWithdrawManager.requestedBalanceOf(owner);
+        shares = _withdrawController.requestedBalanceOf(owner);
     }
 
     function totalRequestedBalance() external view returns (uint256 shares) {
-        shares = _poolWithdrawManager.totalRequestedBalance();
+        shares = _withdrawController.totalRequestedBalance();
     }
 
     function eligibleBalanceOf(address owner)
@@ -490,19 +490,19 @@ contract Pool is IPool, ERC20 {
         view
         returns (uint256 shares)
     {
-        shares = _poolWithdrawManager.eligibleBalanceOf(owner);
+        shares = _withdrawController.eligibleBalanceOf(owner);
     }
 
     function totalEligibleBalance() external view returns (uint256 shares) {
-        shares = _poolWithdrawManager.totalEligibleBalance();
+        shares = _withdrawController.totalEligibleBalance();
     }
 
     function totalWithdrawableAssets() external view returns (uint256 assets) {
-        assets = _poolWithdrawManager.totalWithdrawableAssets();
+        assets = _withdrawController.totalWithdrawableAssets();
     }
 
     function totalRedeemableShares() external view returns (uint256 shares) {
-        shares = _poolWithdrawManager.totalRedeemableShares();
+        shares = _withdrawController.totalRedeemableShares();
     }
 
     /**
@@ -517,7 +517,7 @@ contract Pool is IPool, ERC20 {
         view
         returns (uint256 maxShares)
     {
-        maxShares = _poolWithdrawManager.maxRedeemRequest(owner);
+        maxShares = _withdrawController.maxRedeemRequest(owner);
     }
 
     /**
@@ -547,7 +547,7 @@ contract Pool is IPool, ERC20 {
         view
         returns (uint256 assets)
     {
-        assets = _poolWithdrawManager.previewRedeemRequest(shares);
+        assets = _withdrawController.previewRedeemRequest(shares);
     }
 
     /**
@@ -562,7 +562,7 @@ contract Pool is IPool, ERC20 {
         view
         returns (uint256 shares)
     {
-        shares = _poolWithdrawManager.previewWithdrawRequest(assets);
+        shares = _withdrawController.previewWithdrawRequest(assets);
     }
 
     /**
@@ -602,12 +602,12 @@ contract Pool is IPool, ERC20 {
         uint256 assets
     ) internal {
         require(
-            _poolWithdrawManager.maxRedeemRequest(owner) >= shares,
+            _withdrawController.maxRedeemRequest(owner) >= shares,
             "Pool: InsufficientBalance"
         );
         uint256 feeShares = requestFee(shares);
         _burn(owner, feeShares);
-        _poolWithdrawManager.performRequest(owner, shares);
+        _withdrawController.performRequest(owner, shares);
 
         emit WithdrawRequested(owner, assets, shares);
     }
@@ -623,7 +623,7 @@ contract Pool is IPool, ERC20 {
         view
         returns (uint256 maxShares)
     {
-        maxShares = _poolWithdrawManager.maxRequestCancellation(owner);
+        maxShares = _withdrawController.maxRequestCancellation(owner);
     }
 
     /**
@@ -676,7 +676,7 @@ contract Pool is IPool, ERC20 {
         );
         uint256 feeShares = (shares);
         _burn(owner, feeShares);
-        _poolWithdrawManager.performRequestCancellation(owner, shares);
+        _withdrawController.performRequestCancellation(owner, shares);
         emit WithdrawRequestCancelled(owner, assets, shares);
     }
 
@@ -688,7 +688,7 @@ contract Pool is IPool, ERC20 {
      * @dev Crank the protocol. Issues withdrawals
      */
     function crank() external returns (uint256 redeemableShares) {
-        redeemableShares = _poolWithdrawManager.crank();
+        redeemableShares = _withdrawController.crank();
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -877,7 +877,7 @@ contract Pool is IPool, ERC20 {
         override
         returns (uint256 assets)
     {
-        assets = _poolWithdrawManager.maxWithdraw(owner);
+        assets = _withdrawController.maxWithdraw(owner);
     }
 
     /**
@@ -890,7 +890,7 @@ contract Pool is IPool, ERC20 {
         override
         returns (uint256 shares)
     {
-        shares = _poolWithdrawManager.previewWithdraw(msg.sender, assets);
+        shares = _withdrawController.previewWithdraw(msg.sender, assets);
     }
 
     /**
@@ -909,7 +909,7 @@ contract Pool is IPool, ERC20 {
         require(maxWithdraw(owner) >= assets, "Pool: InsufficientBalance");
 
         // Update the withdraw state
-        shares = _poolWithdrawManager.withdraw(owner, assets);
+        shares = _withdrawController.withdraw(owner, assets);
 
         // transfer assets, and burn the shares
         _performWithdrawTransfer(owner, shares, assets);
@@ -925,7 +925,7 @@ contract Pool is IPool, ERC20 {
         override
         returns (uint256 maxShares)
     {
-        maxShares = _poolWithdrawManager.maxRedeem(owner);
+        maxShares = _withdrawController.maxRedeem(owner);
     }
 
     /**
@@ -938,7 +938,7 @@ contract Pool is IPool, ERC20 {
         override
         returns (uint256 assets)
     {
-        assets = _poolWithdrawManager.previewRedeem(msg.sender, shares);
+        assets = _withdrawController.previewRedeem(msg.sender, shares);
     }
 
     /**
@@ -957,7 +957,7 @@ contract Pool is IPool, ERC20 {
         require(maxRedeem(owner) >= shares, "Pool: InsufficientBalance");
 
         // Update the withdraw state
-        assets = _poolWithdrawManager.redeem(owner, shares);
+        assets = _withdrawController.redeem(owner, shares);
 
         // transfer assets, and burn the shares
         _performWithdrawTransfer(owner, shares, assets);

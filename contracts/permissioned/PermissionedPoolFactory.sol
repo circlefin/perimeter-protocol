@@ -3,7 +3,7 @@ pragma solidity ^0.8.16;
 
 import "./interfaces/IPoolAdminAccessControl.sol";
 import "./interfaces/IPermissionedServiceConfiguration.sol";
-import "../interfaces/IPoolWithdrawManagerFactory.sol";
+import "../interfaces/IWithdrawControllerFactory.sol";
 import "../PoolFactory.sol";
 import "./PermissionedPool.sol";
 
@@ -42,7 +42,7 @@ contract PermissionedPoolFactory is PoolFactory {
      */
     function createPool(
         address liquidityAsset,
-        address poolWithdrawManagerFactory,
+        address withdrawControllerFactory,
         IPoolConfigurableSettings calldata settings
     ) public override onlyVerifiedPoolAdmin returns (address poolAddress) {
         require(
@@ -61,13 +61,13 @@ contract PermissionedPoolFactory is PoolFactory {
         );
         address addr = address(pool);
 
-        // Create the pool's withdraw manager factory
-        address poolWithdrawManager = IPoolWithdrawManagerFactory(
-            poolWithdrawManagerFactory
-        ).createPoolWithdrawManager(addr);
+        // Create the pool's withdraw controller factory
+        address withdrawController = IWithdrawControllerFactory(
+            withdrawControllerFactory
+        ).createWithdrawController(addr);
 
-        // Set the pools withdraw manager
-        pool.setWithdrawManager(poolWithdrawManager);
+        // Set the pools withdraw controller
+        pool.setWithdrawController(withdrawController);
 
         emit PoolCreated(addr);
         return addr;
