@@ -5,7 +5,7 @@ import { deployPool, activatePool } from "../../support/pool";
 import { collateralizeLoan, deployLoan, fundLoan } from "../../support/loan";
 import { deployMockERC20 } from "../../support/erc20";
 
-describe("Business Scenario 2", () => {
+describe.only("Business Scenario 2", () => {
   const INPUTS = {
     lenderADepositAmount: 500_000_000_000, // $500k in USDC
     lenderBDepositAmount: 500_000_000_000, // $500k in USDC
@@ -187,8 +187,8 @@ describe("Business Scenario 2", () => {
     // check balances
     expect(await pool.maxRedeem(lenderA.address)).to.equal(283960890);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(425941335);
-    expect(await pool.maxWithdraw(lenderA.address)).to.equal(291666665);
-    expect(await pool.maxWithdraw(lenderB.address)).to.equal(437499998);
+    expect(await pool.maxWithdraw(lenderA.address)).to.equal(291666666);
+    expect(await pool.maxWithdraw(lenderB.address)).to.equal(437499999);
 
     // +18 days, complete payment made
     await advanceToDay(startTime, 18);
