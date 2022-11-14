@@ -351,7 +351,7 @@ contract WithdrawController is IWithdrawController {
     /**
      * @inheritdoc IWithdrawController
      */
-    function crankPool() external onlyPool returns (uint256 redeemableShares) {
+    function crank() external onlyPool returns (uint256 redeemableShares) {
         uint256 currentPeriod = withdrawPeriod();
         IPoolWithdrawState memory globalState = _currentGlobalWithdrawState();
         if (globalState.latestCrankPeriod == currentPeriod) {
@@ -448,14 +448,14 @@ contract WithdrawController is IWithdrawController {
             return withdrawState;
         }
 
-        // Start from the latest time cranked, or the last time requested, +1
+        // Start from the latest time cranked, or the last time requested
         uint256 offsetFrom = Math.max(
             withdrawState.latestRequestPeriod,
             withdrawState.latestCrankPeriod
         );
 
         // Exit early if the global crank hasn't been run in the current period
-        if (offsetFrom >= lastPoolCrank) {
+        if (offsetFrom == lastPoolCrank) {
             return withdrawState;
         }
 

@@ -153,7 +153,7 @@ interface IWithdrawController {
     /**
      * @dev Crank the protocol. Performs accounting for withdrawals
      */
-    function crankPool() external returns (uint256);
+    function crank() external returns (uint256);
 
     /*//////////////////////////////////////////////////////////////
                             Withdraw / Redeem
