@@ -26,6 +26,15 @@ struct IPoolWithdrawState {
     uint256 latestCrankPeriod; // window last cranked in
 }
 
+/**
+ * @dev Holds per-snapshot state used to compute a user's redeemable shares and assets.
+ */
+struct IPoolSnapshotState {
+    uint256 aggregationSumRay;
+    uint256 aggregationSumFxRay;
+    uint256 aggregationDifferenceRay;
+}
+
 struct IPoolSnapshotState {
     uint256 redeemableRateRay;
     uint256 fxRateRayAssetsOverShares;

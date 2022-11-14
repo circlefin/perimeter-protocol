@@ -158,17 +158,7 @@ interface IWithdrawController {
     /**
      * @dev Cranks an individual lenders withdraw state
      */
-    function crankIncrementally(address owner) external;
-
-    /**
-     * @dev Cranks an individual lenders withdraw state
-     */
     function crankFully(address owner) external;
-
-    /**
-     * @dev Returns whether a lender's withdraw state needs to be cranked
-     */
-    function needsCrank(address owner) external view returns (bool);
 
     /*//////////////////////////////////////////////////////////////
                             Withdraw / Redeem

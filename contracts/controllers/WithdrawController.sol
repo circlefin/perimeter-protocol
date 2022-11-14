@@ -395,65 +395,43 @@ contract WithdrawController is IWithdrawController {
         uint256 redeemableRateRay = redeemableShares.mul(PoolLib.RAY).div(
             globalState.eligibleShares
         );
-        uint256 withdrawableAssets = _pool.convertToAssets(redeemableShares);
 
-        // Record snapshot
+        // Calculate the exchange rate for the snapshotted funds
+        uint256 fxExchangeRate = availableAssets.mul(PoolLib.RAY).div(
+            availableShares
+        );
+
+        // Pull up the prior snapshot
+        IPoolSnapshotState memory lastSnapshot = _snapshots[
+            globalState.latestCrankPeriod
+        ];
+
+        // Cache the last aggregate difference. This is set to 1 if it
+        // doesn't exist, so that everything doesn't collapse to 0.
+        uint256 _lastDiff = lastSnapshot.aggregationDifferenceRay != 0
+            ? lastSnapshot.aggregationDifferenceRay
+            : PoolLib.RAY;
+
+        console.log("POOL CRANK");
+        console.log(_lastDiff);
+
+        // Compute the new snapshotted values
         _snapshots[currentPeriod] = IPoolSnapshotState(
-            redeemableRateRay,
-            withdrawableAssets.mul(PoolLib.RAY).div(redeemableShares)
-        );
-
-        // New stuff
-        uint256 fxExchangeRate = withdrawableAssets.mul(PoolLib.RAY).div(
-            redeemableShares
-        );
-
-        // First period
-        uint256 newAggregation = redeemableRateRay;
-        uint256 newDifference = PoolLib.RAY - redeemableRateRay;
-
-        if (!hasProcessed) {
-            _aggregateAccumulations[currentPeriod] = newAggregation;
-            _aggregateDifferences[currentPeriod] = newDifference;
-
-            _aggregateAccumulationsFx[currentPeriod] = newAggregation
-                .mul(fxExchangeRate)
-                .div(PoolLib.RAY);
-
-            // _aggregateDifferencesFx[currentPeriod] = newDifference
-            //     .mul(fxExchangeRate)
-            //     .div(PoolLib.RAY);
-        } else {
-            // Accumulations
-            _aggregateAccumulations[currentPeriod] =
-                _aggregateAccumulations[lastWindowProcessed] +
-                (redeemableRateRay *
-                    _aggregateDifferences[lastWindowProcessed]) /
-                PoolLib.RAY;
-
-            _aggregateAccumulationsFx[
-                currentPeriod
-            ] = _aggregateAccumulationsFx[lastWindowProcessed].add(
+            // New aggregation
+            lastSnapshot.aggregationSumRay +
+                redeemableRateRay.mul(_lastDiff).div(PoolLib.RAY),
+            // New aggregation + FX
+            lastSnapshot.aggregationSumFxRay +
                 redeemableRateRay
-                    .mul(_aggregateDifferences[lastWindowProcessed])
+                    .mul(_lastDiff)
                     .div(PoolLib.RAY)
                     .mul(fxExchangeRate)
-                    .div(PoolLib.RAY)
-            );
+                    .div(PoolLib.RAY),
+            // New difference
+            _lastDiff.mul(PoolLib.RAY - redeemableRateRay).div(PoolLib.RAY)
+        );
 
-            // Differences
-            _aggregateDifferences[currentPeriod] =
-                (newDifference * _aggregateDifferences[lastWindowProcessed]) /
-                PoolLib.RAY;
-
-            // _aggregateDifferencesFx[currentPeriod] = newDifference
-            //     .mul(fxExchangeRate)
-            //     .div(PoolLib.RAY)
-            //     .mul(_aggregateDifferencesFx[lastWindowProcessed])
-            //     .div(PoolLib.RAY);
-        }
-
-        // Update the global withdraw state
+        // Update the global withdraw state to earmark those funds
         globalState = PoolLib.updateWithdrawStateForWithdraw(
             globalState,
             _pool.convertToAssets(redeemableShares),
@@ -461,41 +439,6 @@ contract WithdrawController is IWithdrawController {
         );
         globalState.latestCrankPeriod = currentPeriod;
         _globalWithdrawState = globalState;
-        hasProcessed = true;
-        lastWindowProcessed = currentPeriod;
-
-        if (!firstCrankWindowSet) {
-            firstCrankWindow = currentPeriod;
-            firstCrankWindowSet = true;
-        }
-    }
-
-    /**
-     * @inheritdoc IPoolWithdrawManager
-     */
-    function crankIncrementally(address owner) external override {
-        uint256 currentPeriod = withdrawPeriod();
-        IPoolWithdrawState memory state = PoolLib.progressWithdrawState(
-            _withdrawState[owner],
-            currentPeriod
-        );
-
-        _withdrawState[owner] = simulateCrank(state, MAX_SNAPSHOTS_PER_CRANK);
-    }
-
-    /**
-     * @inheritdoc IPoolWithdrawManager
-     */
-    function needsCrank(address owner) external view override returns (bool) {
-        return
-            _withdrawState[owner].latestCrankPeriod <
-            _globalWithdrawState.latestCrankPeriod;
-    }
-
-    struct AccumulationMath {
-        uint256 accumulationTotal;
-        uint256 accumulationOffset;
-        uint256 accumulationDivisor;
     }
 
     /**
@@ -514,89 +457,72 @@ contract WithdrawController is IWithdrawController {
             return withdrawState;
         }
 
-        // Start from the latest time cranked, or the last time requested,
-        // +1
-        uint256 crankFrom = Math.max(
+        // Start from the latest time cranked, or the last time requested, +1
+        uint256 offsetFrom = Math.max(
             withdrawState.latestRequestPeriod,
             withdrawState.latestCrankPeriod
-        ) + 1;
+        );
 
         // Exit early if the global crank hasn't been run in the current period
-        if (crankFrom > lastPoolCrank) {
+        if (offsetFrom >= lastPoolCrank) {
             return withdrawState;
         }
 
-        AccumulationMath memory math = AccumulationMath(0, 0, 0);
+        // Last snaphot
+        IPoolSnapshotState memory endingSnapshot = _snapshots[lastPoolCrank];
+        IPoolSnapshotState memory startingSnapshot = _snapshots[offsetFrom];
 
-        bool needsOffset = crankFrom != firstCrankWindow && firstCrankWindowSet;
-        console.log("NEEDS OFFSET");
-        console.log(currentPeriod);
-        console.log(firstCrankWindow);
-        console.log(crankFrom);
-        console.log(firstCrankWindowSet);
-        console.log(needsOffset);
-        if (!hasProcessed) {
-            math.accumulationTotal = 0;
-            math.accumulationOffset = 0;
-            math.accumulationDivisor = 1;
-        } else {
-            math.accumulationTotal = _aggregateAccumulations[lastPoolCrank];
-            math.accumulationOffset = needsOffset
-                ? _aggregateAccumulations[crankFrom - 1]
-                : 0;
+        console.log("Simulate crank");
 
-            math.accumulationDivisor = needsOffset
-                ? _aggregateDifferences[crankFrom - 1]
-                : 1;
-        }
+        console.log(endingSnapshot.aggregationSumRay);
+        console.log(endingSnapshot.aggregationSumFxRay);
+        console.log(endingSnapshot.aggregationDifferenceRay);
+        console.log("Starting snapshot...");
+        console.log(startingSnapshot.aggregationSumRay);
+        console.log(startingSnapshot.aggregationSumFxRay);
+        console.log(startingSnapshot.aggregationDifferenceRay);
+        console.log("Simulate crank");
 
-        uint256 sharesEligible = withdrawState.eligibleShares.mul(
-            math.accumulationTotal - math.accumulationOffset
+        // Calculate shares now redeemable
+        uint256 sharesRedeemable = withdrawState.eligibleShares.mul(
+            endingSnapshot.aggregationSumRay -
+                startingSnapshot.aggregationSumRay
         );
-
-        sharesEligible = sharesEligible
-            .mul(needsOffset ? PoolLib.RAY : 1)
-            .div(math.accumulationDivisor)
+        sharesRedeemable = sharesRedeemable
+            .mul(
+                startingSnapshot.aggregationDifferenceRay > 0 ? PoolLib.RAY : 1
+            )
+            .div(
+                startingSnapshot.aggregationDifferenceRay > 0
+                    ? startingSnapshot.aggregationDifferenceRay
+                    : 1
+            )
             .div(PoolLib.RAY);
 
-        // assets!
-        if (!hasProcessed) {
-            math.accumulationTotal = 0;
-            math.accumulationOffset = 0;
-            math.accumulationDivisor = 1;
-        } else {
-            math.accumulationTotal = _aggregateAccumulationsFx[lastPoolCrank];
-            math.accumulationOffset = needsOffset
-                ? _aggregateAccumulationsFx[crankFrom - 1]
-                : 0;
-            math.accumulationDivisor = needsOffset
-                ? _aggregateDifferences[crankFrom - 1]
-                : 1;
-        }
-
+        // Calculate assets now withdrawable
         uint256 assetsWithdrawable = withdrawState.eligibleShares.mul(
-            math.accumulationTotal - math.accumulationOffset
+            endingSnapshot.aggregationSumFxRay -
+                startingSnapshot.aggregationSumFxRay
         );
-
         assetsWithdrawable = assetsWithdrawable
-            .mul(needsOffset ? PoolLib.RAY : 1)
-            .div(math.accumulationDivisor)
+            .mul(
+                startingSnapshot.aggregationDifferenceRay > 0 ? PoolLib.RAY : 1
+            )
+            .div(
+                startingSnapshot.aggregationDifferenceRay > 0
+                    ? startingSnapshot.aggregationDifferenceRay
+                    : 1
+            )
             .div(PoolLib.RAY);
-
-        console.log("Withdrawable");
-        console.log(assetsWithdrawable);
 
         withdrawState.withdrawableAssets += assetsWithdrawable;
-        withdrawState.redeemableShares += sharesEligible;
-        withdrawState.eligibleShares -= sharesEligible;
+        withdrawState.redeemableShares += sharesRedeemable;
+        withdrawState.eligibleShares -= sharesRedeemable;
 
         withdrawState.latestCrankPeriod = lastPoolCrank;
 
         return withdrawState;
     }
-
-    uint256 firstCrankWindow;
-    bool firstCrankWindowSet;
 
     /**
      * @inheritdoc IPoolWithdrawManager

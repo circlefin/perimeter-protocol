@@ -188,7 +188,7 @@ describe.only("Business Scenario 2", () => {
     expect(await pool.maxRedeem(lenderA.address)).to.equal(283960890);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(425941335);
     expect(await pool.maxWithdraw(lenderA.address)).to.equal(291666666);
-    expect(await pool.maxWithdraw(lenderB.address)).to.equal(437499999);
+    expect(await pool.maxWithdraw(lenderB.address)).to.equal(437500000);
 
     // +18 days, complete payment made
     await advanceToDay(startTime, 18);
@@ -203,8 +203,8 @@ describe.only("Business Scenario 2", () => {
     // check balances
     expect(await pool.maxRedeem(lenderA.address)).to.equal(195141980444);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(292712970667);
-    expect(await pool.maxWithdraw(lenderA.address)).to.equal(200729166665);
-    expect(await pool.maxWithdraw(lenderB.address)).to.equal(301093749998);
+    expect(await pool.maxWithdraw(lenderA.address)).to.equal(200729166667);
+    expect(await pool.maxWithdraw(lenderB.address)).to.equal(301093750000);
 
     // +22 days, lender A requests remaining PT redemption
     await advanceToDay(startTime, 22);
@@ -218,8 +218,8 @@ describe.only("Business Scenario 2", () => {
     // check balances
     expect(await pool.maxRedeem(lenderA.address)).to.equal(425828499681);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(298694213967);
-    expect(await pool.maxWithdraw(lenderA.address)).to.equal(444944035136);
-    expect(await pool.maxWithdraw(lenderB.address)).to.equal(307425756528);
+    expect(await pool.maxWithdraw(lenderA.address)).to.equal(444944035139);
+    expect(await pool.maxWithdraw(lenderB.address)).to.equal(307425756529);
 
     // +29 days, lender B requests remaining PT redemption
     await advanceToDay(startTime, 29);
@@ -233,8 +233,8 @@ describe.only("Business Scenario 2", () => {
     // check balances
     expect(await pool.maxRedeem(lenderA.address)).to.equal(451009487935);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(387442345077);
-    expect(await pool.maxWithdraw(lenderA.address)).to.equal(472632381854);
-    expect(await pool.maxWithdraw(lenderB.address)).to.equal(405010847310);
+    expect(await pool.maxWithdraw(lenderA.address)).to.equal(472632381857);
+    expect(await pool.maxWithdraw(lenderB.address)).to.equal(405010847312);
 
     // + to close, crank, inspect results
     await time.increaseTo((await pool.settings()).endDate);
@@ -245,8 +245,8 @@ describe.only("Business Scenario 2", () => {
     // as they requested to withdraw at different times.
     expect(await pool.maxRedeem(lenderA.address)).to.equal(476190476189);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(476190476189);
-    expect(await pool.maxWithdraw(lenderA.address)).to.equal(500320728572); // $500,320
-    expect(await pool.maxWithdraw(lenderB.address)).to.equal(502595938094); // $502,595
+    expect(await pool.maxWithdraw(lenderA.address)).to.equal(500320728576); // $500,320
+    expect(await pool.maxWithdraw(lenderB.address)).to.equal(502595938097); // $502,595
 
     // Check that the pool only has dust
     expect(await pool.totalAvailableAssets()).to.be.lt(5);

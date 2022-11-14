@@ -23,8 +23,8 @@ def run(snapshots: list[tuple[int, int]], balance, start=0):
     accumulations, accumulated_differences = precompute(snapshots)
 
     accumulation_total = accumulations[-1] if accumulations else 0
-    accumulation_offset = accumulations[start - 1] if accumulations and start else 0 
-    accumulation_divisor = RAY/accumulated_differences[start - 1] if accumulated_differences and start else 1
+    accumulation_offset = accumulations[start - 1] if len(accumulations) > 0 and start >= 1 else 0 
+    accumulation_divisor = RAY/accumulated_differences[start - 1] if len(accumulated_differences) > 0 and start >= 1 else 1
 
     return balance * accumulation_divisor * (accumulation_total - accumulation_offset) / RAY
 
