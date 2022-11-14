@@ -406,7 +406,7 @@ contract WithdrawController is IWithdrawController {
             globalState.latestCrankPeriod
         ];
 
-        // Cache the last aggregate difference. This is set to 1 if it
+        // Cache the last aggregate difference. This is set to 1 * RAY if it
         // doesn't exist, so that everything doesn't collapse to 0.
         uint256 _lastDiff = lastSnapshot.aggregationDifferenceRay != 0
             ? lastSnapshot.aggregationDifferenceRay
@@ -471,17 +471,6 @@ contract WithdrawController is IWithdrawController {
         // Last snaphot
         IPoolSnapshotState memory endingSnapshot = _snapshots[lastPoolCrank];
         IPoolSnapshotState memory startingSnapshot = _snapshots[offsetFrom];
-
-        console.log("Simulate crank");
-
-        console.log(endingSnapshot.aggregationSumRay);
-        console.log(endingSnapshot.aggregationSumFxRay);
-        console.log(endingSnapshot.aggregationDifferenceRay);
-        console.log("Starting snapshot...");
-        console.log(startingSnapshot.aggregationSumRay);
-        console.log(startingSnapshot.aggregationSumFxRay);
-        console.log(startingSnapshot.aggregationDifferenceRay);
-        console.log("Simulate crank");
 
         // Calculate shares now redeemable
         uint256 sharesRedeemable = withdrawState.eligibleShares.mul(
