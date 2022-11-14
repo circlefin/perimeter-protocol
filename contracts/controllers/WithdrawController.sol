@@ -7,7 +7,6 @@ import "./interfaces/IPoolController.sol";
 import "../libraries/PoolLib.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "hardhat/console.sol";
 
 /**
  * @title WithdrawState
@@ -89,8 +88,7 @@ contract WithdrawController is IWithdrawController {
             currentPeriod
         );
 
-        return
-            simulateCrank(state, currentPeriod - state.latestCrankPeriod + 1);
+        return simulateCrank(state);
     }
 
     /**
@@ -403,7 +401,7 @@ contract WithdrawController is IWithdrawController {
 
         // Cache the last aggregate difference. This is set to 1 * RAY if it
         // doesn't exist, so that everything doesn't collapse to 0.
-        uint256 _lastDiff = lastSnapshot.aggregationDifferenceRay != 0
+        uint256 lastDiff = lastSnapshot.aggregationDifferenceRay != 0
             ? lastSnapshot.aggregationDifferenceRay
             : PoolLib.RAY;
 
@@ -411,16 +409,16 @@ contract WithdrawController is IWithdrawController {
         _snapshots[currentPeriod] = IPoolSnapshotState(
             // New aggregation
             lastSnapshot.aggregationSumRay +
-                redeemableRateRay.mul(_lastDiff).div(PoolLib.RAY),
-            // New aggregation + FX
+                redeemableRateRay.mul(lastDiff).div(PoolLib.RAY),
+            // New aggregation w/ FX
             lastSnapshot.aggregationSumFxRay +
                 redeemableRateRay
-                    .mul(_lastDiff)
+                    .mul(lastDiff)
                     .div(PoolLib.RAY)
                     .mul(fxExchangeRate)
                     .div(PoolLib.RAY),
             // New difference
-            _lastDiff.mul(PoolLib.RAY - redeemableRateRay).div(PoolLib.RAY)
+            lastDiff.mul(PoolLib.RAY - redeemableRateRay).div(PoolLib.RAY)
         );
 
         // Update the global withdraw state to earmark those funds
@@ -437,10 +435,11 @@ contract WithdrawController is IWithdrawController {
      * @dev Simulates the effects of multiple snapshots against a lenders
      * requested withdrawal.
      */
-    function simulateCrank(
-        IPoolWithdrawState memory withdrawState,
-        uint256 maxSnapshots
-    ) internal view returns (IPoolWithdrawState memory) {
+    function simulateCrank(IPoolWithdrawState memory withdrawState)
+        internal
+        view
+        returns (IPoolWithdrawState memory)
+    {
         uint256 currentPeriod = withdrawPeriod();
         uint256 lastPoolCrank = _globalWithdrawState.latestCrankPeriod;
 

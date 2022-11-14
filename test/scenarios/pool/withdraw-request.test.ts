@@ -142,8 +142,8 @@ describe("Withdraw Requests", () => {
     // verify Alice's state is updated
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(
       33
-    ); /* 50 * (40/60) */
-    expect(await pool.maxWithdraw(aliceLender.address)).to.equal(33);
+    ); /* 50 * (40/60) * 100 / 94 */
+    expect(await pool.maxWithdraw(aliceLender.address)).to.equal(34);
 
     // verify Bob's state is updated
     expect(await pool.maxRedeem(bobLender.address)).to.equal(

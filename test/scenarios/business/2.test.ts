@@ -5,7 +5,7 @@ import { deployPool, activatePool } from "../../support/pool";
 import { collateralizeLoan, deployLoan, fundLoan } from "../../support/loan";
 import { deployMockERC20 } from "../../support/erc20";
 
-describe.only("Business Scenario 2", () => {
+describe("Business Scenario 2", () => {
   const INPUTS = {
     lenderADepositAmount: 500_000_000_000, // $500k in USDC
     lenderBDepositAmount: 500_000_000_000, // $500k in USDC
