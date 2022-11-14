@@ -107,7 +107,7 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
-     * @dev Modifier to check that an addres is a Valyria loan associated
+     * @dev Modifier to check that an addres is a Perimeter loan associated
      * with this pool.
      */
     modifier isPoolLoan(address loan) {

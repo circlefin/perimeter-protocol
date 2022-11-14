@@ -58,8 +58,8 @@ contract PoolFactory {
             msg.sender,
             address(_serviceConfiguration),
             settings,
-            "ValyriaPoolToken",
-            "VPT"
+            "PerimeterPoolToken",
+            "PPT"
         );
 
         address addr = address(pool);
