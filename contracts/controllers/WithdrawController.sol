@@ -8,6 +8,8 @@ import "../libraries/PoolLib.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @title WithdrawState
  */
@@ -26,15 +28,14 @@ contract WithdrawController is IWithdrawController {
     mapping(address => IPoolWithdrawState) private _withdrawState;
 
     /**
-     * @dev a list of all addresses that have requested a withdrawal from this
-     * pool. This allows us to iterate over them to perform a withdrawal/redeem.
-     */
-    EnumerableSet.AddressSet private _withdrawAddresses;
-
-    /**
      * @dev Aggregate withdraw request information
      */
     IPoolWithdrawState private _globalWithdrawState;
+
+    /**
+     * @dev Caching index of pen-ultimate window the crank was run at.
+     */
+    uint256 private _penultimateCrankWindow;
 
     /**
      * @dev Mapping of withdrawPeriod to snapshot
@@ -282,7 +283,7 @@ contract WithdrawController is IWithdrawController {
      * @inheritdoc IWithdrawController
      */
     function performRequest(address owner, uint256 shares) external onlyPool {
-        crankLender(owner);
+        crankLender(owner); // Get them up-to-date
 
         uint256 currentPeriod = withdrawPeriod();
 
@@ -292,6 +293,8 @@ contract WithdrawController is IWithdrawController {
             currentPeriod,
             shares
         );
+        _withdrawState[owner].crankOffsetPeriod = _globalWithdrawState
+            .latestCrankPeriod;
 
         // Update the global amount
         _globalWithdrawState = PoolLib.calculateWithdrawStateForRequest(
@@ -364,6 +367,9 @@ contract WithdrawController is IWithdrawController {
             _pool.poolController()
         );
 
+        console.log("Liquid assets");
+        console.log(liquidAssets);
+
         uint256 availableAssets = liquidAssets
             .mul(_poolController.withdrawGate())
             .mul(PoolLib.RAY)
@@ -372,6 +378,8 @@ contract WithdrawController is IWithdrawController {
 
         uint256 availableShares = _pool.convertToShares(availableAssets);
 
+        console.log("availableShares");
+        console.log(availableShares);
         if (availableAssets <= 0 || availableShares <= 0) {
             // unable to redeem anything
             redeemableShares = 0;
@@ -383,6 +391,16 @@ contract WithdrawController is IWithdrawController {
             availableShares,
             globalState.eligibleShares
         );
+
+        if (redeemableShares == 0) {
+            return 0;
+        }
+
+        console.log("redeemableShares");
+        console.log(redeemableShares);
+
+        console.log("globalState.eligibleShares");
+        console.log(globalState.eligibleShares);
 
         // Calculate the redeemable rate for each lender
         uint256 redeemableRateRay = redeemableShares.mul(PoolLib.RAY).div(
@@ -427,7 +445,11 @@ contract WithdrawController is IWithdrawController {
             _pool.convertToAssets(redeemableShares),
             redeemableShares
         );
+        _penultimateCrankWindow = globalState.latestCrankPeriod;
         globalState.latestCrankPeriod = currentPeriod;
+        console.log("POOOL CRANK");
+        console.log(currentPeriod);
+        console.log(globalState.latestCrankPeriod);
         _globalWithdrawState = globalState;
     }
 
@@ -454,14 +476,34 @@ contract WithdrawController is IWithdrawController {
             withdrawState.latestCrankPeriod
         );
 
+        console.log("In simulate crank");
+        console.log(offsetFrom);
+        console.log(lastPoolCrank);
+
         // Exit early if the global crank hasn't been run in the current period
-        if (offsetFrom == lastPoolCrank) {
+        if (offsetFrom >= lastPoolCrank) {
             return withdrawState;
         }
 
         // Last snaphot
         IPoolSnapshotState memory endingSnapshot = _snapshots[lastPoolCrank];
-        IPoolSnapshotState memory startingSnapshot = _snapshots[offsetFrom];
+
+        // Calculate which snapshot to offset by. If offset from >
+        IPoolSnapshotState memory startingSnapshot;
+        if (offsetFrom > _penultimateCrankWindow) {
+            // This will occur if someone requests in a window in which
+            // no snapshot was run
+            startingSnapshot = _snapshots[_penultimateCrankWindow];
+        } else {
+            startingSnapshot = _snapshots[offsetFrom];
+        }
+
+        console.log("hi");
+        console.log("startingSnapshot.aggregationDifferenceRay");
+        console.log(startingSnapshot.aggregationDifferenceRay);
+
+        console.log("endingSnapshot.aggregationDifferenceRay");
+        console.log(endingSnapshot.aggregationDifferenceRay);
 
         // Calculate shares now redeemable
         uint256 sharesRedeemable = withdrawState.eligibleShares.mul(
@@ -478,6 +520,9 @@ contract WithdrawController is IWithdrawController {
                     : 1
             )
             .div(PoolLib.RAY);
+
+        console.log("sharesRedeemable");
+        console.log(sharesRedeemable);
 
         // Calculate assets now withdrawable
         uint256 assetsWithdrawable = withdrawState.eligibleShares.mul(
