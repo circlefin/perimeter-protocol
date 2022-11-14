@@ -5,6 +5,7 @@ import "./interfaces/ILoan.sol";
 import "./interfaces/IPool.sol";
 import "./interfaces/IServiceConfiguration.sol";
 import "./controllers/interfaces/IWithdrawController.sol";
+import "./factories/interfaces/IWithdrawControllerFactory.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -24,7 +25,6 @@ contract Pool is IPool, ERC20 {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     address private _admin;
-    address private immutable _factory;
     IServiceConfiguration private _serviceConfiguration;
     IERC20 private _liquidityAsset;
     FeeVault private _feeVault;
@@ -44,17 +44,6 @@ contract Pool is IPool, ERC20 {
      * @inheritdoc IPool
      */
     uint256 public poolActivatedAt;
-
-    /**
-     * @dev Modifier that checks that the caller is the pool's factory.
-     */
-    modifier onlyFactory() {
-        require(
-            _factory != address(0) && msg.sender == _factory,
-            "Pool: caller is not factory"
-        );
-        _;
-    }
 
     /**
      * @dev Modifier that checks that the caller is the pool's admin.
@@ -126,21 +115,21 @@ contract Pool is IPool, ERC20 {
      * @dev Constructor for Pool
      * @param liquidityAsset asset held by the poo
      * @param poolAdmin admin of the pool
-     * @param poolSettings configurable settings for the pool
      * @param serviceConfiguration address of global service configuration
+     * @param withdrawControllerFactory factory address of the withdraw controller
+     * @param poolSettings configurable settings for the pool
      * @param tokenName Name used for issued pool tokens
      * @param tokenSymbol Symbol used for issued pool tokens
      */
     constructor(
-        address factory,
         address liquidityAsset,
         address poolAdmin,
         address serviceConfiguration,
+        address withdrawControllerFactory,
         IPoolConfigurableSettings memory poolSettings,
         string memory tokenName,
         string memory tokenSymbol
     ) ERC20(tokenName, tokenSymbol) {
-        _factory = factory;
         _liquidityAsset = IERC20(liquidityAsset);
         _poolSettings = poolSettings;
         _admin = poolAdmin;
@@ -149,17 +138,14 @@ contract Pool is IPool, ERC20 {
         _feeVault = new FeeVault(address(this));
         _setPoolLifeCycleState(IPoolLifeCycleState.Initialized);
 
-        // Allow the contract to move infinite amount of vault liquidity assets
-        _liquidityAsset.safeApprove(address(this), type(uint256).max);
-    }
-
-    function setWithdrawController(address addr) public onlyFactory {
-        require(
-            address(withdrawController) == address(0),
-            "Pool: WithdrawControllerAlreadySet"
+        // Build the withdraw controller
+        withdrawController = IWithdrawController(
+            IWithdrawControllerFactory(withdrawControllerFactory)
+                .createWithdrawController(address(this))
         );
 
-        withdrawController = IWithdrawController(addr);
+        // Allow the contract to move infinite amount of vault liquidity assets
+        _liquidityAsset.safeApprove(address(this), type(uint256).max);
     }
 
     /**

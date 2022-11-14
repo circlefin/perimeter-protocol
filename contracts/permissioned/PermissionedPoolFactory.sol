@@ -3,7 +3,6 @@ pragma solidity ^0.8.16;
 
 import "./interfaces/IPoolAdminAccessControl.sol";
 import "./interfaces/IPermissionedServiceConfiguration.sol";
-import "../interfaces/IWithdrawControllerFactory.sol";
 import "../PoolFactory.sol";
 import "./PermissionedPool.sol";
 
@@ -14,14 +13,12 @@ contract PermissionedPoolFactory is PoolFactory {
     /**
      * @dev Reference to the PermissionedServiceConfiguration contract
      */
-    IPermissionedServiceConfiguration private _serviceConfiguration;
+    address private _serviceConfiguration;
 
     constructor(address serviceConfiguration)
         PoolFactory(serviceConfiguration)
     {
-        _serviceConfiguration = IPermissionedServiceConfiguration(
-            serviceConfiguration
-        );
+        _serviceConfiguration = serviceConfiguration;
     }
 
     /**
@@ -29,9 +26,9 @@ contract PermissionedPoolFactory is PoolFactory {
      */
     modifier onlyVerifiedPoolAdmin() {
         require(
-            _serviceConfiguration.poolAdminAccessControl().isAllowed(
-                msg.sender
-            ),
+            IPermissionedServiceConfiguration(_serviceConfiguration)
+                .poolAdminAccessControl()
+                .isAllowed(msg.sender),
             "caller is not allowed pool admin"
         );
         _;
@@ -51,23 +48,15 @@ contract PermissionedPoolFactory is PoolFactory {
         );
 
         PermissionedPool pool = new PermissionedPool(
-            address(this),
             liquidityAsset,
             msg.sender,
             address(_serviceConfiguration),
+            withdrawControllerFactory,
             settings,
             "PerimeterPoolToken",
             "PPT"
         );
         address addr = address(pool);
-
-        // Create the pool's withdraw controller factory
-        address withdrawController = IWithdrawControllerFactory(
-            withdrawControllerFactory
-        ).createWithdrawController(addr);
-
-        // Set the pools withdraw controller
-        pool.setWithdrawController(withdrawController);
 
         emit PoolCreated(addr);
         return addr;

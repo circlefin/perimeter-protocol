@@ -42,19 +42,19 @@ contract PermissionedPool is Pool {
      * PoolAccessControl contract.
      */
     constructor(
-        address factory,
         address liquidityAsset,
         address poolAdmin,
         address serviceConfiguration,
+        address withdrawController,
         IPoolConfigurableSettings memory poolSettings,
         string memory tokenName,
         string memory tokenSymbol
     )
         Pool(
-            factory,
             liquidityAsset,
             poolAdmin,
             serviceConfiguration,
+            withdrawController,
             poolSettings,
             tokenName,
             tokenSymbol
