@@ -420,9 +420,9 @@ contract WithdrawController is IWithdrawController {
                 .mul(fxExchangeRate)
                 .div(PoolLib.RAY);
 
-            _aggregateDifferencesFx[currentPeriod] = newDifference
-                .mul(fxExchangeRate)
-                .div(PoolLib.RAY);
+            // _aggregateDifferencesFx[currentPeriod] = newDifference
+            //     .mul(fxExchangeRate)
+            //     .div(PoolLib.RAY);
         } else {
             // Accumulations
             _aggregateAccumulations[currentPeriod] =
@@ -446,11 +446,11 @@ contract WithdrawController is IWithdrawController {
                 (newDifference * _aggregateDifferences[lastWindowProcessed]) /
                 PoolLib.RAY;
 
-            _aggregateDifferencesFx[currentPeriod] = newDifference
-                .mul(fxExchangeRate)
-                .div(PoolLib.RAY)
-                .mul(_aggregateDifferences[lastWindowProcessed])
-                .div(PoolLib.RAY);
+            // _aggregateDifferencesFx[currentPeriod] = newDifference
+            //     .mul(fxExchangeRate)
+            //     .div(PoolLib.RAY)
+            //     .mul(_aggregateDifferencesFx[lastWindowProcessed])
+            //     .div(PoolLib.RAY);
         }
 
         // Update the global withdraw state
@@ -570,7 +570,7 @@ contract WithdrawController is IWithdrawController {
                 ? _aggregateAccumulationsFx[crankFrom - 1]
                 : 0;
             math.accumulationDivisor = needsOffset
-                ? _aggregateDifferencesFx[crankFrom - 1]
+                ? _aggregateDifferences[crankFrom - 1]
                 : 1;
         }
 
