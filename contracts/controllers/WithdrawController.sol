@@ -43,11 +43,6 @@ contract WithdrawController is IWithdrawController {
     mapping(uint256 => IPoolSnapshotState) private _snapshots;
 
     /**
-     * @dev Max snapshots to process per crank
-     */
-    uint256 constant MAX_SNAPSHOTS_PER_CRANK = 30;
-
-    /**
      * @dev Modifier that checks that the caller is a pool lender
      */
     modifier onlyPool() {
@@ -289,7 +284,7 @@ contract WithdrawController is IWithdrawController {
      * @inheritdoc IWithdrawController
      */
     function performRequest(address owner, uint256 shares) external onlyPool {
-        crankFully(owner);
+        crankLender(owner);
 
         uint256 currentPeriod = withdrawPeriod();
 
@@ -333,7 +328,7 @@ contract WithdrawController is IWithdrawController {
         external
         onlyPool
     {
-        crankFully(owner);
+        crankLender(owner);
         uint256 currentPeriod = withdrawPeriod();
 
         // Update the requested amount from the user
@@ -411,9 +406,6 @@ contract WithdrawController is IWithdrawController {
         uint256 _lastDiff = lastSnapshot.aggregationDifferenceRay != 0
             ? lastSnapshot.aggregationDifferenceRay
             : PoolLib.RAY;
-
-        console.log("POOL CRANK");
-        console.log(_lastDiff);
 
         // Compute the new snapshotted values
         _snapshots[currentPeriod] = IPoolSnapshotState(
@@ -514,9 +506,9 @@ contract WithdrawController is IWithdrawController {
     }
 
     /**
-     * @inheritdoc IPoolWithdrawManager
+     * @dev Cranks a lender
      */
-    function crankFully(address addr) public override {
+    function crankLender(address addr) internal {
         _withdrawState[addr] = _currentWithdrawState(addr);
     }
 
@@ -572,7 +564,7 @@ contract WithdrawController is IWithdrawController {
         uint256 shares,
         uint256 assets
     ) internal {
-        crankFully(owner);
+        crankLender(owner);
         IPoolWithdrawState memory currentState = _currentWithdrawState(owner);
 
         require(

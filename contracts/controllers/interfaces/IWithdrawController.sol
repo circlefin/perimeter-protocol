@@ -155,11 +155,6 @@ interface IWithdrawController {
      */
     function crankPool() external returns (uint256);
 
-    /**
-     * @dev Cranks an individual lenders withdraw state
-     */
-    function crankFully(address owner) external;
-
     /*//////////////////////////////////////////////////////////////
                             Withdraw / Redeem
     //////////////////////////////////////////////////////////////*/
