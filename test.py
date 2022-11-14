@@ -6,14 +6,14 @@ def precompute(snapshots):
     accumulated_differences = []
     
     for each in rayed_snapshots: 
-        accumulations.append(
-            (accumulations[-1] if accumulations else 0) + 
-            each * (accumulated_differences[-1] if accumulated_differences else RAY) / RAY
-        )
-
         if accumulated_differences:
+            accumulations.append(
+                accumulations[-1] + 
+                each * accumulated_differences[-1] / RAY
+            )
             accumulated_differences.append((RAY - each) * accumulated_differences[-1] / RAY)
         else:
+            accumulations.append(each)
             accumulated_differences = [RAY - each]
 
     return accumulations, accumulated_differences
@@ -24,9 +24,9 @@ def run(snapshots: list[tuple[int, int]], balance, start=0):
 
     accumulation_total = accumulations[-1] if accumulations else 0
     accumulation_offset = accumulations[start - 1] if accumulations and start else 0 
-    accumulation_divisor = 1/accumulated_differences[start - 1] if accumulated_differences and start else 1/RAY
+    accumulation_divisor = RAY/accumulated_differences[start - 1] if accumulated_differences and start else 1
 
-    return balance * (accumulation_divisor * (accumulation_total - accumulation_offset))
+    return balance * accumulation_divisor * (accumulation_total - accumulation_offset) / RAY
 
 
 if __name__ == "__main__":
@@ -38,7 +38,7 @@ if __name__ == "__main__":
     print("Case 1")
     result = run([0.5], 100, start=0)
     print(f'Case 1 result: {result}')
-    assert result == 50, "Case 1 failed"
+    assert round(result, 3) == 50, "Case 1 failed"
     
     print("Case 2")
     result = run([0.5, 0.5], 100, start=0)

@@ -203,8 +203,8 @@ describe.only("Business Scenario 2", () => {
     // check balances
     expect(await pool.maxRedeem(lenderA.address)).to.equal(195141980444);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(292712970667);
-    expect(await pool.maxWithdraw(lenderA.address)).to.equal(200729166664);
-    expect(await pool.maxWithdraw(lenderB.address)).to.equal(301093749997);
+    expect(await pool.maxWithdraw(lenderA.address)).to.equal(200729166665);
+    expect(await pool.maxWithdraw(lenderB.address)).to.equal(301093749998);
 
     // +22 days, lender A requests remaining PT redemption
     await advanceToDay(startTime, 22);
