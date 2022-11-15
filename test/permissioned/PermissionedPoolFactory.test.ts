@@ -68,18 +68,18 @@ describe("PermissionedPoolFactory", () => {
     );
     await tx.wait();
 
-    const PoolWithdrawManagerFactory = await ethers.getContractFactory(
-      "PoolWithdrawManagerFactory",
+    const WithdrawControllerFactory = await ethers.getContractFactory(
+      "WithdrawControllerFactory",
       {
         libraries: {
           PoolLib: poolLib.address
         }
       }
     );
-    const poolWithdrawManagerFactory = await PoolWithdrawManagerFactory.deploy(
+    const withdrawControllerFactory = await WithdrawControllerFactory.deploy(
       permissionedServiceConfiguration.address
     );
-    await poolWithdrawManagerFactory.deployed();
+    await withdrawControllerFactory.deployed();
 
     return {
       poolFactory,
@@ -88,7 +88,7 @@ describe("PermissionedPoolFactory", () => {
       otherAccount,
       liquidityAsset,
       tosAcceptanceRegistry,
-      poolWithdrawManagerFactory
+      withdrawControllerFactory
     };
   }
 
@@ -99,7 +99,7 @@ describe("PermissionedPoolFactory", () => {
       otherAccount,
       liquidityAsset,
       tosAcceptanceRegistry,
-      poolWithdrawManagerFactory
+      withdrawControllerFactory
     } = await loadFixture(deployFixture);
 
     await tosAcceptanceRegistry.connect(otherAccount).acceptTermsOfService();
@@ -110,7 +110,7 @@ describe("PermissionedPoolFactory", () => {
         .connect(otherAccount)
         .createPool(
           liquidityAsset.address,
-          poolWithdrawManagerFactory.address,
+          withdrawControllerFactory.address,
           DEFAULT_POOL_SETTINGS
         )
     ).to.emit(poolFactory, "PoolCreated");
@@ -123,7 +123,7 @@ describe("PermissionedPoolFactory", () => {
       otherAccount,
       liquidityAsset,
       tosAcceptanceRegistry,
-      poolWithdrawManagerFactory
+      withdrawControllerFactory
     } = await loadFixture(deployFixture);
 
     await tosAcceptanceRegistry.connect(otherAccount).acceptTermsOfService();
@@ -132,7 +132,7 @@ describe("PermissionedPoolFactory", () => {
     await expect(
       poolFactory.createPool(
         liquidityAsset.address,
-        poolWithdrawManagerFactory.address,
+        withdrawControllerFactory.address,
         DEFAULT_POOL_SETTINGS
       )
     ).to.be.revertedWith("caller is not allowed pool admin");

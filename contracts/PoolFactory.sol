@@ -2,7 +2,6 @@
 pragma solidity ^0.8.16;
 
 import "./Pool.sol";
-import "./interfaces/IPoolWithdrawManagerFactory.sol";
 import "./interfaces/IServiceConfiguration.sol";
 
 /**
@@ -12,7 +11,7 @@ contract PoolFactory {
     /**
      * @dev Reference to the ServiceConfiguration contract
      */
-    IServiceConfiguration private _serviceConfiguration;
+    address private _serviceConfiguration;
 
     /**
      * @dev Emitted when a pool is created.
@@ -20,7 +19,7 @@ contract PoolFactory {
     event PoolCreated(address indexed addr);
 
     constructor(address serviceConfiguration) {
-        _serviceConfiguration = IServiceConfiguration(serviceConfiguration);
+        _serviceConfiguration = serviceConfiguration;
     }
 
     /**
@@ -29,11 +28,11 @@ contract PoolFactory {
      */
     function createPool(
         address liquidityAsset,
-        address poolWithdrawManagerFactory,
+        address withdrawControllerFactory,
         IPoolConfigurableSettings calldata settings
     ) public virtual returns (address poolAddress) {
         require(
-            _serviceConfiguration.paused() == false,
+            IServiceConfiguration(_serviceConfiguration).paused() == false,
             "PoolFactory: Protocol paused"
         );
         require(
@@ -41,7 +40,7 @@ contract PoolFactory {
             "PoolFactory: Invalid duration"
         );
         require(
-            poolWithdrawManagerFactory != address(0),
+            withdrawControllerFactory != address(0),
             "PoolFactory: Invalid address"
         );
         if (settings.fixedFee > 0) {
@@ -53,25 +52,16 @@ contract PoolFactory {
 
         // Create the pool
         Pool pool = new Pool(
-            address(this),
             liquidityAsset,
             msg.sender,
-            address(_serviceConfiguration),
+            _serviceConfiguration,
+            withdrawControllerFactory,
             settings,
             "PerimeterPoolToken",
             "PPT"
         );
 
         address addr = address(pool);
-
-        // Create the pool's withdraw manager factory
-        address poolWithdrawManager = IPoolWithdrawManagerFactory(
-            poolWithdrawManagerFactory
-        ).createPoolWithdrawManager(addr);
-
-        // Set the pools withdraw manager
-        pool.setWithdrawManager(poolWithdrawManager);
-
         emit PoolCreated(addr);
         return addr;
     }

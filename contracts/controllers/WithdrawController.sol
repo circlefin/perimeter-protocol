@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
-import "./interfaces/IPool.sol";
-import "./interfaces/IPoolWithdrawManager.sol";
-import "./libraries/PoolLib.sol";
+import "../interfaces/IPool.sol";
+import "./interfaces/IWithdrawController.sol";
+import "../libraries/PoolLib.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 /**
  * @title WithdrawState
  */
-contract PoolWithdrawManager is IPoolWithdrawManager {
+contract WithdrawController is IWithdrawController {
     using SafeMath for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -39,7 +39,7 @@ contract PoolWithdrawManager is IPoolWithdrawManager {
      * @dev Modifier that checks that the caller is a pool lender
      */
     modifier onlyPool() {
-        require(address(_pool) == msg.sender, "PoolWithdrawManager: Not Pool");
+        require(address(_pool) == msg.sender, "WithdrawController: Not Pool");
         _;
     }
 
@@ -101,7 +101,7 @@ contract PoolWithdrawManager is IPoolWithdrawManager {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @inheritdoc IPoolWithdrawManager
+     * @inheritdoc IWithdrawController
      */
     function interestBearingBalanceOf(address owner)
         external
@@ -112,7 +112,7 @@ contract PoolWithdrawManager is IPoolWithdrawManager {
     }
 
     /**
-     * @inheritdoc IPoolWithdrawManager
+     * @inheritdoc IWithdrawController
      */
     function requestedBalanceOf(address owner)
         external
@@ -123,14 +123,14 @@ contract PoolWithdrawManager is IPoolWithdrawManager {
     }
 
     /**
-     * @inheritdoc IPoolWithdrawManager
+     * @inheritdoc IWithdrawController
      */
     function totalRequestedBalance() external view returns (uint256 shares) {
         shares = _currentGlobalWithdrawState().requestedShares;
     }
 
     /**
-     * @inheritdoc IPoolWithdrawManager
+     * @inheritdoc IWithdrawController
      */
     function eligibleBalanceOf(address owner)
         external
@@ -141,21 +141,21 @@ contract PoolWithdrawManager is IPoolWithdrawManager {
     }
 
     /**
-     * @inheritdoc IPoolWithdrawManager
+     * @inheritdoc IWithdrawController
      */
     function totalEligibleBalance() external view returns (uint256 shares) {
         shares = _currentGlobalWithdrawState().eligibleShares;
     }
 
     /**
-     * @inheritdoc IPoolWithdrawManager
+     * @inheritdoc IWithdrawController
      */
     function totalRedeemableShares() external view returns (uint256 shares) {
         shares = _currentGlobalWithdrawState().redeemableShares;
     }
 
     /**
-     * @inheritdoc IPoolWithdrawManager
+     * @inheritdoc IWithdrawController
      */
     function totalWithdrawableAssets() external view returns (uint256 assets) {
         assets = _currentGlobalWithdrawState().withdrawableAssets;
@@ -166,7 +166,7 @@ contract PoolWithdrawManager is IPoolWithdrawManager {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @inheritdoc IPoolWithdrawManager
+     * @inheritdoc IWithdrawController
      */
     function maxRedeemRequest(address owner)
         external
@@ -181,14 +181,14 @@ contract PoolWithdrawManager is IPoolWithdrawManager {
     }
 
     /**
-     * @inheritdoc IPoolWithdrawManager
+     * @inheritdoc IWithdrawController
      */
     function maxRedeem(address owner) public view returns (uint256 maxShares) {
         maxShares = _currentWithdrawState(owner).redeemableShares;
     }
 
     /**
-     * @inheritdoc IPoolWithdrawManager
+     * @inheritdoc IWithdrawController
      */
     function maxWithdraw(address owner) external view returns (uint256 assets) {
         assets = _currentWithdrawState(owner).withdrawableAssets;
@@ -199,7 +199,7 @@ contract PoolWithdrawManager is IPoolWithdrawManager {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @inheritdoc IPoolWithdrawManager
+     * @inheritdoc IWithdrawController
      */
     function previewRedeemRequest(uint256 shares)
         external
@@ -215,7 +215,7 @@ contract PoolWithdrawManager is IPoolWithdrawManager {
     }
 
     /**
-     * @inheritdoc IPoolWithdrawManager
+     * @inheritdoc IWithdrawController
      */
     function previewWithdrawRequest(uint256 assets)
         external
@@ -231,7 +231,7 @@ contract PoolWithdrawManager is IPoolWithdrawManager {
     }
 
     /**
-     * @inheritdoc IPoolWithdrawManager
+     * @inheritdoc IWithdrawController
      */
     function previewRedeem(address owner, uint256 shares)
         external
@@ -247,7 +247,7 @@ contract PoolWithdrawManager is IPoolWithdrawManager {
     }
 
     /**
-     * @inheritdoc IPoolWithdrawManager
+     * @inheritdoc IWithdrawController
      */
     function previewWithdraw(address owner, uint256 assets)
         external
@@ -267,7 +267,7 @@ contract PoolWithdrawManager is IPoolWithdrawManager {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @inheritdoc IPoolWithdrawManager
+     * @inheritdoc IWithdrawController
      */
     function performRequest(address owner, uint256 shares) external onlyPool {
         uint256 currentPeriod = withdrawPeriod();
@@ -295,7 +295,7 @@ contract PoolWithdrawManager is IPoolWithdrawManager {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @inheritdoc IPoolWithdrawManager
+     * @inheritdoc IWithdrawController
      */
     function maxRequestCancellation(address owner)
         public
@@ -309,7 +309,7 @@ contract PoolWithdrawManager is IPoolWithdrawManager {
     }
 
     /**
-     * @inheritdoc IPoolWithdrawManager
+     * @inheritdoc IWithdrawController
      */
     function performRequestCancellation(address owner, uint256 shares)
         external
@@ -337,7 +337,7 @@ contract PoolWithdrawManager is IPoolWithdrawManager {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @inheritdoc IPoolWithdrawManager
+     * @inheritdoc IWithdrawController
      */
     function crank() external onlyPool returns (uint256 redeemableShares) {
         // Calculate the amount available for withdrawal
@@ -412,7 +412,7 @@ contract PoolWithdrawManager is IPoolWithdrawManager {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @inheritdoc IPoolWithdrawManager
+     * @inheritdoc IWithdrawController
      */
     function redeem(address owner, uint256 shares)
         external
@@ -431,7 +431,7 @@ contract PoolWithdrawManager is IPoolWithdrawManager {
     }
 
     /**
-     * @inheritdoc IPoolWithdrawManager
+     * @inheritdoc IWithdrawController
      */
     function withdraw(address owner, uint256 assets)
         external

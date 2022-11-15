@@ -51,12 +51,14 @@ describe("Business Scenario 2", () => {
       "MUSDC",
       6
     );
-    const { pool, serviceConfiguration } = await deployPool({
-      operator,
-      poolAdmin: poolAdmin,
-      settings: poolSettings,
-      liquidityAsset: mockUSDC
-    });
+    const { pool, serviceConfiguration, withdrawController } = await deployPool(
+      {
+        operator,
+        poolAdmin: poolAdmin,
+        settings: poolSettings,
+        liquidityAsset: mockUSDC
+      }
+    );
 
     // Confirm FL fee is set to 5%
     expect(await serviceConfiguration.firstLossFeeBps()).to.equal(500);
@@ -99,7 +101,8 @@ describe("Business Scenario 2", () => {
       mockUSDC,
       poolAdmin,
       borrower,
-      loan
+      loan,
+      withdrawController
     };
   }
 
@@ -112,7 +115,8 @@ describe("Business Scenario 2", () => {
       mockUSDC,
       poolAdmin,
       borrower,
-      loan
+      loan,
+      withdrawController
     } = await loadFixture(fixtures);
 
     // Initialization checks
@@ -157,8 +161,12 @@ describe("Business Scenario 2", () => {
     await pool.crank(); // crank runs, but is meaningless
     await pool.connect(lenderA).requestRedeem(200_000_000_000);
     // check balances
-    expect(await pool.eligibleBalanceOf(lenderA.address)).to.equal(0);
-    expect(await pool.eligibleBalanceOf(lenderB.address)).to.equal(0);
+    expect(
+      await withdrawController.eligibleBalanceOf(lenderA.address)
+    ).to.equal(0);
+    expect(
+      await withdrawController.eligibleBalanceOf(lenderB.address)
+    ).to.equal(0);
     expect(await pool.maxRedeem(lenderA.address)).to.equal(0);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(0);
     expect(await pool.maxWithdraw(lenderA.address)).to.equal(0);

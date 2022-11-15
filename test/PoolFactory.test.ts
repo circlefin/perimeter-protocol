@@ -31,28 +31,28 @@ describe("PoolFactory", () => {
     const poolFactory = await PoolFactory.deploy(serviceConfiguration.address);
     await poolFactory.deployed();
 
-    const PoolWithdrawManagerFactory = await ethers.getContractFactory(
-      "PoolWithdrawManagerFactory",
+    const WithdrawControllerFactory = await ethers.getContractFactory(
+      "WithdrawControllerFactory",
       {
         libraries: {
           PoolLib: poolLib.address
         }
       }
     );
-    const poolWithdrawManagerFactory = await PoolWithdrawManagerFactory.deploy(
+    const withdrawControllerFactory = await WithdrawControllerFactory.deploy(
       serviceConfiguration.address
     );
-    await poolWithdrawManagerFactory.deployed();
+    await withdrawControllerFactory.deployed();
 
     return {
       poolFactory,
       liquidityAsset,
-      poolWithdrawManagerFactory
+      withdrawControllerFactory
     };
   }
 
   it("reverts if given a zero withdraw window", async () => {
-    const { poolFactory, poolWithdrawManagerFactory, liquidityAsset } =
+    const { poolFactory, withdrawControllerFactory, liquidityAsset } =
       await loadFixture(deployFixture);
 
     const poolSettings = Object.assign({}, DEFAULT_POOL_SETTINGS, {
@@ -61,13 +61,13 @@ describe("PoolFactory", () => {
     await expect(
       poolFactory.createPool(
         liquidityAsset.address,
-        poolWithdrawManagerFactory.address,
+        withdrawControllerFactory.address,
         poolSettings
       )
     ).to.be.revertedWith("PoolFactory: Invalid duration");
   });
 
-  it("reverts if given an invalid pool withdraw manager factory", async () => {
+  it("reverts if given an invalid pool withdraw controller factory", async () => {
     const { poolFactory, liquidityAsset } = await loadFixture(deployFixture);
 
     const poolSettings = Object.assign({}, DEFAULT_POOL_SETTINGS, {
@@ -83,13 +83,13 @@ describe("PoolFactory", () => {
   });
 
   it("emits PoolCreated", async () => {
-    const { poolFactory, liquidityAsset, poolWithdrawManagerFactory } =
+    const { poolFactory, liquidityAsset, withdrawControllerFactory } =
       await loadFixture(deployFixture);
 
     await expect(
       poolFactory.createPool(
         /* liquidityAsset */ liquidityAsset.address,
-        poolWithdrawManagerFactory.address,
+        withdrawControllerFactory.address,
         DEFAULT_POOL_SETTINGS
       )
     ).to.emit(poolFactory, "PoolCreated");
