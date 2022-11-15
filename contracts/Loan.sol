@@ -39,6 +39,8 @@ contract Loan is ILoan {
     uint256 public poolFee; // deducted from interest payments and transferred to fee vault
     uint256 public originationFee; // additional payment on top of interest payments and transferred to fee vault
 
+    uint256 public poolPayment; // cached monthly payment to the pool
+
     uint256 public callbackTimestamp;
     ILoanSettings settings;
 
@@ -145,6 +147,7 @@ contract Loan is ILoan {
                 settings.latePayment,
                 paymentDueDate
             );
+        poolPayment = poolPayment_;
         firstLossFee = firstLossFee_;
         poolFee = poolFee_;
 
@@ -363,8 +366,6 @@ contract Loan is ILoan {
         if (block.timestamp > paymentDueDate) {
             lateFee = settings.latePayment;
         }
-
-        uint256 poolPayment = payment - poolFee - firstLossFee + lateFee;
 
         LoanLib.payFees(
             liquidityAsset,

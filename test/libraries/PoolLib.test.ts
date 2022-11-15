@@ -616,7 +616,7 @@ describe("PoolLib", () => {
           serviceConfiguration.address,
           poolLibWrapper.address
         )
-      ).to.be.revertedWith("foo");
+      ).to.be.reverted;
     });
 
     it("reverts if not passed a service configuration", async () => {
