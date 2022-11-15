@@ -22,7 +22,7 @@ library PoolLib {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     uint256 public constant RAY = 10**27;
-
+    uint256 public constant WAD = 10**18;
     /**
      * @dev Emitted when first loss is supplied to the pool.
      */

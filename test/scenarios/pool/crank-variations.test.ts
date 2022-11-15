@@ -79,7 +79,7 @@ describe("Crank Variations", () => {
     const { endDate } = await pool.settings();
     await time.increaseTo(endDate);
     await pool.crank();
-    expect(await pool.maxRedeem(aliceLender.address)).to.equal(DEPOSIT_AMOUNT);
+    expect(await pool.maxRedeem(aliceLender.address)).to.equal(DEPOSIT_AMOUNT - 1);
   });
 
   it("calculates correctly when 2nd lender requests midway", async () => {
@@ -123,7 +123,7 @@ describe("Crank Variations", () => {
     await pool.crank(); // Bob should now be able to withdraw 1M / 2 = 500k
     expect(await pool.withdrawPeriod()).to.equal(3);
     expect(await pool.maxRedeem(bobLender.address)).to.equal(
-      DEPOSIT_AMOUNT / 2 - 1
+      DEPOSIT_AMOUNT / 2
     );
 
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(
@@ -135,7 +135,7 @@ describe("Crank Variations", () => {
     await pool.crank();
     expect(await pool.withdrawPeriod()).to.equal(4);
     expect(await pool.maxRedeem(bobLender.address)).to.equal(
-      (3 * DEPOSIT_AMOUNT) / 4 - 1
+      (3 * DEPOSIT_AMOUNT) / 4
     );
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(
       DEPOSIT_AMOUNT - 1

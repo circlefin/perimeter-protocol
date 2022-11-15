@@ -382,7 +382,7 @@ contract WithdrawController is IWithdrawController {
         // Determine the amount of shares that we will actually distribute.
         redeemableShares = Math.min(
             availableShares,
-            globalState.eligibleShares - 1 // We offset by 1 to avoid a 100% redeem rate, which throws off all the math.
+            globalState.eligibleShares // We offset by 1 to avoid a 100% redeem rate, which throws off all the math.
         );
 
         if (redeemableShares == 0) {
@@ -390,8 +390,9 @@ contract WithdrawController is IWithdrawController {
         }
 
         // Calculate the redeemable rate for each lender
-        uint256 redeemableRateRay = redeemableShares.mul(PoolLib.RAY).div(
-            globalState.eligibleShares
+        uint256 redeemableRateRay = Math.min(
+            redeemableShares.mul(PoolLib.WAD).div(globalState.eligibleShares),
+            PoolLib.WAD - 1
         );
 
         // Calculate the exchange rate for the snapshotted funds
@@ -414,16 +415,16 @@ contract WithdrawController is IWithdrawController {
         _snapshots[currentPeriod] = IPoolSnapshotState(
             // New aggregation
             lastSnapshot.aggregationSumRay +
-                redeemableRateRay.mul(lastDiff).div(PoolLib.RAY),
+                redeemableRateRay.mul(lastDiff).div(PoolLib.WAD),
             // New aggregation w/ FX
             lastSnapshot.aggregationSumFxRay +
                 redeemableRateRay
                     .mul(lastDiff)
-                    .div(PoolLib.RAY)
+                    .div(PoolLib.WAD)
                     .mul(fxExchangeRate)
                     .div(PoolLib.RAY),
             // New difference
-            lastDiff.mul(PoolLib.RAY - redeemableRateRay).div(PoolLib.RAY)
+            lastDiff.mul(PoolLib.WAD - redeemableRateRay).div(PoolLib.WAD)
         );
 
         // Update the global withdraw state to earmark those funds
