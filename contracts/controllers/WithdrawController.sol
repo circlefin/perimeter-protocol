@@ -385,9 +385,8 @@ contract WithdrawController is IWithdrawController {
         }
 
         // Calculate the redeemable rate for each lender
-        uint256 redeemableRateRay = Math.min(
-            redeemableShares.mul(PoolLib.RAY).div(globalState.eligibleShares),
-            PoolLib.RAY
+        uint256 redeemableRateRay = redeemableShares.mul(PoolLib.RAY).div(
+            globalState.eligibleShares
         );
 
         // Calculate the exchange rate for the snapshotted funds
