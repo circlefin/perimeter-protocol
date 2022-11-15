@@ -15,7 +15,6 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "./libraries/PoolLib.sol";
 import "./FeeVault.sol";
 import "./FirstLossVault.sol";
-import "hardhat/console.sol";
 
 /**
  * @title Pool
