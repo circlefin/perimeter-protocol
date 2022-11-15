@@ -378,7 +378,7 @@ library PoolLib {
         address liquidityAsset = loan.liquidityAsset();
         uint256 principal = loan.principal();
 
-        IERC20(liquidityAsset).safeApprove(address(loan), loan.principal());
+        IERC20(liquidityAsset).safeApprove(address(loan), principal);
         loan.fund();
         accountings.outstandingLoanPrincipals += principal;
         fundedLoans.add(addr);
