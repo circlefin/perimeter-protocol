@@ -107,7 +107,7 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
-     * @dev Modifier to check that an addres is a Valyria loan associated
+     * @dev Modifier to check that an addres is a Perimeter loan associated
      * with this pool.
      */
     modifier isPoolLoan(address loan) {
@@ -347,6 +347,9 @@ contract Pool is IPool, ERC20 {
         atState(IPoolLifeCycleState.Active)
         isPoolLoan(addr)
     {
+        ILoan loan = ILoan(addr);
+        uint256 principal = loan.principal();
+        require(totalAvailableAssets() >= principal, "Pool: not enough assets");
         PoolLib.executeFundLoan(addr, _accountings, _fundedLoans);
     }
 

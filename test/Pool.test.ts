@@ -7,7 +7,12 @@ import {
   depositToPool,
   activatePool
 } from "./support/pool";
-import { deployLoan, collateralizeLoan, fundLoan } from "./support/loan";
+import {
+  deployLoan,
+  collateralizeLoan,
+  fundLoan,
+  DEFAULT_LOAN_SETTINGS
+} from "./support/loan";
 
 describe("Pool", () => {
   async function loadPoolFixture() {
@@ -518,6 +523,90 @@ describe("Pool", () => {
     });
   });
 
+  describe("fundLoan()", () => {
+    it("reverts if pool is not active", async () => {
+      const { pool, otherAccount, poolAdmin } = await loadFixture(
+        loadPoolFixture
+      );
+
+      expect(await pool.lifeCycleState()).to.equal(0); // initialized
+
+      await expect(
+        pool.connect(poolAdmin).fundLoan(otherAccount.address)
+      ).to.be.revertedWith("Pool: FunctionInvalidAtThisLifeCycleState");
+    });
+
+    it("reverts if loan address is not recognized", async () => {
+      const { pool, liquidityAsset, otherAccount, poolAdmin } =
+        await loadFixture(loadPoolFixture);
+
+      expect(await pool.lifeCycleState()).to.equal(0); // initialized
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      await expect(pool.connect(poolAdmin).fundLoan(otherAccount.address)).to.be
+        .reverted;
+    });
+
+    it("funds the loan from pool liquidity", async () => {
+      const { pool, liquidityAsset, otherAccount, borrower, poolAdmin, loan } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        DEFAULT_LOAN_SETTINGS.principal
+      );
+      await collateralizeLoan(loan, borrower, liquidityAsset);
+
+      const txn = await pool.connect(poolAdmin).fundLoan(loan.address);
+
+      expect(txn).to.changeTokenBalance(
+        liquidityAsset,
+        pool,
+        -DEFAULT_LOAN_SETTINGS.principal
+      );
+      expect(txn).to.changeEtherBalance(
+        liquidityAsset,
+        loan,
+        +DEFAULT_LOAN_SETTINGS.principal
+      );
+    });
+
+    it("reverts if loan amount exceeds totalAvailableAssets in the pool", async () => {
+      const { pool, liquidityAsset, otherAccount, borrower, poolAdmin, loan } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await collateralizeLoan(loan, borrower, liquidityAsset);
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        DEFAULT_LOAN_SETTINGS.principal
+      );
+
+      // Now request withdraw
+      const redeemAmount = await pool.maxRedeemRequest(otherAccount.address);
+      await pool.connect(otherAccount).requestRedeem(redeemAmount);
+
+      // fast forward and crank
+      const { withdrawRequestPeriodDuration } = await pool.settings();
+      await time.increase(withdrawRequestPeriodDuration);
+      await pool.crank();
+
+      // double check that the funds are now available for withdraw
+      expect(await pool.maxRedeem(otherAccount.address)).to.equal(redeemAmount);
+
+      // check that totalAvailableAssets is dust
+      expect(await pool.totalAvailableAssets()).to.lessThan(10);
+      await expect(
+        pool.connect(poolAdmin).fundLoan(loan.address)
+      ).to.be.revertedWith("Pool: not enough assets");
+    });
+  });
+
   describe("previewDeposit()", async () => {
     it("includes interest when calculating deposit exchange rate", async () => {
       const lender = (await ethers.getSigners())[10];
@@ -720,29 +809,6 @@ describe("Pool", () => {
         await expect(
           pool.connect(otherAccount).fundLoan(otherAccount.address)
         ).to.be.revertedWith("Pool: caller is not admin");
-      });
-
-      it("reverts if pool is not active", async () => {
-        const { pool, otherAccount, poolAdmin } = await loadFixture(
-          loadPoolFixture
-        );
-
-        expect(await pool.lifeCycleState()).to.equal(0); // initialized
-
-        await expect(
-          pool.connect(poolAdmin).fundLoan(otherAccount.address)
-        ).to.be.revertedWith("Pool: FunctionInvalidAtThisLifeCycleState");
-      });
-
-      it("reverts if loan address is not recognized", async () => {
-        const { pool, liquidityAsset, otherAccount, poolAdmin } =
-          await loadFixture(loadPoolFixture);
-
-        expect(await pool.lifeCycleState()).to.equal(0); // initialized
-        await activatePool(pool, poolAdmin, liquidityAsset);
-
-        await expect(pool.connect(poolAdmin).fundLoan(otherAccount.address)).to
-          .be.reverted;
       });
     });
 

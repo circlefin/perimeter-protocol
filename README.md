@@ -1,6 +1,6 @@
-# valyria-core
+# perimeter-core
 
-This repository contains the contracts for the Valyria protocol.
+This repository contains the contracts for the Perimeter protocol.
 
 ## Getting started
 
