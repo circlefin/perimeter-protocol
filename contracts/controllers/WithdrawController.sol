@@ -33,11 +33,6 @@ contract WithdrawController is IWithdrawController {
     IPoolWithdrawState private _globalWithdrawState;
 
     /**
-     * @dev Caching index of pen-ultimate window the crank was run at.
-     */
-    uint256 private _penultimateCrankWindow;
-
-    /**
      * @dev Mapping of withdrawPeriod to snapshot
      */
     mapping(uint256 => IPoolSnapshotState) private _snapshots;
@@ -293,7 +288,7 @@ contract WithdrawController is IWithdrawController {
             currentPeriod,
             shares
         );
-        _withdrawState[owner].crankOffsetPeriod = _globalWithdrawState
+        _withdrawState[owner].latestCrankPeriod = _globalWithdrawState
             .latestCrankPeriod;
 
         // Update the global amount
@@ -367,8 +362,8 @@ contract WithdrawController is IWithdrawController {
             _pool.poolController()
         );
 
-        console.log("Liquid assets");
-        console.log(liquidAssets);
+        // console.log("Liquid assets");
+        // console.log(liquidAssets);
 
         uint256 availableAssets = liquidAssets
             .mul(_poolController.withdrawGate())
@@ -378,8 +373,6 @@ contract WithdrawController is IWithdrawController {
 
         uint256 availableShares = _pool.convertToShares(availableAssets);
 
-        console.log("availableShares");
-        console.log(availableShares);
         if (availableAssets <= 0 || availableShares <= 0) {
             // unable to redeem anything
             redeemableShares = 0;
@@ -389,18 +382,12 @@ contract WithdrawController is IWithdrawController {
         // Determine the amount of shares that we will actually distribute.
         redeemableShares = Math.min(
             availableShares,
-            globalState.eligibleShares
+            globalState.eligibleShares - 1 // We offset by 1 to avoid a 100% redeem rate, which throws off all the math.
         );
 
         if (redeemableShares == 0) {
             return 0;
         }
-
-        console.log("redeemableShares");
-        console.log(redeemableShares);
-
-        console.log("globalState.eligibleShares");
-        console.log(globalState.eligibleShares);
 
         // Calculate the redeemable rate for each lender
         uint256 redeemableRateRay = redeemableShares.mul(PoolLib.RAY).div(
@@ -445,11 +432,7 @@ contract WithdrawController is IWithdrawController {
             _pool.convertToAssets(redeemableShares),
             redeemableShares
         );
-        _penultimateCrankWindow = globalState.latestCrankPeriod;
         globalState.latestCrankPeriod = currentPeriod;
-        console.log("POOOL CRANK");
-        console.log(currentPeriod);
-        console.log(globalState.latestCrankPeriod);
         _globalWithdrawState = globalState;
     }
 
@@ -465,77 +448,38 @@ contract WithdrawController is IWithdrawController {
         uint256 currentPeriod = withdrawPeriod();
         uint256 lastPoolCrank = _globalWithdrawState.latestCrankPeriod;
 
-        // No further cranking needed
-        if (withdrawState.latestCrankPeriod == currentPeriod) {
-            return withdrawState;
-        }
-
-        // Start from the latest time cranked, or the last time requested
-        uint256 offsetFrom = Math.max(
-            withdrawState.latestRequestPeriod,
-            withdrawState.latestCrankPeriod
-        );
-
-        console.log("In simulate crank");
-        console.log(offsetFrom);
-        console.log(lastPoolCrank);
-
-        // Exit early if the global crank hasn't been run in the current period
-        if (offsetFrom >= lastPoolCrank) {
-            return withdrawState;
-        }
-
-        // Last snaphot
+        // Current snaphot
         IPoolSnapshotState memory endingSnapshot = _snapshots[lastPoolCrank];
 
-        // Calculate which snapshot to offset by. If offset from >
-        IPoolSnapshotState memory startingSnapshot;
-        if (offsetFrom > _penultimateCrankWindow) {
-            // This will occur if someone requests in a window in which
-            // no snapshot was run
-            startingSnapshot = _snapshots[_penultimateCrankWindow];
-        } else {
-            startingSnapshot = _snapshots[offsetFrom];
-        }
-
-        console.log("hi");
-        console.log("startingSnapshot.aggregationDifferenceRay");
-        console.log(startingSnapshot.aggregationDifferenceRay);
-
-        console.log("endingSnapshot.aggregationDifferenceRay");
-        console.log(endingSnapshot.aggregationDifferenceRay);
+        // Offset snapshot
+        IPoolSnapshotState memory offsetSnapshot = _snapshots[
+            withdrawState.latestCrankPeriod
+        ];
 
         // Calculate shares now redeemable
         uint256 sharesRedeemable = withdrawState.eligibleShares.mul(
-            endingSnapshot.aggregationSumRay -
-                startingSnapshot.aggregationSumRay
+            endingSnapshot.aggregationSumRay - offsetSnapshot.aggregationSumRay
         );
         sharesRedeemable = sharesRedeemable
-            .mul(
-                startingSnapshot.aggregationDifferenceRay > 0 ? PoolLib.RAY : 1
-            )
+            .mul(offsetSnapshot.aggregationDifferenceRay > 0 ? PoolLib.RAY : 1)
             .div(
-                startingSnapshot.aggregationDifferenceRay > 0
-                    ? startingSnapshot.aggregationDifferenceRay
+                offsetSnapshot.aggregationDifferenceRay > 0
+                    ? offsetSnapshot.aggregationDifferenceRay
                     : 1
             )
             .div(PoolLib.RAY);
 
-        console.log("sharesRedeemable");
-        console.log(sharesRedeemable);
-
         // Calculate assets now withdrawable
         uint256 assetsWithdrawable = withdrawState.eligibleShares.mul(
             endingSnapshot.aggregationSumFxRay -
-                startingSnapshot.aggregationSumFxRay
+                offsetSnapshot.aggregationSumFxRay
         );
+        // console.log("4");
         assetsWithdrawable = assetsWithdrawable
-            .mul(
-                startingSnapshot.aggregationDifferenceRay > 0 ? PoolLib.RAY : 1
-            )
+            .mul(offsetSnapshot.aggregationDifferenceRay > 0 ? PoolLib.RAY : 1)
             .div(
-                startingSnapshot.aggregationDifferenceRay > 0
-                    ? startingSnapshot.aggregationDifferenceRay
+                offsetSnapshot.aggregationDifferenceRay > 0
+                    ? offsetSnapshot.aggregationDifferenceRay
                     : 1
             )
             .div(PoolLib.RAY);
