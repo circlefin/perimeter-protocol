@@ -14,7 +14,7 @@ import {
   DEFAULT_LOAN_SETTINGS
 } from "./support/loan";
 
-describe("Pool", () => {
+describe.only("Pool", () => {
   async function loadPoolFixture() {
     const [operator, poolAdmin, borrower, otherAccount, ...otherAccounts] =
       await ethers.getSigners();
@@ -382,7 +382,9 @@ describe("Pool", () => {
       await pool.crank();
 
       // double check that the funds are now available for withdraw
-      expect(await pool.maxRedeem(otherAccount.address)).to.equal(redeemAmount);
+      expect(await pool.maxRedeem(otherAccount.address)).to.equal(
+        redeemAmount - 2
+      );
 
       // check that totalAvailableAssets is dust
       expect(await pool.totalAvailableAssets()).to.lessThan(10);
@@ -858,7 +860,8 @@ describe("Pool", () => {
         await time.increase(withdrawRequestPeriodDuration);
         await pool.connect(poolAdmin).crank();
 
-        expect(await pool.maxRedeem(otherAccount.address)).to.equal(10);
+        expect(await pool.maxRedeem(otherAccount.address)).to.equal(9); // 10 - snapshot dust
+        expect(await pool.eligibleBalanceOf(otherAccount.address)).to.equal(1);
       });
     });
 
@@ -875,7 +878,7 @@ describe("Pool", () => {
         await time.increase(withdrawRequestPeriodDuration);
         await pool.connect(poolAdmin).crank();
 
-        expect(await pool.maxWithdraw(otherAccount.address)).to.equal(10);
+        expect(await pool.maxWithdraw(otherAccount.address)).to.equal(9);
       });
     });
   });
@@ -910,17 +913,17 @@ describe("Pool", () => {
       const startingAssets = await liquidityAsset.balanceOf(
         otherAccount.address
       );
-      expect(await pool.maxRedeem(otherAccount.address)).to.equal(10);
+      expect(await pool.maxRedeem(otherAccount.address)).to.equal(9);
 
       await pool
         .connect(otherAccount)
-        .redeem(10, otherAccount.address, otherAccount.address);
+        .redeem(9, otherAccount.address, otherAccount.address);
 
       expect(await liquidityAsset.balanceOf(otherAccount.address)).to.equal(
-        startingAssets.add(10)
+        startingAssets.add(9)
       );
       expect(await pool.balanceOf(otherAccount.address)).to.equal(
-        startingShares.sub(10)
+        startingShares.sub(9)
       );
     });
 
@@ -1007,7 +1010,7 @@ describe("Pool", () => {
         otherAccount.address,
         999
       );
-      expect(await pool.totalSupply()).to.equal(0);
+      expect(await pool.totalSupply()).to.equal(2); // dust
     });
   });
 
@@ -1031,17 +1034,17 @@ describe("Pool", () => {
       const startingAssets = await liquidityAsset.balanceOf(
         otherAccount.address
       );
-      expect(await pool.maxWithdraw(otherAccount.address)).to.equal(10);
+      expect(await pool.maxWithdraw(otherAccount.address)).to.equal(9);
 
       await pool
         .connect(otherAccount)
-        .withdraw(10, otherAccount.address, otherAccount.address);
+        .withdraw(9, otherAccount.address, otherAccount.address);
 
       expect(await liquidityAsset.balanceOf(otherAccount.address)).to.equal(
-        startingAssets.add(10)
+        startingAssets.add(9)
       );
       expect(await pool.balanceOf(otherAccount.address)).to.equal(
-        startingShares.sub(10)
+        startingShares.sub(9)
       );
     });
 

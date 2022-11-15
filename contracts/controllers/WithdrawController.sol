@@ -8,8 +8,6 @@ import "../libraries/PoolLib.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
-import "hardhat/console.sol";
-
 /**
  * @title WithdrawState
  */
@@ -362,9 +360,6 @@ contract WithdrawController is IWithdrawController {
             _pool.poolController()
         );
 
-        // console.log("Liquid assets");
-        // console.log(liquidAssets);
-
         uint256 availableAssets = liquidAssets
             .mul(_poolController.withdrawGate())
             .mul(PoolLib.RAY)
@@ -382,7 +377,7 @@ contract WithdrawController is IWithdrawController {
         // Determine the amount of shares that we will actually distribute.
         redeemableShares = Math.min(
             availableShares,
-            globalState.eligibleShares // We offset by 1 to avoid a 100% redeem rate, which throws off all the math.
+            globalState.eligibleShares - 1 // We offset by 1 to avoid a 100% redeem rate, which throws off all the math.
         );
 
         if (redeemableShares == 0) {
@@ -391,8 +386,8 @@ contract WithdrawController is IWithdrawController {
 
         // Calculate the redeemable rate for each lender
         uint256 redeemableRateRay = Math.min(
-            redeemableShares.mul(PoolLib.WAD).div(globalState.eligibleShares),
-            PoolLib.WAD - 1
+            redeemableShares.mul(PoolLib.RAY).div(globalState.eligibleShares),
+            PoolLib.RAY
         );
 
         // Calculate the exchange rate for the snapshotted funds
@@ -415,16 +410,16 @@ contract WithdrawController is IWithdrawController {
         _snapshots[currentPeriod] = IPoolSnapshotState(
             // New aggregation
             lastSnapshot.aggregationSumRay +
-                redeemableRateRay.mul(lastDiff).div(PoolLib.WAD),
+                redeemableRateRay.mul(lastDiff).div(PoolLib.RAY),
             // New aggregation w/ FX
             lastSnapshot.aggregationSumFxRay +
                 redeemableRateRay
                     .mul(lastDiff)
-                    .div(PoolLib.WAD)
+                    .div(PoolLib.RAY)
                     .mul(fxExchangeRate)
                     .div(PoolLib.RAY),
             // New difference
-            lastDiff.mul(PoolLib.WAD - redeemableRateRay).div(PoolLib.WAD)
+            lastDiff.mul(PoolLib.RAY - redeemableRateRay).div(PoolLib.RAY)
         );
 
         // Update the global withdraw state to earmark those funds
@@ -475,7 +470,7 @@ contract WithdrawController is IWithdrawController {
             endingSnapshot.aggregationSumFxRay -
                 offsetSnapshot.aggregationSumFxRay
         );
-        // console.log("4");
+
         assetsWithdrawable = assetsWithdrawable
             .mul(offsetSnapshot.aggregationDifferenceRay > 0 ? PoolLib.RAY : 1)
             .div(
