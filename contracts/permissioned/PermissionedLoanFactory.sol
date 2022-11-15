@@ -3,7 +3,6 @@ pragma solidity ^0.8.16;
 
 import "./interfaces/IPoolAdminAccessControl.sol";
 import "./interfaces/IPermissionedServiceConfiguration.sol";
-import "../interfaces/IPoolWithdrawManagerFactory.sol";
 import "../LoanFactory.sol";
 import "./PermissionedLoan.sol";
 
