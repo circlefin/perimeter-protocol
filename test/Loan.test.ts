@@ -13,6 +13,7 @@ import {
   fundLoan,
   matureLoan
 } from "./support/loan";
+import { findEventByName } from "./support/utils";
 import { deployMockERC20 } from "./support/erc20";
 
 describe("Loan", () => {
@@ -1321,8 +1322,4 @@ describe("Loan", () => {
       );
     });
   });
-
-  const findEventByName = (receipt, name) => {
-    return receipt.events?.find((event) => event.event == name);
-  };
 });

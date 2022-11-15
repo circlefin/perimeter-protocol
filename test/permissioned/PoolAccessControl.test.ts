@@ -6,7 +6,7 @@ import { getSignedVerificationResult } from "../support/verite";
 
 describe("PoolAccessControl", () => {
   async function deployFixture() {
-    const [operator, poolAdmin, verifier, lender, ...otherAccounts] =
+    const [operator, poolAdmin, verifier, poolParticipant, ...otherAccounts] =
       await ethers.getSigners();
     const { pool, tosAcceptanceRegistry } = await deployPermissionedPool({
       operator,
@@ -28,45 +28,57 @@ describe("PoolAccessControl", () => {
     return {
       poolAdmin,
       verifier,
-      lender,
+      poolParticipant,
       otherAccounts,
       poolAccessControl,
       tosAcceptanceRegistry
     };
   }
 
-  describe("isValidLender()", () => {
+  describe("isValidParticipant()", () => {
     it("returns false if the address is not on the allow list and has not verified via Verite", async () => {
-      const { poolAccessControl, lender } = await loadFixture(deployFixture);
-
-      expect(await poolAccessControl.isValidLender(lender.address)).to.equal(
-        false
+      const { poolAccessControl, poolParticipant } = await loadFixture(
+        deployFixture
       );
+
+      expect(
+        await poolAccessControl.isValidParticipant(poolParticipant.address)
+      ).to.equal(false);
     });
 
     it("returns true if the address is on the allow list", async () => {
-      const { poolAccessControl, lender, tosAcceptanceRegistry, poolAdmin } =
-        await loadFixture(deployFixture);
+      const {
+        poolAccessControl,
+        poolParticipant,
+        tosAcceptanceRegistry,
+        poolAdmin
+      } = await loadFixture(deployFixture);
 
-      await tosAcceptanceRegistry.connect(lender).acceptTermsOfService();
+      await tosAcceptanceRegistry
+        .connect(poolParticipant)
+        .acceptTermsOfService();
 
-      await poolAccessControl.connect(poolAdmin).allowLender(lender.address);
+      await poolAccessControl
+        .connect(poolAdmin)
+        .allowParticipant(poolParticipant.address);
 
-      expect(await poolAccessControl.isValidLender(lender.address)).to.equal(
-        true
-      );
+      expect(
+        await poolAccessControl.isValidParticipant(poolParticipant.address)
+      ).to.equal(true);
     });
 
     it("returns true if the address has been verified via Verite", async () => {
       const {
         poolAccessControl,
-        lender,
+        poolParticipant,
         verifier,
         tosAcceptanceRegistry,
         poolAdmin
       } = await loadFixture(deployFixture);
 
-      await tosAcceptanceRegistry.connect(lender).acceptTermsOfService();
+      await tosAcceptanceRegistry
+        .connect(poolParticipant)
+        .acceptTermsOfService();
 
       // Register the verifier
       await poolAccessControl.connect(poolAdmin).addVerifier(verifier.address);
@@ -75,7 +87,7 @@ describe("PoolAccessControl", () => {
       const { verificationResult, signature } =
         await getSignedVerificationResult(
           poolAccessControl.address,
-          lender.address,
+          poolParticipant.address,
           verifier
         );
 
@@ -86,24 +98,26 @@ describe("PoolAccessControl", () => {
 
       // Verify the verification result
       await poolAccessControl
-        .connect(lender)
+        .connect(poolParticipant)
         .verify(verificationResult, signature);
 
-      expect(await poolAccessControl.isValidLender(lender.address)).to.equal(
-        true
-      );
+      expect(
+        await poolAccessControl.isValidParticipant(poolParticipant.address)
+      ).to.equal(true);
     });
 
-    it("returns false if the lender was approved by Verite but the verification expired", async () => {
+    it("returns false if the participant was approved by Verite but the verification expired", async () => {
       const {
         poolAccessControl,
-        lender,
+        poolParticipant,
         verifier,
         tosAcceptanceRegistry,
         poolAdmin
       } = await loadFixture(deployFixture);
 
-      await tosAcceptanceRegistry.connect(lender).acceptTermsOfService();
+      await tosAcceptanceRegistry
+        .connect(poolParticipant)
+        .acceptTermsOfService();
 
       // Register the verifier
       await poolAccessControl.connect(poolAdmin).addVerifier(verifier.address);
@@ -112,7 +126,7 @@ describe("PoolAccessControl", () => {
       const { verificationResult, signature } =
         await getSignedVerificationResult(
           poolAccessControl.address,
-          lender.address,
+          poolParticipant.address,
           verifier
         );
 
@@ -123,57 +137,67 @@ describe("PoolAccessControl", () => {
 
       // Verify the verification result
       await poolAccessControl
-        .connect(lender)
+        .connect(poolParticipant)
         .verify(verificationResult, signature);
 
-      expect(await poolAccessControl.isValidLender(lender.address)).to.equal(
-        true
-      );
+      expect(
+        await poolAccessControl.isValidParticipant(poolParticipant.address)
+      ).to.equal(true);
 
       await time.increaseTo(verificationResult.expiration + 1);
 
-      expect(await poolAccessControl.isValidLender(lender.address)).to.equal(
-        false
-      );
+      expect(
+        await poolAccessControl.isValidParticipant(poolParticipant.address)
+      ).to.equal(false);
     });
   });
 
-  describe("allowLender()", () => {
-    it("requires the lender agreed to the ToS", async () => {
-      const { poolAccessControl, poolAdmin, lender } = await loadFixture(
-        deployFixture
-      );
-
-      await expect(
-        poolAccessControl.connect(poolAdmin).allowLender(lender.address)
-      ).to.be.revertedWith("Pool: lender not accepted ToS");
-    });
-
-    it("adds a new lender", async () => {
-      const { poolAccessControl, poolAdmin, lender, tosAcceptanceRegistry } =
+  describe("allowParticipant()", () => {
+    it("requires the participant agreed to the ToS", async () => {
+      const { poolAccessControl, poolAdmin, poolParticipant } =
         await loadFixture(deployFixture);
 
-      await tosAcceptanceRegistry.connect(lender).acceptTermsOfService();
+      await expect(
+        poolAccessControl
+          .connect(poolAdmin)
+          .allowParticipant(poolParticipant.address)
+      ).to.be.revertedWith("Pool: participant not accepted ToS");
+    });
+
+    it("adds a new participant", async () => {
+      const {
+        poolAccessControl,
+        poolAdmin,
+        poolParticipant,
+        tosAcceptanceRegistry
+      } = await loadFixture(deployFixture);
+
+      await tosAcceptanceRegistry
+        .connect(poolParticipant)
+        .acceptTermsOfService();
 
       await expect(
-        poolAccessControl.connect(poolAdmin).allowLender(lender.address)
+        poolAccessControl
+          .connect(poolAdmin)
+          .allowParticipant(poolParticipant.address)
       )
-        .to.emit(poolAccessControl, "LenderAllowed")
-        .withArgs(lender.address);
+        .to.emit(poolAccessControl, "ParticipantAllowed")
+        .withArgs(poolParticipant.address);
     });
   });
 
-  describe("removeLender()", () => {
-    it("removes a lender", async () => {
-      const { poolAccessControl, poolAdmin, lender } = await loadFixture(
-        deployFixture
-      );
+  describe("removeParticipant()", () => {
+    it("removes a participant", async () => {
+      const { poolAccessControl, poolAdmin, poolParticipant } =
+        await loadFixture(deployFixture);
 
       await expect(
-        poolAccessControl.connect(poolAdmin).removeLender(lender.address)
+        poolAccessControl
+          .connect(poolAdmin)
+          .removeParticipant(poolParticipant.address)
       )
-        .to.emit(poolAccessControl, "LenderRemoved")
-        .withArgs(lender.address);
+        .to.emit(poolAccessControl, "ParticipantRemoved")
+        .withArgs(poolParticipant.address);
     });
   });
 
@@ -231,7 +255,7 @@ describe("PoolAccessControl", () => {
 
   describe("verify()", () => {
     it("reverts if the subject has not accepted ToS", async () => {
-      const { poolAccessControl, lender, verifier, poolAdmin } =
+      const { poolAccessControl, poolParticipant, verifier, poolAdmin } =
         await loadFixture(deployFixture);
 
       // Register the verifier
@@ -241,7 +265,7 @@ describe("PoolAccessControl", () => {
       const { verificationResult, signature } =
         await getSignedVerificationResult(
           poolAccessControl.address,
-          lender.address,
+          poolParticipant.address,
           verifier
         );
 
@@ -252,20 +276,24 @@ describe("PoolAccessControl", () => {
 
       // Verify the verification result
       await expect(
-        poolAccessControl.connect(lender).verify(verificationResult, signature)
+        poolAccessControl
+          .connect(poolParticipant)
+          .verify(verificationResult, signature)
       ).to.be.revertedWith("PoolAccessControl: subject not accepted ToS");
     });
 
     it("reverts if the schema is not supported", async () => {
       const {
         poolAccessControl,
-        lender,
+        poolParticipant,
         verifier,
         tosAcceptanceRegistry,
         poolAdmin
       } = await loadFixture(deployFixture);
 
-      await tosAcceptanceRegistry.connect(lender).acceptTermsOfService();
+      await tosAcceptanceRegistry
+        .connect(poolParticipant)
+        .acceptTermsOfService();
 
       // Register the verifier
       await poolAccessControl.connect(poolAdmin).addVerifier(verifier.address);
@@ -274,26 +302,30 @@ describe("PoolAccessControl", () => {
       const { verificationResult, signature } =
         await getSignedVerificationResult(
           poolAccessControl.address,
-          lender.address,
+          poolParticipant.address,
           verifier
         );
 
       // Verify the verification result
       await expect(
-        poolAccessControl.connect(lender).verify(verificationResult, signature)
+        poolAccessControl
+          .connect(poolParticipant)
+          .verify(verificationResult, signature)
       ).to.be.revertedWith("PoolAccessControl: unsupported credential schema");
     });
 
     it("reverts if the expiration is in the past", async () => {
       const {
         poolAccessControl,
-        lender,
+        poolParticipant,
         verifier,
         tosAcceptanceRegistry,
         poolAdmin
       } = await loadFixture(deployFixture);
 
-      await tosAcceptanceRegistry.connect(lender).acceptTermsOfService();
+      await tosAcceptanceRegistry
+        .connect(poolParticipant)
+        .acceptTermsOfService();
 
       // Register the verifier
       await poolAccessControl.connect(poolAdmin).addVerifier(verifier.address);
@@ -302,7 +334,7 @@ describe("PoolAccessControl", () => {
       const { verificationResult, signature } =
         await getSignedVerificationResult(
           poolAccessControl.address,
-          lender.address,
+          poolParticipant.address,
           verifier,
           { expiration: (await time.latest()) - 100 }
         );
@@ -314,26 +346,30 @@ describe("PoolAccessControl", () => {
 
       // Verify the verification result
       await expect(
-        poolAccessControl.connect(lender).verify(verificationResult, signature)
+        poolAccessControl
+          .connect(poolParticipant)
+          .verify(verificationResult, signature)
       ).to.be.revertedWith("PoolAccessControl: Verification result expired");
     });
 
     it("reverts if it is verified by an unsupported verifier", async () => {
       const {
         poolAccessControl,
-        lender,
+        poolParticipant,
         verifier,
         tosAcceptanceRegistry,
         poolAdmin
       } = await loadFixture(deployFixture);
 
-      await tosAcceptanceRegistry.connect(lender).acceptTermsOfService();
+      await tosAcceptanceRegistry
+        .connect(poolParticipant)
+        .acceptTermsOfService();
 
       // Get a signed verification result
       const { verificationResult, signature } =
         await getSignedVerificationResult(
           poolAccessControl.address,
-          lender.address,
+          poolParticipant.address,
           verifier
         );
 
@@ -344,7 +380,9 @@ describe("PoolAccessControl", () => {
 
       // Verify the verification result
       await expect(
-        poolAccessControl.connect(lender).verify(verificationResult, signature)
+        poolAccessControl
+          .connect(poolParticipant)
+          .verify(verificationResult, signature)
       ).to.be.revertedWith(
         "PoolAccessControl: Signed digest cannot be verified"
       );
@@ -353,13 +391,15 @@ describe("PoolAccessControl", () => {
     it("passes if given a valid verification from a trusted verifier", async () => {
       const {
         poolAccessControl,
-        lender,
+        poolParticipant,
         verifier,
         tosAcceptanceRegistry,
         poolAdmin
       } = await loadFixture(deployFixture);
 
-      await tosAcceptanceRegistry.connect(lender).acceptTermsOfService();
+      await tosAcceptanceRegistry
+        .connect(poolParticipant)
+        .acceptTermsOfService();
 
       // Register the verifier
       await poolAccessControl.connect(poolAdmin).addVerifier(verifier.address);
@@ -368,7 +408,7 @@ describe("PoolAccessControl", () => {
       const { verificationResult, signature } =
         await getSignedVerificationResult(
           poolAccessControl.address,
-          lender.address,
+          poolParticipant.address,
           verifier
         );
 
@@ -379,10 +419,12 @@ describe("PoolAccessControl", () => {
 
       // Verify the verification result
       await expect(
-        poolAccessControl.connect(lender).verify(verificationResult, signature)
+        poolAccessControl
+          .connect(poolParticipant)
+          .verify(verificationResult, signature)
       )
         .to.emit(poolAccessControl, "VerificationResultConfirmed")
-        .withArgs(lender.address);
+        .withArgs(poolParticipant.address);
     });
   });
 });

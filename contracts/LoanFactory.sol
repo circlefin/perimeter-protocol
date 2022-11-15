@@ -11,12 +11,12 @@ contract LoanFactory {
     /**
      * @dev Reference to the ServiceConfiguration contract
      */
-    IServiceConfiguration private _serviceConfiguration;
+    IServiceConfiguration internal _serviceConfiguration;
 
     /**
      * @dev Mapping of created loans
      */
-    mapping(address => bool) private _isLoan;
+    mapping(address => bool) internal _isLoan;
 
     /**
      * @dev Emitted when a Loan is created.

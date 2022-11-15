@@ -19,7 +19,7 @@ contract PermissionedPool is Pool {
      */
     modifier onlyValidLender() {
         require(
-            poolAccessControl.isValidLender(msg.sender),
+            poolAccessControl.isValidParticipant(msg.sender),
             "caller is not a valid lender"
         );
         _;
@@ -30,7 +30,7 @@ contract PermissionedPool is Pool {
      */
     modifier onlyValidReceiver(address receiver) {
         require(
-            poolAccessControl.isValidLender(receiver),
+            poolAccessControl.isValidParticipant(receiver),
             "receiver is not a valid lender"
         );
         _;
@@ -76,8 +76,8 @@ contract PermissionedPool is Pool {
         returns (uint256)
     {
         if (
-            !poolAccessControl.isValidLender(msg.sender) ||
-            !poolAccessControl.isValidLender(receiver)
+            !poolAccessControl.isValidParticipant(msg.sender) ||
+            !poolAccessControl.isValidParticipant(receiver)
         ) {
             return 0;
         }
@@ -103,8 +103,8 @@ contract PermissionedPool is Pool {
      */
     function maxMint(address receiver) public view override returns (uint256) {
         if (
-            !poolAccessControl.isValidLender(msg.sender) ||
-            !poolAccessControl.isValidLender(receiver)
+            !poolAccessControl.isValidParticipant(msg.sender) ||
+            !poolAccessControl.isValidParticipant(receiver)
         ) {
             return 0;
         }
