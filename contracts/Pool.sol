@@ -5,7 +5,9 @@ import "./interfaces/ILoan.sol";
 import "./interfaces/IPool.sol";
 import "./interfaces/IServiceConfiguration.sol";
 import "./controllers/interfaces/IWithdrawController.sol";
+import "./controllers/interfaces/IPoolController.sol";
 import "./factories/interfaces/IWithdrawControllerFactory.sol";
+import "./factories/interfaces/IPoolControllerFactory.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -25,14 +27,15 @@ contract Pool is IPool, ERC20 {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     address private _admin;
+
     IServiceConfiguration private _serviceConfiguration;
     IERC20 private _liquidityAsset;
     FeeVault private _feeVault;
     FirstLossVault private _firstLossVault;
-    IPoolConfigurableSettings private _poolSettings;
     IPoolAccountings private _accountings;
-    IPoolLifeCycleState private _poolLifeCycleState;
+
     IWithdrawController public withdrawController;
+    IPoolController public poolController;
 
     /**
      * @dev list of all active loan addresses for this Pool. Active loans have been
@@ -43,7 +46,7 @@ contract Pool is IPool, ERC20 {
     /**
      * @inheritdoc IPool
      */
-    uint256 public poolActivatedAt;
+    uint256 public activatedAt;
 
     /**
      * @dev Modifier that checks that the caller is the pool's admin.
@@ -52,6 +55,18 @@ contract Pool is IPool, ERC20 {
         require(
             _admin != address(0) && msg.sender == _admin,
             "Pool: caller is not admin"
+        );
+        _;
+    }
+
+    /**
+     * @dev Modifier to ensure only the PoolController calls a method.
+     */
+    modifier onlyPoolController() {
+        require(
+            address(poolController) != address(0) &&
+                msg.sender == address(poolController),
+            "Pool: caller is not pool controller"
         );
         _;
     }
@@ -68,17 +83,15 @@ contract Pool is IPool, ERC20 {
      * @dev Modifier to check that the pool has ever been activated
      */
     modifier onlyActivatedPool() {
-        require(poolActivatedAt > 0, "Pool: PoolNotActive");
+        require(activatedAt > 0, "Pool: PoolNotActive");
         _;
     }
     /**
      * @dev Modifier that checks that the pool is Initialized or Active
      */
     modifier atInitializedOrActiveState() {
-        IPoolLifeCycleState _lifecycle = lifeCycleState();
         require(
-            _lifecycle == IPoolLifeCycleState.Active ||
-                _lifecycle == IPoolLifeCycleState.Initialized,
+            poolController.isInitializedOrActive(),
             "Pool: invalid pool state"
         );
         _;
@@ -89,7 +102,7 @@ contract Pool is IPool, ERC20 {
      */
     modifier atState(IPoolLifeCycleState state) {
         require(
-            lifeCycleState() == state,
+            poolController.state() == state,
             "Pool: FunctionInvalidAtThisLifeCycleState"
         );
         _;
@@ -126,22 +139,30 @@ contract Pool is IPool, ERC20 {
         address poolAdmin,
         address serviceConfiguration,
         address withdrawControllerFactory,
+        address poolControllerFactory,
         IPoolConfigurableSettings memory poolSettings,
         string memory tokenName,
         string memory tokenSymbol
     ) ERC20(tokenName, tokenSymbol) {
         _liquidityAsset = IERC20(liquidityAsset);
-        _poolSettings = poolSettings;
         _admin = poolAdmin;
         _serviceConfiguration = IServiceConfiguration(serviceConfiguration);
         _firstLossVault = new FirstLossVault(address(this), liquidityAsset);
         _feeVault = new FeeVault(address(this));
-        _setPoolLifeCycleState(IPoolLifeCycleState.Initialized);
 
         // Build the withdraw controller
         withdrawController = IWithdrawController(
             IWithdrawControllerFactory(withdrawControllerFactory)
-                .createWithdrawController(address(this))
+                .createController(address(this))
+        );
+
+        // Build the admin controller
+        poolController = IPoolController(
+            IPoolControllerFactory(poolControllerFactory).createController(
+                address(this),
+                poolAdmin,
+                poolSettings
+            )
         );
 
         // Allow the contract to move infinite amount of vault liquidity assets
@@ -149,75 +170,21 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
-     * @dev Returns the current pool lifecycle state.
-     */
-    function lifeCycleState() public view returns (IPoolLifeCycleState) {
-        if (block.timestamp >= _poolSettings.endDate) {
-            return IPoolLifeCycleState.Closed;
-        }
-
-        return _poolLifeCycleState;
-    }
-
-    /**
      * @dev The current configurable pool settings.
      */
     function settings()
-        external
+        public
         view
         returns (IPoolConfigurableSettings memory poolSettings)
     {
-        return _poolSettings;
-    }
-
-    /**
-     * @dev Allow the current pool admin to update the pool fees
-     * before the pool has been activated.
-     */
-    function setRequestFee(uint256 feeBps)
-        external
-        onlyAdmin
-        atState(IPoolLifeCycleState.Initialized)
-    {
-        _poolSettings.requestFeeBps = feeBps;
-    }
-
-    /**
-     * @dev Returns the redeem fee for a given withdrawal amount at the current block.
-     * The fee is the number of shares that will be charged.
-     */
-    function requestFee(uint256 sharesOrAssets)
-        public
-        view
-        returns (uint256 feeShares)
-    {
-        feeShares = PoolLib.calculateRequestFee(
-            sharesOrAssets,
-            _poolSettings.requestFeeBps
-        );
-    }
-
-    /**
-     * @dev Allow the current pool admin to update the withdraw gate at any
-     * time if the pool is Initialized or Active
-     */
-    function setWithdrawGate(uint256 _withdrawGateBps)
-        external
-        onlyAdmin
-        atInitializedOrActiveState
-    {
-        _poolSettings.withdrawGateBps = _withdrawGateBps;
+        return poolController.settings();
     }
 
     /**
      * @inheritdoc IPool
      */
-    function withdrawGate() public view returns (uint256) {
-        if (lifeCycleState() == IPoolLifeCycleState.Closed) {
-            return 10_000;
-        }
-
-        return _poolSettings.withdrawGateBps;
+    function state() public view returns (IPoolLifeCycleState) {
+        return poolController.state();
     }
 
     /**
@@ -259,62 +226,58 @@ contract Pool is IPool, ERC20 {
      * @dev The fee
      */
     function poolFeePercentOfInterest() external view returns (uint256) {
-        return _poolSettings.poolFeePercentOfInterest;
-    }
-
-    /**
-     * @dev Supplies first-loss to the pool. Can only be called by the Pool Admin.
-     */
-    function depositFirstLoss(uint256 amount, address spender)
-        external
-        onlyAdmin
-        atInitializedOrActiveState
-    {
-        IPoolLifeCycleState poolLifeCycleState = PoolLib
-            .executeFirstLossDeposit(
-                address(_liquidityAsset),
-                spender,
-                amount,
-                address(_firstLossVault),
-                lifeCycleState(),
-                _poolSettings.firstLossInitialMinimum
-            );
-
-        _setPoolLifeCycleState(poolLifeCycleState);
-    }
-
-    /**
-     * @dev inheritdoc IPool
-     */
-    function withdrawFirstLoss(uint256 amount, address receiver)
-        external
-        onlyAdmin
-        atState(IPoolLifeCycleState.Closed)
-        returns (uint256)
-    {
-        require(_fundedLoans.length() == 0, "Pool: loans still active");
-        return
-            PoolLib.executeFirstLossWithdraw(
-                amount,
-                receiver,
-                address(_firstLossVault)
-            );
+        return settings().poolFeePercentOfInterest;
     }
 
     /**
      * @inheritdoc IPool
      */
-    function updatePoolCapacity(uint256 newCapacity) external onlyAdmin {
-        require(newCapacity >= totalAssets(), "Pool: invalid capacity");
-        _poolSettings.maxCapacity = newCapacity;
-        emit PoolSettingsUpdated();
+    function onActivated() external onlyPoolController {
+        IPoolConfigurableSettings memory _settings = settings();
+
+        activatedAt = block.timestamp;
+
+        if (_settings.fixedFee != 0) {
+            _accountings.fixedFeeDueDate =
+                block.timestamp +
+                _settings.fixedFeeInterval *
+                1 days;
+        }
     }
 
     /**
      * @inheritdoc IPool
      */
-    function updatePoolEndDate(uint256 endDate) external onlyAdmin {
-        PoolLib.executeUpdateEndDate(endDate, _poolSettings);
+    function transferToFirstLossVault(address spender, uint256 amount)
+        external
+        onlyPoolController
+    {
+        require(address(_firstLossVault) != address(0), "Pool: 0 address");
+        _liquidityAsset.safeTransferFrom(
+            spender,
+            address(_firstLossVault),
+            amount
+        );
+    }
+
+    /**
+     * @inheritdoc IPool
+     */
+    function transferFromFirstLossVault(address receiver, uint256 amount)
+        external
+        onlyPoolController
+    {
+        require(address(_firstLossVault) != address(0), "Pool: 0 address");
+        require(receiver != address(0), "Pool: 0 address");
+
+        _firstLossVault.withdraw(amount, receiver);
+    }
+
+    /**
+     * @inheritdoc IPool
+     */
+    function numFundedLoans() external view returns (uint256) {
+        return _fundedLoans.length();
     }
 
     /**
@@ -350,10 +313,8 @@ contract Pool is IPool, ERC20 {
      */
     function defaultLoan(address loan) external onlyAdmin {
         require(loan != address(0), "Pool: 0 address");
-        IPoolLifeCycleState state = lifeCycleState();
         require(
-            state == IPoolLifeCycleState.Active ||
-                state == IPoolLifeCycleState.Closed,
+            poolController.isActiveOrClosed(),
             "Pool: FunctionInvalidAtThisLifeCycleState"
         );
 
@@ -407,33 +368,11 @@ contract Pool is IPool, ERC20 {
             _accountings.fixedFeeDueDate < block.timestamp,
             "Pool: fixed fee not due"
         );
-        _accountings.fixedFeeDueDate += _poolSettings.fixedFeeInterval * 1 days;
-        IERC20(_liquidityAsset).safeTransfer(
-            msg.sender,
-            _poolSettings.fixedFee
-        );
-    }
 
-    /**
-     * @dev Set the pool lifecycle state. If the state changes, this method
-     * will also update the poolActivatedAt variable
-     */
-    function _setPoolLifeCycleState(IPoolLifeCycleState state) internal {
-        if (_poolLifeCycleState != state) {
-            if (state == IPoolLifeCycleState.Active && poolActivatedAt == 0) {
-                poolActivatedAt = block.timestamp;
+        IPoolConfigurableSettings memory _settings = poolController.settings();
 
-                if (_poolSettings.fixedFee != 0) {
-                    _accountings.fixedFeeDueDate =
-                        block.timestamp +
-                        _poolSettings.fixedFeeInterval *
-                        1 days;
-                }
-            }
-
-            _poolLifeCycleState = state;
-            emit LifeCycleStateTransition(state);
-        }
+        _accountings.fixedFeeDueDate += _settings.fixedFeeInterval * 1 days;
+        IERC20(_liquidityAsset).safeTransfer(msg.sender, _settings.fixedFee);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -540,7 +479,7 @@ contract Pool is IPool, ERC20 {
             withdrawController.maxRedeemRequest(owner) >= shares,
             "Pool: InsufficientBalance"
         );
-        uint256 feeShares = requestFee(shares);
+        uint256 feeShares = poolController.requestFee(shares);
         _burn(owner, feeShares);
         withdrawController.performRequest(owner, shares);
 
@@ -699,8 +638,8 @@ contract Pool is IPool, ERC20 {
     {
         return
             PoolLib.calculateMaxDeposit(
-                lifeCycleState(),
-                _poolSettings.maxCapacity,
+                poolController.state(),
+                settings().maxCapacity,
                 totalAvailableAssets()
             );
     }

@@ -109,11 +109,6 @@ describe("PoolLib", () => {
             0
           )
       ).to.emit(poolLibWrapper, "FirstLossDeposited");
-
-      // Check balance of vault
-      expect(await liquidityAsset.balanceOf(firstLossVault.address)).to.equal(
-        FIRST_LOSS_AMOUNT
-      );
     });
 
     it("transfers liquidity to vault from a supplier", async () => {
@@ -149,11 +144,6 @@ describe("PoolLib", () => {
             0
           )
       ).to.emit(poolLibWrapper, "FirstLossDeposited");
-
-      // Check balance of vault
-      expect(await liquidityAsset.balanceOf(firstLossVault.address)).to.equal(
-        FIRST_LOSS_AMOUNT
-      );
     });
 
     it("graduates PoolLifeCycleState if threshold is met, and initial state is Initialized", async () => {
@@ -214,11 +204,6 @@ describe("PoolLib", () => {
       const withdrawAmount = 1000;
       await liquidityAsset.mint(firstLossVault.address, withdrawAmount);
 
-      // Check balance prior
-      const receiverBalancePrior = await liquidityAsset.balanceOf(
-        otherAccount.address
-      );
-
       expect(
         await poolLibWrapper.executeFirstLossWithdraw(
           withdrawAmount,
@@ -226,11 +211,6 @@ describe("PoolLib", () => {
           firstLossVault.address
         )
       ).to.emit(poolLibWrapper, "FirstLossWithdrawal");
-
-      // Check balance after
-      expect(await liquidityAsset.balanceOf(otherAccount.address)).to.equal(
-        receiverBalancePrior.add(withdrawAmount)
-      );
     });
   });
 

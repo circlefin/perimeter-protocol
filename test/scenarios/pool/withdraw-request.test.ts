@@ -7,16 +7,17 @@ describe("Withdraw Requests", () => {
   async function loadPoolFixture() {
     const [operator, poolAdmin, aliceLender, bobLender] =
       await ethers.getSigners();
-    const { pool, liquidityAsset } = await deployPool({
-      operator,
-      poolAdmin: poolAdmin
-    });
+    const { pool, liquidityAsset, poolController, withdrawController } =
+      await deployPool({
+        operator,
+        poolAdmin: poolAdmin
+      });
 
     // Set the request fee to 10%
-    await pool.connect(poolAdmin).setRequestFee(1000);
+    await poolController.connect(poolAdmin).setRequestFee(1000);
 
     // Set the withdraw gate to 25%
-    await pool.connect(poolAdmin).setWithdrawGate(2500);
+    await poolController.connect(poolAdmin).setWithdrawGate(2500);
 
     // activate the pool
     await activatePool(pool, poolAdmin, liquidityAsset);
@@ -26,11 +27,6 @@ describe("Withdraw Requests", () => {
 
     // deposit 70 tokens from Bob
     await depositToPool(pool, bobLender, liquidityAsset, 70);
-
-    const withdrawController = await ethers.getContractAt(
-      "WithdrawController",
-      await pool.withdrawController()
-    );
 
     return {
       pool,
