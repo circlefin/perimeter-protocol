@@ -355,8 +355,8 @@ describe("Pool", () => {
       );
     });
 
-    it.only("depositing uses an exchange rate based on available assets", async () => {
-      const { pool, otherAccount, liquidityAsset, poolAdmin, otherAccounts } =
+    it("depositing uses an exchange rate based on available assets", async () => {
+      const { pool, liquidityAsset, poolAdmin, otherAccounts } =
         await loadFixture(loadPoolFixture);
 
       const lenderA = otherAccounts[0];
@@ -371,12 +371,13 @@ describe("Pool", () => {
       await time.increase(withdrawRequestPeriodDuration);
       await pool.crank();
 
-      // lender B deposits 
+      // lender B deposits
       await liquidityAsset.mint(lenderB.address, 100);
       await depositToPool(pool, lenderB, liquidityAsset, 100);
 
-      // check the exchange rate -- should be 1:1 
-      expect(await pool.maxWithdrawRequest(lenderB.address)).to.equal(95); // actually equals 114! 
+      // check the exchange rate
+      expect(await pool.balanceOf(lenderB.address)).to.equal(95); // 100 - 5% withdraw fee
+      expect(await pool.maxWithdrawRequest(lenderB.address)).to.equal(94); // 100 - 5% withdraw fee - rounding
     });
   });
 

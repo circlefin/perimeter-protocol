@@ -718,7 +718,7 @@ contract Pool is IPool, ERC20 {
         return
             PoolLib.calculateConversion(
                 assets,
-                totalSupply(),
+                totalAvailableSupply(),
                 totalAvailableAssets() +
                     PoolLib.calculateExpectedInterest(_fundedLoans),
                 false
