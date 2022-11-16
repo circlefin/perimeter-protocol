@@ -3,7 +3,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { deployPool, depositToPool, activatePool } from "../../support/pool";
 
-describe.only("Crank Variations", () => {
+describe("Crank Variations", () => {
   const DEPOSIT_AMOUNT = 1_000_000;
 
   async function loadPoolFixture() {
@@ -198,29 +198,39 @@ describe.only("Crank Variations", () => {
     await time.increase(withdrawRequestPeriodDuration);
     expect(await pool.withdrawPeriod()).to.equal(2);
     await pool.crank();
-    expect(await pool.maxRedeem(aliceLender.address)).to.equal(DEPOSIT_AMOUNT * 3 / 4);
+    expect(await pool.maxRedeem(aliceLender.address)).to.equal(
+      (DEPOSIT_AMOUNT * 3) / 4
+    );
 
     // Now deposit enough from Bob to fulfill the request
     await depositToPool(pool, bobLender, liquidityAsset, DEPOSIT_AMOUNT);
     await time.increase(withdrawRequestPeriodDuration);
     expect(await pool.withdrawPeriod()).to.equal(3);
     await pool.crank();
-    expect(await pool.maxRedeem(aliceLender.address)).to.equal(DEPOSIT_AMOUNT - 1);
+    expect(await pool.maxRedeem(aliceLender.address)).to.equal(
+      DEPOSIT_AMOUNT - 1
+    );
 
     // Ensure that subsequent cranks dont over allocate
     await time.increase(withdrawRequestPeriodDuration);
     expect(await pool.withdrawPeriod()).to.equal(4);
     await pool.crank();
-    expect(await pool.maxRedeem(aliceLender.address)).to.equal(DEPOSIT_AMOUNT - 1);
+    expect(await pool.maxRedeem(aliceLender.address)).to.equal(
+      DEPOSIT_AMOUNT - 1
+    );
 
-    // Once again, with a request from Bob mixed in 
+    // Once again, with a request from Bob mixed in
     await pool.connect(bobLender).requestRedeem(DEPOSIT_AMOUNT);
     await time.increase(withdrawRequestPeriodDuration);
     expect(await pool.withdrawPeriod()).to.equal(5);
     await pool.crank();
-    expect(await pool.maxRedeem(aliceLender.address)).to.equal(DEPOSIT_AMOUNT - 1);
+    expect(await pool.maxRedeem(aliceLender.address)).to.equal(
+      DEPOSIT_AMOUNT - 1
+    );
 
     // sanity check bob too; they should receive 1/2, since they requested before the last snapshot, which earmarked 50% of 1M - dust
-    expect(await pool.maxRedeem(bobLender.address)).to.equal(DEPOSIT_AMOUNT / 2 - 1);
+    expect(await pool.maxRedeem(bobLender.address)).to.equal(
+      DEPOSIT_AMOUNT / 2 - 1
+    );
   });
 });
