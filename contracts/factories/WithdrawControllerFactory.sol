@@ -21,7 +21,7 @@ contract WithdrawControllerFactory is IWithdrawControllerFactory {
     /**
      * @inheritdoc IWithdrawControllerFactory
      */
-    function createWithdrawController(address pool)
+    function createController(address pool)
         public
         virtual
         returns (address addr)

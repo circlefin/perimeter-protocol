@@ -63,7 +63,7 @@ describe("Business Scenario 3", () => {
 
     // activate pool
     await activatePool(pool, poolManager, mockUSDC);
-    const startTime = (await pool.poolActivatedAt()).toNumber();
+    const startTime = (await pool.activatedAt()).toNumber();
 
     // Mint for lenders
     await mockUSDC.mint(lenderA.address, INPUTS.lenderADepositAmount);

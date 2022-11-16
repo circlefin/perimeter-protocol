@@ -1,23 +1,21 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
-import "./interfaces/IPoolAdminAccessControl.sol";
+// import "./interfaces/IPoolAdminAccessControl.sol";
 import "./interfaces/IPermissionedServiceConfiguration.sol";
-import "../PoolFactory.sol";
+import "../interfaces/IPoolFactory.sol";
 import "./PermissionedPool.sol";
 
 /**
  * @title PermissionedPoolFactory
  */
-contract PermissionedPoolFactory is PoolFactory {
+contract PermissionedPoolFactory is IPoolFactory {
     /**
-     * @dev Reference to the PermissionedServiceConfiguration contract
+     * @dev Reference to the ServiceConfiguration contract
      */
     address private _serviceConfiguration;
 
-    constructor(address serviceConfiguration)
-        PoolFactory(serviceConfiguration)
-    {
+    constructor(address serviceConfiguration) {
         _serviceConfiguration = serviceConfiguration;
     }
 
@@ -35,11 +33,12 @@ contract PermissionedPoolFactory is PoolFactory {
     }
 
     /**
-     * @inheritdoc PoolFactory
+     * @inheritdoc IPoolFactory
      */
     function createPool(
         address liquidityAsset,
         address withdrawControllerFactory,
+        address poolControllerFactory,
         IPoolConfigurableSettings calldata settings
     ) public override onlyVerifiedPoolAdmin returns (address poolAddress) {
         require(
@@ -52,6 +51,7 @@ contract PermissionedPoolFactory is PoolFactory {
             msg.sender,
             address(_serviceConfiguration),
             withdrawControllerFactory,
+            poolControllerFactory,
             settings,
             "PerimeterPoolToken",
             "PPT"

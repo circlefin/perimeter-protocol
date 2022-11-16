@@ -3,6 +3,7 @@ pragma solidity ^0.8.16;
 
 import "../interfaces/IPool.sol";
 import "./interfaces/IWithdrawController.sol";
+import "./interfaces/IPoolController.sol";
 import "../libraries/PoolLib.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
@@ -63,7 +64,7 @@ contract WithdrawController is IWithdrawController {
     function withdrawPeriod() public view returns (uint256 period) {
         period = PoolLib.calculateCurrentWithdrawPeriod(
             block.timestamp,
-            _pool.poolActivatedAt(),
+            _pool.activatedAt(),
             _pool.settings().withdrawRequestPeriodDuration
         );
     }
@@ -342,9 +343,12 @@ contract WithdrawController is IWithdrawController {
     function crank() external onlyPool returns (uint256 redeemableShares) {
         // Calculate the amount available for withdrawal
         uint256 liquidAssets = _pool.liquidityPoolAssets();
+        IPoolController _poolController = IPoolController(
+            _pool.poolController()
+        );
 
         uint256 availableAssets = liquidAssets
-            .mul(_pool.withdrawGate())
+            .mul(_poolController.withdrawGate())
             .mul(PoolLib.RAY)
             .div(10_000)
             .div(PoolLib.RAY);

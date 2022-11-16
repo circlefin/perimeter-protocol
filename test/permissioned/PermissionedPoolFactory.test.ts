@@ -2,7 +2,11 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { deployMockERC20 } from "../support/erc20";
-import { DEFAULT_POOL_SETTINGS } from "../support/pool";
+import {
+  DEFAULT_POOL_SETTINGS,
+  deployPoolControllerFactory,
+  deployWithdrawControllerFactory
+} from "../support/pool";
 import { deployToSAcceptanceRegistry } from "../support/tosacceptanceregistry";
 
 describe("PermissionedPoolFactory", () => {
@@ -68,18 +72,15 @@ describe("PermissionedPoolFactory", () => {
     );
     await tx.wait();
 
-    const WithdrawControllerFactory = await ethers.getContractFactory(
-      "WithdrawControllerFactory",
-      {
-        libraries: {
-          PoolLib: poolLib.address
-        }
-      }
-    );
-    const withdrawControllerFactory = await WithdrawControllerFactory.deploy(
+    const withdrawControllerFactory = await deployWithdrawControllerFactory(
+      poolLib.address,
       permissionedServiceConfiguration.address
     );
-    await withdrawControllerFactory.deployed();
+
+    const poolControllerFactory = await deployPoolControllerFactory(
+      poolLib.address,
+      permissionedServiceConfiguration.address
+    );
 
     return {
       poolFactory,
@@ -88,7 +89,8 @@ describe("PermissionedPoolFactory", () => {
       otherAccount,
       liquidityAsset,
       tosAcceptanceRegistry,
-      withdrawControllerFactory
+      withdrawControllerFactory,
+      poolControllerFactory
     };
   }
 
@@ -99,7 +101,8 @@ describe("PermissionedPoolFactory", () => {
       otherAccount,
       liquidityAsset,
       tosAcceptanceRegistry,
-      withdrawControllerFactory
+      withdrawControllerFactory,
+      poolControllerFactory
     } = await loadFixture(deployFixture);
 
     await tosAcceptanceRegistry.connect(otherAccount).acceptTermsOfService();
@@ -111,6 +114,7 @@ describe("PermissionedPoolFactory", () => {
         .createPool(
           liquidityAsset.address,
           withdrawControllerFactory.address,
+          poolControllerFactory.address,
           DEFAULT_POOL_SETTINGS
         )
     ).to.emit(poolFactory, "PoolCreated");
@@ -123,7 +127,8 @@ describe("PermissionedPoolFactory", () => {
       otherAccount,
       liquidityAsset,
       tosAcceptanceRegistry,
-      withdrawControllerFactory
+      withdrawControllerFactory,
+      poolControllerFactory
     } = await loadFixture(deployFixture);
 
     await tosAcceptanceRegistry.connect(otherAccount).acceptTermsOfService();
@@ -133,6 +138,7 @@ describe("PermissionedPoolFactory", () => {
       poolFactory.createPool(
         liquidityAsset.address,
         withdrawControllerFactory.address,
+        poolControllerFactory.address,
         DEFAULT_POOL_SETTINGS
       )
     ).to.be.revertedWith("caller is not allowed pool admin");

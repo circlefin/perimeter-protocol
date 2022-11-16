@@ -3,20 +3,16 @@ pragma solidity ^0.8.16;
 
 import "./Pool.sol";
 import "./interfaces/IServiceConfiguration.sol";
+import "./interfaces/IPoolFactory.sol";
 
 /**
  * @title PoolFactory
  */
-contract PoolFactory {
+contract PoolFactory is IPoolFactory {
     /**
      * @dev Reference to the ServiceConfiguration contract
      */
     address private _serviceConfiguration;
-
-    /**
-     * @dev Emitted when a pool is created.
-     */
-    event PoolCreated(address indexed addr);
 
     constructor(address serviceConfiguration) {
         _serviceConfiguration = serviceConfiguration;
@@ -29,6 +25,7 @@ contract PoolFactory {
     function createPool(
         address liquidityAsset,
         address withdrawControllerFactory,
+        address poolControllerFactory,
         IPoolConfigurableSettings calldata settings
     ) public virtual returns (address poolAddress) {
         require(
@@ -40,7 +37,8 @@ contract PoolFactory {
             "PoolFactory: Invalid duration"
         );
         require(
-            withdrawControllerFactory != address(0),
+            withdrawControllerFactory != address(0) &&
+                poolControllerFactory != address(0),
             "PoolFactory: Invalid address"
         );
         if (settings.fixedFee > 0) {
@@ -56,6 +54,7 @@ contract PoolFactory {
             msg.sender,
             _serviceConfiguration,
             withdrawControllerFactory,
+            poolControllerFactory,
             settings,
             "PerimeterPoolToken",
             "PPT"

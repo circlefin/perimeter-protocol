@@ -46,6 +46,7 @@ contract PermissionedPool is Pool {
         address poolAdmin,
         address serviceConfiguration,
         address withdrawController,
+        address poolController,
         IPoolConfigurableSettings memory poolSettings,
         string memory tokenName,
         string memory tokenSymbol
@@ -55,6 +56,7 @@ contract PermissionedPool is Pool {
             poolAdmin,
             serviceConfiguration,
             withdrawController,
+            poolController,
             poolSettings,
             tokenName,
             tokenSymbol

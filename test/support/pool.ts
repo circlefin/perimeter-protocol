@@ -29,7 +29,6 @@ type DeployPoolProps = {
 /**
  * Deploy an "Initialized" Pool
  */
-
 export async function deployPool({
   operator,
   poolAdmin,
@@ -57,24 +56,22 @@ export async function deployPool({
   const poolFactory = await PoolFactory.deploy(serviceConfiguration.address);
   await poolFactory.deployed();
 
-  const WithdrawControllerFactory = await ethers.getContractFactory(
-    "WithdrawControllerFactory",
-    {
-      libraries: {
-        PoolLib: poolLib.address
-      }
-    }
-  );
-  const withdrawControllerFactory = await WithdrawControllerFactory.deploy(
+  const withdrawControllerFactory = await deployWithdrawControllerFactory(
+    poolLib.address,
     serviceConfiguration.address
   );
-  await withdrawControllerFactory.deployed();
+
+  const poolControllerFactory = await deployPoolControllerFactory(
+    poolLib.address,
+    serviceConfiguration.address
+  );
 
   const txn = await poolFactory
     .connect(poolAdmin)
     .createPool(
       liquidityAsset.address,
       withdrawControllerFactory.address,
+      poolControllerFactory.address,
       poolSettings
     );
 
@@ -95,7 +92,18 @@ export async function deployPool({
     await pool.withdrawController()
   );
 
-  return { pool, liquidityAsset, serviceConfiguration, withdrawController };
+  const poolController = await ethers.getContractAt(
+    "PoolController",
+    await pool.poolController()
+  );
+
+  return {
+    pool,
+    liquidityAsset,
+    serviceConfiguration,
+    withdrawController,
+    poolController
+  };
 }
 
 /**
@@ -137,24 +145,22 @@ export async function deployPermissionedPool({
   const poolFactory = await PoolFactory.deploy(serviceConfiguration.address);
   await poolFactory.deployed();
 
-  const WithdrawControllerFactory = await ethers.getContractFactory(
-    "WithdrawControllerFactory",
-    {
-      libraries: {
-        PoolLib: poolLib.address
-      }
-    }
-  );
-  const withdrawControllerFactory = await WithdrawControllerFactory.deploy(
+  const withdrawControllerFactory = await deployWithdrawControllerFactory(
+    poolLib.address,
     serviceConfiguration.address
   );
-  await withdrawControllerFactory.deployed();
+
+  const poolControllerFactory = await deployPoolControllerFactory(
+    poolLib.address,
+    serviceConfiguration.address
+  );
 
   const txn = await poolFactory
     .connect(poolAdmin)
     .createPool(
       liquidityAsset.address,
       withdrawControllerFactory.address,
+      poolControllerFactory.address,
       poolSettings
     );
 
@@ -175,11 +181,17 @@ export async function deployPermissionedPool({
     await pool.withdrawController()
   );
 
+  const poolController = await ethers.getContractAt(
+    "PoolController",
+    await pool.poolController()
+  );
+
   return {
     pool,
     liquidityAsset,
     serviceConfiguration,
     withdrawController,
+    poolController,
     tosAcceptanceRegistry,
     poolAdminAccessControl
   };
@@ -195,12 +207,17 @@ export async function activatePool(
 ) {
   const { firstLossInitialMinimum } = await pool.settings();
 
+  const poolController = await ethers.getContractAt(
+    "PoolController",
+    await pool.poolController()
+  );
+
   // Grant allowance
   await liquidityAsset
     .connect(poolAdmin)
     .approve(pool.address, firstLossInitialMinimum);
 
-  await pool
+  await poolController
     .connect(poolAdmin)
     .depositFirstLoss(firstLossInitialMinimum, poolAdmin.address);
 
@@ -254,3 +271,29 @@ export const buildWithdrawState = (
     overrides
   );
 };
+
+export async function deployWithdrawControllerFactory(
+  poolLibAddress: string,
+  serviceConfigAddress: string
+) {
+  const Factory = await ethers.getContractFactory("WithdrawControllerFactory", {
+    libraries: {
+      PoolLib: poolLibAddress
+    }
+  });
+  const factory = await Factory.deploy(serviceConfigAddress);
+  return factory.deployed();
+}
+
+export async function deployPoolControllerFactory(
+  poolLibAddress: string,
+  serviceConfigAddress: string
+) {
+  const Factory = await ethers.getContractFactory("PoolControllerFactory", {
+    libraries: {
+      PoolLib: poolLibAddress
+    }
+  });
+  const factory = await Factory.deploy(serviceConfigAddress);
+  return factory.deployed();
+}

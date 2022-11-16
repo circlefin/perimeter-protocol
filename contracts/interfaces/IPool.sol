@@ -2,6 +2,8 @@
 pragma solidity ^0.8.16;
 
 import "./IERC4626.sol";
+import "../controllers/interfaces/IPoolController.sol";
+import "../controllers/interfaces/IWithdrawController.sol";
 
 /**
  * @title Data type storing collected accounting statistics
@@ -10,32 +12,6 @@ struct IPoolAccountings {
     uint256 defaultsTotal;
     uint256 outstandingLoanPrincipals;
     uint256 fixedFeeDueDate;
-}
-
-/**
- * @title Expresses the various states a pool can be in throughout its lifecycle.
- */
-enum IPoolLifeCycleState {
-    Initialized,
-    Active,
-    Paused,
-    Closed
-}
-
-/**
- * @title The various configurable settings that customize Pool behavior.
- */
-struct IPoolConfigurableSettings {
-    uint256 maxCapacity; // amount
-    uint256 endDate; // epoch seconds
-    uint256 requestFeeBps; // bips
-    uint256 requestCancellationFeeBps; // bips
-    uint256 withdrawGateBps; // Percent of liquidity pool available to withdraw, represented in BPS
-    uint256 firstLossInitialMinimum; // amount
-    uint256 withdrawRequestPeriodDuration; // seconds (e.g. 30 days)
-    uint256 fixedFee;
-    uint256 fixedFeeInterval;
-    uint256 poolFeePercentOfInterest; // bips
 }
 
 /**
@@ -53,11 +29,6 @@ struct IPoolWithdrawState {
  * @title The interface for liquidity pools.
  */
 interface IPool is IERC4626 {
-    /**
-     * @dev Emitted when the pool transitions a lifecycle state.
-     */
-    event LifeCycleStateTransition(IPoolLifeCycleState state);
-
     /**
      * @dev Emitted when a loan is funded from the pool.
      */
@@ -97,11 +68,6 @@ interface IPool is IERC4626 {
     );
 
     /**
-     * @dev Emitted when pool settings are updated.
-     */
-    event PoolSettingsUpdated();
-
-    /**
      * @dev Emitted when first loss capital is used to cover loan defaults
      */
     event FirstLossApplied(
@@ -111,9 +77,14 @@ interface IPool is IERC4626 {
     );
 
     /**
-     * @dev Returns the current pool lifecycle state.
+     * @dev The PoolController contract
      */
-    function lifeCycleState() external view returns (IPoolLifeCycleState);
+    function poolController() external view returns (IPoolController);
+
+    /**
+     * @dev The WithdrawController contract
+     */
+    function withdrawController() external view returns (IWithdrawController);
 
     /**
      * @dev The current configurable pool settings.
@@ -121,13 +92,12 @@ interface IPool is IERC4626 {
     function settings()
         external
         view
-        returns (IPoolConfigurableSettings memory settings);
+        returns (IPoolConfigurableSettings calldata settings);
 
     /**
-     * @dev Returns the current withdraw gate in bps. If the pool is closed,
-     * this is set to 10_000 (100%)
+     * @dev The current pool state.
      */
-    function withdrawGate() external view returns (uint256);
+    function state() external view returns (IPoolLifeCycleState);
 
     /**
      * @dev The admin for the pool.
@@ -157,39 +127,12 @@ interface IPool is IERC4626 {
     /**
      * @dev The activation timestamp of the pool.
      */
-    function poolActivatedAt() external view returns (uint256);
+    function activatedAt() external view returns (uint256);
 
     /**
      * @dev The pool fee, in bps, taken from each interest payment
      */
     function poolFeePercentOfInterest() external view returns (uint256);
-
-    /**
-     * @dev Deposits first-loss to the pool. Can only be called by the Pool Admin.
-     */
-    function depositFirstLoss(uint256 amount, address spender) external;
-
-    /**
-     * @dev Withdraws first-loss from the pool. Can only be called by the Pool Admin.
-     */
-    function withdrawFirstLoss(uint256 amount, address receiver)
-        external
-        returns (uint256);
-
-    /**
-     * @dev Updates the pool capacity. Can only be called by the Pool Admin.
-     */
-    function updatePoolCapacity(uint256) external;
-
-    /**
-     * @dev Updates the pool end date. Can only be called by the Pool Admin.
-     */
-    function updatePoolEndDate(uint256) external;
-
-    /**
-     * @dev Returns the withdrawal fee for a given withdrawal amount at the current block.
-     */
-    function requestFee(uint256) external view returns (uint256);
 
     /**
      * @dev Submits a withdrawal request, incurring a fee.
@@ -206,6 +149,28 @@ interface IPool is IERC4626 {
      * any assets that are marked for withdrawal.
      */
     function liquidityPoolAssets() external view returns (uint256);
+
+    /**
+     * @dev Callback from the pool controller when the pool is activated
+     */
+    function onActivated() external;
+
+    /**
+     * @dev Transfer `assets` to the first loss vault. Only accessible by the
+     * Pool Admin via the PoolController.
+     */
+    function transferToFirstLossVault(address, uint256) external;
+
+    /**
+     * @dev Transfer `assets` from the first loss vault. Only accessible by the
+     * Pool Admin via the PoolController.
+     */
+    function transferFromFirstLossVault(address, uint256) external;
+
+    /**
+     * @dev Determines how many funded loans exist
+     */
+    function numFundedLoans() external view returns (uint256);
 
     /**
      * @dev Called by the pool admin, this transfers liquidity from the pool to a given loan.

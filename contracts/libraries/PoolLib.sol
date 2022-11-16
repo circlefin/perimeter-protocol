@@ -102,22 +102,6 @@ library PoolLib {
     }
 
     /**
-     * @dev Updates the Pool End Date.
-     */
-    function executeUpdateEndDate(
-        uint256 endDate,
-        IPoolConfigurableSettings storage settings
-    ) external {
-        require(settings.endDate > endDate, "Pool: can't move end date up");
-        require(
-            endDate > block.timestamp,
-            "Pool: can't move end date into the past"
-        );
-        settings.endDate = endDate;
-        emit PoolSettingsUpdated();
-    }
-
-    /**
      * @dev Transfers first loss to the vault.
      * @param liquidityAsset Pool liquidity asset
      * @param amount Amount of first loss being contributed
@@ -135,11 +119,6 @@ library PoolLib {
     ) external returns (IPoolLifeCycleState newState) {
         require(firstLossVault != address(0), "Pool: 0 address");
 
-        IERC20(liquidityAsset).safeTransferFrom(
-            spender,
-            firstLossVault,
-            amount
-        );
         newState = currentState;
 
         // Graduate pool state if needed
@@ -151,6 +130,7 @@ library PoolLib {
         ) {
             newState = IPoolLifeCycleState.Active;
         }
+
         emit FirstLossDeposited(msg.sender, spender, amount);
     }
 
@@ -169,7 +149,6 @@ library PoolLib {
         require(firstLossVault != address(0), "Pool: 0 address");
         require(withdrawReceiver != address(0), "Pool: 0 address");
 
-        FirstLossVault(firstLossVault).withdraw(amount, withdrawReceiver);
         emit FirstLossWithdrawn(msg.sender, withdrawReceiver, amount);
         return amount;
     }

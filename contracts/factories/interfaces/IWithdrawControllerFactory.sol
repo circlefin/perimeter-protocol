@@ -14,5 +14,5 @@ interface IWithdrawControllerFactory {
      * @dev Creates a pool's withdraw controller
      * @dev Emits `WithdrawControllerCreated` event.
      */
-    function createWithdrawController(address) external returns (address);
+    function createController(address) external returns (address);
 }
