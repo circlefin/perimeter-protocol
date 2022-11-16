@@ -3,7 +3,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { deployPool, depositToPool, activatePool } from "../../support/pool";
 
-describe("Crank Variations", () => {
+describe.only("Crank Variations", () => {
   const DEPOSIT_AMOUNT = 1_000_000;
 
   async function loadPoolFixture() {
@@ -167,5 +167,60 @@ describe("Crank Variations", () => {
     expect(await liquidityAsset.balanceOf(bobLender.address)).to.equal(
       DEPOSIT_AMOUNT - 1
     );
+  });
+
+  it("does not over allocate a given user after multiple snapshots", async () => {
+    const {
+      pool,
+      aliceLender,
+      bobLender,
+      liquidityAsset,
+      poolAdmin,
+      withdrawRequestPeriodDuration
+    } = await loadFixture(loadPoolFixture);
+
+    // Set the withdraw gate to 50%
+    await pool.connect(poolAdmin).setWithdrawGate(5000);
+
+    // Request maximum in window 0 for Alice
+    expect(await pool.withdrawPeriod()).to.equal(0);
+    await pool.connect(aliceLender).requestRedeem(DEPOSIT_AMOUNT);
+
+    // Fast forward to 1st period. Pool is cranked, earmarking a full 1M for Alice.
+    await time.increase(withdrawRequestPeriodDuration);
+    expect(await pool.withdrawPeriod()).to.equal(1);
+    await pool.crank(); // 1M should be earmarked
+    expect(await pool.maxRedeem(aliceLender.address)).to.equal(
+      DEPOSIT_AMOUNT / 2
+    );
+
+    // Fast forward to 2nd period. Pool is cranked, and then Bob requests their full amount.
+    await time.increase(withdrawRequestPeriodDuration);
+    expect(await pool.withdrawPeriod()).to.equal(2);
+    await pool.crank();
+    expect(await pool.maxRedeem(aliceLender.address)).to.equal(DEPOSIT_AMOUNT * 3 / 4);
+
+    // Now deposit enough from Bob to fulfill the request
+    await depositToPool(pool, bobLender, liquidityAsset, DEPOSIT_AMOUNT);
+    await time.increase(withdrawRequestPeriodDuration);
+    expect(await pool.withdrawPeriod()).to.equal(3);
+    await pool.crank();
+    expect(await pool.maxRedeem(aliceLender.address)).to.equal(DEPOSIT_AMOUNT - 1);
+
+    // Ensure that subsequent cranks dont over allocate
+    await time.increase(withdrawRequestPeriodDuration);
+    expect(await pool.withdrawPeriod()).to.equal(4);
+    await pool.crank();
+    expect(await pool.maxRedeem(aliceLender.address)).to.equal(DEPOSIT_AMOUNT - 1);
+
+    // Once again, with a request from Bob mixed in 
+    await pool.connect(bobLender).requestRedeem(DEPOSIT_AMOUNT);
+    await time.increase(withdrawRequestPeriodDuration);
+    expect(await pool.withdrawPeriod()).to.equal(5);
+    await pool.crank();
+    expect(await pool.maxRedeem(aliceLender.address)).to.equal(DEPOSIT_AMOUNT - 1);
+
+    // sanity check bob too; they should receive 1/2, since they requested before the last snapshot, which earmarked 50% of 1M - dust
+    expect(await pool.maxRedeem(bobLender.address)).to.equal(DEPOSIT_AMOUNT / 2 - 1);
   });
 });

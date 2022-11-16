@@ -7,6 +7,7 @@ import "./interfaces/IPoolController.sol";
 import "../libraries/PoolLib.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "hardhat/console.sol";
 
 /**
  * @title WithdrawState
@@ -368,7 +369,11 @@ contract WithdrawController is IWithdrawController {
 
         uint256 availableShares = _pool.convertToShares(availableAssets);
 
-        if (availableAssets <= 0 || availableShares <= 0) {
+        if (
+            availableAssets <= 0 ||
+            availableShares <= 0 ||
+            globalState.eligibleShares <= 0
+        ) {
             // unable to redeem anything
             redeemableShares = 0;
             return 0;

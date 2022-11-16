@@ -183,6 +183,10 @@ interface IPool is IERC4626 {
      */
     function crank() external returns (uint256);
 
+    function totalAvailableAssets() external view returns (uint256);
+
+    function totalAvailableSupply() external view returns (uint256);
+
     /**
      */
     function numFundedLoans() external view returns (uint256);

@@ -14,7 +14,7 @@ import {
   DEFAULT_LOAN_SETTINGS
 } from "./support/loan";
 
-describe.only("Pool", () => {
+describe("Pool", () => {
   async function loadPoolFixture() {
     const [operator, poolAdmin, borrower, otherAccount, ...otherAccounts] =
       await ethers.getSigners();

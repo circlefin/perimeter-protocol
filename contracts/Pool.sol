@@ -327,7 +327,12 @@ contract Pool is IPool, ERC20 {
      * @dev Calculate the total amount of underlying assets held by the vault,
      * excluding any assets due for withdrawal.
      */
-    function totalAvailableAssets() public view returns (uint256 assets) {
+    function totalAvailableAssets()
+        public
+        view
+        override
+        returns (uint256 assets)
+    {
         assets = PoolLib.calculateTotalAvailableAssets(
             address(_liquidityAsset),
             address(this),
@@ -339,7 +344,12 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev The total available supply that is not marked for withdrawal
      */
-    function totalAvailableSupply() public view returns (uint256 shares) {
+    function totalAvailableSupply()
+        public
+        view
+        override
+        returns (uint256 shares)
+    {
         shares = PoolLib.calculateTotalAvailableShares(
             address(this),
             withdrawController.totalRedeemableShares()
