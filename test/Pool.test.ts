@@ -149,7 +149,7 @@ describe("Pool", () => {
       await depositToPool(pool, lenderB, liquidityAsset, 100);
 
       // check the exchange rate
-      expect(await pool.balanceOf(lenderB.address)).to.equal(95); // 100 - 5% withdraw fee
+      expect(await pool.balanceOf(lenderB.address)).to.equal(96); // 100 - 5% withdraw fee
       expect(await pool.maxWithdrawRequest(lenderB.address)).to.equal(94); // 100 - 5% withdraw fee - rounding
     });
   });
