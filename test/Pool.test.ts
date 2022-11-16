@@ -128,7 +128,7 @@ describe("Pool", () => {
       );
     });
 
-    it.only("depositing uses an exchange rate based on available assets", async () => {
+    it("depositing uses an exchange rate based on available assets", async () => {
       const { pool, liquidityAsset, poolAdmin, otherAccounts } =
         await loadFixture(loadPoolFixture);
 
@@ -149,10 +149,17 @@ describe("Pool", () => {
       await liquidityAsset.mint(lenderB.address, 100);
       await depositToPool(pool, lenderB, liquidityAsset, 100);
 
-      // check the exchange rate
-      // Since 2 Pook Tokens were burned when LenderA 
+      // There's a 5% request fee, which burned 3 tokens when Lender A requested to redeem.
+      // That left 97 tokens in the Pool at the time of the crank, 49 of which were earmarked for withdrawal,
+      // along with 50 assets (since the exchange rate was 100/97 * 50 = 50.5 rounded down).
+
+      // So, at the time of deposit, there were 97 - 49 = 48 tokens, along with 50 assets.
+      // Depositing 100 * 48/50 = 96 pool tokens.
       expect(await pool.balanceOf(lenderB.address)).to.equal(96);
-      expect(await pool.maxWithdrawRequest(lenderB.address)).to.equal(100);
+
+      // Max redeem is 91 shares, since 96 * 0.05 = 4.8 in fees.
+      // 91 shares at an exchange rate of 150 / 144 = 94.79 assets rounded down
+      expect(await pool.maxWithdrawRequest(lenderB.address)).to.equal(94);
     });
   });
 

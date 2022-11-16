@@ -17,7 +17,6 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "./libraries/PoolLib.sol";
 import "./FeeVault.sol";
 import "./FirstLossVault.sol";
-import "hardhat/console.sol";
 
 /**
  * @title Pool
@@ -659,11 +658,6 @@ contract Pool is IPool, ERC20 {
         override
         returns (uint256)
     {
-        console.log("Preview deposit");
-        console.log("totalAvailableSupply()");
-        console.log(totalAvailableSupply());
-        console.log("totalAvailableAssets()");
-        console.log(totalAvailableAssets());
         return
             PoolLib.calculateConversion(
                 assets,
