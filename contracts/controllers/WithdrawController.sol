@@ -7,7 +7,6 @@ import "./interfaces/IPoolController.sol";
 import "../libraries/PoolLib.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "hardhat/console.sol";
 
 /**
  * @title WithdrawState

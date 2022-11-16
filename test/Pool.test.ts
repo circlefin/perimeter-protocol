@@ -861,7 +861,6 @@ describe("Pool", () => {
         await pool.connect(poolAdmin).crank();
 
         expect(await pool.maxRedeem(otherAccount.address)).to.equal(9); // 10 - snapshot dust
-        expect(await pool.eligibleBalanceOf(otherAccount.address)).to.equal(1);
       });
     });
 
