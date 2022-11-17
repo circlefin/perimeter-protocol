@@ -13,6 +13,8 @@ struct IPoolAccountings {
     uint256 defaultsTotal;
     uint256 outstandingLoanPrincipals;
     uint256 fixedFeeDueDate;
+    uint256 totalDeposits;
+    uint256 totalWithdrawals;
 }
 
 /**
@@ -175,11 +177,7 @@ interface IPool is IERC4626 {
     /**
      * @dev Called by the Pool Controller, it transfers the fixed fee
      */
-    function claimFixedFee(
-        address,
-        uint256,
-        uint256
-    ) external;
+    function claimFixedFee(address, uint256, uint256) external;
 
     /**
      * @dev Calculate the total amount of underlying assets held by the vault,
@@ -191,4 +189,9 @@ interface IPool is IERC4626 {
      * @dev The total available supply that is not marked for withdrawal
      */
     function totalAvailableSupply() external view returns (uint256);
+
+    /**
+     * @dev The accrued interest at the current block.
+     */
+    function currentAccruedInterest() external view returns (uint256 interest);
 }

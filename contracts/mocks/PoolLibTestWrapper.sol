@@ -244,4 +244,21 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
         return
             PoolLib.calculateMaxCancellation(state, requestCancellationFeeBps);
     }
+
+    function calculateAPY(
+        uint256 totalWithdrawals,
+        uint256 totalDeposits,
+        uint256 expectedInterest,
+        uint256 outstandingPrincipals,
+        uint256 liquidityReserve
+    ) public pure returns (uint256) {
+        return
+            PoolLib.calculateAPY(
+                totalWithdrawals,
+                totalDeposits,
+                expectedInterest,
+                outstandingPrincipals,
+                liquidityReserve
+            );
+    }
 }

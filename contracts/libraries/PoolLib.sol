@@ -213,6 +213,34 @@ library PoolLib {
     }
 
     /**
+     * @dev Calculates the APY for the pool
+     * @param totalWithdrawals Aggregate withdrawals
+     * @param totalDeposits Aggregate deposits
+     * @param expectedInterest Expected interest at the current block
+     * @param outstandingPrincipals Outstanding loan principals
+     * @param liquidityReserve Liquidity Reserveo of the pool
+     * @return apy The APY in bps
+     */
+    function calculateAPY(
+        uint256 totalWithdrawals,
+        uint256 totalDeposits,
+        uint256 expectedInterest,
+        uint256 outstandingPrincipals,
+        uint256 liquidityReserve
+    ) external pure returns (uint256 apy) {
+        if (totalDeposits == 0) {
+            return 0;
+        }
+
+        uint256 assetsOut = totalWithdrawals
+            .add(expectedInterest)
+            .add(outstandingPrincipals)
+            .add(liquidityReserve);
+
+        return assetsOut.sub(totalDeposits).mul(10_000).div(totalDeposits);
+    }
+
+    /**
      * @dev Computes the exchange rate for converting assets to shares
      * @param input The input to the conversion
      * @param numerator Numerator of the conversion rate

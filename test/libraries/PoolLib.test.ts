@@ -894,4 +894,78 @@ describe("PoolLib", () => {
       ).to.equal(63);
     });
   });
+
+  describe.only("calculateAPY()", () => {
+    it("returns 0 APY if there are no deposits", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      const totalWithdrawals = 0;
+      const totalDeposits = 0;
+      const expectedInterest = 0;
+      const outstandingPrincipals = 0;
+      const liquidityReserve = 0;
+
+      expect(
+        await poolLibWrapper.calculateAPY(totalWithdrawals,
+          totalDeposits,
+          expectedInterest,
+          outstandingPrincipals,
+          liquidityReserve)
+      ).to.equal(0);
+    });
+
+    it("returns 0 if no interest has been paid", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      const totalWithdrawals = 0;
+      const totalDeposits = 100;
+      const expectedInterest = 0;
+      const outstandingPrincipals = 100;
+      const liquidityReserve = 0;
+
+      expect(
+        await poolLibWrapper.calculateAPY(totalWithdrawals,
+          totalDeposits,
+          expectedInterest,
+          outstandingPrincipals,
+          liquidityReserve)
+      ).to.equal(0);
+    });
+
+    it("returns 10% APY", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      const totalWithdrawals = 0;
+      const totalDeposits = 100;
+      const expectedInterest = 10;
+      const outstandingPrincipals = 100;
+      const liquidityReserve = 0;
+
+      expect(
+        await poolLibWrapper.calculateAPY(totalWithdrawals,
+          totalDeposits,
+          expectedInterest,
+          outstandingPrincipals,
+          liquidityReserve)
+      ).to.equal(1000);
+    });
+
+    it("returns 0% if all loans default", async () => {
+      const { poolLibWrapper } = await loadFixture(deployFixture);
+
+      const totalWithdrawals = 0;
+      const totalDeposits = 100;
+      const expectedInterest = 0;
+      const outstandingPrincipals = 0;
+      const liquidityReserve = 0;
+
+      expect(
+        await poolLibWrapper.calculateAPY(totalWithdrawals,
+          totalDeposits,
+          expectedInterest,
+          outstandingPrincipals,
+          liquidityReserve)
+      ).to.equal(0);
+    });
+  });
 });
