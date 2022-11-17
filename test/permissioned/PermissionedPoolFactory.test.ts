@@ -52,6 +52,14 @@ describe("PermissionedPoolFactory", () => {
     const PoolLib = await ethers.getContractFactory("PoolLib");
     const poolLib = await PoolLib.deploy();
 
+    // Deploy PoolAccessControlFactory as a dependency to the PoolFactory
+    const PoolAccessControlFactory = await ethers.getContractFactory(
+      "PoolAccessControlFactory"
+    );
+    const poolAccessControlFactory = await PoolAccessControlFactory.deploy(
+      permissionedServiceConfiguration.address
+    );
+
     // Deploy the PermissionedPoolFactory
     const PoolFactory = await ethers.getContractFactory(
       "PermissionedPoolFactory",
@@ -62,7 +70,8 @@ describe("PermissionedPoolFactory", () => {
       }
     );
     const poolFactory = await PoolFactory.deploy(
-      permissionedServiceConfiguration.address
+      permissionedServiceConfiguration.address,
+      poolAccessControlFactory.address
     );
     await poolFactory.deployed();
 

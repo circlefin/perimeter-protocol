@@ -2,6 +2,7 @@
 pragma solidity ^0.8.16;
 
 import "./interfaces/IPoolAdminAccessControl.sol";
+import "./interfaces/IPoolAccessControlFactory.sol";
 import "../ServiceConfiguration.sol";
 
 /**
