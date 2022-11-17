@@ -63,6 +63,11 @@ library PoolLib {
     /**
      * @dev See IPool for event definition
      */
+    event LoanFunded(address indexed loan, uint256 amount);
+
+    /**
+     * @dev See IPool for event definition
+     */
     event LoanDefaulted(address indexed loan);
 
     /**
@@ -338,6 +343,26 @@ library PoolLib {
 
         emit Deposit(msg.sender, sharesReceiver, assets, shares);
         return shares;
+    }
+
+    /**
+     *
+     */
+    function executeFundLoan(
+        address addr,
+        IPoolAccountings storage accountings,
+        EnumerableSet.AddressSet storage fundedLoans
+    ) external {
+        ILoan loan = ILoan(addr);
+        address liquidityAsset = loan.liquidityAsset();
+        uint256 principal = loan.principal();
+
+        IERC20(liquidityAsset).safeApprove(address(loan), principal);
+        loan.fund();
+        accountings.outstandingLoanPrincipals += principal;
+        fundedLoans.add(addr);
+
+        emit LoanFunded(addr, principal);
     }
 
     /**

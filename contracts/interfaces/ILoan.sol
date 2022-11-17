@@ -159,4 +159,6 @@ interface ILoan {
     function markDefaulted() external returns (ILoanLifeCycleState);
 
     function markCallback() external;
+
+    function liquidityAsset() external view returns (address);
 }
