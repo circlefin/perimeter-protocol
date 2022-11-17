@@ -278,12 +278,12 @@ contract Loan is ILoan {
      * @dev Fund the Loan
      * @dev Can only be called by the pool
      */
-    function fund()
-        external
-        onlyPool
-        atState(ILoanLifeCycleState.Collateralized)
-        returns (ILoanLifeCycleState)
-    {
+    function fund() external onlyPool returns (ILoanLifeCycleState) {
+        require(
+            _state == ILoanLifeCycleState.Requested ||
+                _state == ILoanLifeCycleState.Collateralized,
+            "Loan: FunctionInvalidAtThisILoanLifeCycleState"
+        );
         _state = LoanLib.fundLoan(
             liquidityAsset,
             fundingVault,
