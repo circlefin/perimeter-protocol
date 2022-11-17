@@ -2,7 +2,7 @@ import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { deployPool, activatePool } from "../../support/pool";
-import { collateralizeLoan, deployLoan, fundLoan } from "../../support/loan";
+import { deployLoan, fundLoan } from "../../support/loan";
 import { deployMockERC20 } from "../../support/erc20";
 
 describe("Business Scenario 2", () => {
@@ -89,9 +89,6 @@ describe("Business Scenario 2", () => {
     );
     // mint USDC for borrower to pay down loanOne
     await mockUSDC.mint(borrower.address, INPUTS.loanPayment);
-
-    // Collateralize loan
-    await collateralizeLoan(loan, borrower, mockUSDC, 0);
 
     return {
       startTime,

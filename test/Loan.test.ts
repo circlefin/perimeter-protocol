@@ -685,6 +685,18 @@ describe("Loan", () => {
         loan.connect(other).postFungibleCollateral(collateralAsset.address, 100)
       ).to.be.revertedWith("Loan: caller is not borrower");
     });
+
+    it("disallows passing 0 collateral", async () => {
+      const fixture = await loadFixture(deployFixture);
+      const { borrower, loan, collateralAsset } = fixture;
+
+      // Post collateral
+      await expect(
+        loan
+          .connect(borrower)
+          .postFungibleCollateral(collateralAsset.address, 0)
+      ).to.be.revertedWith("Loan: posting 0 collateral");
+    });
   });
 
   describe("postNonFungibleCollateral", () => {

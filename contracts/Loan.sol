@@ -232,6 +232,7 @@ contract Loan is ILoan {
         onlyNonTerminalState
         returns (ILoanLifeCycleState)
     {
+        require(amount > 0, "Loan: posting 0 collateral");
         _state = LoanLib.postFungibleCollateral(
             address(_collateralVault),
             asset,
