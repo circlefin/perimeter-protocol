@@ -39,4 +39,10 @@ interface IServiceConfiguration is IAccessControl {
      * @param addr Address of registry
      */
     function setToSAcceptanceRegistry(address addr) external;
+
+    /**
+     * @dev Sets the first loss fee for the protocol
+     * @param value amount of each payment that is allocated to the first loss vault. Value is in basis points, e.g. 500 equals 5%.
+     */
+    function setFirstLossFeeBps(uint256 value) external;
 }

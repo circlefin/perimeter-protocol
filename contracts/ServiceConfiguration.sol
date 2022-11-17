@@ -126,4 +126,9 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
         tosAcceptanceRegistry = addr;
         emit TermsOfServiceRegistrySet(addr);
     }
+
+    function setFirstLossFeeBps(uint256 value) external override onlyOperator {
+        firstLossFeeBps = value;
+        emit ParameterSet("firstLossFeeBps", value);
+    }
 }
