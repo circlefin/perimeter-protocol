@@ -299,6 +299,7 @@ contract Loan is ILoan {
         require(settings.loanType == ILoanType.Open);
 
         fundingVault.withdraw(amount, _pool);
+        IPool(_pool).notifyLoanPrincipalReturned(amount);
         emit FundsReclaimed(amount, _pool);
     }
 
@@ -448,7 +449,7 @@ contract Loan is ILoan {
         );
         paymentsRemaining = 0;
         _state = ILoanLifeCycleState.Matured;
-        IPool(_pool).notifyLoanPrincipalReturned();
+        IPool(_pool).notifyLoanPrincipalReturned(outstandingPrincipal);
         return amount;
     }
 
