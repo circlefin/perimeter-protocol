@@ -307,8 +307,15 @@ describe("Loan", () => {
         await loadFixture(deployFixture);
 
       await collateralizeLoan(loan, borrower, liquidityAsset);
+      const outstandingLoanPrincipalBefore = (await pool.accountings())
+        .outstandingLoanPrincipals;
       await fundLoan(loan, pool, poolAdmin);
       const principal = await loan.principal();
+
+      // Check that pool accountings were updated
+      expect((await pool.accountings()).outstandingLoanPrincipals).to.equal(
+        outstandingLoanPrincipalBefore.add(principal)
+      );
 
       await time.increaseTo(await loan.dropDeadTimestamp());
       const txn = await loan.connect(borrower).cancelFunded();
@@ -322,6 +329,11 @@ describe("Loan", () => {
         liquidityAsset,
         await loan.fundingVault(),
         -principal
+      );
+
+      // Expect accountings to revert back to prior level
+      expect((await pool.accountings()).outstandingLoanPrincipals).to.equal(
+        outstandingLoanPrincipalBefore
       );
     });
 
@@ -901,7 +913,7 @@ describe("Loan", () => {
       await pool.fundLoan(loan.address);
       expect(await loan.state()).to.equal(4);
       await expect(pool.defaultLoan(loan.address)).to.be.revertedWith(
-        "Loan: FunctionInvalidAtThisILoanLifeCycleState"
+        "Pool: unfunded loan"
       );
 
       // Loan is now Active

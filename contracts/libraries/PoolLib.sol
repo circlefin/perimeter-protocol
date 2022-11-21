@@ -350,7 +350,7 @@ library PoolLib {
     function executeFundLoan(
         address addr,
         IPoolAccountings storage accountings,
-        EnumerableSet.AddressSet storage fundedLoans
+        mapping(address => bool) storage fundedLoans
     ) external {
         ILoan loan = ILoan(addr);
         address liquidityAsset = loan.liquidityAsset();
@@ -359,7 +359,7 @@ library PoolLib {
         IERC20(liquidityAsset).safeApprove(address(loan), principal);
         loan.fund();
         accountings.outstandingLoanPrincipals += principal;
-        fundedLoans.add(addr);
+        fundedLoans[addr] = true;
 
         emit LoanFunded(addr, principal);
     }
@@ -377,12 +377,15 @@ library PoolLib {
         address loan,
         address pool,
         IPoolAccountings storage accountings,
-        EnumerableSet.AddressSet storage fundedLoans
+        EnumerableSet.AddressSet storage activeLoans
     ) external {
-        require(fundedLoans.remove(loan), "Pool: unfunded loan");
+        require(activeLoans.remove(loan), "Pool: unfunded loan"); // TODO - update revert string
 
         ILoan(loan).markDefaulted();
-        accountings.outstandingLoanPrincipals -= ILoan(loan).principal();
+
+        // Offset accounting by what was not returned
+        accountings.outstandingLoanPrincipals -= ILoan(loan)
+            .outstandingPrincipal();
 
         uint256 firstLossBalance = IERC20(asset).balanceOf(
             address(firstLossVault)
@@ -390,7 +393,7 @@ library PoolLib {
 
         // TODO - handle open-term loans where principal may
         // not be fully oustanding.
-        uint256 outstandingLoanDebt = ILoan(loan).principal() +
+        uint256 outstandingLoanDebt = ILoan(loan).outstandingPrincipal() +
             ILoan(loan).paymentsRemaining() *
             ILoan(loan).payment();
 

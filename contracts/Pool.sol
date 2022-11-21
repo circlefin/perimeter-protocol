@@ -41,7 +41,12 @@ contract Pool is IPool, ERC20 {
      * @dev list of all active loan addresses for this Pool. Active loans have been
      * drawn down, and the payment schedule activated.
      */
-    EnumerableSet.AddressSet private _fundedLoans;
+    EnumerableSet.AddressSet private _activeLoans;
+
+    /**
+     * @dev Collection of all loans that have been funded by this Pool.
+     */
+    mapping(address => bool) private _fundedLoans;
 
     /**
      * @inheritdoc IPool
@@ -277,7 +282,7 @@ contract Pool is IPool, ERC20 {
      * @inheritdoc IPool
      */
     function numFundedLoans() external view returns (uint256) {
-        return _fundedLoans.length();
+        return _activeLoans.length();
     }
 
     /**
@@ -298,9 +303,26 @@ contract Pool is IPool, ERC20 {
     /**
      * @inheritdoc IPool
      */
-    function notifyLoanPrincipalReturned() external {
-        require(_fundedLoans.remove(msg.sender), "Pool: not active loan");
-        _accountings.outstandingLoanPrincipals -= ILoan(msg.sender).principal();
+    function notifyLoanPrincipalReturned(uint256 amount) external override {
+        require(_fundedLoans[msg.sender], "Pool: not funded loan");
+        _accountings.outstandingLoanPrincipals -= amount;
+    }
+
+    /**
+     * @inheritdoc IPool
+     */
+    function notifyLoanStateTransitioned() external override {
+        require(_fundedLoans[msg.sender], "Pool: not funded loan");
+
+        ILoanLifeCycleState loanState = ILoan(msg.sender).state();
+        if (
+            loanState == ILoanLifeCycleState.Matured ||
+            loanState == ILoanLifeCycleState.Defaulted
+        ) {
+            _activeLoans.remove(msg.sender);
+        } else if (loanState == ILoanLifeCycleState.Active) {
+            _activeLoans.add(msg.sender);
+        }
     }
 
     /**
@@ -319,7 +341,7 @@ contract Pool is IPool, ERC20 {
             loan,
             address(this),
             _accountings,
-            _fundedLoans
+            _activeLoans // TODO - remove
         );
     }
 
@@ -663,7 +685,7 @@ contract Pool is IPool, ERC20 {
                 assets,
                 totalAvailableSupply(),
                 totalAvailableAssets() +
-                    PoolLib.calculateExpectedInterest(_fundedLoans),
+                    PoolLib.calculateExpectedInterest(_activeLoans),
                 false
             );
     }
@@ -717,7 +739,7 @@ contract Pool is IPool, ERC20 {
             PoolLib.calculateConversion(
                 shares,
                 totalAvailableAssets() +
-                    PoolLib.calculateExpectedInterest(_fundedLoans),
+                    PoolLib.calculateExpectedInterest(_activeLoans),
                 totalAvailableSupply(),
                 true
             );

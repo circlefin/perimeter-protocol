@@ -7,6 +7,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import "../interfaces/ILoan.sol";
+import "../interfaces/IPool.sol";
 import "../interfaces/IServiceConfiguration.sol";
 import "../CollateralVault.sol";
 import "../FundingVault.sol";
@@ -281,6 +282,7 @@ library LoanLib {
         uint256 amount
     ) public {
         fundingVault.withdraw(amount, pool);
+        IPool(pool).notifyLoanPrincipalReturned(amount);
         emit CanceledLoanPrincipalReturned(pool, amount);
     }
 
@@ -351,5 +353,17 @@ library LoanLib {
                 originationFee
             );
         }
+    }
+
+    /**
+     * @dev Drains the full balance of the funding vault.
+     */
+    function drainVault(
+        FundingVault vault,
+        address asset,
+        address receiver
+    ) public returns (uint256 remainder) {
+        remainder = IERC20(asset).balanceOf(address(vault));
+        vault.withdraw(remainder, receiver);
     }
 }

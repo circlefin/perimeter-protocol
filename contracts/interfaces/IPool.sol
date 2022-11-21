@@ -178,7 +178,12 @@ interface IPool is IERC4626 {
      * @dev Called by a loan, it notifies the pool that the loan has returned principal
      * to the pool.
      */
-    function notifyLoanPrincipalReturned() external;
+    function notifyLoanPrincipalReturned(uint256 amount) external;
+
+    /**
+     * @dev Called by a loan, it notifies the pool that the loan has transitioned stated.
+     */
+    function notifyLoanStateTransitioned() external;
 
     /**
      * @dev Called by the pool admin, this marks a loan as in default, triggering liquiditation

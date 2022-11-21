@@ -2,6 +2,7 @@
 pragma solidity ^0.8.16;
 
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./interfaces/ILoan.sol";
 import "./interfaces/IPool.sol";
 import "./interfaces/IServiceConfiguration.sol";
@@ -300,6 +301,7 @@ contract Loan is ILoan {
         require(settings.loanType == ILoanType.Open);
 
         fundingVault.withdraw(amount, _pool);
+        IPool(_pool).notifyLoanPrincipalReturned(amount);
         emit FundsReclaimed(amount, _pool);
     }
 
@@ -321,7 +323,7 @@ contract Loan is ILoan {
             _state
         );
         outstandingPrincipal += amount;
-
+        IPool(_pool).notifyLoanStateTransitioned();
         return amount;
     }
 
@@ -447,9 +449,13 @@ contract Loan is ILoan {
             _pool,
             poolPayment.add(outstandingPrincipal)
         );
+
+        IPool(_pool).notifyLoanPrincipalReturned(outstandingPrincipal);
+
         paymentsRemaining = 0;
         _state = ILoanLifeCycleState.Matured;
-        IPool(_pool).notifyLoanPrincipalReturned();
+
+        IPool(_pool).notifyLoanStateTransitioned();
         return amount;
     }
 
@@ -465,6 +471,7 @@ contract Loan is ILoan {
     {
         _state = ILoanLifeCycleState.Defaulted;
         emit LifeCycleStateTransition(_state);
+        IPool(_pool).notifyLoanStateTransitioned();
         return _state;
     }
 
