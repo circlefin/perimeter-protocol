@@ -668,6 +668,11 @@ contract Pool is IPool, ERC20 {
             );
     }
 
+    // TODO - REMOVE
+    function expectedInterest() external view returns (uint256) {
+        return PoolLib.calculateExpectedInterest(_fundedLoans);
+    }
+
     /**
      * @dev Deposits assets of underlying tokens into the vault and grants ownership of shares to receiver.
      * Emits a {Deposit} event.

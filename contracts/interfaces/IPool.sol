@@ -191,4 +191,10 @@ interface IPool is IERC4626 {
      * claimed once every interval, as set on the pool.
      */
     function claimFixedFee() external;
+
+    /**
+     * @dev Called by the pool admin, this claims a fixed fee from the pool. Fee can only be
+     * claimed once every interval, as set on the pool.
+     */
+    function expectedInterest() external view returns (uint256);
 }
