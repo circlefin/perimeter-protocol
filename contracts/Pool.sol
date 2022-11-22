@@ -341,7 +341,7 @@ contract Pool is IPool, ERC20 {
             poolController.isActiveOrClosed(),
             "Pool: FunctionInvalidAtThisLifeCycleState"
         );
-        require(_activeLoans.contains(loan), "Pool: not active loan"); // TODO - update revert string
+        require(_activeLoans.contains(loan), "Pool: not active loan");
 
         PoolLib.executeDefault(
             asset(),
