@@ -1282,7 +1282,7 @@ describe("Loan", () => {
       await expect(tx).to.changeTokenBalance(
         liquidityAsset,
         pool,
-        interestPayment + principal - prepaidPrincipal - firstLossFee
+        interestPayment + principal - firstLossFee
       );
 
       const firstLoss = await pool.firstLossVault();
@@ -1300,26 +1300,24 @@ describe("Loan", () => {
       expect(await loan.paymentsRemaining()).to.equal(0);
       expect(await loan.state()).to.equal(5);
 
-      // Funding vault will still have funds in it
-      expect(await liquidityAsset.balanceOf(fundingVault)).to.equal(
-        prepaidPrincipal
-      );
+      // Funding vault will have been drained
+      expect(await liquidityAsset.balanceOf(fundingVault)).to.equal(0);
 
       // Pool Admin can then reclaim the funds
       const reclaimFundsTx = loan
         .connect(poolAdmin)
         .reclaimFunds(prepaidPrincipal);
-      await expect(reclaimFundsTx).to.not.be.reverted;
-      await expect(reclaimFundsTx).to.changeTokenBalance(
-        liquidityAsset,
-        fundingVault,
-        -1 * prepaidPrincipal
-      );
-      await expect(reclaimFundsTx).to.changeTokenBalance(
-        liquidityAsset,
-        pool,
-        prepaidPrincipal
-      );
+      await expect(reclaimFundsTx).to.be.reverted;
+      // await expect(reclaimFundsTx).to.not.changeTokenBalance(
+      //   liquidityAsset,
+      //   fundingVault,
+      //   -1 * prepaidPrincipal
+      // );
+      // await expect(reclaimFundsTx).to.changeTokenBalance(
+      //   liquidityAsset,
+      //   pool,
+      //   prepaidPrincipal
+      // );
     });
   });
 });
