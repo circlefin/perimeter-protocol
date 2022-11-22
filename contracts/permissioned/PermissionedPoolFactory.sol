@@ -15,8 +15,15 @@ contract PermissionedPoolFactory is IPoolFactory {
      */
     address private _serviceConfiguration;
 
-    constructor(address serviceConfiguration) {
+    /**
+     * @dev Reference to a PoolAccessControlFactory
+     */
+    address private _poolAccessControlFactory;
+
+    constructor(address serviceConfiguration, address poolAccessControlFactory)
+    {
         _serviceConfiguration = serviceConfiguration;
+        _poolAccessControlFactory = poolAccessControlFactory;
     }
 
     /**
@@ -52,6 +59,7 @@ contract PermissionedPoolFactory is IPoolFactory {
             address(_serviceConfiguration),
             withdrawControllerFactory,
             poolControllerFactory,
+            _poolAccessControlFactory,
             settings,
             "PerimeterPoolToken",
             "PPT"
