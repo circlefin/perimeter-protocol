@@ -453,7 +453,7 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev Crank the protocol. Issues withdrawals
      */
-    function crank() public override returns (uint256 redeemableShares) {
+    function crank() external returns (uint256 redeemableShares) {
         redeemableShares = withdrawController.crank();
     }
 
