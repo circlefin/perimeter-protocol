@@ -7,14 +7,13 @@ import {
   DEFAULT_POOL_SETTINGS
 } from "../../../support/pool";
 import {
-  collateralizeLoan,
   DEFAULT_LOAN_SETTINGS,
   deployLoan,
   fundLoan
 } from "../../../support/loan";
 import { deployMockERC20 } from "../../../support/erc20";
 
-describe("Fixed Term Matured Loan Scenario", () => {
+describe("Fixed Term Defaulted Loan Scenario", () => {
   const INPUTS = {
     lenderDeposit: 1_000_000,
     loanAmount: 1_000_000,
@@ -60,7 +59,7 @@ describe("Fixed Term Matured Loan Scenario", () => {
     await mockERC20.mint(
       borrower.address,
       (INPUTS.loanPayment * DEFAULT_LOAN_SETTINGS.duration) /
-      DEFAULT_LOAN_SETTINGS.paymentPeriod
+        DEFAULT_LOAN_SETTINGS.paymentPeriod
     );
 
     return {
@@ -80,7 +79,6 @@ describe("Fixed Term Matured Loan Scenario", () => {
     await pool.connect(lender).deposit(INPUTS.lenderDeposit, lender.address);
 
     // fund loan and drawdown
-    await collateralizeLoan(loan, borrower, mockERC20, 0);
     await fundLoan(loan, pool, poolAdmin);
     expect((await pool.accountings()).outstandingLoanPrincipals).to.equal(
       1_000_000

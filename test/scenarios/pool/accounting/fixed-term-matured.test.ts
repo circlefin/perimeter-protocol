@@ -7,7 +7,6 @@ import {
   DEFAULT_POOL_SETTINGS
 } from "../../../support/pool";
 import {
-  collateralizeLoan,
   DEFAULT_LOAN_SETTINGS,
   deployLoan,
   fundLoan
@@ -80,7 +79,6 @@ describe("Fixed Term Matured Loan Scenario", () => {
     await pool.connect(lender).deposit(INPUTS.lenderDeposit, lender.address);
 
     // fund loan and drawdown
-    await collateralizeLoan(loan, borrower, mockERC20, 0);
     await fundLoan(loan, pool, poolAdmin);
 
     // check pool accounting is correct

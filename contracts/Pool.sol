@@ -288,15 +288,8 @@ contract Pool is IPool, ERC20 {
     /**
      * @inheritdoc IPool
      */
-    function activeLoans()
-        external
-        view
-        override
-        returns (address[] memory loans)
-    {
-        for (uint256 i = 0; i < _activeLoans.length(); i++) {
-            loans[i] = _activeLoans.at(i);
-        }
+    function activeLoans() external view override returns (address[] memory) {
+        return _activeLoans.values();
     }
 
     /**

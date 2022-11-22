@@ -11,7 +11,8 @@ import {
   deployLoan,
   collateralizeLoan,
   fundLoan,
-  DEFAULT_LOAN_SETTINGS
+  DEFAULT_LOAN_SETTINGS,
+  matureLoan
 } from "./support/loan";
 
 describe("Pool", () => {
@@ -201,16 +202,69 @@ describe("Pool", () => {
     });
   });
 
-  describe.only("activeLoans()", () => {
+  describe("activeLoans()", () => {
     it("contains the loan address once it's drawndown", async () => {
-      const { pool, poolAdmin, loan, otherAccount, liquidityAsset } = await loadFixture(loadPoolFixture);
+      const { pool, poolAdmin, loan, otherAccount, liquidityAsset, borrower } =
+        await loadFixture(loadPoolFixture);
 
       // Deposit to pool and fund loan
       await activatePool(pool, poolAdmin, liquidityAsset);
-      await depositToPool(pool, otherAccount, liquidityAsset, await loan.principal());
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        await loan.principal()
+      );
       await fundLoan(loan, pool, poolAdmin);
 
-      // Check that active loans does not contain loan address 
+      // Check that active loans does not contain loan address
+      expect(await pool.activeLoans()).to.be.empty;
+
+      // Drawdown
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      // Check that active loans now contains loan address
+      expect(await pool.activeLoans()).to.eql([loan.address]);
+    });
+
+    it("removes the address once it matures", async () => {
+      const { pool, poolAdmin, loan, otherAccount, liquidityAsset, borrower } =
+        await loadFixture(loadPoolFixture);
+
+      // Mature loan
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        await loan.principal()
+      );
+      await fundLoan(loan, pool, poolAdmin);
+      await loan.connect(borrower).drawdown(await loan.principal());
+      await matureLoan(loan, borrower, liquidityAsset);
+
+      // Check that active loans does not contain loan address
+      expect(await pool.activeLoans()).to.be.empty;
+    });
+
+    it("removes the address once it defaults", async () => {
+      const { pool, poolAdmin, loan, otherAccount, liquidityAsset, borrower } =
+        await loadFixture(loadPoolFixture);
+
+      // Default loan
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        await loan.principal()
+      );
+      await fundLoan(loan, pool, poolAdmin);
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      await pool.connect(poolAdmin).defaultLoan(loan.address);
+
+      // Check that active loans does not contain loan address
       expect(await pool.activeLoans()).to.be.empty;
     });
   });
