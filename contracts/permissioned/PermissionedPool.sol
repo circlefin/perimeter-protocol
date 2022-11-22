@@ -74,6 +74,26 @@ contract PermissionedPool is Pool {
     /**
      * @inheritdoc Pool
      */
+    function crank()
+        public
+        override
+        returns (
+            uint256,
+            uint256,
+            uint256
+        )
+    {
+        require(
+            msg.sender == address(poolController) ||
+                poolAccessControl.isValidParticipant(msg.sender),
+            "Pool: not allowed"
+        );
+        return super.crank();
+    }
+
+    /**
+     * @inheritdoc Pool
+     */
     function maxDeposit(address receiver)
         public
         view

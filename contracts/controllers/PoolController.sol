@@ -357,4 +357,21 @@ contract PoolController is IPoolController {
             _settings.fixedFeeInterval
         );
     }
+
+    /*//////////////////////////////////////////////////////////////
+                Crank
+    //////////////////////////////////////////////////////////////*/
+
+    function crank()
+        external
+        override
+        onlyAdmin
+        returns (
+            uint256,
+            uint256,
+            uint256
+        )
+    {
+        return pool.crank();
+    }
 }
