@@ -355,10 +355,13 @@ library PoolLib {
         IPoolAccountings storage accountings,
         EnumerableSet.AddressSet storage fundedLoans
     ) external {
-        require(fundedLoans.remove(loan), "Pool: unfunded loan");
+        require(fundedLoans.contains(loan), "Pool: unfunded loan");
 
         ILoan(loan).markDefaulted();
-        accountings.outstandingLoanPrincipals -= ILoan(loan).principal();
+
+        // Offset accounting by what was not returned
+        accountings.outstandingLoanPrincipals -= ILoan(loan)
+            .outstandingPrincipal();
 
         uint256 firstLossBalance = IERC20(asset).balanceOf(
             address(firstLossVault)
@@ -366,7 +369,7 @@ library PoolLib {
 
         // TODO - handle open-term loans where principal may
         // not be fully oustanding.
-        uint256 outstandingLoanDebt = ILoan(loan).principal() +
+        uint256 outstandingLoanDebt = ILoan(loan).outstandingPrincipal() +
             ILoan(loan).paymentsRemaining() *
             ILoan(loan).payment();
 

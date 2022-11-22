@@ -60,7 +60,7 @@ describe("Closed Term Matured Loan Scenario", () => {
     await mockERC20.mint(
       borrower.address,
       (INPUTS.loanPayment * DEFAULT_LOAN_SETTINGS.duration) /
-        DEFAULT_LOAN_SETTINGS.paymentPeriod
+      DEFAULT_LOAN_SETTINGS.paymentPeriod
     );
 
     return {
@@ -73,7 +73,7 @@ describe("Closed Term Matured Loan Scenario", () => {
     };
   }
 
-  it("Calculates outstanding loan principal", async () => {
+  it.only("Calculates outstanding loan principal", async () => {
     const { pool, lender, mockERC20, poolAdmin, borrower, loan } =
       await loadFixture(loadFixtures);
 
@@ -82,13 +82,17 @@ describe("Closed Term Matured Loan Scenario", () => {
     // fund loan and drawdown
     await collateralizeLoan(loan, borrower, mockERC20, 0);
     await fundLoan(loan, pool, poolAdmin);
+    expect((await pool.accountings()).outstandingLoanPrincipals).to.equal(
+      1_000_000
+    );
 
     // default loan
+    await loan.connect(borrower).drawdown(await loan.principal());
     await pool.connect(poolAdmin).defaultLoan(loan.address);
 
     // check that accountings go back to zero
     expect((await pool.accountings()).outstandingLoanPrincipals).to.equal(
-      1_000_000
+      0
     );
   });
 });
