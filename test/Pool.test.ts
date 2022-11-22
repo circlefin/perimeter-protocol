@@ -139,6 +139,7 @@ describe("Pool", () => {
       await activatePool(pool, poolAdmin, liquidityAsset);
       await liquidityAsset.mint(lenderA.address, 100);
       await depositToPool(pool, lenderA, liquidityAsset, 100);
+
       await pool.connect(lenderA).requestRedeem(50);
       const { withdrawRequestPeriodDuration } = await pool.settings();
       await time.increase(withdrawRequestPeriodDuration);
@@ -148,9 +149,17 @@ describe("Pool", () => {
       await liquidityAsset.mint(lenderB.address, 100);
       await depositToPool(pool, lenderB, liquidityAsset, 100);
 
-      // check the exchange rate
-      expect(await pool.balanceOf(lenderB.address)).to.equal(95); // 100 - 5% withdraw fee
-      expect(await pool.maxWithdrawRequest(lenderB.address)).to.equal(94); // 100 - 5% withdraw fee - rounding
+      // There's a 5% request fee, which burned 3 tokens when Lender A requested to redeem.
+      // That left 97 tokens in the Pool at the time of the crank, 49 of which were earmarked for withdrawal,
+      // along with 50 assets (since the exchange rate was 100/97 * 50 = 50.5 rounded down).
+
+      // So, at the time of deposit, there were 97 - 49 = 48 tokens, along with 50 assets.
+      // Depositing 100 * 48/50 = 96 pool tokens.
+      expect(await pool.balanceOf(lenderB.address)).to.equal(96);
+
+      // Max redeem is 91 shares, since 96 * 0.05 = 4.8 in fees.
+      // 91 shares at an exchange rate of 150 / 144 = 94.79 assets rounded down
+      expect(await pool.maxWithdrawRequest(lenderB.address)).to.equal(94);
     });
   });
 
@@ -382,7 +391,9 @@ describe("Pool", () => {
       await pool.crank();
 
       // double check that the funds are now available for withdraw
-      expect(await pool.maxRedeem(otherAccount.address)).to.equal(redeemAmount);
+      expect(await pool.maxRedeem(otherAccount.address)).to.equal(
+        redeemAmount - 2
+      );
 
       // check that totalAvailableAssets is dust
       expect(await pool.totalAvailableAssets()).to.lessThan(10);
@@ -858,7 +869,7 @@ describe("Pool", () => {
         await time.increase(withdrawRequestPeriodDuration);
         await pool.connect(poolAdmin).crank();
 
-        expect(await pool.maxRedeem(otherAccount.address)).to.equal(10);
+        expect(await pool.maxRedeem(otherAccount.address)).to.equal(9); // 10 - snapshot dust
       });
     });
 
@@ -875,7 +886,7 @@ describe("Pool", () => {
         await time.increase(withdrawRequestPeriodDuration);
         await pool.connect(poolAdmin).crank();
 
-        expect(await pool.maxWithdraw(otherAccount.address)).to.equal(10);
+        expect(await pool.maxWithdraw(otherAccount.address)).to.equal(9);
       });
     });
   });
@@ -910,17 +921,17 @@ describe("Pool", () => {
       const startingAssets = await liquidityAsset.balanceOf(
         otherAccount.address
       );
-      expect(await pool.maxRedeem(otherAccount.address)).to.equal(10);
+      expect(await pool.maxRedeem(otherAccount.address)).to.equal(9);
 
       await pool
         .connect(otherAccount)
-        .redeem(10, otherAccount.address, otherAccount.address);
+        .redeem(9, otherAccount.address, otherAccount.address);
 
       expect(await liquidityAsset.balanceOf(otherAccount.address)).to.equal(
-        startingAssets.add(10)
+        startingAssets.add(9)
       );
       expect(await pool.balanceOf(otherAccount.address)).to.equal(
-        startingShares.sub(10)
+        startingShares.sub(9)
       );
     });
 
@@ -1007,7 +1018,7 @@ describe("Pool", () => {
         otherAccount.address,
         999
       );
-      expect(await pool.totalSupply()).to.equal(0);
+      expect(await pool.totalSupply()).to.equal(2); // dust
     });
   });
 
@@ -1031,17 +1042,17 @@ describe("Pool", () => {
       const startingAssets = await liquidityAsset.balanceOf(
         otherAccount.address
       );
-      expect(await pool.maxWithdraw(otherAccount.address)).to.equal(10);
+      expect(await pool.maxWithdraw(otherAccount.address)).to.equal(9);
 
       await pool
         .connect(otherAccount)
-        .withdraw(10, otherAccount.address, otherAccount.address);
+        .withdraw(9, otherAccount.address, otherAccount.address);
 
       expect(await liquidityAsset.balanceOf(otherAccount.address)).to.equal(
-        startingAssets.add(10)
+        startingAssets.add(9)
       );
       expect(await pool.balanceOf(otherAccount.address)).to.equal(
-        startingShares.sub(10)
+        startingShares.sub(9)
       );
     });
 

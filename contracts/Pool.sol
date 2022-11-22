@@ -327,7 +327,12 @@ contract Pool is IPool, ERC20 {
      * @dev Calculate the total amount of underlying assets held by the vault,
      * excluding any assets due for withdrawal.
      */
-    function totalAvailableAssets() public view returns (uint256 assets) {
+    function totalAvailableAssets()
+        public
+        view
+        override
+        returns (uint256 assets)
+    {
         assets = PoolLib.calculateTotalAvailableAssets(
             address(_liquidityAsset),
             address(this),
@@ -339,7 +344,12 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev The total available supply that is not marked for withdrawal
      */
-    function totalAvailableSupply() public view returns (uint256 shares) {
+    function totalAvailableSupply()
+        public
+        view
+        override
+        returns (uint256 shares)
+    {
         shares = PoolLib.calculateTotalAvailableShares(
             address(this),
             withdrawController.totalRedeemableShares()
@@ -538,14 +548,13 @@ contract Pool is IPool, ERC20 {
         uint256 shares,
         uint256 assets
     ) internal {
-        // TODO: If we move to a lighter crank, we must run it here before this method continues
         require(
             maxRequestCancellation(owner) >= shares,
             "Pool: InsufficientBalance"
         );
+        withdrawController.performRequestCancellation(owner, shares);
         uint256 feeShares = (shares);
         _burn(owner, feeShares);
-        withdrawController.performRequestCancellation(owner, shares);
         emit WithdrawRequestCancelled(owner, assets, shares);
     }
 
@@ -823,7 +832,6 @@ contract Pool is IPool, ERC20 {
         require(receiver == owner, "Pool: Withdrawal to unrelated address");
         require(receiver == msg.sender, "Pool: Must transfer to msg.sender");
         require(shares > 0, "Pool: 0 redeem not allowed");
-        require(maxRedeem(owner) >= shares, "Pool: InsufficientBalance");
 
         // Update the withdraw state
         assets = withdrawController.redeem(owner, shares);
