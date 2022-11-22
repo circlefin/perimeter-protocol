@@ -65,7 +65,7 @@ describe("Business Scenario 1", () => {
       "MUSDC",
       6
     );
-    const { pool, serviceConfiguration } = await deployPool({
+    const { pool, serviceConfiguration, poolController } = await deployPool({
       operator,
       poolAdmin: poolAdmin,
       settings: poolSettings,
@@ -118,6 +118,7 @@ describe("Business Scenario 1", () => {
     return {
       startTime,
       pool,
+      poolController,
       lenderA,
       lenderB,
       mockUSDC,
@@ -133,6 +134,7 @@ describe("Business Scenario 1", () => {
     const {
       startTime,
       pool,
+      poolController,
       lenderA,
       lenderB,
       mockUSDC,
@@ -145,7 +147,7 @@ describe("Business Scenario 1", () => {
 
     // Initialization checks
     // check that FL is zero
-    expect(await pool.firstLoss()).to.equal(0);
+    expect(await poolController.firstLossBalance()).to.equal(0);
     // Check that PM has no USDC balance
     expect(await mockUSDC.balanceOf(poolAdmin.address)).to.equal(0);
 
@@ -164,7 +166,7 @@ describe("Business Scenario 1", () => {
 
     // +4 days, loanOne is funded
     await advanceToDay(startTime, 4);
-    await fundLoan(loanOne, pool, poolAdmin);
+    await fundLoan(loanOne, poolController, poolAdmin);
     await loanOne.connect(borrowerOne).drawdown(INPUTS.loanOne.principal);
 
     // +8 days, lenderB deposits
@@ -180,7 +182,7 @@ describe("Business Scenario 1", () => {
 
     // +9 days, loanTwo funded
     await advanceToDay(startTime, 9);
-    await fundLoan(loanTwo, pool, poolAdmin);
+    await fundLoan(loanTwo, poolController, poolAdmin);
     await loanTwo.connect(borrowerTwo).drawdown(INPUTS.loanTwo.principal);
 
     // +11 days, loan one matures
@@ -235,7 +237,7 @@ describe("Business Scenario 1", () => {
     expect(await pool.totalSupply()).to.be.lessThan(10);
 
     // Check that FL was delivered
-    expect(await pool.firstLoss()).to.equal(92361110);
+    expect(await poolController.firstLossBalance()).to.equal(92361110);
 
     // Check that origination fees were paid to PM
     expect(await mockUSDC.balanceOf(pool.feeVault())).to.equal(116666666);

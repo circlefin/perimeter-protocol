@@ -23,7 +23,9 @@ contract PoolControllerFactory is IPoolControllerFactory {
      */
     function createController(
         address pool,
+        address serviceConfiguration,
         address admin,
+        address liquidityAsset,
         IPoolConfigurableSettings memory poolSettings
     ) public virtual returns (address addr) {
         require(
@@ -33,7 +35,9 @@ contract PoolControllerFactory is IPoolControllerFactory {
 
         PoolController controller = new PoolController(
             pool,
+            serviceConfiguration,
             admin,
+            liquidityAsset,
             poolSettings
         );
         addr = address(controller);

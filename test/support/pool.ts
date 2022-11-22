@@ -215,7 +215,7 @@ export async function activatePool(
   // Grant allowance
   await liquidityAsset
     .connect(poolAdmin)
-    .approve(pool.address, firstLossInitialMinimum);
+    .approve(poolController.address, firstLossInitialMinimum);
 
   await poolController
     .connect(poolAdmin)

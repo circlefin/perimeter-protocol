@@ -162,8 +162,8 @@ export async function collateralizeLoanNFT(loan: any, borrower: any, nft: any) {
   return { loan, borrower, nft, tokenId };
 }
 
-export async function fundLoan(loan: any, pool: any, pm: any) {
-  await pool.connect(pm).fundLoan(loan.address);
+export async function fundLoan(loan: any, poolController: any, pm: any) {
+  await poolController.connect(pm).fundLoan(loan.address);
 }
 
 export async function matureLoan(

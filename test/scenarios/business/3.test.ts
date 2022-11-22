@@ -51,7 +51,7 @@ describe("Business Scenario 3", () => {
       "MUSDC",
       6
     );
-    const { pool, serviceConfiguration } = await deployPool({
+    const { pool, serviceConfiguration, poolController } = await deployPool({
       operator,
       poolAdmin: poolManager,
       settings: poolSettings,
@@ -94,6 +94,7 @@ describe("Business Scenario 3", () => {
     return {
       startTime,
       pool,
+      poolController,
       lenderA,
       lenderB,
       mockUSDC,
@@ -107,6 +108,7 @@ describe("Business Scenario 3", () => {
     const {
       startTime,
       pool,
+      poolController,
       lenderA,
       lenderB,
       mockUSDC,
@@ -117,7 +119,7 @@ describe("Business Scenario 3", () => {
 
     // Initialization checks
     // check that FL is zero
-    expect(await pool.firstLoss()).to.equal(0);
+    expect(await poolController.firstLossBalance()).to.equal(0);
     // Check that PM has no USDC balance
     expect(await mockUSDC.balanceOf(poolManager.address)).to.equal(0);
 
@@ -149,7 +151,7 @@ describe("Business Scenario 3", () => {
 
     // +4  days, loan is funded
     await advanceToDay(startTime, 4);
-    await fundLoan(loan, pool, poolManager);
+    await fundLoan(loan, poolController, poolManager);
     await loan.connect(borrower).drawdown(INPUTS.loan.principal);
 
     // +7 days, lenderA requests 200k PT redemption

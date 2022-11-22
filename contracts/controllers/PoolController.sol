@@ -4,17 +4,25 @@ pragma solidity ^0.8.16;
 import "../interfaces/IPool.sol";
 import "./interfaces/IPoolController.sol";
 import "../libraries/PoolLib.sol";
+import "../FirstLossVault.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title WithdrawState
  */
 contract PoolController is IPoolController {
+    using SafeERC20 for IERC20;
+
     IPool public pool;
     address public admin;
+    address private _serviceConfiguration;
     IPoolConfigurableSettings private _settings;
     IPoolLifeCycleState private _state;
+    FirstLossVault private _firstLossVault;
+    IERC20 private _liquidityAsset;
 
     /**
      * @dev Modifier that checks that the caller is the pool's admin.
@@ -44,20 +52,54 @@ contract PoolController is IPoolController {
         require(
             _currentState == IPoolLifeCycleState.Active ||
                 _currentState == IPoolLifeCycleState.Initialized,
-            "Pool: invalid pool state"
+            "Pool: FunctionInvalidAtThisLifeCycleState"
+        );
+        _;
+    }
+
+    /**
+     * @dev Modifier that checks that the pool is Initialized or Active
+     */
+    modifier atActiveOrClosedState() {
+        IPoolLifeCycleState _currentState = state();
+
+        require(
+            _currentState == IPoolLifeCycleState.Active ||
+                _currentState == IPoolLifeCycleState.Closed,
+            "Pool: FunctionInvalidAtThisLifeCycleState"
+        );
+        _;
+    }
+
+    /**
+     * @dev Modifier to check that an addres is a Perimeter loan associated
+     * with this pool.
+     */
+    modifier isPoolLoan(address loan) {
+        require(
+            PoolLib.isPoolLoan(loan, _serviceConfiguration, address(pool)),
+            "Pool: invalid loan"
         );
         _;
     }
 
     constructor(
         address pool_,
+        address serviceConfiguration_,
         address admin_,
+        address liquidityAsset_,
         IPoolConfigurableSettings memory poolSettings_
     ) {
+        _serviceConfiguration = serviceConfiguration_;
         pool = IPool(pool_);
+
         admin = admin_;
         _settings = poolSettings_;
 
+        _liquidityAsset = IERC20(liquidityAsset_);
+        _liquidityAsset.safeApprove(address(this), type(uint256).max);
+
+        _firstLossVault = new FirstLossVault(address(this), liquidityAsset_);
         _setState(IPoolLifeCycleState.Initialized);
     }
 
@@ -145,6 +187,20 @@ contract PoolController is IPoolController {
         emit PoolSettingsUpdated();
     }
 
+    /**
+     * @inheritdoc IPoolController
+     */
+    function firstLossVault() external view returns (address) {
+        return address(_firstLossVault);
+    }
+
+    /**
+     * @inheritdoc IPoolController
+     */
+    function firstLossBalance() external view returns (uint256) {
+        return _liquidityAsset.balanceOf(address(_firstLossVault));
+    }
+
     /*//////////////////////////////////////////////////////////////
                 State
     //////////////////////////////////////////////////////////////*/
@@ -201,7 +257,7 @@ contract PoolController is IPoolController {
     }
 
     // /////////////////////////////////////////////////
-    // Actions
+    // First Loss
     // /////////////////////////////////////////////////
 
     /**
@@ -212,7 +268,14 @@ contract PoolController is IPoolController {
         onlyAdmin
         atInitializedOrActiveState
     {
-        pool.transferToFirstLossVault(spender, amount);
+        // not sure we need thos
+        require(address(_firstLossVault) != address(0), "Pool: 0 address");
+        _liquidityAsset.safeTransferFrom(
+            spender,
+            address(_firstLossVault),
+            amount
+        );
+
         IPoolLifeCycleState poolLifeCycleState = PoolLib
             .executeFirstLossDeposit(
                 pool.asset(),
@@ -235,9 +298,11 @@ contract PoolController is IPoolController {
         atState(IPoolLifeCycleState.Closed)
         returns (uint256)
     {
-        require(pool.numFundedLoans() == 0, "Pool: loans still active");
+        require(!pool.hasFundedLoans(), "Pool: loans still active");
+        require(address(_firstLossVault) != address(0), "Pool: 0 address");
+        require(receiver != address(0), "Pool: 0 address");
 
-        pool.transferFromFirstLossVault(receiver, amount);
+        _firstLossVault.withdraw(amount, receiver);
 
         return
             PoolLib.executeFirstLossWithdraw(
@@ -245,5 +310,51 @@ contract PoolController is IPoolController {
                 receiver,
                 pool.firstLossVault()
             );
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                Loans
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @inheritdoc IPoolController
+     */
+    function fundLoan(address addr)
+        external
+        onlyAdmin
+        atState(IPoolLifeCycleState.Active)
+        isPoolLoan(addr)
+    {
+        pool.fundLoan(addr);
+    }
+
+    /**
+     * @inheritdoc IPoolController
+     */
+    function defaultLoan(address loan)
+        external
+        onlyAdmin
+        atActiveOrClosedState
+    {
+        require(loan != address(0), "Pool: 0 address");
+
+        PoolLib.executeDefault(
+            address(_liquidityAsset),
+            address(_firstLossVault),
+            loan,
+            address(pool)
+        );
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                Fees
+    //////////////////////////////////////////////////////////////*/
+
+    function claimFixedFee() external onlyAdmin {
+        pool.claimFixedFee(
+            msg.sender,
+            _settings.fixedFee,
+            _settings.fixedFeeInterval
+        );
     }
 }

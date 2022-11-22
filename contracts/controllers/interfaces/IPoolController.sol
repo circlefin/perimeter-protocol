@@ -43,6 +43,22 @@ interface IPoolController {
      */
     event LifeCycleStateTransition(IPoolLifeCycleState state);
 
+    /**
+     * @dev Emitted when a funded loan is marked as in default.
+     */
+    event LoanDefaulted(address indexed loan);
+
+    /**
+     * @dev Emitted when first loss capital is used to cover loan defaults
+     */
+    event FirstLossApplied(
+        address indexed loan,
+        uint256 amount,
+        uint256 outstandingLoss
+    );
+
+    function admin() external view returns (address);
+
     /*//////////////////////////////////////////////////////////////
                 Settings
     //////////////////////////////////////////////////////////////*/
@@ -89,6 +105,16 @@ interface IPoolController {
      */
     function setPoolEndDate(uint256) external;
 
+    /**
+     * @dev The current amount of first loss available to the pool
+     */
+    function firstLossVault() external view returns (address);
+
+    /**
+     * @dev The current amount of first loss available to the pool
+     */
+    function firstLossBalance() external view returns (uint256);
+
     /*//////////////////////////////////////////////////////////////
                 State
     //////////////////////////////////////////////////////////////*/
@@ -123,4 +149,29 @@ interface IPoolController {
     function withdrawFirstLoss(uint256 amount, address receiver)
         external
         returns (uint256);
+
+    /*//////////////////////////////////////////////////////////////
+                Loans
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Called by the pool admin, this transfers liquidity from the pool to a given loan.
+     */
+    function fundLoan(address) external;
+
+    /**
+     * @dev Called by the pool admin, this marks a loan as in default, triggering liquiditation
+     * proceedings and updating pool accounting.
+     */
+    function defaultLoan(address) external;
+
+    /*//////////////////////////////////////////////////////////////
+                Fees
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Called by the pool admin, this claims a fixed fee from the pool. Fee can only be
+     * claimed once every interval, as set on the pool.
+     */
+    function claimFixedFee() external;
 }
