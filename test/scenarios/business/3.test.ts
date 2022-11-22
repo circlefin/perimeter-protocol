@@ -88,9 +88,6 @@ describe("Business Scenario 3", () => {
     // mint USDC for borrower to pay down loanOne
     await mockUSDC.mint(borrower.address, INPUTS.loanPayment);
 
-    // Collateralize loan
-    await collateralizeLoan(loan, borrower, mockUSDC, 0);
-
     return {
       startTime,
       pool,

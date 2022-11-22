@@ -101,8 +101,10 @@ describe("PermissionedLoan", () => {
         .connect(poolAdmin)
         .allowParticipant(borrower.address);
 
+      await liquidityAsset.mint(borrower.address, 1);
+      await liquidityAsset.connect(borrower).approve(loan.address, 1);
       await expect(
-        loan.connect(borrower).postFungibleCollateral(liquidityAsset.address, 0)
+        loan.connect(borrower).postFungibleCollateral(liquidityAsset.address, 1)
       ).to.emit(loan, "PostedCollateral");
     });
   });
