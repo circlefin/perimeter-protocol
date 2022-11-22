@@ -26,6 +26,13 @@ describe("Pool", () => {
       serviceConfiguration
     );
 
+    const { loan: loanTwo } = await deployLoan(
+      pool.address,
+      borrower.address,
+      liquidityAsset.address,
+      serviceConfiguration
+    );
+
     return {
       pool,
       poolController,
@@ -35,6 +42,7 @@ describe("Pool", () => {
       borrower,
       otherAccount,
       loan,
+      loanTwo,
       otherAccounts
     };
   }
