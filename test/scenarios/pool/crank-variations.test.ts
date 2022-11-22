@@ -10,13 +10,14 @@ describe("Crank Variations", () => {
     const [operator, poolAdmin, aliceLender, bobLender] =
       await ethers.getSigners();
 
-    const { pool, liquidityAsset, withdrawController } = await deployPool({
-      operator,
-      poolAdmin: poolAdmin
-    });
+    const { pool, liquidityAsset, withdrawController, poolController } =
+      await deployPool({
+        operator,
+        poolAdmin: poolAdmin
+      });
 
     // Set the request fee to 0, for simplicity
-    await pool.connect(poolAdmin).setRequestFee(0);
+    await poolController.connect(poolAdmin).setRequestFee(0);
 
     // activate the pool
     await activatePool(pool, poolAdmin, liquidityAsset);
@@ -33,7 +34,8 @@ describe("Crank Variations", () => {
       aliceLender,
       bobLender,
       withdrawRequestPeriodDuration,
-      withdrawController
+      withdrawController,
+      poolController
     };
   }
 
@@ -43,11 +45,12 @@ describe("Crank Variations", () => {
       aliceLender,
       poolAdmin,
       withdrawRequestPeriodDuration,
-      withdrawController
+      withdrawController,
+      poolController
     } = await loadFixture(loadPoolFixture);
 
     // Set the withdraw gate to 25%
-    await pool.connect(poolAdmin).setWithdrawGate(5000);
+    await poolController.connect(poolAdmin).setWithdrawGate(5000);
 
     // Request maximum in window 0
     expect(await withdrawController.withdrawPeriod()).to.equal(0);
@@ -98,14 +101,15 @@ describe("Crank Variations", () => {
       liquidityAsset,
       poolAdmin,
       withdrawRequestPeriodDuration,
-      withdrawController
+      withdrawController,
+      poolController
     } = await loadFixture(loadPoolFixture);
 
     // deposit 1M tokens from Bob as well
     await depositToPool(pool, bobLender, liquidityAsset, DEPOSIT_AMOUNT);
 
     // Set the withdraw gate to 50%
-    await pool.connect(poolAdmin).setWithdrawGate(5000);
+    await poolController.connect(poolAdmin).setWithdrawGate(5000);
 
     // Request maximum in window 0 for Alice
     expect(await withdrawController.withdrawPeriod()).to.equal(0);
@@ -184,11 +188,12 @@ describe("Crank Variations", () => {
       liquidityAsset,
       poolAdmin,
       withdrawRequestPeriodDuration,
-      withdrawController
+      withdrawController,
+      poolController
     } = await loadFixture(loadPoolFixture);
 
     // Set the withdraw gate to 50%
-    await pool.connect(poolAdmin).setWithdrawGate(5000);
+    await poolController.connect(poolAdmin).setWithdrawGate(5000);
 
     // Request maximum in window 0 for Alice
     expect(await withdrawController.withdrawPeriod()).to.equal(0);

@@ -15,28 +15,6 @@ struct IPoolAccountings {
 }
 
 /**
- * @dev contains withdraw request information
- */
-struct IPoolWithdrawState {
-    uint256 requestedShares; // Number of shares requested in the `latestPeriod`
-    uint256 eligibleShares; // Number of shares that are eligibble to be CONSIDERED for withdraw by the crank
-    uint256 latestRequestPeriod; // Period where this was last updated
-    uint256 redeemableShares; // The shares that are currently withdrawable
-    uint256 withdrawableAssets; // The assets that are currently withdrawable
-    uint256 latestCrankPeriod; // window last cranked in
-    uint256 crankOffsetPeriod; // At the time of request, this is set to the last successful crank.
-}
-
-/**
- * @dev Holds per-snapshot state used to compute a user's redeemable shares and assets.
- */
-struct IPoolSnapshotState {
-    uint256 aggregationSumRay;
-    uint256 aggregationSumFxRay;
-    uint256 aggregationDifferenceRay;
-}
-
-/**
  * @title The interface for liquidity pools.
  */
 interface IPool is IERC4626 {
