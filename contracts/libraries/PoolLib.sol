@@ -376,11 +376,8 @@ library PoolLib {
         address firstLossVault,
         address loan,
         address pool,
-        IPoolAccountings storage accountings,
-        EnumerableSet.AddressSet storage activeLoans
+        IPoolAccountings storage accountings
     ) external {
-        require(activeLoans.remove(loan), "Pool: unfunded loan"); // TODO - update revert string
-
         ILoan(loan).markDefaulted();
 
         // Offset accounting by what was not returned

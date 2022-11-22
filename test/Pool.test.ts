@@ -201,6 +201,20 @@ describe("Pool", () => {
     });
   });
 
+  describe.only("activeLoans()", () => {
+    it("contains the loan address once it's drawndown", async () => {
+      const { pool, poolAdmin, loan, otherAccount, liquidityAsset } = await loadFixture(loadPoolFixture);
+
+      // Deposit to pool and fund loan
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(pool, otherAccount, liquidityAsset, await loan.principal());
+      await fundLoan(loan, pool, poolAdmin);
+
+      // Check that active loans does not contain loan address 
+      expect(await pool.activeLoans()).to.be.empty;
+    });
+  });
+
   describe("defaultLoan()", () => {
     it("reverts if Pool state is initialized", async () => {
       const { pool, poolAdmin, loan } = await loadFixture(loadPoolFixture);
@@ -216,7 +230,7 @@ describe("Pool", () => {
       await activatePool(pool, poolAdmin, liquidityAsset);
       await expect(
         pool.connect(poolAdmin).defaultLoan(loan.address)
-      ).to.be.revertedWith("Pool: unfunded loan");
+      ).to.be.revertedWith("Pool: not active loan");
     });
 
     it("defaults loan if loan is active, and pool is active", async () => {

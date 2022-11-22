@@ -281,8 +281,22 @@ contract Pool is IPool, ERC20 {
     /**
      * @inheritdoc IPool
      */
-    function numFundedLoans() external view returns (uint256) {
+    function numActiveLoans() external view override returns (uint256) {
         return _activeLoans.length();
+    }
+
+    /**
+     * @inheritdoc IPool
+     */
+    function activeLoans()
+        external
+        view
+        override
+        returns (address[] memory loans)
+    {
+        for (uint256 i = 0; i < _activeLoans.length(); i++) {
+            loans[i] = _activeLoans.at(i);
+        }
     }
 
     /**
@@ -334,14 +348,14 @@ contract Pool is IPool, ERC20 {
             poolController.isActiveOrClosed(),
             "Pool: FunctionInvalidAtThisLifeCycleState"
         );
+        require(_activeLoans.contains(loan), "Pool: not active loan"); // TODO - update revert string
 
         PoolLib.executeDefault(
             asset(),
             address(_firstLossVault),
             loan,
             address(this),
-            _accountings,
-            _activeLoans // TODO - remove
+            _accountings
         );
     }
 

@@ -166,8 +166,14 @@ interface IPool is IERC4626 {
     function totalAvailableSupply() external view returns (uint256);
 
     /**
+     * @dev Number of currently Active loans.
      */
-    function numFundedLoans() external view returns (uint256);
+    function numActiveLoans() external view returns (uint256);
+
+    /**
+     * @dev Returns the set of currently Active loans.
+     */
+    function activeLoans() external view returns (address[] memory);
 
     /**
      * @dev Called by the pool admin, this transfers liquidity from the pool to a given loan.

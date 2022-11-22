@@ -898,7 +898,7 @@ describe("Loan", () => {
       // Check Loan is in requested state; defaults should revert
       expect(await loan.state()).to.equal(0);
       await expect(pool.defaultLoan(loan.address)).to.be.revertedWith(
-        "Pool: unfunded loan"
+        "Pool: not active loan"
       );
 
       // Loan is collateralized; defaults should still revert
@@ -906,14 +906,14 @@ describe("Loan", () => {
       await loan.postFungibleCollateral(collateralAsset.address, 100);
       expect(await loan.state()).to.equal(1);
       await expect(pool.defaultLoan(loan.address)).to.be.revertedWith(
-        "Pool: unfunded loan"
+        "Pool: not active loan"
       );
 
       // Loan is funded; defaults should still revert
       await pool.fundLoan(loan.address);
       expect(await loan.state()).to.equal(4);
       await expect(pool.defaultLoan(loan.address)).to.be.revertedWith(
-        "Pool: unfunded loan"
+        "Pool: not active loan"
       );
 
       // Loan is now Active

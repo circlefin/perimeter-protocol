@@ -14,7 +14,7 @@ import {
 } from "../../../support/loan";
 import { deployMockERC20 } from "../../../support/erc20";
 
-describe("Closed Term Matured Loan Scenario", () => {
+describe("Fixed Term Matured Loan Scenario", () => {
   const INPUTS = {
     lenderDeposit: 1_000_000,
     loanAmount: 1_000_000,
@@ -60,7 +60,7 @@ describe("Closed Term Matured Loan Scenario", () => {
     await mockERC20.mint(
       borrower.address,
       (INPUTS.loanPayment * DEFAULT_LOAN_SETTINGS.duration) /
-        DEFAULT_LOAN_SETTINGS.paymentPeriod
+      DEFAULT_LOAN_SETTINGS.paymentPeriod
     );
 
     return {

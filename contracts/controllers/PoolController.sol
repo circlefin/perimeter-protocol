@@ -235,7 +235,7 @@ contract PoolController is IPoolController {
         atState(IPoolLifeCycleState.Closed)
         returns (uint256)
     {
-        require(pool.numFundedLoans() == 0, "Pool: loans still active");
+        require(pool.numActiveLoans() == 0, "Pool: loans still active");
 
         pool.transferFromFirstLossVault(receiver, amount);
 
