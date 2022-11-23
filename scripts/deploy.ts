@@ -1,58 +1,129 @@
 import { ethers } from "hardhat";
+import { DEFAULT_LOAN_SETTINGS } from "../test/support/loan";
 import { DEFAULT_POOL_SETTINGS } from "../test/support/pool";
+import { findEventByName } from "../test/support/utils";
+
+// USDC address on Goerli
+// https://developers.circle.com/developer/docs/usdc-on-testnet#usdc-on-ethereum-goerli
+const USDC_ADDRESS = "0x07865c6e87b9f70255377e024ace6630c1eaa37f";
 
 async function main() {
-  // Deploy ServiceConfiguration
-  const ServiceConfiguration = await ethers.getContractFactory(
-    "ServiceConfiguration"
-  );
-  const serviceConfiguration = await ServiceConfiguration.deploy();
-  await serviceConfiguration.deployed();
-
-  console.log(
-    `ServiceConfiguration deployed to ${serviceConfiguration.address}`
-  );
-
-  // Deploy mock USD Coin
+  // TODO: this contract must exist, so for now we use a mock version
   const Usdc = await ethers.getContractFactory("MockERC20");
   const usdc = await Usdc.deploy("USD Coin", "USDC", 6);
   await usdc.deployed();
 
-  console.log(`USDC deployed to ${usdc.address}`);
+  // Deploy ServiceConfiguration
+  const ServiceConfiguration = await ethers.getContractFactory(
+    "PermissionedServiceConfiguration"
+  );
+  const serviceConfiguration = await ServiceConfiguration.deploy();
+  await serviceConfiguration.deployed();
+  console.log(
+    `PermissionedServiceConfiguration deployed to ${serviceConfiguration.address}`
+  );
+
+  // Set USDC as a liquidity asset for the protocol
+  await serviceConfiguration.setLiquidityAsset(usdc.address, true);
+  console.log(`Updated ServiceConfiguration to add USDC as a liquidity asset`);
+
+  // Deploy ToSAcceptanceRegistry
+  const ToSAcceptanceRegistry = await ethers.getContractFactory(
+    "ToSAcceptanceRegistry"
+  );
+  const toSAcceptanceRegistry = await ToSAcceptanceRegistry.deploy(
+    serviceConfiguration.address
+  );
+  await toSAcceptanceRegistry.deployed();
+  console.log(
+    `ToSAcceptanceRegistry deployed to ${toSAcceptanceRegistry.address}`
+  );
+
+  // Set ToSAcceptanceRegsitry URL
+  const TOS_ACCEPTANCE_REGISTRY_URL = "http://example.com"; // TODO update with real URL
+  const setTosUrlTx = await toSAcceptanceRegistry.updateTermsOfService(
+    TOS_ACCEPTANCE_REGISTRY_URL
+  );
+  await setTosUrlTx.wait();
+  console.log(
+    `ToSAcceptanceRegistry URL set to ${TOS_ACCEPTANCE_REGISTRY_URL}`
+  );
+
+  // Update ServiceConfiguration with the ToSAcceptanceRegistry
+  const setTosRegistryTx = await serviceConfiguration.setToSAcceptanceRegistry(
+    toSAcceptanceRegistry.address
+  );
+  await setTosRegistryTx.wait();
+  console.log(`ServiceConfiguration updated with new ToSAcceptanceRegistry`);
+
+  // Deploy PoolAdminAccessControl
+  const PoolAdminAccessControl = await ethers.getContractFactory(
+    "PoolAdminAccessControl"
+  );
+  const poolAdminAccessControl = await PoolAdminAccessControl.deploy(
+    serviceConfiguration.address
+  );
+  await poolAdminAccessControl.deployed();
+  console.log(
+    `PoolAdminAccess control deployed at ${poolAdminAccessControl.address}`
+  );
+
+  // Update ServiceConfigurtation with the PoolAdminAccessControl
+  await serviceConfiguration.setPoolAdminAccessControl(
+    poolAdminAccessControl.address
+  );
+  console.log("ServiceConfiguration updated with new PoolAdminAccessControl");
 
   // Deploy PoolLib
   const PoolLib = await ethers.getContractFactory("PoolLib");
   const poolLib = await PoolLib.deploy();
-
   console.log(`PoolLib deployed to ${poolLib.address}`);
 
   // Deploy LoanLib
   const LoanLib = await ethers.getContractFactory("LoanLib");
   const loanLib = await LoanLib.deploy();
-
   console.log(`LoanLib deployed to ${loanLib.address}`);
 
-  // Deploy PoolFactory
-  const PoolFactory = await ethers.getContractFactory("PoolFactory", {
-    libraries: {
-      PoolLib: poolLib.address
-    }
-  });
-  const poolFactory = await PoolFactory.deploy(usdc.address);
-  await poolFactory.deployed();
+  // Deploy PoolAccessControlFactory
+  const PoolAccessControlFactory = await ethers.getContractFactory(
+    "PoolAccessControlFactory"
+  );
+  const poolAccessControlFactory = await PoolAccessControlFactory.deploy(
+    serviceConfiguration.address
+  );
+  await poolAccessControlFactory.deployed();
+  console.log(
+    `PoolAccessControlFactory deployed to ${poolAccessControlFactory.address}`
+  );
 
-  console.log(`PoolFactory deployed to ${poolFactory.address}`);
+  // Deploy PoolFactory
+  const PoolFactory = await ethers.getContractFactory(
+    "PermissionedPoolFactory",
+    {
+      libraries: {
+        PoolLib: poolLib.address
+      }
+    }
+  );
+  const poolFactory = await PoolFactory.deploy(
+    serviceConfiguration.address,
+    poolAccessControlFactory.address
+  );
+  await poolFactory.deployed();
+  console.log(`PermissionedPoolFactory deployed to ${poolFactory.address}`);
 
   // Deploy LoanFactory
-  const LoanFactory = await ethers.getContractFactory("LoanFactory", {
-    libraries: {
-      LoanLib: loanLib.address
+  const LoanFactory = await ethers.getContractFactory(
+    "PermissionedLoanFactory",
+    {
+      libraries: {
+        LoanLib: loanLib.address
+      }
     }
-  });
+  );
   const loanFactory = await LoanFactory.deploy(serviceConfiguration.address);
   await loanFactory.deployed();
-
-  console.log(`LoanFactory deployed to ${loanFactory.address}`);
+  console.log(`PermissionedLoanFactory deployed to ${loanFactory.address}`);
 
   // Deploy WithdrawControllerFactory
   const WithdrawControllerFactory = await ethers.getContractFactory(
@@ -67,7 +138,6 @@ async function main() {
     serviceConfiguration.address
   );
   await withdrawControllerFactory.deployed();
-
   console.log(
     `WithdrawControllerFactory deployed to ${withdrawControllerFactory.address}`
   );
@@ -85,10 +155,52 @@ async function main() {
     serviceConfiguration.address
   );
   await poolControllerFactory.deployed();
-
   console.log(
     `PoolControllerFactory deployed to ${poolControllerFactory.address}`
   );
+
+  // TODO this is not part of deploy script
+  const [operator, poolAdmin, borrower] = await ethers.getSigners();
+
+  // Pool Admin Creates Pool
+  await toSAcceptanceRegistry.connect(poolAdmin).acceptTermsOfService();
+  await poolAdminAccessControl.connect(operator).allow(poolAdmin.address); // TODO replace with verite workflow
+
+  const pool = await poolFactory
+    .connect(poolAdmin)
+    .createPool(
+      usdc.address,
+      withdrawControllerFactory.address,
+      poolControllerFactory.address,
+      DEFAULT_POOL_SETTINGS
+    );
+  const createPoolReceipt = await pool.wait();
+  const poolCreatedEvent = findEventByName(createPoolReceipt, "PoolCreated");
+  const poolAddress = poolCreatedEvent?.args?.[0];
+  if (poolAddress) {
+    console.log(`Pool created at ${poolAddress}`);
+  }
+
+  // Pool Admin Creates a Loan
+  const permissionedPool = await (
+    await ethers.getContractFactory("PermissionedPool", {
+      libraries: {
+        PoolLib: poolLib.address
+      }
+    })
+  ).attach(poolAddress);
+  const createLoanTx = await loanFactory.createLoan(
+    borrower.address,
+    poolAddress,
+    usdc.address,
+    DEFAULT_LOAN_SETTINGS
+  );
+  const createLoanReceipt = await createLoanTx.wait();
+  const loanCreatedEvent = findEventByName(createLoanReceipt, "LoanCreated");
+  const loanAddress = loanCreatedEvent?.args?.[0];
+  if (loanAddress) {
+    console.log(`Loan created at ${loanAddress}`);
+  }
 }
 
 // We recommend this pattern to be able to use async/await everywhere
