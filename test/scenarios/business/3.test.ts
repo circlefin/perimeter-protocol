@@ -262,27 +262,21 @@ describe("Business Scenario 3", () => {
     const txn1 = await pool
       .connect(lenderA)
       .withdraw(277192417683, lenderA.address, lenderA.address);
-    expect(txn1)
-      .to.emit(pool, "Withdraw")
-      .withArgs(
-        lenderA.address,
-        lenderA.address,
-        lenderA.address,
-        277192417683,
-        261009487935
-      );
+    expect(txn1).to.changeTokenBalance(pool, lenderA.address, -261009487935);
+    expect(txn1).to.changeTokenBalance(
+      mockUSDC,
+      lenderA.address,
+      +277192417683
+    );
 
     const txn2 = await pool
       .connect(lenderB)
       .withdraw(101387295413, lenderB.address, lenderB.address);
-    expect(txn2)
-      .to.emit(pool, "Withdraw")
-      .withArgs(
-        lenderB.address,
-        lenderB.address,
-        lenderB.address,
-        101387295413,
-        92442345077
-      );
+    expect(txn2).to.changeTokenBalance(pool, lenderB.address, -92442345077);
+    expect(txn2).to.changeTokenBalance(
+      mockUSDC,
+      lenderB.address,
+      +101387295413
+    );
   });
 });
