@@ -388,14 +388,16 @@ contract WithdrawController is IWithdrawController {
             return 0;
         }
 
+        uint256 withdrawableAssets = _pool.convertToAssets(redeemableShares);
+
         // Calculate the redeemable rate for each lender
         uint256 redeemableRateRay = redeemableShares.mul(PoolLib.RAY).div(
             globalState.eligibleShares
         );
 
         // Calculate the exchange rate for the snapshotted funds
-        uint256 fxExchangeRate = availableAssets.mul(PoolLib.RAY).div(
-            availableShares
+        uint256 fxExchangeRate = withdrawableAssets.mul(PoolLib.RAY).div(
+            redeemableShares
         );
 
         // Pull up the prior snapshot
@@ -428,7 +430,7 @@ contract WithdrawController is IWithdrawController {
         // Update the global withdraw state to earmark those funds
         globalState = PoolLib.updateWithdrawStateForWithdraw(
             globalState,
-            _pool.convertToAssets(redeemableShares),
+            withdrawableAssets,
             redeemableShares
         );
         globalState.latestCrankPeriod = currentPeriod;
@@ -511,6 +513,8 @@ contract WithdrawController is IWithdrawController {
         onlyPool
         returns (uint256 assets)
     {
+        crankLender(owner);
+
         // Calculate how many assets should be transferred
         IPoolWithdrawState memory state = _currentWithdrawState(owner);
         assets = PoolLib.calculateConversion(
@@ -531,6 +535,8 @@ contract WithdrawController is IWithdrawController {
         onlyPool
         returns (uint256 shares)
     {
+        crankLender(owner);
+
         // Calculate how many shares should be burned
         IPoolWithdrawState memory state = _currentWithdrawState(owner);
         shares = PoolLib.calculateConversion(
@@ -551,16 +557,15 @@ contract WithdrawController is IWithdrawController {
         uint256 shares,
         uint256 assets
     ) internal {
-        crankLender(owner);
         IPoolWithdrawState memory currentState = _currentWithdrawState(owner);
 
         require(
-            assets <= _currentWithdrawState(owner).withdrawableAssets,
+            assets <= currentState.withdrawableAssets,
             "Pool: InsufficientBalance"
         );
 
         require(
-            shares <= _currentWithdrawState(owner).redeemableShares,
+            shares <= currentState.redeemableShares,
             "Pool: InsufficientBalance"
         );
 

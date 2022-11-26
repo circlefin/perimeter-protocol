@@ -247,8 +247,8 @@ describe("Business Scenario 1", () => {
       .sub(INPUTS.lenderADepositAmount)
       .sub(INPUTS.lenderBDepositAmount);
 
-    expect(totalEarnings).to.equal(1_754_861_108);
-    expect(lenderABalance).to.equal(501_491_879_842);
+    expect(totalEarnings).to.equal(1_754_861_106);
+    expect(lenderABalance).to.equal(501_491_879_840);
     expect(lenderBBalance).to.equal(200_262_981_266);
   });
 });
