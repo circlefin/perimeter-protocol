@@ -26,12 +26,8 @@ contract Pool is IPool, ERC20 {
     using SafeMath for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    address private _admin;
-
-    IServiceConfiguration private _serviceConfiguration;
     IERC20 private _liquidityAsset;
     FeeVault private _feeVault;
-    FirstLossVault private _firstLossVault;
     IPoolAccountings private _accountings;
 
     IWithdrawController public withdrawController;
@@ -47,17 +43,6 @@ contract Pool is IPool, ERC20 {
      * @inheritdoc IPool
      */
     uint256 public activatedAt;
-
-    /**
-     * @dev Modifier that checks that the caller is the pool's admin.
-     */
-    modifier onlyAdmin() {
-        require(
-            _admin != address(0) && msg.sender == _admin,
-            "Pool: caller is not admin"
-        );
-        _;
-    }
 
     /**
      * @dev Modifier to ensure only the PoolController calls a method.
@@ -86,40 +71,14 @@ contract Pool is IPool, ERC20 {
         require(activatedAt > 0, "Pool: PoolNotActive");
         _;
     }
-    /**
-     * @dev Modifier that checks that the pool is Initialized or Active
-     */
-    modifier atInitializedOrActiveState() {
-        require(
-            poolController.isInitializedOrActive(),
-            "Pool: invalid pool state"
-        );
-        _;
-    }
 
     /**
      * @dev Modifier that checks that the pool is Initialized or Active
      */
-    modifier atState(IPoolLifeCycleState state) {
+    modifier atState(IPoolLifeCycleState state_) {
         require(
-            poolController.state() == state,
+            poolController.state() == state_,
             "Pool: FunctionInvalidAtThisLifeCycleState"
-        );
-        _;
-    }
-
-    /**
-     * @dev Modifier to check that an addres is a Perimeter loan associated
-     * with this pool.
-     */
-    modifier isPoolLoan(address loan) {
-        require(
-            PoolLib.isPoolLoan(
-                loan,
-                address(_serviceConfiguration),
-                address(this)
-            ),
-            "Pool: invalid loan"
         );
         _;
     }
@@ -145,9 +104,6 @@ contract Pool is IPool, ERC20 {
         string memory tokenSymbol
     ) ERC20(tokenName, tokenSymbol) {
         _liquidityAsset = IERC20(liquidityAsset);
-        _admin = poolAdmin;
-        _serviceConfiguration = IServiceConfiguration(serviceConfiguration);
-        _firstLossVault = new FirstLossVault(address(this), liquidityAsset);
         _feeVault = new FeeVault(address(this));
 
         // Build the withdraw controller
@@ -160,7 +116,9 @@ contract Pool is IPool, ERC20 {
         poolController = IPoolController(
             IPoolControllerFactory(poolControllerFactory).createController(
                 address(this),
+                serviceConfiguration,
                 poolAdmin,
+                liquidityAsset,
                 poolSettings
             )
         );
@@ -191,21 +149,7 @@ contract Pool is IPool, ERC20 {
      * @dev The admin of the pool
      */
     function admin() external view override returns (address) {
-        return _admin;
-    }
-
-    /**
-     * @dev The current amount of first loss available to the pool
-     */
-    function firstLoss() external view override returns (uint256) {
-        return _liquidityAsset.balanceOf(address(_firstLossVault));
-    }
-
-    /**
-     * @dev The address of the first loss vault
-     */
-    function firstLossVault() external view override returns (address) {
-        return address(_firstLossVault);
+        return poolController.admin();
     }
 
     /**
@@ -213,6 +157,13 @@ contract Pool is IPool, ERC20 {
      */
     function feeVault() external view override returns (address) {
         return address(_feeVault);
+    }
+
+    /**
+     * @inheritdoc IPool
+     */
+    function firstLossVault() public view returns (address) {
+        return address(poolController.firstLossVault());
     }
 
     /**
@@ -248,51 +199,34 @@ contract Pool is IPool, ERC20 {
     /**
      * @inheritdoc IPool
      */
-    function transferToFirstLossVault(address spender, uint256 amount)
-        external
-        onlyPoolController
-    {
-        require(address(_firstLossVault) != address(0), "Pool: 0 address");
-        _liquidityAsset.safeTransferFrom(
-            spender,
-            address(_firstLossVault),
-            amount
-        );
+    function hasFundedLoans() external view returns (bool) {
+        return _fundedLoans.length() > 0;
     }
 
     /**
      * @inheritdoc IPool
      */
-    function transferFromFirstLossVault(address receiver, uint256 amount)
-        external
-        onlyPoolController
-    {
-        require(address(_firstLossVault) != address(0), "Pool: 0 address");
-        require(receiver != address(0), "Pool: 0 address");
-
-        _firstLossVault.withdraw(amount, receiver);
-    }
-
-    /**
-     * @inheritdoc IPool
-     */
-    function numFundedLoans() external view returns (uint256) {
-        return _fundedLoans.length();
-    }
-
-    /**
-     * @dev Called by the pool admin, this transfers liquidity from the pool to a given loan.
-     */
-    function fundLoan(address addr)
-        external
-        onlyAdmin
-        atState(IPoolLifeCycleState.Active)
-        isPoolLoan(addr)
-    {
+    function fundLoan(address addr) external onlyPoolController {
         ILoan loan = ILoan(addr);
         uint256 principal = loan.principal();
+
         require(totalAvailableAssets() >= principal, "Pool: not enough assets");
-        PoolLib.executeFundLoan(addr, _accountings, _fundedLoans);
+
+        _liquidityAsset.safeApprove(addr, principal);
+        loan.fund();
+
+        _accountings.outstandingLoanPrincipals += principal;
+        _fundedLoans.add(addr);
+
+        emit LoanFunded(addr, principal);
+    }
+
+    /**
+     * @inheritdoc IPool
+     */
+    function removeFundedLoan(address addr) external onlyPoolController {
+        require(_fundedLoans.remove(addr), "Pool: unfunded loan");
+        _accountings.outstandingLoanPrincipals -= ILoan(addr).principal();
     }
 
     /**
@@ -306,33 +240,7 @@ contract Pool is IPool, ERC20 {
     /**
      * @inheritdoc IPool
      */
-    function defaultLoan(address loan) external onlyAdmin {
-        require(loan != address(0), "Pool: 0 address");
-        require(
-            poolController.isActiveOrClosed(),
-            "Pool: FunctionInvalidAtThisLifeCycleState"
-        );
-
-        PoolLib.executeDefault(
-            asset(),
-            address(_firstLossVault),
-            loan,
-            address(this),
-            _accountings,
-            _fundedLoans
-        );
-    }
-
-    /**
-     * @dev Calculate the total amount of underlying assets held by the vault,
-     * excluding any assets due for withdrawal.
-     */
-    function totalAvailableAssets()
-        public
-        view
-        override
-        returns (uint256 assets)
-    {
+    function totalAvailableAssets() public view returns (uint256 assets) {
         assets = PoolLib.calculateTotalAvailableAssets(
             address(_liquidityAsset),
             address(this),
@@ -342,7 +250,7 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
-     * @dev The total available supply that is not marked for withdrawal
+     * @inheritdoc IPool
      */
     function totalAvailableSupply()
         public
@@ -368,16 +276,18 @@ contract Pool is IPool, ERC20 {
         );
     }
 
-    function claimFixedFee() external onlyAdmin {
+    function claimFixedFee(
+        address recipient,
+        uint256 fixedFee,
+        uint256 fixedFeeInterval
+    ) external onlyPoolController {
         require(
             _accountings.fixedFeeDueDate < block.timestamp,
             "Pool: fixed fee not due"
         );
 
-        IPoolConfigurableSettings memory _settings = poolController.settings();
-
-        _accountings.fixedFeeDueDate += _settings.fixedFeeInterval * 1 days;
-        IERC20(_liquidityAsset).safeTransfer(msg.sender, _settings.fixedFee);
+        _accountings.fixedFeeDueDate += fixedFeeInterval * 1 days;
+        IERC20(_liquidityAsset).safeTransfer(recipient, fixedFee);
     }
 
     /*//////////////////////////////////////////////////////////////

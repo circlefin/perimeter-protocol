@@ -19,6 +19,8 @@ interface IPoolControllerFactory {
     function createController(
         address,
         address,
+        address,
+        address,
         IPoolConfigurableSettings memory
     ) external returns (address);
 }

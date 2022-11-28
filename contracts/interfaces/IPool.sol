@@ -4,6 +4,7 @@ pragma solidity ^0.8.16;
 import "./IERC4626.sol";
 import "../controllers/interfaces/IPoolController.sol";
 import "../controllers/interfaces/IWithdrawController.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 /**
  * @title Data type storing collected accounting statistics
@@ -22,11 +23,6 @@ interface IPool is IERC4626 {
      * @dev Emitted when a loan is funded from the pool.
      */
     event LoanFunded(address indexed loan, uint256 amount);
-
-    /**
-     * @dev Emitted when a funded loan is marked as in default.
-     */
-    event LoanDefaulted(address indexed loan);
 
     /**
      * @dev Emitted when a funded loan matures.
@@ -54,15 +50,6 @@ interface IPool is IERC4626 {
         address indexed lender,
         uint256 assets,
         uint256 shares
-    );
-
-    /**
-     * @dev Emitted when first loss capital is used to cover loan defaults
-     */
-    event FirstLossApplied(
-        address indexed loan,
-        uint256 amount,
-        uint256 outstandingLoss
     );
 
     /**
@@ -94,19 +81,14 @@ interface IPool is IERC4626 {
     function admin() external view returns (address);
 
     /**
-     * @dev The amount of first loss available to the pool.
-     */
-    function firstLoss() external view returns (uint256);
-
-    /**
-     * @dev The address of the first loss vault.
-     */
-    function firstLossVault() external view returns (address);
-
-    /**
      * @dev The address of the fee vault.
      */
     function feeVault() external view returns (address);
+
+    /**
+     * @dev The first loss vault
+     */
+    function firstLossVault() external view returns (address);
 
     /**
      * @dev The pool accounting variables;
@@ -145,50 +127,50 @@ interface IPool is IERC4626 {
     function onActivated() external;
 
     /**
-     * @dev Transfer `assets` to the first loss vault. Only accessible by the
-     * Pool Admin via the PoolController.
-     */
-    function transferToFirstLossVault(address, uint256) external;
-
-    /**
-     * @dev Transfer `assets` from the first loss vault. Only accessible by the
-     * Pool Admin via the PoolController.
-     */
-    function transferFromFirstLossVault(address, uint256) external;
-
-    /**
      * @dev Cranks the pool's withdrawals
      */
     function crank() external returns (uint256);
 
-    function totalAvailableAssets() external view returns (uint256);
-
-    function totalAvailableSupply() external view returns (uint256);
-
     /**
+     * @dev Determines how many funded loans exist
      */
-    function numFundedLoans() external view returns (uint256);
+    function hasFundedLoans() external view returns (bool);
 
     /**
-     * @dev Called by the pool admin, this transfers liquidity from the pool to a given loan.
+     * @dev Fund a loan, add it to the funded loans list and increment the
+     * outstanding principal balance. Only callable by the Pool Controller
      */
     function fundLoan(address) external;
 
     /**
-     * @dev Called by a loan, it notifies the pool that the loan has returned principal
-     * to the pool.
+     * @dev Remove a loan from the funded loans list and decrease the
+     * outstanding principal balance. Only callable by the Pool Controller
+     */
+    function removeFundedLoan(address) external;
+
+    /**
+     * @dev Called by a loan, it notifies the pool that the loan has returned
+     * principal to the pool.
      */
     function notifyLoanPrincipalReturned() external;
 
     /**
-     * @dev Called by the pool admin, this marks a loan as in default, triggering liquiditation
-     * proceedings and updating pool accounting.
+     * @dev Called by the Pool Controller, it transfers the fixed fee
      */
-    function defaultLoan(address) external;
+    function claimFixedFee(
+        address,
+        uint256,
+        uint256
+    ) external;
 
     /**
-     * @dev Called by the pool admin, this claims a fixed fee from the pool. Fee can only be
-     * claimed once every interval, as set on the pool.
+     * @dev Calculate the total amount of underlying assets held by the vault,
+     * excluding any assets due for withdrawal.
      */
-    function claimFixedFee() external;
+    function totalAvailableAssets() external view returns (uint256);
+
+    /**
+     * @dev The total available supply that is not marked for withdrawal
+     */
+    function totalAvailableSupply() external view returns (uint256);
 }

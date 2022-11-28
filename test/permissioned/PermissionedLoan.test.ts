@@ -29,13 +29,17 @@ describe("PermissionedLoan", () => {
     );
     await nftAsset.deployed();
 
-    const { pool, tosAcceptanceRegistry, serviceConfiguration } =
-      await deployPermissionedPool({
-        operator,
-        poolAdmin: poolAdmin,
-        settings: DEFAULT_POOL_SETTINGS,
-        liquidityAsset: liquidityAsset
-      });
+    const {
+      pool,
+      tosAcceptanceRegistry,
+      serviceConfiguration,
+      poolController
+    } = await deployPermissionedPool({
+      operator,
+      poolAdmin: poolAdmin,
+      settings: DEFAULT_POOL_SETTINGS,
+      liquidityAsset: liquidityAsset
+    });
 
     const { loan } = await deployPermissionedLoan(
       pool.address,
@@ -64,6 +68,7 @@ describe("PermissionedLoan", () => {
     return {
       loan,
       pool,
+      poolController,
       borrower,
       poolAdmin,
       poolAccessControl,
@@ -141,6 +146,7 @@ describe("PermissionedLoan", () => {
     it("allows drawing down for valid participants", async () => {
       const {
         pool,
+        poolController,
         tosAcceptanceRegistry,
         poolAdmin,
         lender,
@@ -161,7 +167,7 @@ describe("PermissionedLoan", () => {
       const principal = DEFAULT_LOAN_SETTINGS.principal;
       await depositToPool(pool, lender, liquidityAsset, principal);
       await collateralizeLoan(loan, borrower, liquidityAsset);
-      await fundLoan(loan, pool, poolAdmin);
+      await fundLoan(loan, poolController, poolAdmin);
 
       // Rollback access for borrower
       const txn = await loan.connect(borrower).drawdown(principal);
@@ -204,6 +210,7 @@ describe("PermissionedLoan", () => {
       it("reverts if borrower not allowed participant", async () => {
         const {
           pool,
+          poolController,
           tosAcceptanceRegistry,
           poolAdmin,
           lender,
@@ -228,7 +235,7 @@ describe("PermissionedLoan", () => {
           DEFAULT_LOAN_SETTINGS.principal
         );
         await collateralizeLoan(loan, borrower, liquidityAsset);
-        await fundLoan(loan, pool, poolAdmin);
+        await fundLoan(loan, poolController, poolAdmin);
 
         // Rollback access for borrower
         await poolAccessControl

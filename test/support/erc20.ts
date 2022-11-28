@@ -1,5 +1,4 @@
 import { ethers } from "hardhat";
-import { MockERC20 } from "../../typechain-types";
 
 /**
  * Deploy a Mock ERC20 token

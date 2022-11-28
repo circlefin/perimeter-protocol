@@ -62,11 +62,6 @@ library PoolLib {
     /**
      * @dev See IPool for event definition
      */
-    event LoanFunded(address indexed loan, uint256 amount);
-
-    /**
-     * @dev See IPool for event definition
-     */
     event LoanDefaulted(address indexed loan);
 
     /**
@@ -345,44 +340,21 @@ library PoolLib {
     }
 
     /**
-     *
-     */
-    function executeFundLoan(
-        address addr,
-        IPoolAccountings storage accountings,
-        EnumerableSet.AddressSet storage fundedLoans
-    ) external {
-        ILoan loan = ILoan(addr);
-        address liquidityAsset = loan.liquidityAsset();
-        uint256 principal = loan.principal();
-
-        IERC20(liquidityAsset).safeApprove(address(loan), principal);
-        loan.fund();
-        accountings.outstandingLoanPrincipals += principal;
-        fundedLoans.add(addr);
-
-        emit LoanFunded(addr, principal);
-    }
-
-    /**
      * @dev Executes a default, supplying first-loss to cover losses.
      * @param asset Pool liquidity asset
      * @param firstLossVault Vault holding first-loss capital
      * @param loan Address of loan in default
-     * @param accountings Pool accountings to update
+     * @param pool Address of the pool
      */
     function executeDefault(
         address asset,
         address firstLossVault,
         address loan,
-        address pool,
-        IPoolAccountings storage accountings,
-        EnumerableSet.AddressSet storage fundedLoans
+        address pool
     ) external {
-        require(fundedLoans.remove(loan), "Pool: unfunded loan");
+        IPool(pool).removeFundedLoan(loan);
 
         ILoan(loan).markDefaulted();
-        accountings.outstandingLoanPrincipals -= ILoan(loan).principal();
 
         uint256 firstLossBalance = IERC20(asset).balanceOf(
             address(firstLossVault)

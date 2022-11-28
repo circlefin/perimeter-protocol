@@ -42,9 +42,9 @@ contract Loan is ILoan {
     /**
      * @dev Modifier that requires the Loan be in the given `state_`
      */
-    modifier atState(ILoanLifeCycleState state) {
+    modifier atState(ILoanLifeCycleState state_) {
         require(
-            _state == state,
+            _state == state_,
             "Loan: FunctionInvalidAtThisILoanLifeCycleState"
         );
         _;
@@ -55,6 +55,17 @@ contract Loan is ILoan {
      */
     modifier onlyPool() {
         require(msg.sender == _pool, "Loan: caller is not pool");
+        _;
+    }
+
+    /**
+     * @dev Modifier that requires `msg.sender` to be the pool controller.
+     */
+    modifier onlyPoolController() {
+        require(
+            msg.sender == address(IPool(_pool).poolController()),
+            "Loan: caller is not pool"
+        );
         _;
     }
 
@@ -95,16 +106,16 @@ contract Loan is ILoan {
 
     constructor(
         IServiceConfiguration serviceConfiguration,
-        address factory,
-        address borrower,
-        address pool,
+        address factory_,
+        address borrower_,
+        address pool_,
         address liquidityAsset_,
         ILoanSettings memory settings_
     ) {
         _serviceConfiguration = serviceConfiguration;
-        _factory = factory;
-        _borrower = borrower;
-        _pool = pool;
+        _factory = factory_;
+        _borrower = borrower_;
+        _pool = pool_;
         _collateralVault = new CollateralVault(address(this));
         fundingVault = new FundingVault(address(this), liquidityAsset_);
         createdAt = block.timestamp;
@@ -459,7 +470,7 @@ contract Loan is ILoan {
     function markDefaulted()
         external
         override
-        onlyPool
+        onlyPoolController
         atState(ILoanLifeCycleState.Active)
         returns (ILoanLifeCycleState)
     {
