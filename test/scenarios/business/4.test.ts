@@ -89,7 +89,7 @@ describe("Business Scenario 4", () => {
     await mockUSDC.mint(borrower.address, INPUTS.loanPayment);
 
     // Collateralize loan
-    await collateralizeLoan(loan, borrower, mockUSDC, 0);
+    await collateralizeLoan(loan, borrower, mockUSDC);
 
     return {
       startTime,
@@ -119,7 +119,7 @@ describe("Business Scenario 4", () => {
 
     // Initialization checks
     // check that FL is zero
-    expect(await pool.firstLoss()).to.equal(
+    expect(await poolController.firstLossBalance()).to.equal(
       INPUTS.pool.firstLossInitialMinimum
     );
     // Check that PM has no USDC balance
@@ -139,7 +139,7 @@ describe("Business Scenario 4", () => {
 
     // +4  days, loan is funded
     await advanceToDay(startTime, 4);
-    await fundLoan(loan, pool, poolAdmin);
+    await fundLoan(loan, poolController, poolAdmin);
     await loan.connect(borrower).drawdown(INPUTS.loan.principal);
 
     // +7 days, lenderA requests 200k PT redemption
@@ -189,7 +189,7 @@ describe("Business Scenario 4", () => {
 
     // +24 days, PA marks loan in default
     await advanceToDay(startTime, 24);
-    await pool.connect(poolAdmin).defaultLoan(loan.address);
+    await poolController.connect(poolAdmin).defaultLoan(loan.address);
     expect(await pool.liquidityPoolAssets()).to.equal(101288194446);
 
     // +28 days, run the crank
