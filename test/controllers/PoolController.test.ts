@@ -30,6 +30,13 @@ describe("PoolController", () => {
       serviceConfiguration
     );
 
+    const { loan: otherLoan } = await deployLoan(
+      pool.address,
+      borrower.address,
+      liquidityAsset.address,
+      serviceConfiguration
+    );
+
     return {
       operator,
       poolAdmin,
@@ -38,6 +45,7 @@ describe("PoolController", () => {
       otherAccounts,
       pool,
       loan,
+      otherLoan,
       liquidityAsset,
       collateralAsset,
       poolController
@@ -482,7 +490,7 @@ describe("PoolController", () => {
       );
     });
 
-    it("reverts if loan amount exceeds totalAvailableAssets in the pool", async () => {
+    it("reverts if trying to fund loan with withdrawal-earmarked funds", async () => {
       const {
         pool,
         poolController,
@@ -499,7 +507,7 @@ describe("PoolController", () => {
         pool,
         otherAccount,
         liquidityAsset,
-        DEFAULT_LOAN_SETTINGS.principal
+        DEFAULT_LOAN_SETTINGS.principal * 2
       );
 
       // Now request withdraw
@@ -507,7 +515,7 @@ describe("PoolController", () => {
       await pool.connect(otherAccount).requestRedeem(redeemAmount);
 
       // fast forward and crank
-      const { withdrawRequestPeriodDuration } = await poolController.settings();
+      const { withdrawRequestPeriodDuration } = await pool.settings();
       await time.increase(withdrawRequestPeriodDuration);
       await pool.crank();
 
@@ -518,8 +526,53 @@ describe("PoolController", () => {
 
       // check that totalAvailableAssets is dust
       expect(await pool.totalAvailableAssets()).to.lessThan(10);
+
+      // Check that there is technically enough funds to cover the loan
+      expect(await liquidityAsset.balanceOf(pool.address)).is.greaterThan(
+        await loan.principal()
+      );
+
+      // ...but that the pool won't allow it
       await expect(
         poolController.connect(poolAdmin).fundLoan(loan.address)
+      ).to.be.revertedWith("Pool: not enough assets");
+    });
+
+    it("reverts if trying to fund loan with liquidity already deployed", async () => {
+      const {
+        pool,
+        liquidityAsset,
+        otherAccount,
+        borrower,
+        poolAdmin,
+        loan,
+        otherLoan,
+        poolController
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await collateralizeLoan(loan, borrower, liquidityAsset);
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        DEFAULT_LOAN_SETTINGS.principal * 1.5
+      );
+
+      // fund first loan
+      expect(await pool.totalAvailableAssets()).to.equal(
+        DEFAULT_LOAN_SETTINGS.principal * 1.5
+      );
+      await fundLoan(loan, poolController, poolAdmin);
+
+      // total value locked by the Pool is the same, since the funds just shifted to the loan
+      expect(await pool.totalAvailableAssets()).to.equal(
+        DEFAULT_LOAN_SETTINGS.principal * 1.5
+      );
+
+      // confirm that funding a new loan will fail
+      await expect(
+        poolController.connect(poolAdmin).fundLoan(otherLoan.address)
       ).to.be.revertedWith("Pool: not enough assets");
     });
 
