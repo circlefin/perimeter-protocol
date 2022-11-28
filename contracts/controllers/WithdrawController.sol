@@ -71,9 +71,11 @@ contract WithdrawController is IWithdrawController {
     /**
      * @dev Returns the current withdraw state of an owner.
      */
-    function _currentWithdrawState(
-        address owner
-    ) internal view returns (IPoolWithdrawState memory state) {
+    function _currentWithdrawState(address owner)
+        internal
+        view
+        returns (IPoolWithdrawState memory state)
+    {
         uint256 currentPeriod = withdrawPeriod();
         state = PoolLib.progressWithdrawState(
             _withdrawState[owner],
@@ -104,18 +106,22 @@ contract WithdrawController is IWithdrawController {
     /**
      * @inheritdoc IWithdrawController
      */
-    function interestBearingBalanceOf(
-        address owner
-    ) external view returns (uint256 shares) {
+    function interestBearingBalanceOf(address owner)
+        external
+        view
+        returns (uint256 shares)
+    {
         shares = _pool.balanceOf(owner) - maxRedeem(owner);
     }
 
     /**
      * @inheritdoc IWithdrawController
      */
-    function requestedBalanceOf(
-        address owner
-    ) external view returns (uint256 shares) {
+    function requestedBalanceOf(address owner)
+        external
+        view
+        returns (uint256 shares)
+    {
         shares = _currentWithdrawState(owner).requestedShares;
     }
 
@@ -129,9 +135,11 @@ contract WithdrawController is IWithdrawController {
     /**
      * @inheritdoc IWithdrawController
      */
-    function eligibleBalanceOf(
-        address owner
-    ) external view returns (uint256 shares) {
+    function eligibleBalanceOf(address owner)
+        external
+        view
+        returns (uint256 shares)
+    {
         shares = _currentWithdrawState(owner).eligibleShares;
     }
 
@@ -163,9 +171,11 @@ contract WithdrawController is IWithdrawController {
     /**
      * @inheritdoc IWithdrawController
      */
-    function maxRedeemRequest(
-        address owner
-    ) external view returns (uint256 maxShares) {
+    function maxRedeemRequest(address owner)
+        external
+        view
+        returns (uint256 maxShares)
+    {
         maxShares = PoolLib.calculateMaxRedeemRequest(
             _currentWithdrawState(owner),
             _pool.balanceOf(owner),
@@ -194,9 +204,11 @@ contract WithdrawController is IWithdrawController {
     /**
      * @inheritdoc IWithdrawController
      */
-    function previewRedeemRequest(
-        uint256 shares
-    ) external view returns (uint256 assets) {
+    function previewRedeemRequest(uint256 shares)
+        external
+        view
+        returns (uint256 assets)
+    {
         uint256 shareFees = PoolLib.calculateRequestFee(
             shares,
             _pool.settings().requestFeeBps
@@ -208,9 +220,11 @@ contract WithdrawController is IWithdrawController {
     /**
      * @inheritdoc IWithdrawController
      */
-    function previewWithdrawRequest(
-        uint256 assets
-    ) external view returns (uint256 shares) {
+    function previewWithdrawRequest(uint256 assets)
+        external
+        view
+        returns (uint256 shares)
+    {
         uint256 assetFees = PoolLib.calculateRequestFee(
             assets,
             _pool.settings().requestFeeBps
@@ -222,10 +236,11 @@ contract WithdrawController is IWithdrawController {
     /**
      * @inheritdoc IWithdrawController
      */
-    function previewRedeem(
-        address owner,
-        uint256 shares
-    ) external view returns (uint256 assets) {
+    function previewRedeem(address owner, uint256 shares)
+        external
+        view
+        returns (uint256 assets)
+    {
         assets = PoolLib.calculateConversion(
             shares,
             _currentWithdrawState(owner).withdrawableAssets,
@@ -237,10 +252,11 @@ contract WithdrawController is IWithdrawController {
     /**
      * @inheritdoc IWithdrawController
      */
-    function previewWithdraw(
-        address owner,
-        uint256 assets
-    ) external view returns (uint256 shares) {
+    function previewWithdraw(address owner, uint256 assets)
+        external
+        view
+        returns (uint256 shares)
+    {
         IPoolWithdrawState memory withdrawState = _currentWithdrawState(
             msg.sender
         );
@@ -288,9 +304,11 @@ contract WithdrawController is IWithdrawController {
     /**
      * @inheritdoc IWithdrawController
      */
-    function maxRequestCancellation(
-        address owner
-    ) public view returns (uint256 maxShares) {
+    function maxRequestCancellation(address owner)
+        public
+        view
+        returns (uint256 maxShares)
+    {
         maxShares = PoolLib.calculateMaxCancellation(
             _currentWithdrawState(owner),
             _pool.settings().requestCancellationFeeBps
@@ -300,10 +318,10 @@ contract WithdrawController is IWithdrawController {
     /**
      * @inheritdoc IWithdrawController
      */
-    function performRequestCancellation(
-        address owner,
-        uint256 shares
-    ) external onlyPool {
+    function performRequestCancellation(address owner, uint256 shares)
+        external
+        onlyPool
+    {
         crankLender(owner);
         uint256 currentPeriod = withdrawPeriod();
 
@@ -329,9 +347,7 @@ contract WithdrawController is IWithdrawController {
     /**
      * @inheritdoc IWithdrawController
      */
-    function crank(
-        uint256 withdrawGate
-    )
+    function crank(uint256 withdrawGate)
         external
         onlyPool
         returns (
@@ -420,9 +436,11 @@ contract WithdrawController is IWithdrawController {
      * @dev Simulates the effects of multiple snapshots against a lenders
      * requested withdrawal.
      */
-    function simulateCrank(
-        IPoolWithdrawState memory withdrawState
-    ) internal view returns (IPoolWithdrawState memory) {
+    function simulateCrank(IPoolWithdrawState memory withdrawState)
+        internal
+        view
+        returns (IPoolWithdrawState memory)
+    {
         uint256 currentPeriod = withdrawPeriod();
         uint256 lastPoolCrank = _globalWithdrawState.latestCrankPeriod;
 
@@ -485,10 +503,11 @@ contract WithdrawController is IWithdrawController {
     /**
      * @inheritdoc IWithdrawController
      */
-    function redeem(
-        address owner,
-        uint256 shares
-    ) external onlyPool returns (uint256 assets) {
+    function redeem(address owner, uint256 shares)
+        external
+        onlyPool
+        returns (uint256 assets)
+    {
         crankLender(owner);
 
         // Calculate how many assets should be transferred
@@ -506,10 +525,11 @@ contract WithdrawController is IWithdrawController {
     /**
      * @inheritdoc IWithdrawController
      */
-    function withdraw(
-        address owner,
-        uint256 assets
-    ) external onlyPool returns (uint256 shares) {
+    function withdraw(address owner, uint256 assets)
+        external
+        onlyPool
+        returns (uint256 shares)
+    {
         crankLender(owner);
 
         // Calculate how many shares should be burned

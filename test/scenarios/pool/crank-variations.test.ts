@@ -246,35 +246,4 @@ describe("Crank Variations", () => {
       DEPOSIT_AMOUNT / 2 - 1
     );
   });
-
-  // it.only("testing gasssss", async () => {
-  //   const {
-  //     pool,
-  //     aliceLender,
-  //     bobLender,
-  //     liquidityAsset,
-  //     poolAdmin,
-  //     withdrawRequestPeriodDuration,
-  //     withdrawController,
-  //     poolController
-  //   } = await loadFixture(loadPoolFixture);
-
-  //   // Set the withdraw gate to 50%
-  //   await poolController.connect(poolAdmin).setWithdrawGate(5000);
-
-  //   // Request maximum in window 0 for Alice
-  //   expect(await withdrawController.withdrawPeriod()).to.equal(0);
-  //   await pool.connect(aliceLender).requestRedeem(DEPOSIT_AMOUNT);
-  //   await time.increase(withdrawRequestPeriodDuration);
-
-  //   // Fast forward to window 2
-  //   expect(await withdrawController.withdrawPeriod()).to.equal(1);
-  //   const txn = await pool.crank(); // 1M should be earmarked
-  //   const receipt = await txn.wait();
-  //   expect(txn).to.emit(pool, "PoolCranked");
-
-  //   console.log(`Gas used: ${receipt.gasUsed}`);
-  //   // Starting point 345176
-  //   // lowest: 312827
-  // });
 });

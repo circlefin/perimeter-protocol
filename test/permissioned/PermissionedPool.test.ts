@@ -5,14 +5,34 @@ import { deployPermissionedPool } from "../support/pool";
 
 describe("PermissionedPool", () => {
   async function loadPoolFixture() {
-    const [operator, poolAdmin, otherAccount, thirdAccount] =
+    const [operator, poolAdmin, otherAccount, thirdAccount, allowedLender] =
       await ethers.getSigners();
-    const { pool, liquidityAsset } = await deployPermissionedPool({
+    const {
+      pool,
+      liquidityAsset,
+      poolAccessControl,
+      tosAcceptanceRegistry,
+      poolController
+    } = await deployPermissionedPool({
       operator,
       poolAdmin: poolAdmin
     });
 
-    return { pool, liquidityAsset, poolAdmin, otherAccount, thirdAccount };
+    // allow allowedLender
+    await tosAcceptanceRegistry.connect(allowedLender).acceptTermsOfService();
+    await poolAccessControl
+      .connect(poolAdmin)
+      .allowParticipant(allowedLender.address);
+
+    return {
+      pool,
+      poolController,
+      liquidityAsset,
+      poolAdmin,
+      otherAccount,
+      thirdAccount,
+      allowedLender
+    };
   }
 
   describe("maxMint()", async () => {
@@ -61,6 +81,36 @@ describe("PermissionedPool", () => {
         await expect(
           pool.connect(otherAccount).mint(10, thirdAccount.address)
         ).to.be.revertedWith("caller is not a valid lender");
+      });
+    });
+
+    describe("crank()", () => {
+      it("reverts if not allowed lender or admin", async () => {
+        const { pool, otherAccount } = await loadFixture(loadPoolFixture);
+
+        await expect(pool.connect(otherAccount).crank()).to.be.revertedWith(
+          "Pool: not allowed"
+        );
+      });
+
+      it("cranks the pool if allowed lender", async () => {
+        const { pool, allowedLender } = await loadFixture(loadPoolFixture);
+
+        await expect(pool.connect(allowedLender).crank()).to.emit(
+          pool,
+          "PoolCranked"
+        );
+      });
+
+      it("cranks the pool if PA via poolController", async () => {
+        const { pool, poolAdmin, poolController } = await loadFixture(
+          loadPoolFixture
+        );
+
+        await expect(poolController.connect(poolAdmin).crank()).to.emit(
+          pool,
+          "PoolCranked"
+        );
       });
     });
   });
