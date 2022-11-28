@@ -210,7 +210,7 @@ contract Pool is IPool, ERC20 {
         ILoan loan = ILoan(addr);
         uint256 principal = loan.principal();
 
-        require(totalAvailableAssets() >= principal, "Pool: not enough assets");
+        require(liquidityPoolAssets() >= principal, "Pool: not enough assets");
 
         _liquidityAsset.safeApprove(addr, principal);
         loan.fund();
