@@ -1,7 +1,18 @@
 import { ethers } from "hardhat";
-import { DEFAULT_POOL_SETTINGS } from "../test/support/pool";
 
 async function main() {
+  // The token we use for the liquidity asset must exist. If it is not defined, we'll deploy a mock token.
+  let usdcAddress;
+  if (process.env.USDC_ADDRESS) {
+    usdcAddress = process.env.USDC_ADDRESS;
+  } else {
+    const Usdc = await ethers.getContractFactory("MockERC20");
+    const usdc = await Usdc.deploy("USD Coin", "USDC", 6);
+    await usdc.deployed();
+    console.log(`Deployed mock USDC token to ${usdc.address}`);
+    usdcAddress = usdc.address;
+  }
+
   // Deploy ServiceConfiguration
   const ServiceConfiguration = await ethers.getContractFactory(
     "ServiceConfiguration"
@@ -13,12 +24,9 @@ async function main() {
     `ServiceConfiguration deployed to ${serviceConfiguration.address}`
   );
 
-  // Deploy mock USD Coin
-  const Usdc = await ethers.getContractFactory("MockERC20");
-  const usdc = await Usdc.deploy("USD Coin", "USDC", 6);
-  await usdc.deployed();
-
-  console.log(`USDC deployed to ${usdc.address}`);
+  // Set USDC as a liquidity asset for the protocol
+  await serviceConfiguration.setLiquidityAsset(usdcAddress, true);
+  console.log(`Updated ServiceConfiguration to add USDC as a liquidity asset`);
 
   // Deploy PoolLib
   const PoolLib = await ethers.getContractFactory("PoolLib");
@@ -38,7 +46,7 @@ async function main() {
       PoolLib: poolLib.address
     }
   });
-  const poolFactory = await PoolFactory.deploy(usdc.address);
+  const poolFactory = await PoolFactory.deploy(usdcAddress);
   await poolFactory.deployed();
 
   console.log(`PoolFactory deployed to ${poolFactory.address}`);

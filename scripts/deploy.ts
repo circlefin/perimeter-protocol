@@ -1,7 +1,4 @@
 import { ethers } from "hardhat";
-import { DEFAULT_LOAN_SETTINGS } from "../test/support/loan";
-import { DEFAULT_POOL_SETTINGS } from "../test/support/pool";
-import { findEventByName } from "../test/support/utils";
 import * as dotenv from "dotenv";
 dotenv.config();
 
