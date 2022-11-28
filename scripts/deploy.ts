@@ -2,16 +2,21 @@ import { ethers } from "hardhat";
 import { DEFAULT_LOAN_SETTINGS } from "../test/support/loan";
 import { DEFAULT_POOL_SETTINGS } from "../test/support/pool";
 import { findEventByName } from "../test/support/utils";
-
-// USDC address on Goerli
-// https://developers.circle.com/developer/docs/usdc-on-testnet#usdc-on-ethereum-goerli
-const USDC_ADDRESS = "0x07865c6e87b9f70255377e024ace6630c1eaa37f";
+import * as dotenv from "dotenv";
+dotenv.config();
 
 async function main() {
-  // TODO: this contract must exist, so for now we use a mock version
-  const Usdc = await ethers.getContractFactory("MockERC20");
-  const usdc = await Usdc.deploy("USD Coin", "USDC", 6);
-  await usdc.deployed();
+  // The token we use for the liquidity asset must exist. If it is not defined, we'll deploy a mock token.
+  let usdcAddress;
+  if (process.env.USDC_ADDRESS) {
+    usdcAddress = process.env.USDC_ADDRESS;
+  } else {
+    const Usdc = await ethers.getContractFactory("MockERC20");
+    const usdc = await Usdc.deploy("USD Coin", "USDC", 6);
+    await usdc.deployed();
+    console.log(`Deployed mock USDC token to ${usdc.address}`);
+    usdcAddress = usdc.address;
+  }
 
   // Deploy ServiceConfiguration
   const ServiceConfiguration = await ethers.getContractFactory(
@@ -24,7 +29,7 @@ async function main() {
   );
 
   // Set USDC as a liquidity asset for the protocol
-  await serviceConfiguration.setLiquidityAsset(usdc.address, true);
+  await serviceConfiguration.setLiquidityAsset(usdcAddress, true);
   console.log(`Updated ServiceConfiguration to add USDC as a liquidity asset`);
 
   // Deploy ToSAcceptanceRegistry
@@ -169,7 +174,7 @@ async function main() {
   const pool = await poolFactory
     .connect(poolAdmin)
     .createPool(
-      usdc.address,
+      usdcAddress,
       withdrawControllerFactory.address,
       poolControllerFactory.address,
       DEFAULT_POOL_SETTINGS
@@ -192,7 +197,7 @@ async function main() {
   const createLoanTx = await loanFactory.createLoan(
     borrower.address,
     poolAddress,
-    usdc.address,
+    usdcAddress,
     DEFAULT_LOAN_SETTINGS
   );
   const createLoanReceipt = await createLoanTx.wait();
