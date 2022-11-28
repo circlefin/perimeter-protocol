@@ -27,14 +27,6 @@ describe("PoolFactory", () => {
     const PoolLib = await ethers.getContractFactory("PoolLib");
     const poolLib = await PoolLib.deploy();
 
-    const PoolFactory = await ethers.getContractFactory("PoolFactory", {
-      libraries: {
-        PoolLib: poolLib.address
-      }
-    });
-    const poolFactory = await PoolFactory.deploy(serviceConfiguration.address);
-    await poolFactory.deployed();
-
     const withdrawControllerFactory = await deployWithdrawControllerFactory(
       poolLib.address,
       serviceConfiguration.address
@@ -45,84 +37,40 @@ describe("PoolFactory", () => {
       serviceConfiguration.address
     );
 
+    const PoolFactory = await ethers.getContractFactory("PoolFactory", {
+      libraries: {
+        PoolLib: poolLib.address
+      }
+    });
+    const poolFactory = await PoolFactory.deploy(
+      serviceConfiguration.address,
+      withdrawControllerFactory.address,
+      poolControllerFactory.address
+    );
+    await poolFactory.deployed();
+
     return {
       poolFactory,
-      liquidityAsset,
-      withdrawControllerFactory,
-      poolControllerFactory
+      liquidityAsset
     };
   }
 
   it("reverts if given a zero withdraw window", async () => {
-    const {
-      poolFactory,
-      withdrawControllerFactory,
-      poolControllerFactory,
-      liquidityAsset
-    } = await loadFixture(deployFixture);
+    const { poolFactory, liquidityAsset } = await loadFixture(deployFixture);
 
     const poolSettings = Object.assign({}, DEFAULT_POOL_SETTINGS, {
       withdrawRequestPeriodDuration: 0
     });
     await expect(
-      poolFactory.createPool(
-        liquidityAsset.address,
-        withdrawControllerFactory.address,
-        poolControllerFactory.address,
-        poolSettings
-      )
-    ).to.be.revertedWith("PoolFactory: Invalid duration");
-  });
-
-  it("reverts if given an invalid pool withdraw controller factory", async () => {
-    const { poolFactory, poolControllerFactory, liquidityAsset } =
-      await loadFixture(deployFixture);
-
-    const poolSettings = Object.assign({}, DEFAULT_POOL_SETTINGS, {
-      withdrawRequestPeriodDuration: 0
-    });
-    await expect(
-      poolFactory.createPool(
-        /* liquidityAsset */ liquidityAsset.address,
-        "0x0000000000000000000000000000000000000000",
-        poolControllerFactory.address,
-        poolSettings
-      )
-    ).to.be.revertedWith("PoolFactory: Invalid duration");
-  });
-
-  it("reverts if given an invalid pool admin controller factory", async () => {
-    const { poolFactory, withdrawControllerFactory, liquidityAsset } =
-      await loadFixture(deployFixture);
-
-    const poolSettings = Object.assign({}, DEFAULT_POOL_SETTINGS, {
-      withdrawRequestPeriodDuration: 0
-    });
-    await expect(
-      poolFactory.createPool(
-        /* liquidityAsset */ liquidityAsset.address,
-        withdrawControllerFactory.address,
-        "0x0000000000000000000000000000000000000000",
-        poolSettings
-      )
+      poolFactory.createPool(liquidityAsset.address, poolSettings)
     ).to.be.revertedWith("PoolFactory: Invalid duration");
   });
 
   it("emits PoolCreated", async () => {
-    const {
-      poolFactory,
-      liquidityAsset,
-      withdrawControllerFactory,
-      poolControllerFactory
-    } = await loadFixture(deployFixture);
+    const { poolFactory, liquidityAsset } = await loadFixture(deployFixture);
 
     await expect(
-      poolFactory.createPool(
-        /* liquidityAsset */ liquidityAsset.address,
-        withdrawControllerFactory.address,
-        poolControllerFactory.address,
-        DEFAULT_POOL_SETTINGS
-      )
+      poolFactory.createPool(liquidityAsset.address, DEFAULT_POOL_SETTINGS)
     ).to.emit(poolFactory, "PoolCreated");
   });
 });

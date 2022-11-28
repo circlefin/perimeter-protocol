@@ -14,8 +14,24 @@ contract PoolFactory is IPoolFactory {
      */
     address private _serviceConfiguration;
 
-    constructor(address serviceConfiguration) {
+    /**
+     * @dev Reference to the WithdrawControllerFactory contract
+     */
+    address private _withdrawControllerFactory;
+
+    /**
+     * @dev Reference to the PoolControllerFactory contract
+     */
+    address private _poolControllerFactory;
+
+    constructor(
+        address serviceConfiguration,
+        address withdrawControllerFactory,
+        address poolControllerFactory
+    ) {
         _serviceConfiguration = serviceConfiguration;
+        _withdrawControllerFactory = withdrawControllerFactory;
+        _poolControllerFactory = poolControllerFactory;
     }
 
     /**
@@ -24,8 +40,6 @@ contract PoolFactory is IPoolFactory {
      */
     function createPool(
         address liquidityAsset,
-        address withdrawControllerFactory,
-        address poolControllerFactory,
         IPoolConfigurableSettings calldata settings
     ) public virtual returns (address poolAddress) {
         require(
@@ -35,11 +49,6 @@ contract PoolFactory is IPoolFactory {
         require(
             settings.withdrawRequestPeriodDuration > 0,
             "PoolFactory: Invalid duration"
-        );
-        require(
-            withdrawControllerFactory != address(0) &&
-                poolControllerFactory != address(0),
-            "PoolFactory: Invalid address"
         );
         if (settings.fixedFee > 0) {
             require(
@@ -53,8 +62,8 @@ contract PoolFactory is IPoolFactory {
             liquidityAsset,
             msg.sender,
             _serviceConfiguration,
-            withdrawControllerFactory,
-            poolControllerFactory,
+            _withdrawControllerFactory,
+            _poolControllerFactory,
             settings,
             "PerimeterPoolToken",
             "PPT"

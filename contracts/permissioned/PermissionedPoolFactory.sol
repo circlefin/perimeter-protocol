@@ -20,9 +20,25 @@ contract PermissionedPoolFactory is IPoolFactory {
      */
     address private _poolAccessControlFactory;
 
-    constructor(address serviceConfiguration, address poolAccessControlFactory)
-    {
+    /**
+     * @dev Reference to the WithdrawControllerFactory contract
+     */
+    address private _withdrawControllerFactory;
+
+    /**
+     * @dev Reference to the PoolControllerFactory contract
+     */
+    address private _poolControllerFactory;
+
+    constructor(
+        address serviceConfiguration,
+        address withdrawControllerFactory,
+        address poolControllerFactory,
+        address poolAccessControlFactory
+    ) {
         _serviceConfiguration = serviceConfiguration;
+        _withdrawControllerFactory = withdrawControllerFactory;
+        _poolControllerFactory = poolControllerFactory;
         _poolAccessControlFactory = poolAccessControlFactory;
     }
 
@@ -44,8 +60,6 @@ contract PermissionedPoolFactory is IPoolFactory {
      */
     function createPool(
         address liquidityAsset,
-        address withdrawControllerFactory,
-        address poolControllerFactory,
         IPoolConfigurableSettings calldata settings
     ) public override onlyVerifiedPoolAdmin returns (address poolAddress) {
         require(
@@ -57,8 +71,8 @@ contract PermissionedPoolFactory is IPoolFactory {
             liquidityAsset,
             msg.sender,
             address(_serviceConfiguration),
-            withdrawControllerFactory,
-            poolControllerFactory,
+            _withdrawControllerFactory,
+            _poolControllerFactory,
             _poolAccessControlFactory,
             settings,
             "PerimeterPoolToken",
