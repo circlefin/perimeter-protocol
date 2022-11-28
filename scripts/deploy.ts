@@ -163,49 +163,6 @@ async function main() {
   console.log(
     `PoolControllerFactory deployed to ${poolControllerFactory.address}`
   );
-
-  // TODO this is not part of deploy script
-  const [operator, poolAdmin, borrower] = await ethers.getSigners();
-
-  // Pool Admin Creates Pool
-  await toSAcceptanceRegistry.connect(poolAdmin).acceptTermsOfService();
-  await poolAdminAccessControl.connect(operator).allow(poolAdmin.address); // TODO replace with verite workflow
-
-  const pool = await poolFactory
-    .connect(poolAdmin)
-    .createPool(
-      usdcAddress,
-      withdrawControllerFactory.address,
-      poolControllerFactory.address,
-      DEFAULT_POOL_SETTINGS
-    );
-  const createPoolReceipt = await pool.wait();
-  const poolCreatedEvent = findEventByName(createPoolReceipt, "PoolCreated");
-  const poolAddress = poolCreatedEvent?.args?.[0];
-  if (poolAddress) {
-    console.log(`Pool created at ${poolAddress}`);
-  }
-
-  // Pool Admin Creates a Loan
-  const permissionedPool = await (
-    await ethers.getContractFactory("PermissionedPool", {
-      libraries: {
-        PoolLib: poolLib.address
-      }
-    })
-  ).attach(poolAddress);
-  const createLoanTx = await loanFactory.createLoan(
-    borrower.address,
-    poolAddress,
-    usdcAddress,
-    DEFAULT_LOAN_SETTINGS
-  );
-  const createLoanReceipt = await createLoanTx.wait();
-  const loanCreatedEvent = findEventByName(createLoanReceipt, "LoanCreated");
-  const loanAddress = loanCreatedEvent?.args?.[0];
-  if (loanAddress) {
-    console.log(`Loan created at ${loanAddress}`);
-  }
 }
 
 // We recommend this pattern to be able to use async/await everywhere
