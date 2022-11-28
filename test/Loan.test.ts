@@ -704,6 +704,18 @@ describe("Loan", () => {
         loan.connect(other).postFungibleCollateral(collateralAsset.address, 100)
       ).to.be.revertedWith("Loan: caller is not borrower");
     });
+
+    it("disallows passing 0 collateral", async () => {
+      const fixture = await loadFixture(deployFixture);
+      const { borrower, loan, collateralAsset } = fixture;
+
+      // Post collateral
+      await expect(
+        loan
+          .connect(borrower)
+          .postFungibleCollateral(collateralAsset.address, 0)
+      ).to.be.revertedWith("Loan: posting 0 collateral");
+    });
   });
 
   describe("postNonFungibleCollateral", () => {
@@ -786,16 +798,21 @@ describe("Loan", () => {
       expect(await loan.state()).to.equal(4);
     });
 
-    it("reverts if not in the collateralized state", async () => {
-      const { poolController, poolAdmin, loan } = await loadFixture(
-        deployFixture
-      );
+    it("can fund a loan directly from Requested state", async () => {
+      const fixture = await loadFixture(deployFixture);
+      let { loan } = fixture;
+      const { borrower, poolController, poolAdmin } = fixture;
 
-      expect(await loan.state()).to.equal(0);
-      await expect(
-        poolController.connect(poolAdmin).fundLoan(loan.address)
-      ).to.be.revertedWith("Loan: FunctionInvalidAtThisILoanLifeCycleState");
-      expect(await loan.state()).to.equal(0);
+      // Connect as borrower
+      loan = loan.connect(borrower);
+
+      // Fund without collateral
+      const fundTx = poolController.connect(poolAdmin).fundLoan(loan.address);
+      await expect(fundTx).not.to.be.reverted;
+      await expect(fundTx)
+        .to.emit(loan, "LoanFunded")
+        .withArgs(loan.liquidityAsset, 500_000);
+      expect(await loan.state()).to.equal(4);
     });
 
     it("reverts if not called by the pool", async () => {

@@ -243,6 +243,7 @@ contract Loan is ILoan {
         onlyNonTerminalState
         returns (ILoanLifeCycleState)
     {
+        require(amount > 0, "Loan: posting 0 collateral");
         _state = LoanLib.postFungibleCollateral(
             address(_collateralVault),
             asset,
@@ -289,12 +290,12 @@ contract Loan is ILoan {
      * @dev Fund the Loan
      * @dev Can only be called by the pool
      */
-    function fund()
-        external
-        onlyPool
-        atState(ILoanLifeCycleState.Collateralized)
-        returns (ILoanLifeCycleState)
-    {
+    function fund() external onlyPool returns (ILoanLifeCycleState) {
+        require(
+            _state == ILoanLifeCycleState.Requested ||
+                _state == ILoanLifeCycleState.Collateralized,
+            "Loan: FunctionInvalidAtThisILoanLifeCycleState"
+        );
         _state = LoanLib.fundLoan(
             liquidityAsset,
             fundingVault,

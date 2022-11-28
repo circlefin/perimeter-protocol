@@ -88,9 +88,6 @@ describe("Business Scenario 3", () => {
     // mint USDC for borrower to pay down loanOne
     await mockUSDC.mint(borrower.address, INPUTS.loanPayment);
 
-    // Collateralize loan
-    await collateralizeLoan(loan, borrower, mockUSDC, 0);
-
     return {
       startTime,
       pool,
@@ -185,15 +182,15 @@ describe("Business Scenario 3", () => {
     expect(await pool.maxRedeem(lenderA.address)).to.equal(283960890);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(425941335);
     expect(await pool.maxWithdraw(lenderA.address)).to.equal(291666666);
-    expect(await pool.maxWithdraw(lenderB.address)).to.equal(437499999);
+    expect(await pool.maxWithdraw(lenderB.address)).to.equal(437500000);
 
     await pool.crank();
 
     // check balances after
     expect(await pool.maxRedeem(lenderA.address)).to.equal(195141980444);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(292712970667);
-    expect(await pool.maxWithdraw(lenderA.address)).to.equal(200729166665);
-    expect(await pool.maxWithdraw(lenderB.address)).to.equal(301093749999);
+    expect(await pool.maxWithdraw(lenderA.address)).to.equal(200729166667);
+    expect(await pool.maxWithdraw(lenderB.address)).to.equal(301093750000);
 
     // +22 days, lender A requests remaining PT redemption
     await advanceToDay(startTime, 22);
@@ -213,14 +210,14 @@ describe("Business Scenario 3", () => {
     expect(await pool.maxRedeem(lenderA.address)).to.equal(5141980444);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(292712970667);
     expect(await pool.maxWithdraw(lenderA.address)).to.equal(5289202494);
-    expect(await pool.maxWithdraw(lenderB.address)).to.equal(301093749999);
+    expect(await pool.maxWithdraw(lenderB.address)).to.equal(301093750000);
 
     await pool.crank();
     // check balances after
     expect(await pool.maxRedeem(lenderA.address)).to.equal(235828499681);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(298694213967);
-    expect(await pool.maxWithdraw(lenderA.address)).to.equal(249504070965);
-    expect(await pool.maxWithdraw(lenderB.address)).to.equal(307425756527);
+    expect(await pool.maxWithdraw(lenderA.address)).to.equal(249504070966);
+    expect(await pool.maxWithdraw(lenderB.address)).to.equal(307425756529);
 
     // +29 days, lender B requests remaining PT redemption
     await advanceToDay(startTime, 29);
@@ -239,15 +236,15 @@ describe("Business Scenario 3", () => {
     // check balances before
     expect(await pool.maxRedeem(lenderA.address)).to.equal(235828499681);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(3694213967);
-    expect(await pool.maxWithdraw(lenderA.address)).to.equal(249504070965);
+    expect(await pool.maxWithdraw(lenderA.address)).to.equal(249504070966);
     expect(await pool.maxWithdraw(lenderB.address)).to.equal(3802204631);
 
     await pool.crank();
     // check balances after
     expect(await pool.maxRedeem(lenderA.address)).to.equal(261009487935);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(92442345077);
-    expect(await pool.maxWithdraw(lenderA.address)).to.equal(277192417683);
-    expect(await pool.maxWithdraw(lenderB.address)).to.equal(101387295413);
+    expect(await pool.maxWithdraw(lenderA.address)).to.equal(277192417684);
+    expect(await pool.maxWithdraw(lenderB.address)).to.equal(101387295414);
 
     // +39 days, inspect results
     await advanceToDay(startTime, 39);
@@ -255,10 +252,10 @@ describe("Business Scenario 3", () => {
     // check balances
     expect(await pool.maxRedeem(lenderA.address)).to.equal(261009487935);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(92442345077);
-    expect(await pool.maxWithdraw(lenderA.address)).to.equal(277192417683);
-    expect(await pool.maxWithdraw(lenderB.address)).to.equal(101387295413);
+    expect(await pool.maxWithdraw(lenderA.address)).to.equal(277192417684);
+    expect(await pool.maxWithdraw(lenderB.address)).to.equal(101387295414);
 
-    expect(await mockUSDC.balanceOf(lenderA.address)).to.equal(195439964171);
-    expect(await mockUSDC.balanceOf(lenderB.address)).to.equal(303623551896);
+    expect(await mockUSDC.balanceOf(lenderA.address)).to.equal(195439964173);
+    expect(await mockUSDC.balanceOf(lenderB.address)).to.equal(303623551898);
   });
 });

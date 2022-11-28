@@ -2,7 +2,7 @@ import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { deployPool, activatePool } from "../../support/pool";
-import { collateralizeLoan, deployLoan, fundLoan } from "../../support/loan";
+import { deployLoan, fundLoan } from "../../support/loan";
 import { deployMockERC20 } from "../../support/erc20";
 
 describe("Business Scenario 1", () => {
@@ -111,9 +111,6 @@ describe("Business Scenario 1", () => {
     );
     // mint USDC for borrower to pay down loanTwo
     await mockUSDC.mint(borrowerTwo.address, INPUTS.loanTwoPayment);
-
-    await collateralizeLoan(loanOne, borrowerOne, mockUSDC, 0);
-    await collateralizeLoan(loanTwo, borrowerTwo, mockUSDC, 0);
 
     return {
       startTime,
@@ -250,8 +247,8 @@ describe("Business Scenario 1", () => {
       .sub(INPUTS.lenderADepositAmount)
       .sub(INPUTS.lenderBDepositAmount);
 
-    expect(totalEarnings).to.equal(1_754_861_106);
-    expect(lenderABalance).to.equal(501_491_879_841);
-    expect(lenderBBalance).to.equal(200_262_981_265);
+    expect(totalEarnings).to.equal(1_754_861_108);
+    expect(lenderABalance).to.equal(501_491_879_842);
+    expect(lenderBBalance).to.equal(200_262_981_266);
   });
 });

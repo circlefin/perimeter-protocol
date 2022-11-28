@@ -3,6 +3,7 @@ pragma solidity ^0.8.16;
 
 import "../Pool.sol";
 import "./interfaces/IPoolAccessControl.sol";
+import "./interfaces/IPoolAccessControlFactory.sol";
 import "./PoolAccessControl.sol";
 
 /**
@@ -47,6 +48,7 @@ contract PermissionedPool is Pool {
         address serviceConfiguration,
         address withdrawController,
         address poolController,
+        address poolAccessControlFactory,
         IPoolConfigurableSettings memory poolSettings,
         string memory tokenName,
         string memory tokenSymbol
@@ -62,9 +64,10 @@ contract PermissionedPool is Pool {
             tokenSymbol
         )
     {
-        poolAccessControl = new PoolAccessControl(
-            address(this),
-            IServiceConfiguration(serviceConfiguration).tosAcceptanceRegistry()
+        poolAccessControl = IPoolAccessControl(
+            IPoolAccessControlFactory(poolAccessControlFactory).create(
+                address(this)
+            )
         );
     }
 

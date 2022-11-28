@@ -133,6 +133,14 @@ export async function deployPermissionedPool({
   const PoolLib = await ethers.getContractFactory("PoolLib");
   const poolLib = await PoolLib.deploy();
 
+  // Deploy PoolAccessControlFactory, which is a dependency of PermissionedPoolFactory
+  const PoolAccessControlFactory = await ethers.getContractFactory(
+    "PoolAccessControlFactory"
+  );
+  const poolAccessControlFactory = await PoolAccessControlFactory.deploy(
+    serviceConfiguration.address
+  );
+
   const PoolFactory = await ethers.getContractFactory(
     "PermissionedPoolFactory",
     {
@@ -142,7 +150,10 @@ export async function deployPermissionedPool({
       }
     }
   );
-  const poolFactory = await PoolFactory.deploy(serviceConfiguration.address);
+  const poolFactory = await PoolFactory.deploy(
+    serviceConfiguration.address,
+    poolAccessControlFactory.address
+  );
   await poolFactory.deployed();
 
   const withdrawControllerFactory = await deployWithdrawControllerFactory(
@@ -266,7 +277,9 @@ export const buildWithdrawState = (
       eligibleShares: 0,
       latestRequestPeriod: 0,
       redeemableShares: 0,
-      withdrawableAssets: 0
+      withdrawableAssets: 0,
+      latestCrankPeriod: 0,
+      crankOffsetPeriod: 0
     },
     overrides
   );

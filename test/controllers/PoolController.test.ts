@@ -512,7 +512,9 @@ describe("PoolController", () => {
       await pool.crank();
 
       // double check that the funds are now available for withdraw
-      expect(await pool.maxRedeem(otherAccount.address)).to.equal(redeemAmount);
+      expect(await pool.maxRedeem(otherAccount.address)).to.equal(
+        redeemAmount - 2
+      );
 
       // check that totalAvailableAssets is dust
       expect(await pool.totalAvailableAssets()).to.lessThan(10);

@@ -16,17 +16,6 @@ struct IPoolAccountings {
 }
 
 /**
- * @dev contains withdraw request information
- */
-struct IPoolWithdrawState {
-    uint256 requestedShares; // Number of shares requested in the `latestPeriod`
-    uint256 eligibleShares; // Number of shares that are eligibble to be CONSIDERED for withdraw by the crank
-    uint256 latestRequestPeriod; // Period where this was last updated
-    uint256 redeemableShares; // The shares that are currently withdrawable
-    uint256 withdrawableAssets; // The assets that are currently withdrawable
-}
-
-/**
  * @title The interface for liquidity pools.
  */
 interface IPool is IERC4626 {
@@ -138,6 +127,11 @@ interface IPool is IERC4626 {
     function onActivated() external;
 
     /**
+     * @dev Cranks the pool's withdrawals
+     */
+    function crank() external returns (uint256);
+
+    /**
      * @dev Determines how many funded loans exist
      */
     function hasFundedLoans() external view returns (bool);
@@ -163,11 +157,7 @@ interface IPool is IERC4626 {
     /**
      * @dev Called by the Pool Controller, it transfers the fixed fee
      */
-    function claimFixedFee(
-        address,
-        uint256,
-        uint256
-    ) external;
+    function claimFixedFee(address, uint256, uint256) external;
 
     /**
      * @dev Calculate the total amount of underlying assets held by the vault,

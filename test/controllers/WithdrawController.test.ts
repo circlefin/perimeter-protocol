@@ -80,7 +80,7 @@ describe("WithdrawController", () => {
 
       expect(
         await withdrawController.interestBearingBalanceOf(otherAccount.address)
-      ).to.equal(47);
+      ).to.equal(48);
       expect(
         await withdrawController.interestBearingBalanceOf(otherAccount.address)
       ).to.equal(balance.sub(redeemable));
@@ -206,16 +206,16 @@ describe("WithdrawController", () => {
       await time.increase(withdrawRequestPeriodDuration);
       await pool.connect(poolAdmin).crank();
 
-      expect(await withdrawController.totalWithdrawableAssets()).to.equal(40);
+      expect(await withdrawController.totalWithdrawableAssets()).to.equal(39);
 
       // Redeem, expect it to decrement
       await pool
         .connect(otherAccount)
-        .redeem(10, otherAccount.address, otherAccount.address);
+        .redeem(9, otherAccount.address, otherAccount.address);
       expect(await withdrawController.totalWithdrawableAssets()).to.equal(30);
 
-      await pool.connect(bob).redeem(30, bob.address, bob.address);
-      expect(await withdrawController.totalWithdrawableAssets()).to.equal(0);
+      await pool.connect(bob).redeem(29, bob.address, bob.address);
+      expect(await withdrawController.totalWithdrawableAssets()).to.equal(1); // snapshot dust
     });
   });
 
@@ -244,16 +244,16 @@ describe("WithdrawController", () => {
       await time.increase(withdrawRequestPeriodDuration);
       await pool.connect(poolAdmin).crank();
 
-      expect(await withdrawController.totalRedeemableShares()).to.equal(40); // 30 + 10
+      expect(await withdrawController.totalRedeemableShares()).to.equal(39); // 30 + 10 - snapshot dust
 
       // redeem, and see that it's decremented
-      await pool.connect(bob).redeem(30, bob.address, bob.address);
+      await pool.connect(bob).redeem(29, bob.address, bob.address);
       expect(await withdrawController.totalRedeemableShares()).to.equal(10); // other account needs to redeem
 
       await pool
         .connect(otherAccount)
-        .redeem(10, otherAccount.address, otherAccount.address);
-      expect(await withdrawController.totalRedeemableShares()).to.equal(0);
+        .redeem(9, otherAccount.address, otherAccount.address);
+      expect(await withdrawController.totalRedeemableShares()).to.equal(1); // snapshot dust
     });
   });
 });
