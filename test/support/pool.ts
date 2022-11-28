@@ -47,15 +47,6 @@ export async function deployPool({
   const PoolLib = await ethers.getContractFactory("PoolLib");
   const poolLib = await PoolLib.deploy();
 
-  const PoolFactory = await ethers.getContractFactory("PoolFactory", {
-    signer: poolAdmin,
-    libraries: {
-      PoolLib: poolLib.address
-    }
-  });
-  const poolFactory = await PoolFactory.deploy(serviceConfiguration.address);
-  await poolFactory.deployed();
-
   const withdrawControllerFactory = await deployWithdrawControllerFactory(
     poolLib.address,
     serviceConfiguration.address
@@ -66,14 +57,22 @@ export async function deployPool({
     serviceConfiguration.address
   );
 
+  const PoolFactory = await ethers.getContractFactory("PoolFactory", {
+    signer: poolAdmin,
+    libraries: {
+      PoolLib: poolLib.address
+    }
+  });
+  const poolFactory = await PoolFactory.deploy(
+    serviceConfiguration.address,
+    withdrawControllerFactory.address,
+    poolControllerFactory.address
+  );
+  await poolFactory.deployed();
+
   const txn = await poolFactory
     .connect(poolAdmin)
-    .createPool(
-      liquidityAsset.address,
-      withdrawControllerFactory.address,
-      poolControllerFactory.address,
-      poolSettings
-    );
+    .createPool(liquidityAsset.address, poolSettings);
 
   const txnReceipt = await txn.wait();
   const poolCreatedEvent = txnReceipt.events?.find(
@@ -141,6 +140,16 @@ export async function deployPermissionedPool({
     serviceConfiguration.address
   );
 
+  const withdrawControllerFactory = await deployWithdrawControllerFactory(
+    poolLib.address,
+    serviceConfiguration.address
+  );
+
+  const poolControllerFactory = await deployPoolControllerFactory(
+    poolLib.address,
+    serviceConfiguration.address
+  );
+
   const PoolFactory = await ethers.getContractFactory(
     "PermissionedPoolFactory",
     {
@@ -152,28 +161,15 @@ export async function deployPermissionedPool({
   );
   const poolFactory = await PoolFactory.deploy(
     serviceConfiguration.address,
+    withdrawControllerFactory.address,
+    poolControllerFactory.address,
     poolAccessControlFactory.address
   );
   await poolFactory.deployed();
 
-  const withdrawControllerFactory = await deployWithdrawControllerFactory(
-    poolLib.address,
-    serviceConfiguration.address
-  );
-
-  const poolControllerFactory = await deployPoolControllerFactory(
-    poolLib.address,
-    serviceConfiguration.address
-  );
-
   const txn = await poolFactory
     .connect(poolAdmin)
-    .createPool(
-      liquidityAsset.address,
-      withdrawControllerFactory.address,
-      poolControllerFactory.address,
-      poolSettings
-    );
+    .createPool(liquidityAsset.address, poolSettings);
 
   const txnReceipt = await txn.wait();
   const poolCreatedEvent = txnReceipt.events?.find(

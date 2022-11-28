@@ -16,10 +16,7 @@ interface IPoolFactory {
      * @dev Creates a pool's PoolAdmin controller
      * @dev Emits `PoolControllerCreated` event.
      */
-    function createPool(
-        address,
-        address,
-        address,
-        IPoolConfigurableSettings calldata
-    ) external returns (address);
+    function createPool(address, IPoolConfigurableSettings calldata)
+        external
+        returns (address);
 }
