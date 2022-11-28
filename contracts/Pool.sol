@@ -87,7 +87,7 @@ contract Pool is IPool, ERC20 {
      * @dev Modifier to ensure the Pool is cranked.
      */
     modifier onlyCrankedPool() {
-        crank();
+        // crank();
         _;
     }
 
@@ -309,11 +309,9 @@ contract Pool is IPool, ERC20 {
      *
      * Note: This is equivalent of EIP-4626 `maxRedeem`
      */
-    function maxRedeemRequest(address owner)
-        public
-        view
-        returns (uint256 maxShares)
-    {
+    function maxRedeemRequest(
+        address owner
+    ) public view returns (uint256 maxShares) {
         maxShares = withdrawController.maxRedeemRequest(owner);
     }
 
@@ -324,11 +322,9 @@ contract Pool is IPool, ERC20 {
      *
      * Note: This is equivalent of EIP-4626 `maxWithdraw`
      */
-    function maxWithdrawRequest(address owner)
-        public
-        view
-        returns (uint256 maxAssets)
-    {
+    function maxWithdrawRequest(
+        address owner
+    ) public view returns (uint256 maxAssets) {
         maxAssets = convertToAssets(maxRedeemRequest(owner));
     }
 
@@ -339,11 +335,9 @@ contract Pool is IPool, ERC20 {
      *
      * Note: This is equivalent of EIP-4626 `previewRedeem`
      */
-    function previewRedeemRequest(uint256 shares)
-        external
-        view
-        returns (uint256 assets)
-    {
+    function previewRedeemRequest(
+        uint256 shares
+    ) external view returns (uint256 assets) {
         assets = withdrawController.previewRedeemRequest(shares);
     }
 
@@ -354,18 +348,18 @@ contract Pool is IPool, ERC20 {
      *
      * Note: This is equivalent of EIP-4626 `previewWithdraw`
      */
-    function previewWithdrawRequest(uint256 assets)
-        external
-        view
-        returns (uint256 shares)
-    {
+    function previewWithdrawRequest(
+        uint256 assets
+    ) external view returns (uint256 shares) {
         shares = withdrawController.previewWithdrawRequest(assets);
     }
 
     /**
      * @dev Request a redemption of a number of shares from the pool
      */
-    function requestRedeem(uint256 shares)
+    function requestRedeem(
+        uint256 shares
+    )
         external
         onlyActivatedPool
         onlyLender
@@ -379,7 +373,9 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev Request a Withdraw of a number of assets from the pool
      */
-    function requestWithdraw(uint256 assets)
+    function requestWithdraw(
+        uint256 assets
+    )
         external
         onlyActivatedPool
         onlyLender
@@ -417,11 +413,9 @@ contract Pool is IPool, ERC20 {
      *
      * Note: This is equivalent of EIP-4626 `maxRedeem`
      */
-    function maxRequestCancellation(address owner)
-        public
-        view
-        returns (uint256 maxShares)
-    {
+    function maxRequestCancellation(
+        address owner
+    ) public view returns (uint256 maxShares) {
         maxShares = withdrawController.maxRequestCancellation(owner);
     }
 
@@ -432,7 +426,9 @@ contract Pool is IPool, ERC20 {
      *
      * Emits a {WithdrawRequestCancelled} event.
      */
-    function cancelRedeemRequest(uint256 shares)
+    function cancelRedeemRequest(
+        uint256 shares
+    )
         external
         onlyActivatedPool
         onlyLender
@@ -450,7 +446,9 @@ contract Pool is IPool, ERC20 {
      *
      * Emits a {WithdrawRequestCancelled} event.
      */
-    function cancelWithdrawRequest(uint256 assets)
+    function cancelWithdrawRequest(
+        uint256 assets
+    )
         external
         onlyActivatedPool
         onlyLender
@@ -498,7 +496,7 @@ contract Pool is IPool, ERC20 {
     {
         (period, redeemableShares, withdrawableAssets) = withdrawController
             .crank(poolController.withdrawGate());
-        emit PoolCranked(period, redeemableShares, withdrawableAssets);
+        // emit PoolCranked(period, redeemableShares, withdrawableAssets);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -528,12 +526,9 @@ contract Pool is IPool, ERC20 {
      * @dev Calculates the amount of shares that would be exchanged by the vault for the amount of assets provided.
      * Rounds DOWN per EIP4626.
      */
-    function convertToShares(uint256 assets)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function convertToShares(
+        uint256 assets
+    ) public view override returns (uint256) {
         return
             PoolLib.calculateConversion(
                 assets,
@@ -547,12 +542,9 @@ contract Pool is IPool, ERC20 {
      * @dev Calculates the amount of assets that would be exchanged by the vault for the amount of shares provided.
      * Rounds DOWN per EIP4626.
      */
-    function convertToAssets(uint256 shares)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function convertToAssets(
+        uint256 shares
+    ) public view override returns (uint256) {
         return
             PoolLib.calculateConversion(
                 shares,
@@ -565,13 +557,9 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev Calculates the maximum amount of underlying assets that can be deposited in a single deposit call by the receiver.
      */
-    function maxDeposit(address)
-        public
-        view
-        virtual
-        override
-        returns (uint256)
-    {
+    function maxDeposit(
+        address
+    ) public view virtual override returns (uint256) {
         return
             PoolLib.calculateMaxDeposit(
                 poolController.state(),
@@ -584,12 +572,9 @@ contract Pool is IPool, ERC20 {
      * @dev Allows users to simulate the effects of their deposit at the current block.
      * Rounds DOWN per EIP4626
      */
-    function previewDeposit(uint256 assets)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function previewDeposit(
+        uint256 assets
+    ) public view override returns (uint256) {
         return
             PoolLib.calculateConversion(
                 assets,
@@ -604,7 +589,10 @@ contract Pool is IPool, ERC20 {
      * @dev Deposits assets of underlying tokens into the vault and grants ownership of shares to receiver.
      * Emits a {Deposit} event.
      */
-    function deposit(uint256 assets, address receiver)
+    function deposit(
+        uint256 assets,
+        address receiver
+    )
         public
         virtual
         override
@@ -626,13 +614,9 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev Returns the maximum amount of shares that can be minted in a single mint call by the receiver.
      */
-    function maxMint(address receiver)
-        public
-        view
-        virtual
-        override
-        returns (uint256)
-    {
+    function maxMint(
+        address receiver
+    ) public view virtual override returns (uint256) {
         return previewDeposit(maxDeposit(receiver));
     }
 
@@ -640,12 +624,9 @@ contract Pool is IPool, ERC20 {
      * @dev Allows users to simulate the effects of their mint at the current block.
      * Rounds UP per EIP4626, to determine the number of assets to be provided for shares.
      */
-    function previewMint(uint256 shares)
-        public
-        view
-        override
-        returns (uint256 assets)
-    {
+    function previewMint(
+        uint256 shares
+    ) public view override returns (uint256 assets) {
         return
             PoolLib.calculateConversion(
                 shares,
@@ -660,7 +641,10 @@ contract Pool is IPool, ERC20 {
      * @dev Mints exactly shares vault shares to receiver by depositing assets of underlying tokens.
      * Emits a {Deposit} event.
      */
-    function mint(uint256 shares, address receiver)
+    function mint(
+        uint256 shares,
+        address receiver
+    )
         public
         virtual
         override
@@ -683,12 +667,9 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev Returns the maximum amount of underlying assets that can be withdrawn from the owner balance with a single withdraw call.
      */
-    function maxWithdraw(address owner)
-        public
-        view
-        override
-        returns (uint256 assets)
-    {
+    function maxWithdraw(
+        address owner
+    ) public view override returns (uint256 assets) {
         assets = withdrawController.maxWithdraw(owner);
     }
 
@@ -696,12 +677,9 @@ contract Pool is IPool, ERC20 {
      * @dev Simulate the effects of their withdrawal at the current block.
      * Per EIP4626, should round UP on the number of shares required for assets.
      */
-    function previewWithdraw(uint256 assets)
-        external
-        view
-        override
-        returns (uint256 shares)
-    {
+    function previewWithdraw(
+        uint256 assets
+    ) external view override returns (uint256 shares) {
         shares = withdrawController.previewWithdraw(msg.sender, assets);
     }
 
@@ -731,12 +709,9 @@ contract Pool is IPool, ERC20 {
      * @dev The maximum amount of shares that can be redeemed from the owner
      * balance through a redeem call.
      */
-    function maxRedeem(address owner)
-        public
-        view
-        override
-        returns (uint256 maxShares)
-    {
+    function maxRedeem(
+        address owner
+    ) public view override returns (uint256 maxShares) {
         maxShares = withdrawController.maxRedeem(owner);
     }
 
@@ -744,12 +719,9 @@ contract Pool is IPool, ERC20 {
      * @dev Simulates the effects of their redeemption at the current block.
      * Per EIP4626, should round DOWN.
      */
-    function previewRedeem(uint256 shares)
-        external
-        view
-        override
-        returns (uint256 assets)
-    {
+    function previewRedeem(
+        uint256 shares
+    ) external view override returns (uint256 assets) {
         assets = withdrawController.previewRedeem(msg.sender, shares);
     }
 

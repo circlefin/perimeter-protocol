@@ -877,7 +877,7 @@ describe("Pool", () => {
     });
   });
 
-  describe("Pool is cranked lazily", () => {
+  describe.only("Pool is cranked lazily", () => {
     it("deposit()", async () => {
       const { pool, poolAdmin, liquidityAsset, otherAccount } =
         await loadFixture(loadPoolFixture);
@@ -965,7 +965,7 @@ describe("Pool", () => {
       expect(txn).to.emit(pool, "PoolCranked");
     });
 
-    it("fundLoan()", async () => {
+    it.only("fundLoan()", async () => {
       const {
         pool,
         poolController,
@@ -978,10 +978,12 @@ describe("Pool", () => {
       await activatePool(pool, poolAdmin, liquidityAsset);
       await depositToPool(pool, otherAccount, liquidityAsset, 1_000_000);
 
-      const txn = await poolController
+      expect(await poolController
         .connect(poolAdmin)
-        .fundLoan(loan.address);
-      expect(txn).to.emit(pool, "PoolCranked");
+        .fundLoan(loan.address)).to.emit(pool, "PoolCrankedweofijweofije");
+
+      // console.log(txn);
+      // expect(txn).to.emit(pool, "PoolCranked");
     });
 
     it("defaultLoan()", async () => {
