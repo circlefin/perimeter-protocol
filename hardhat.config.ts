@@ -2,6 +2,7 @@ import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "hardhat-contract-sizer";
 import "./tasks/serviceConfiguration";
+import "./tasks/tosAcceptanceRegistry";
 
 type ExtendedHardhatUserConfig = {
   networks: {
