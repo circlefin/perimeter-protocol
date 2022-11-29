@@ -154,6 +154,8 @@ interface ILoan {
 
     function principal() external returns (uint256);
 
+    function outstandingPrincipal() external view returns (uint256);
+
     function fundingVault() external returns (FundingVault);
 
     function markDefaulted() external returns (ILoanLifeCycleState);

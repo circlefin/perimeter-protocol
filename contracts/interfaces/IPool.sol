@@ -141,9 +141,19 @@ interface IPool is IERC4626 {
     function crank() external;
 
     /**
-     * @dev Determines how many funded loans exist
+     * @dev Returns the set of currently Active loans.
      */
-    function hasFundedLoans() external view returns (bool);
+    function activeLoans() external view returns (address[] memory);
+
+    /**
+     * @dev Returns whether a loan is an active Pool loan.
+     */
+    function isActiveLoan(address addr) external view returns (bool);
+
+    /**
+     * @dev Returns whether a loan is an active Pool loan.
+     */
+    function numActiveLoans() external view returns (uint256);
 
     /**
      * @dev Fund a loan, add it to the funded loans list and increment the
@@ -152,16 +162,15 @@ interface IPool is IERC4626 {
     function fundLoan(address) external;
 
     /**
-     * @dev Remove a loan from the funded loans list and decrease the
-     * outstanding principal balance. Only callable by the Pool Controller
-     */
-    function removeFundedLoan(address) external;
-
-    /**
      * @dev Called by a loan, it notifies the pool that the loan has returned
      * principal to the pool.
      */
-    function notifyLoanPrincipalReturned() external;
+    function notifyLoanPrincipalReturned(uint256 amount) external;
+
+    /**
+     * @dev Called by a loan, it notifies the pool that the loan has transitioned stated.
+     */
+    function notifyLoanStateTransitioned() external;
 
     /**
      * @dev Called by the Pool Controller, it transfers the fixed fee

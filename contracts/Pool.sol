@@ -37,7 +37,12 @@ contract Pool is IPool, ERC20 {
      * @dev list of all active loan addresses for this Pool. Active loans have been
      * drawn down, and the payment schedule activated.
      */
-    EnumerableSet.AddressSet private _fundedLoans;
+    EnumerableSet.AddressSet private _activeLoans;
+
+    /**
+     * @dev Mapping of funded loan addresses.
+     */
+    mapping(address => bool) private _fundedLoans;
 
     /**
      * @inheritdoc IPool
@@ -207,13 +212,6 @@ contract Pool is IPool, ERC20 {
     /**
      * @inheritdoc IPool
      */
-    function hasFundedLoans() external view returns (bool) {
-        return _fundedLoans.length() > 0;
-    }
-
-    /**
-     * @inheritdoc IPool
-     */
     function fundLoan(address addr)
         external
         onlyPoolController
@@ -228,7 +226,7 @@ contract Pool is IPool, ERC20 {
         loan.fund();
 
         _accountings.outstandingLoanPrincipals += principal;
-        _fundedLoans.add(addr);
+        _fundedLoans[addr] = true;
 
         emit LoanFunded(addr, principal);
     }
@@ -236,21 +234,48 @@ contract Pool is IPool, ERC20 {
     /**
      * @inheritdoc IPool
      */
-    function removeFundedLoan(address addr)
-        external
-        onlyPoolController
-        onlyCrankedPool
-    {
-        require(_fundedLoans.remove(addr), "Pool: unfunded loan");
-        _accountings.outstandingLoanPrincipals -= ILoan(addr).principal();
+    function activeLoans() external view override returns (address[] memory) {
+        return _activeLoans.values();
     }
 
     /**
      * @inheritdoc IPool
      */
-    function notifyLoanPrincipalReturned() external {
-        require(_fundedLoans.remove(msg.sender), "Pool: not active loan");
-        _accountings.outstandingLoanPrincipals -= ILoan(msg.sender).principal();
+    function isActiveLoan(address loan) external view override returns (bool) {
+        return _activeLoans.contains(loan);
+    }
+
+    /**
+     * @inheritdoc IPool
+     */
+    function numActiveLoans() external view override returns (uint256) {
+        return _activeLoans.length();
+    }
+
+    /**
+     * @inheritdoc IPool
+     */
+    function notifyLoanPrincipalReturned(uint256 amount) external {
+        require(_fundedLoans[msg.sender], "Pool: not funded loan");
+        _accountings.outstandingLoanPrincipals -= amount;
+    }
+
+    /**
+     * @inheritdoc IPool
+     */
+    function notifyLoanStateTransitioned() external override {
+        require(_fundedLoans[msg.sender], "Pool: not funded loan");
+
+        ILoanLifeCycleState loanState = ILoan(msg.sender).state();
+        if (loanState == ILoanLifeCycleState.Matured) {
+            _activeLoans.remove(msg.sender);
+        } else if (loanState == ILoanLifeCycleState.Active) {
+            _activeLoans.add(msg.sender);
+        } else if (loanState == ILoanLifeCycleState.Defaulted) {
+            _activeLoans.remove(msg.sender);
+            _accountings.outstandingLoanPrincipals -= ILoan(msg.sender)
+                .outstandingPrincipal();
+        }
     }
 
     /**
@@ -609,7 +634,7 @@ contract Pool is IPool, ERC20 {
                 assets,
                 totalAvailableSupply(),
                 totalAvailableAssets() +
-                    PoolLib.calculateExpectedInterest(_fundedLoans),
+                    PoolLib.calculateExpectedInterest(_activeLoans),
                 false
             );
     }
@@ -664,7 +689,7 @@ contract Pool is IPool, ERC20 {
             PoolLib.calculateConversion(
                 shares,
                 totalAvailableAssets() +
-                    PoolLib.calculateExpectedInterest(_fundedLoans),
+                    PoolLib.calculateExpectedInterest(_activeLoans),
                 totalAvailableSupply(),
                 true
             );

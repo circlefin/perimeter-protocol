@@ -83,6 +83,14 @@ contract PoolController is IPoolController {
         _;
     }
 
+    /**
+     * @dev Modifier to ensure that the Pool is cranked.
+     */
+    modifier onlyCrankedPool() {
+        pool.crank();
+        _;
+    }
+
     constructor(
         address pool_,
         address serviceConfiguration_,
@@ -323,7 +331,7 @@ contract PoolController is IPoolController {
         atState(IPoolLifeCycleState.Closed)
         returns (uint256)
     {
-        require(!pool.hasFundedLoans(), "Pool: loans still active");
+        require(pool.numActiveLoans() == 0, "Pool: loans still active");
         require(address(_firstLossVault) != address(0), "Pool: 0 address");
         require(receiver != address(0), "Pool: 0 address");
 
@@ -360,8 +368,10 @@ contract PoolController is IPoolController {
         external
         onlyAdmin
         atActiveOrClosedState
+        onlyCrankedPool
     {
         require(loan != address(0), "Pool: 0 address");
+        require(pool.isActiveLoan(loan), "Pool: not active loan");
 
         PoolLib.executeDefault(
             address(_liquidityAsset),

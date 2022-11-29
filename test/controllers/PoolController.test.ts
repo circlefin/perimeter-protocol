@@ -660,7 +660,7 @@ describe("PoolController", () => {
       await activatePool(pool, poolAdmin, liquidityAsset);
       await expect(
         poolController.connect(poolAdmin).defaultLoan(loan.address)
-      ).to.be.revertedWith("Pool: unfunded loan");
+      ).to.be.revertedWith("Pool: not active loan");
     });
 
     it("defaults loan if loan is active, and pool is active", async () => {

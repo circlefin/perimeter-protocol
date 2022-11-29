@@ -352,8 +352,6 @@ library PoolLib {
         address loan,
         address pool
     ) external {
-        IPool(pool).removeFundedLoan(loan);
-
         ILoan(loan).markDefaulted();
 
         uint256 firstLossBalance = IERC20(asset).balanceOf(
@@ -362,7 +360,7 @@ library PoolLib {
 
         // TODO - handle open-term loans where principal may
         // not be fully oustanding.
-        uint256 outstandingLoanDebt = ILoan(loan).principal() +
+        uint256 outstandingLoanDebt = ILoan(loan).outstandingPrincipal() +
             ILoan(loan).paymentsRemaining() *
             ILoan(loan).payment();
 
