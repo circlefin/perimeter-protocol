@@ -1,11 +1,7 @@
 import { ethers } from "hardhat";
 import hre from "hardhat";
-import { DEFAULT_LOAN_SETTINGS } from "../test/support/loan";
-import { DEFAULT_POOL_SETTINGS } from "../test/support/pool";
-import { findEventByName } from "../test/support/utils";
 
 async function main() {
-  console.log(hre.network.config);
   // The token we use for the liquidity asset must exist. If it is not defined, we'll deploy a mock token.
   let usdcAddress = hre.network.config.usdcAddress;
   if (!usdcAddress) {

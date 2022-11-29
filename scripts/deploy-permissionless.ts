@@ -1,11 +1,10 @@
 import { ethers } from "hardhat";
+import hre from "hardhat";
 
 async function main() {
   // The token we use for the liquidity asset must exist. If it is not defined, we'll deploy a mock token.
-  let usdcAddress;
-  if (process.env.USDC_ADDRESS) {
-    usdcAddress = process.env.USDC_ADDRESS;
-  } else {
+  let usdcAddress = hre.network.config.usdcAddress;
+  if (!usdcAddress) {
     const Usdc = await ethers.getContractFactory("MockERC20");
     const usdc = await Usdc.deploy("USD Coin", "USDC", 6);
     await usdc.deployed();
@@ -39,28 +38,6 @@ async function main() {
   const loanLib = await LoanLib.deploy();
 
   console.log(`LoanLib deployed to ${loanLib.address}`);
-
-  // Deploy PoolFactory
-  const PoolFactory = await ethers.getContractFactory("PoolFactory", {
-    libraries: {
-      PoolLib: poolLib.address
-    }
-  });
-  const poolFactory = await PoolFactory.deploy(usdcAddress);
-  await poolFactory.deployed();
-
-  console.log(`PoolFactory deployed to ${poolFactory.address}`);
-
-  // Deploy LoanFactory
-  const LoanFactory = await ethers.getContractFactory("LoanFactory", {
-    libraries: {
-      LoanLib: loanLib.address
-    }
-  });
-  const loanFactory = await LoanFactory.deploy(serviceConfiguration.address);
-  await loanFactory.deployed();
-
-  console.log(`LoanFactory deployed to ${loanFactory.address}`);
 
   // Deploy WithdrawControllerFactory
   const WithdrawControllerFactory = await ethers.getContractFactory(
@@ -97,6 +74,32 @@ async function main() {
   console.log(
     `PoolControllerFactory deployed to ${poolControllerFactory.address}`
   );
+
+  // Deploy PoolFactory
+  const PoolFactory = await ethers.getContractFactory("PoolFactory", {
+    libraries: {
+      PoolLib: poolLib.address
+    }
+  });
+  const poolFactory = await PoolFactory.deploy(
+    usdcAddress,
+    withdrawControllerFactory.address,
+    poolControllerFactory.address
+  );
+  await poolFactory.deployed();
+
+  console.log(`PoolFactory deployed to ${poolFactory.address}`);
+
+  // Deploy LoanFactory
+  const LoanFactory = await ethers.getContractFactory("LoanFactory", {
+    libraries: {
+      LoanLib: loanLib.address
+    }
+  });
+  const loanFactory = await LoanFactory.deploy(serviceConfiguration.address);
+  await loanFactory.deployed();
+
+  console.log(`LoanFactory deployed to ${loanFactory.address}`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
