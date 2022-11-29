@@ -70,7 +70,7 @@ task(
     );
   });
 
-task("setPaused", "Pauses the protocol")
+task("serviceConfigurationSetPaused", "Pauses the protocol")
   .addParam("address", "Address of the service configuration contract")
   .addOptionalParam("paused", `"true" to pause, "false" to unpause`, "true")
   .setAction(async (taskArgs, hre) => {
@@ -82,7 +82,10 @@ task("setPaused", "Pauses the protocol")
     console.log("Transaction hash:", receipt.transactionHash);
   });
 
-task("setLiquidityAsset", "Set a token as a liquidity asset")
+task(
+  "serviceConfigurationSetLiquidityAsset",
+  "Set a token as a liquidity asset"
+)
   .addParam("address", "Address of the service configuration contract")
   .addParam("token", "Address of the token")
   .addOptionalParam("enabled", `"true" to enable, "false" to disable`)
@@ -98,7 +101,7 @@ task("setLiquidityAsset", "Set a token as a liquidity asset")
     console.log("Transaction hash:", receipt.transactionHash);
   });
 
-task("setLoanFactory", "Set a loan factory")
+task("serviceConfigurationSetLoanFactory", "Set a loan factory")
   .addParam("address", "Address of the service configuration contract")
   .addParam("factory", "Address of the loan factory")
   .addOptionalParam("enabled", `"true" to enable, "false" to disable`)
@@ -114,7 +117,7 @@ task("setLoanFactory", "Set a loan factory")
     console.log("Transaction hash:", receipt.transactionHash);
   });
 
-task("setToSAcceptanceRegistry", "Set a ToS registry")
+task("serviceConfigurationSetToSAcceptanceRegistry", "Set a ToS registry")
   .addParam("address", "Address of the service configuration contract")
   .addParam("registry", "Address of the ToS registry")
   .setAction(async (taskArgs, hre) => {
