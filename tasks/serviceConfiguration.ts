@@ -5,11 +5,11 @@ task(
   "serviceConfigurationView",
   "Get public properties of the service configuration"
 )
-  .addParam("address", "Address of the service configuration contract")
+  .addParam("contract", "Address of the service configuration contract")
   .setAction(async (taskArgs, hre) => {
     const ServiceConfiguration: ContractFactory =
       await hre.ethers.getContractFactory("ServiceConfiguration");
-    const serviceConfiguration = ServiceConfiguration.attach(taskArgs.address);
+    const serviceConfiguration = ServiceConfiguration.attach(taskArgs.contract);
     console.log("paused: ", await serviceConfiguration.paused());
     console.log(
       "firstLossFeeBps: ",
@@ -127,6 +127,59 @@ task("serviceConfigurationSetToSAcceptanceRegistry", "Set a ToS registry")
     const tx = await serviceConfiguration.setToSAcceptanceRegistry(
       taskArgs.registry
     );
+    const receipt = await tx.wait();
+    console.log("Transaction hash:", receipt.transactionHash);
+  });
+
+task(
+  "serviceConfigurationFirstLossMinimum",
+  "Gets the first loss minimum for the given token"
+)
+  .addParam("contract", "Address of the service configuration contract")
+  .addParam("token", "Address of the token contract")
+  .setAction(async (taskArgs, hre) => {
+    const ServiceConfiguration: ContractFactory =
+      await hre.ethers.getContractFactory("ServiceConfiguration");
+    const serviceConfiguration = ServiceConfiguration.attach(taskArgs.contract);
+    console.log(
+      "First Loss Minimum: ",
+      await serviceConfiguration.firstLossMinimum(taskArgs.token)
+    );
+  });
+
+task(
+  "serviceConfigurationSetFirstLossMinimum",
+  "Sets the first loss minimum for the given token"
+)
+  .addParam("contract", "Address of the service configuration contract")
+  .addParam("token", "Address of the token contract")
+  .addParam(
+    "value",
+    "The minimum tokens required to be deposited by pool admins"
+  )
+  .setAction(async (taskArgs, hre) => {
+    const ServiceConfiguration: ContractFactory =
+      await hre.ethers.getContractFactory("ServiceConfiguration");
+    const serviceConfiguration = ServiceConfiguration.attach(taskArgs.contract);
+    const tx = await serviceConfiguration.setFirstLossMinimum(
+      taskArgs.token,
+      taskArgs.value
+    );
+    const receipt = await tx.wait();
+    console.log("Transaction hash:", receipt.transactionHash);
+  });
+
+task(
+  "serviceConfigurationSetFirstLossFeeBps",
+  "Sets the first loss fee in basis points (100 = 1%)"
+)
+  .addParam("contract", "Address of the service configuration contract")
+  .addParam("value", "The first loss fee in basis points (100 = 1%)")
+  .setAction(async (taskArgs, hre) => {
+    const ServiceConfiguration: ContractFactory =
+      await hre.ethers.getContractFactory("ServiceConfiguration");
+    const serviceConfiguration = ServiceConfiguration.attach(taskArgs.contract);
+    const tx = await serviceConfiguration.setFirstLossFeeBps(taskArgs.value);
     const receipt = await tx.wait();
     console.log("Transaction hash:", receipt.transactionHash);
   });

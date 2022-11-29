@@ -21,7 +21,7 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
 
     mapping(address => bool) public isLiquidityAsset;
 
-    mapping(address => uint256) private _firstLossMinimum;
+    mapping(address => uint256) public firstLossMinimum;
 
     uint256 public firstLossFeeBps = 500;
 
@@ -144,17 +144,8 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
         override
         onlyOperator
     {
-        _firstLossMinimum[addr] = value;
+        firstLossMinimum[addr] = value;
         emit FirstLossMinimumSet(addr, value);
-    }
-
-    function firstLossMinimum(address addr)
-        external
-        view
-        override
-        returns (uint256)
-    {
-        return _firstLossMinimum[addr];
     }
 
     /**
