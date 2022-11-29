@@ -135,6 +135,57 @@ describe("PoolController", () => {
     });
   });
 
+  describe("setRequestCancellationFee()", () => {
+    it("sets the request fee in Bps", async () => {
+      const { poolController, poolAdmin } = await loadFixture(loadPoolFixture);
+
+      const originalSettings = await poolController.settings();
+      expect(originalSettings.requestCancellationFeeBps).to.equal(100);
+
+      await poolController.connect(poolAdmin).setRequestCancellationFee(1000);
+
+      const settings = await poolController.settings();
+      expect(settings.requestCancellationFeeBps).to.equal(1000);
+    });
+
+    it("does not let anyone except the admin to set the fee", async () => {
+      const { poolController, otherAccount } = await loadFixture(
+        loadPoolFixture
+      );
+
+      const originalSettings = await poolController.settings();
+      expect(originalSettings.requestCancellationFeeBps).to.equal(100);
+
+      await expect(
+        poolController.connect(otherAccount).setRequestCancellationFee(10)
+      ).to.be.revertedWith("Pool: caller is not admin");
+    });
+
+    it("does not allow setting the request fee once the pool is active", async () => {
+      const { pool, poolController, poolAdmin, liquidityAsset } =
+        await loadFixture(loadPoolFixture);
+
+      const originalSettings = await poolController.settings();
+      expect(originalSettings.requestCancellationFeeBps).to.equal(100);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      await expect(
+        poolController.connect(poolAdmin).setRequestCancellationFee(10)
+      ).to.be.revertedWith("Pool: FunctionInvalidAtThisLifeCycleState");
+    });
+  });
+
+  describe("requestCancellationFee()", () => {
+    it("returns the number of shares that will be charged to make this request", async () => {
+      const { poolController, poolAdmin } = await loadFixture(loadPoolFixture);
+
+      await poolController.connect(poolAdmin).setRequestCancellationFee(500); // 5%
+
+      expect(await poolController.requestCancellationFee(1_000)).to.equal(50);
+    });
+  });
+
   describe("setWithdrawGate()", () => {
     it("sets the withdraw gate in Bps", async () => {
       const { pool, poolController, poolAdmin, liquidityAsset } =

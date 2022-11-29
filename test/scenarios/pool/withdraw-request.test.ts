@@ -156,7 +156,11 @@ describe("Withdraw Requests", () => {
     expect(await pool.maxRequestCancellation(bobLender.address)).to.equal(3);
 
     // Cancel Bob's request
+    const bobBalance = await pool.balanceOf(bobLender.address);
     expect(await pool.connect(bobLender).cancelRedeemRequest(3));
+
+    // Expect a fee to be paid
+    expect(await pool.balanceOf(bobLender.address)).to.equal(bobBalance.sub(1));
     expect(await pool.maxRequestCancellation(bobLender.address)).to.equal(0);
   });
 });

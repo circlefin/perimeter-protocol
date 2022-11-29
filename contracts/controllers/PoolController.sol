@@ -146,6 +146,31 @@ contract PoolController is IPoolController {
     /**
      * @inheritdoc IPoolController
      */
+    function setRequestCancellationFee(uint256 feeBps)
+        external
+        onlyAdmin
+        atState(IPoolLifeCycleState.Initialized)
+    {
+        _settings.requestCancellationFeeBps = feeBps;
+    }
+
+    /**
+     * @inheritdoc IPoolController
+     */
+    function requestCancellationFee(uint256 sharesOrAssets)
+        public
+        view
+        returns (uint256 feeShares)
+    {
+        feeShares = PoolLib.calculateCancellationFee(
+            sharesOrAssets,
+            _settings.requestCancellationFeeBps
+        );
+    }
+
+    /**
+     * @inheritdoc IPoolController
+     */
     function setWithdrawGate(uint256 _withdrawGateBps)
         external
         onlyAdmin
