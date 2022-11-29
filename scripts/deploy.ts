@@ -1,13 +1,14 @@
 import { ethers } from "hardhat";
-import * as dotenv from "dotenv";
-dotenv.config();
+import hre from "hardhat";
+import { DEFAULT_LOAN_SETTINGS } from "../test/support/loan";
+import { DEFAULT_POOL_SETTINGS } from "../test/support/pool";
+import { findEventByName } from "../test/support/utils";
 
 async function main() {
+  console.log(hre.network.config);
   // The token we use for the liquidity asset must exist. If it is not defined, we'll deploy a mock token.
-  let usdcAddress;
-  if (process.env.USDC_ADDRESS) {
-    usdcAddress = process.env.USDC_ADDRESS;
-  } else {
+  let usdcAddress = hre.network.config.usdcAddress;
+  if (!usdcAddress) {
     const Usdc = await ethers.getContractFactory("MockERC20");
     const usdc = await Usdc.deploy("USD Coin", "USDC", 6);
     await usdc.deployed();
@@ -98,35 +99,6 @@ async function main() {
     `PoolAccessControlFactory deployed to ${poolAccessControlFactory.address}`
   );
 
-  // Deploy PoolFactory
-  const PoolFactory = await ethers.getContractFactory(
-    "PermissionedPoolFactory",
-    {
-      libraries: {
-        PoolLib: poolLib.address
-      }
-    }
-  );
-  const poolFactory = await PoolFactory.deploy(
-    serviceConfiguration.address,
-    poolAccessControlFactory.address
-  );
-  await poolFactory.deployed();
-  console.log(`PermissionedPoolFactory deployed to ${poolFactory.address}`);
-
-  // Deploy LoanFactory
-  const LoanFactory = await ethers.getContractFactory(
-    "PermissionedLoanFactory",
-    {
-      libraries: {
-        LoanLib: loanLib.address
-      }
-    }
-  );
-  const loanFactory = await LoanFactory.deploy(serviceConfiguration.address);
-  await loanFactory.deployed();
-  console.log(`PermissionedLoanFactory deployed to ${loanFactory.address}`);
-
   // Deploy WithdrawControllerFactory
   const WithdrawControllerFactory = await ethers.getContractFactory(
     "WithdrawControllerFactory",
@@ -160,6 +132,37 @@ async function main() {
   console.log(
     `PoolControllerFactory deployed to ${poolControllerFactory.address}`
   );
+
+  // Deploy PoolFactory
+  const PoolFactory = await ethers.getContractFactory(
+    "PermissionedPoolFactory",
+    {
+      libraries: {
+        PoolLib: poolLib.address
+      }
+    }
+  );
+  const poolFactory = await PoolFactory.deploy(
+    serviceConfiguration.address,
+    withdrawControllerFactory.address,
+    poolControllerFactory.address,
+    poolAccessControlFactory.address
+  );
+  await poolFactory.deployed();
+  console.log(`PermissionedPoolFactory deployed to ${poolFactory.address}`);
+
+  // Deploy LoanFactory
+  const LoanFactory = await ethers.getContractFactory(
+    "PermissionedLoanFactory",
+    {
+      libraries: {
+        LoanLib: loanLib.address
+      }
+    }
+  );
+  const loanFactory = await LoanFactory.deploy(serviceConfiguration.address);
+  await loanFactory.deployed();
+  console.log(`PermissionedLoanFactory deployed to ${loanFactory.address}`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

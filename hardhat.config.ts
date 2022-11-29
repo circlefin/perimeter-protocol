@@ -61,7 +61,15 @@ task("setToSAcceptanceRegistry", "Set a ToS registry")
     console.log("Transaction hash:", receipt.transactionHash);
   });
 
-const config: HardhatUserConfig = {
+type ExtendedHardhatUserConfig = {
+  networks: {
+    [network: string]: {
+      usdcAddress: string | undefined;
+    };
+  };
+};
+
+const config: HardhatUserConfig | ExtendedHardhatUserConfig = {
   solidity: {
     version: "0.8.16",
     settings: {
@@ -73,7 +81,15 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      allowUnlimitedContractSize: true
+      allowUnlimitedContractSize: true,
+      usdcAddress: undefined
+    },
+    localhost: {
+      usdcAddress: undefined
+    },
+    goerli: {
+      url: "",
+      usdcAddress: "0x07865c6e87b9f70255377e024ace6630c1eaa37f"
     }
   }
 };
