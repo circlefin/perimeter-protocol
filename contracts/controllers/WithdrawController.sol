@@ -353,13 +353,14 @@ contract WithdrawController is IWithdrawController {
         returns (
             uint256 period,
             uint256 redeemableShares,
-            uint256 withdrawableAssets
+            uint256 withdrawableAssets,
+            bool periodCranked
         )
     {
         period = withdrawPeriod();
         IPoolWithdrawState memory globalState = _currentGlobalWithdrawState();
         if (globalState.latestCrankPeriod == period) {
-            return (period, 0, 0);
+            return (period, 0, 0, false);
         }
 
         // Calculate the amount available for withdrawal
@@ -382,9 +383,10 @@ contract WithdrawController is IWithdrawController {
             // unable to redeem anything, so the snapshot is unchanged from the last
             _globalWithdrawState.latestCrankPeriod = period;
             _snapshots[period] = _snapshots[globalState.latestCrankPeriod];
-            return (period, 0, 0);
+            return (period, 0, 0, true);
         }
 
+        periodCranked = true;
         withdrawableAssets = _pool.convertToAssets(redeemableShares);
 
         // Calculate the redeemable rate for each lender

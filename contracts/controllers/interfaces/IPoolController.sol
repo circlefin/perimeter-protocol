@@ -182,11 +182,5 @@ interface IPoolController {
     /**
      * @dev Cranks the Pool.
      */
-    function crank()
-        external
-        returns (
-            uint256,
-            uint256,
-            uint256
-        );
+    function crank() external;
 }

@@ -734,10 +734,12 @@ describe("PoolController", () => {
     });
 
     it("cranks the pool", async () => {
-      const { poolController, pool, poolAdmin } = await loadFixture(
-        loadPoolFixture
-      );
+      const { poolController, pool, poolAdmin, liquidityAsset } =
+        await loadFixture(loadPoolFixture);
 
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      const { withdrawRequestPeriodDuration } = await pool.settings();
+      await time.increase(withdrawRequestPeriodDuration);
       await expect(poolController.connect(poolAdmin).crank()).to.emit(
         pool,
         "PoolCranked"

@@ -138,13 +138,7 @@ interface IPool is IERC4626 {
     /**
      * @dev Cranks the pool's withdrawals
      */
-    function crank()
-        external
-        returns (
-            uint256,
-            uint256,
-            uint256
-        );
+    function crank() external;
 
     /**
      * @dev Determines how many funded loans exist

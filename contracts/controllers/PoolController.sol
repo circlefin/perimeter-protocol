@@ -362,16 +362,7 @@ contract PoolController is IPoolController {
                 Crank
     //////////////////////////////////////////////////////////////*/
 
-    function crank()
-        external
-        override
-        onlyAdmin
-        returns (
-            uint256,
-            uint256,
-            uint256
-        )
-    {
-        return pool.crank();
+    function crank() external override onlyAdmin {
+        pool.crank();
     }
 }

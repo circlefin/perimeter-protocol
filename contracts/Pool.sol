@@ -87,7 +87,7 @@ contract Pool is IPool, ERC20 {
      * @dev Modifier to ensure the Pool is cranked.
      */
     modifier onlyCrankedPool() {
-        crank();
+        _crank();
         _;
     }
 
@@ -495,18 +495,23 @@ contract Pool is IPool, ERC20 {
     /**
      * @inheritdoc IPool
      */
-    function crank()
-        public
-        virtual
-        returns (
+    function crank() public virtual {
+        _crank();
+    }
+
+    /**
+     * @dev Internal crank function run lazily.
+     */
+    function _crank() internal {
+        (
             uint256 period,
             uint256 redeemableShares,
-            uint256 withdrawableAssets
-        )
-    {
-        (period, redeemableShares, withdrawableAssets) = withdrawController
-            .crank(poolController.withdrawGate());
-        emit PoolCranked(period, redeemableShares, withdrawableAssets);
+            uint256 withdrawableAssets,
+            bool periodCranked
+        ) = withdrawController.crank(poolController.withdrawGate());
+        if (periodCranked) {
+            emit PoolCranked(period, redeemableShares, withdrawableAssets);
+        }
     }
 
     /*//////////////////////////////////////////////////////////////

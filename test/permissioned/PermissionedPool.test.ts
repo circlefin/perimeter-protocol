@@ -1,7 +1,7 @@
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { deployPermissionedPool } from "../support/pool";
+import { activatePool, deployPermissionedPool } from "../support/pool";
 
 describe("PermissionedPool", () => {
   async function loadPoolFixture() {
@@ -94,7 +94,13 @@ describe("PermissionedPool", () => {
       });
 
       it("cranks the pool if allowed lender", async () => {
-        const { pool, allowedLender } = await loadFixture(loadPoolFixture);
+        const { pool, poolAdmin, allowedLender, liquidityAsset } =
+          await loadFixture(loadPoolFixture);
+
+        await activatePool(pool, poolAdmin, liquidityAsset);
+
+        const { withdrawRequestPeriodDuration } = await pool.settings();
+        await time.increase(withdrawRequestPeriodDuration);
 
         await expect(pool.connect(allowedLender).crank()).to.emit(
           pool,
@@ -103,9 +109,13 @@ describe("PermissionedPool", () => {
       });
 
       it("cranks the pool if PA via poolController", async () => {
-        const { pool, poolAdmin, poolController } = await loadFixture(
-          loadPoolFixture
-        );
+        const { pool, poolAdmin, poolController, liquidityAsset } =
+          await loadFixture(loadPoolFixture);
+
+        await activatePool(pool, poolAdmin, liquidityAsset);
+
+        const { withdrawRequestPeriodDuration } = await pool.settings();
+        await time.increase(withdrawRequestPeriodDuration);
 
         await expect(poolController.connect(poolAdmin).crank()).to.emit(
           pool,

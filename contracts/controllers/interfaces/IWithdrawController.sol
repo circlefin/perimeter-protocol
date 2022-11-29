@@ -180,7 +180,8 @@ interface IWithdrawController {
         returns (
             uint256 period,
             uint256 shares,
-            uint256 assets
+            uint256 assets,
+            bool periodCranked
         );
 
     /*//////////////////////////////////////////////////////////////
