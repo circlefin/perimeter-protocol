@@ -379,7 +379,9 @@ contract WithdrawController is IWithdrawController {
         );
 
         if (redeemableShares == 0) {
-            // unable to redeem anything
+            // unable to redeem anything, so the snapshot is unchanged from the last
+            _globalWithdrawState.latestCrankPeriod = period;
+            _snapshots[period] = _snapshots[globalState.latestCrankPeriod];
             return (period, 0, 0);
         }
 
@@ -441,7 +443,6 @@ contract WithdrawController is IWithdrawController {
         view
         returns (IPoolWithdrawState memory)
     {
-        uint256 currentPeriod = withdrawPeriod();
         uint256 lastPoolCrank = _globalWithdrawState.latestCrankPeriod;
 
         // Current snaphot
