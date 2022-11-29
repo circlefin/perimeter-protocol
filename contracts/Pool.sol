@@ -482,9 +482,10 @@ contract Pool is IPool, ERC20 {
             maxRequestCancellation(owner) >= shares,
             "Pool: InsufficientBalance"
         );
-        withdrawController.performRequestCancellation(owner, shares);
-        uint256 feeShares = (shares);
+        uint256 feeShares = poolController.requestCancellationFee(shares);
         _burn(owner, feeShares);
+        withdrawController.performRequestCancellation(owner, shares);
+
         emit WithdrawRequestCancelled(owner, assets, shares);
     }
 

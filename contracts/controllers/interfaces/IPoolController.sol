@@ -84,6 +84,18 @@ interface IPoolController {
     function requestFee(uint256) external view returns (uint256);
 
     /**
+     * @dev Allow the current pool admin to update the pool cancellation fees
+     * before the pool has been activated.
+     */
+    function setRequestCancellationFee(uint256) external;
+
+    /**
+     * @dev Returns the cancellation fee for a given withdrawal request at the
+     * current block. The fee is the number of shares that will be charged.
+     */
+    function requestCancellationFee(uint256) external view returns (uint256);
+
+    /**
      * @dev Allow the current pool admin to update the withdraw gate at any
      * time if the pool is Initialized or Active
      */
