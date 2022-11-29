@@ -53,7 +53,7 @@ interface IPool is IERC4626 {
     );
 
     /**
-     * @dev Emitted when the pool is cranked.
+     * @dev Emitted when the pool is cranked for a given withdraw period.
      */
     event PoolCranked(
         uint256 withDrawPeriod,
@@ -166,11 +166,7 @@ interface IPool is IERC4626 {
     /**
      * @dev Called by the Pool Controller, it transfers the fixed fee
      */
-    function claimFixedFee(
-        address,
-        uint256,
-        uint256
-    ) external;
+    function claimFixedFee(address, uint256, uint256) external;
 
     /**
      * @dev Calculate the total amount of underlying assets held by the vault,
