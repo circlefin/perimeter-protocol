@@ -930,6 +930,34 @@ describe("Pool", () => {
       );
     });
 
+    it("cancelRedeem()", async () => {
+      const { pool, poolAdmin, liquidityAsset, otherAccount } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(pool, otherAccount, liquidityAsset, 10);
+      await pool.connect(otherAccount).requestRedeem(5);
+
+      await expect(pool.connect(otherAccount).cancelRedeemRequest(3)).to.emit(
+        pool,
+        "PoolCranked"
+      );
+    });
+
+    it("cancelWithdraw()", async () => {
+      const { pool, poolAdmin, liquidityAsset, otherAccount } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(pool, otherAccount, liquidityAsset, 10);
+      await pool.connect(otherAccount).requestWithdraw(5);
+
+      await expect(pool.connect(otherAccount).cancelWithdrawRequest(3)).to.emit(
+        pool,
+        "PoolCranked"
+      );
+    });
+
     it("redeem()", async () => {
       const { pool, poolAdmin, liquidityAsset, otherAccount } =
         await loadFixture(loadPoolFixture);
