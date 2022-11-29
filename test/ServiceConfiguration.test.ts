@@ -130,6 +130,43 @@ describe("ServiceConfiguration", () => {
     });
   });
 
+  describe("first loss minimums", () => {
+    it("default to 0 for any given token", async () => {
+      const { serviceConfiguration } = await loadFixture(deployFixture);
+
+      const { mockERC20 } = await deployMockERC20();
+
+      expect(
+        await serviceConfiguration.firstLossMinimum(
+          "0x0000000000000000000000000000000000000000"
+        )
+      ).to.equal(0);
+
+      expect(
+        await serviceConfiguration.firstLossMinimum(mockERC20.address)
+      ).to.equal(0);
+    });
+
+    it("can be updated", async () => {
+      const { serviceConfiguration } = await loadFixture(deployFixture);
+
+      const { mockERC20 } = await deployMockERC20();
+
+      expect(
+        await serviceConfiguration.firstLossMinimum(mockERC20.address)
+      ).to.equal(0);
+
+      await serviceConfiguration.setFirstLossMinimum(
+        mockERC20.address,
+        10_000_000000 // $10,000
+      );
+
+      expect(
+        await serviceConfiguration.firstLossMinimum(mockERC20.address)
+      ).to.equal(10_000_000000);
+    });
+  });
+
   describe("setFirstLossFeeBps", () => {
     it("can only be called by the operator", async () => {
       const { serviceConfiguration, operator, otherAccount } =

@@ -56,6 +56,13 @@ contract PoolFactory is IPoolFactory {
                 "PoolFactory: Invalid fixed fee interval"
             );
         }
+        require(
+            settings.firstLossInitialMinimum >=
+                IServiceConfiguration(_serviceConfiguration).firstLossMinimum(
+                    liquidityAsset
+                ),
+            "PoolFactory: Invalid first loss minimum"
+        );
 
         // Create the pool
         Pool pool = new Pool(

@@ -51,7 +51,8 @@ describe("PoolFactory", () => {
 
     return {
       poolFactory,
-      liquidityAsset
+      liquidityAsset,
+      serviceConfiguration
     };
   }
 
@@ -64,6 +65,22 @@ describe("PoolFactory", () => {
     await expect(
       poolFactory.createPool(liquidityAsset.address, poolSettings)
     ).to.be.revertedWith("PoolFactory: Invalid duration");
+  });
+
+  it("reverts if the first loss minimum is not sufficient", async () => {
+    const { serviceConfiguration, poolFactory, liquidityAsset } =
+      await loadFixture(deployFixture);
+
+    // Set a first loss minimum
+    await serviceConfiguration.setFirstLossMinimum(liquidityAsset.address, 1);
+
+    // Attempt to create a pool with 0 first loss minimum
+    const poolSettings = Object.assign({}, DEFAULT_POOL_SETTINGS, {
+      firstLossInitialMinimum: 0 // $0
+    });
+    await expect(
+      poolFactory.createPool(liquidityAsset.address, poolSettings)
+    ).to.be.revertedWith("PoolFactory: Invalid first loss minimum");
   });
 
   it("emits PoolCreated", async () => {

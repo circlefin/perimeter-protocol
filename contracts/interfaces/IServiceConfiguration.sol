@@ -14,6 +14,8 @@ interface IServiceConfiguration is IAccessControl {
 
     function paused() external view returns (bool);
 
+    function firstLossMinimum(address addr) external view returns (uint256);
+
     function firstLossFeeBps() external view returns (uint256);
 
     function isLiquidityAsset(address addr) external view returns (bool);
@@ -39,6 +41,13 @@ interface IServiceConfiguration is IAccessControl {
      * @param addr Address of registry
      */
     function setToSAcceptanceRegistry(address addr) external;
+
+    /**
+     * @dev Sets the first loss minimum for the given asset
+     * @param addr address of the liquidity asset
+     * @param value the minimum tokens required to be deposited by pool admins
+     */
+    function setFirstLossMinimum(address addr, uint256 value) external;
 
     /**
      * @dev Sets the first loss fee for the protocol
