@@ -53,6 +53,15 @@ interface IPool is IERC4626 {
     );
 
     /**
+     * @dev Emitted when the pool is cranked for a given withdraw period.
+     */
+    event PoolCranked(
+        uint256 withDrawPeriod,
+        uint256 redeemableShares,
+        uint256 withdrawableAssets
+    );
+
+    /**
      * @dev The PoolController contract
      */
     function poolController() external view returns (IPoolController);
@@ -129,7 +138,7 @@ interface IPool is IERC4626 {
     /**
      * @dev Cranks the pool's withdrawals
      */
-    function crank() external returns (uint256);
+    function crank() external;
 
     /**
      * @dev Determines how many funded loans exist

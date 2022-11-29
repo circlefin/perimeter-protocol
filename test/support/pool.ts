@@ -193,6 +193,11 @@ export async function deployPermissionedPool({
     await pool.poolController()
   );
 
+  const poolAccessControl = await ethers.getContractAt(
+    "PoolAccessControl",
+    await pool.poolAccessControl()
+  );
+
   return {
     pool,
     liquidityAsset,
@@ -200,7 +205,8 @@ export async function deployPermissionedPool({
     withdrawController,
     poolController,
     tosAcceptanceRegistry,
-    poolAdminAccessControl
+    poolAdminAccessControl,
+    poolAccessControl
   };
 }
 

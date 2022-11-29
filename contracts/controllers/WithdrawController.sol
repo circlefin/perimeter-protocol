@@ -347,48 +347,47 @@ contract WithdrawController is IWithdrawController {
     /**
      * @inheritdoc IWithdrawController
      */
-    function crank() external onlyPool returns (uint256 redeemableShares) {
-        uint256 currentPeriod = withdrawPeriod();
+    function crank(uint256 withdrawGate)
+        external
+        onlyPool
+        returns (
+            uint256 period,
+            uint256 redeemableShares,
+            uint256 withdrawableAssets,
+            bool periodCranked
+        )
+    {
+        period = withdrawPeriod();
         IPoolWithdrawState memory globalState = _currentGlobalWithdrawState();
-        if (globalState.latestCrankPeriod == currentPeriod) {
-            return 0;
+        if (globalState.latestCrankPeriod == period) {
+            return (period, 0, 0, false);
         }
 
         // Calculate the amount available for withdrawal
         uint256 liquidAssets = _pool.liquidityPoolAssets();
-        IPoolController _poolController = IPoolController(
-            _pool.poolController()
-        );
-
         uint256 availableAssets = liquidAssets
-            .mul(_poolController.withdrawGate())
+            .mul(withdrawGate)
             .mul(PoolLib.RAY)
             .div(10_000)
             .div(PoolLib.RAY);
 
         uint256 availableShares = _pool.convertToShares(availableAssets);
 
-        if (
-            availableAssets <= 0 ||
-            availableShares <= 0 ||
-            globalState.eligibleShares <= 0
-        ) {
-            // unable to redeem anything
-            redeemableShares = 0;
-            return 0;
-        }
-
         // Determine the amount of shares that we will actually distribute.
         redeemableShares = Math.min(
             availableShares,
-            globalState.eligibleShares - 1 // We offset by 1 to avoid a 100% redeem rate, which throws off all the math.
+            globalState.eligibleShares > 0 ? globalState.eligibleShares - 1 : 0 // We offset by 1 to avoid a 100% redeem rate, which throws off all the math.
         );
 
         if (redeemableShares == 0) {
-            return 0;
+            // unable to redeem anything, so the snapshot is unchanged from the last
+            _globalWithdrawState.latestCrankPeriod = period;
+            _snapshots[period] = _snapshots[globalState.latestCrankPeriod];
+            return (period, 0, 0, true);
         }
 
-        uint256 withdrawableAssets = _pool.convertToAssets(redeemableShares);
+        periodCranked = true;
+        withdrawableAssets = _pool.convertToAssets(redeemableShares);
 
         // Calculate the redeemable rate for each lender
         uint256 redeemableRateRay = redeemableShares.mul(PoolLib.RAY).div(
@@ -411,18 +410,18 @@ contract WithdrawController is IWithdrawController {
             ? lastSnapshot.aggregationDifferenceRay
             : PoolLib.RAY;
 
+        // Cache new accumulating term to avoid duplicating the math
+        uint256 newAccumulatedTerm = redeemableRateRay.mul(lastDiff).div(
+            PoolLib.RAY
+        );
+
         // Compute the new snapshotted values
-        _snapshots[currentPeriod] = IPoolSnapshotState(
+        _snapshots[period] = IPoolSnapshotState(
             // New aggregation
-            lastSnapshot.aggregationSumRay +
-                redeemableRateRay.mul(lastDiff).div(PoolLib.RAY),
+            lastSnapshot.aggregationSumRay + newAccumulatedTerm,
             // New aggregation w/ FX
             lastSnapshot.aggregationSumFxRay +
-                redeemableRateRay
-                    .mul(lastDiff)
-                    .div(PoolLib.RAY)
-                    .mul(fxExchangeRate)
-                    .div(PoolLib.RAY),
+                newAccumulatedTerm.mul(fxExchangeRate).div(PoolLib.RAY),
             // New difference
             lastDiff.mul(PoolLib.RAY - redeemableRateRay).div(PoolLib.RAY)
         );
@@ -433,7 +432,7 @@ contract WithdrawController is IWithdrawController {
             withdrawableAssets,
             redeemableShares
         );
-        globalState.latestCrankPeriod = currentPeriod;
+        globalState.latestCrankPeriod = period;
         _globalWithdrawState = globalState;
     }
 
@@ -446,7 +445,6 @@ contract WithdrawController is IWithdrawController {
         view
         returns (IPoolWithdrawState memory)
     {
-        uint256 currentPeriod = withdrawPeriod();
         uint256 lastPoolCrank = _globalWithdrawState.latestCrankPeriod;
 
         // Current snaphot

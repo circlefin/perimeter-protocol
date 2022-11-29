@@ -876,4 +876,205 @@ describe("Pool", () => {
       ).to.be.revertedWith("Pool: Must transfer to msg.sender");
     });
   });
+
+  describe("Pool is cranked lazily", async () => {
+    it("deposit()", async () => {
+      const { pool, poolAdmin, liquidityAsset, otherAccount } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      const { withdrawRequestPeriodDuration } = await pool.settings();
+      await time.increase(withdrawRequestPeriodDuration);
+      await expect(
+        depositToPool(pool, otherAccount, liquidityAsset, 1_000_000)
+      ).to.emit(pool, "PoolCranked");
+    });
+
+    it("mint()", async () => {
+      const { pool, poolAdmin, liquidityAsset, otherAccount } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      await liquidityAsset.mint(otherAccount.address, 1_000_000);
+      await liquidityAsset
+        .connect(otherAccount)
+        .approve(pool.address, 1_000_000);
+
+      const { withdrawRequestPeriodDuration } = await pool.settings();
+      await time.increase(withdrawRequestPeriodDuration);
+
+      await expect(
+        pool.connect(otherAccount).mint(1_000_000, otherAccount.address)
+      ).to.emit(pool, "PoolCranked");
+    });
+
+    it("requestRedeem()", async () => {
+      const { pool, poolAdmin, liquidityAsset, otherAccount } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(pool, otherAccount, liquidityAsset, 10);
+
+      const { withdrawRequestPeriodDuration } = await pool.settings();
+      await time.increase(withdrawRequestPeriodDuration);
+
+      await expect(pool.connect(otherAccount).requestRedeem(1)).to.emit(
+        pool,
+        "PoolCranked"
+      );
+    });
+
+    it("requestWithdraw()", async () => {
+      const { pool, poolAdmin, liquidityAsset, otherAccount } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(pool, otherAccount, liquidityAsset, 10);
+
+      const { withdrawRequestPeriodDuration } = await pool.settings();
+      await time.increase(withdrawRequestPeriodDuration);
+
+      await expect(pool.connect(otherAccount).requestWithdraw(1)).to.emit(
+        pool,
+        "PoolCranked"
+      );
+    });
+
+    it("cancelRedeem()", async () => {
+      const { pool, poolAdmin, liquidityAsset, otherAccount } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(pool, otherAccount, liquidityAsset, 10);
+      await pool.connect(otherAccount).requestRedeem(5);
+
+      const { withdrawRequestPeriodDuration } = await pool.settings();
+      await time.increase(withdrawRequestPeriodDuration);
+
+      await expect(pool.connect(otherAccount).cancelRedeemRequest(0)).to.emit(
+        pool,
+        "PoolCranked"
+      );
+    });
+
+    it("cancelWithdraw()", async () => {
+      const { pool, poolAdmin, liquidityAsset, otherAccount } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(pool, otherAccount, liquidityAsset, 10);
+      await pool.connect(otherAccount).requestWithdraw(5);
+
+      const { withdrawRequestPeriodDuration } = await pool.settings();
+      await time.increase(withdrawRequestPeriodDuration);
+
+      await expect(pool.connect(otherAccount).cancelWithdrawRequest(0)).to.emit(
+        pool,
+        "PoolCranked"
+      );
+    });
+
+    it("redeem()", async () => {
+      const { pool, poolAdmin, liquidityAsset, otherAccount } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(pool, otherAccount, liquidityAsset, 1_000_000);
+      await pool.connect(otherAccount).requestRedeem(100);
+
+      const { withdrawRequestPeriodDuration } = await pool.settings();
+      await time.increase(withdrawRequestPeriodDuration);
+
+      await expect(
+        pool
+          .connect(otherAccount)
+          .redeem(1, otherAccount.address, otherAccount.address)
+      ).to.emit(pool, "PoolCranked");
+    });
+
+    it("withdraw()", async () => {
+      const { pool, poolAdmin, liquidityAsset, otherAccount } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(pool, otherAccount, liquidityAsset, 1_000_000);
+      await pool.connect(otherAccount).requestRedeem(100);
+
+      const { withdrawRequestPeriodDuration } = await pool.settings();
+      await time.increase(withdrawRequestPeriodDuration);
+
+      await expect(
+        pool
+          .connect(otherAccount)
+          .withdraw(1, otherAccount.address, otherAccount.address)
+      ).to.emit(pool, "PoolCranked");
+    });
+
+    it("fundLoan()", async () => {
+      const {
+        pool,
+        poolController,
+        poolAdmin,
+        liquidityAsset,
+        otherAccount,
+        loan
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(pool, otherAccount, liquidityAsset, 1_000_000);
+
+      const { withdrawRequestPeriodDuration } = await pool.settings();
+      await time.increase(withdrawRequestPeriodDuration);
+
+      await expect(
+        poolController.connect(poolAdmin).fundLoan(loan.address)
+      ).to.emit(pool, "PoolCranked");
+    });
+
+    it("defaultLoan()", async () => {
+      const {
+        pool,
+        poolAdmin,
+        poolController,
+        liquidityAsset,
+        otherAccount,
+        loan,
+        borrower
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        await loan.principal()
+      );
+      await fundLoan(loan, poolController, poolAdmin);
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      const { withdrawRequestPeriodDuration } = await pool.settings();
+      await time.increase(withdrawRequestPeriodDuration);
+
+      await expect(
+        poolController.connect(poolAdmin).defaultLoan(loan.address)
+      ).to.emit(pool, "PoolCranked");
+    });
+
+    it("claimFixedFee()", async () => {
+      const { pool, poolAdmin, poolController, liquidityAsset, otherAccount } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(pool, otherAccount, liquidityAsset, 1_000_000);
+
+      const { withdrawRequestPeriodDuration } = await pool.settings();
+      await time.increase(withdrawRequestPeriodDuration);
+
+      await expect(poolController.connect(poolAdmin).claimFixedFee()).to.emit(
+        pool,
+        "PoolCranked"
+      );
+    });
+  });
 });

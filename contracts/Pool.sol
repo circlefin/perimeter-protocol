@@ -84,6 +84,14 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
+     * @dev Modifier to ensure the Pool is cranked.
+     */
+    modifier onlyCrankedPool() {
+        _crank();
+        _;
+    }
+
+    /**
      * @dev Constructor for Pool
      * @param liquidityAsset asset held by the poo
      * @param poolAdmin admin of the pool
@@ -206,7 +214,11 @@ contract Pool is IPool, ERC20 {
     /**
      * @inheritdoc IPool
      */
-    function fundLoan(address addr) external onlyPoolController {
+    function fundLoan(address addr)
+        external
+        onlyPoolController
+        onlyCrankedPool
+    {
         ILoan loan = ILoan(addr);
         uint256 principal = loan.principal();
 
@@ -224,7 +236,11 @@ contract Pool is IPool, ERC20 {
     /**
      * @inheritdoc IPool
      */
-    function removeFundedLoan(address addr) external onlyPoolController {
+    function removeFundedLoan(address addr)
+        external
+        onlyPoolController
+        onlyCrankedPool
+    {
         require(_fundedLoans.remove(addr), "Pool: unfunded loan");
         _accountings.outstandingLoanPrincipals -= ILoan(addr).principal();
     }
@@ -280,7 +296,7 @@ contract Pool is IPool, ERC20 {
         address recipient,
         uint256 fixedFee,
         uint256 fixedFeeInterval
-    ) external onlyPoolController {
+    ) external onlyPoolController onlyCrankedPool {
         require(
             _accountings.fixedFeeDueDate < block.timestamp,
             "Pool: fixed fee not due"
@@ -361,6 +377,7 @@ contract Pool is IPool, ERC20 {
         external
         onlyActivatedPool
         onlyLender
+        onlyCrankedPool
         returns (uint256 assets)
     {
         assets = convertToAssets(shares);
@@ -374,6 +391,7 @@ contract Pool is IPool, ERC20 {
         external
         onlyActivatedPool
         onlyLender
+        onlyCrankedPool
         returns (uint256 shares)
     {
         shares = convertToShares(assets);
@@ -426,6 +444,7 @@ contract Pool is IPool, ERC20 {
         external
         onlyActivatedPool
         onlyLender
+        onlyCrankedPool
         returns (uint256 assets)
     {
         assets = convertToAssets(shares);
@@ -443,6 +462,7 @@ contract Pool is IPool, ERC20 {
         external
         onlyActivatedPool
         onlyLender
+        onlyCrankedPool
         returns (uint256 shares)
     {
         shares = convertToShares(assets);
@@ -473,10 +493,25 @@ contract Pool is IPool, ERC20 {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Crank the protocol. Issues withdrawals
+     * @inheritdoc IPool
      */
-    function crank() external returns (uint256 redeemableShares) {
-        redeemableShares = withdrawController.crank();
+    function crank() public virtual {
+        _crank();
+    }
+
+    /**
+     * @dev Internal crank function run lazily.
+     */
+    function _crank() internal {
+        (
+            uint256 period,
+            uint256 redeemableShares,
+            uint256 withdrawableAssets,
+            bool periodCranked
+        ) = withdrawController.crank(poolController.withdrawGate());
+        if (periodCranked) {
+            emit PoolCranked(period, redeemableShares, withdrawableAssets);
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -587,6 +622,7 @@ contract Pool is IPool, ERC20 {
         virtual
         override
         atState(IPoolLifeCycleState.Active)
+        onlyCrankedPool
         returns (uint256 shares)
     {
         shares = PoolLib.executeDeposit(
@@ -642,6 +678,7 @@ contract Pool is IPool, ERC20 {
         virtual
         override
         atState(IPoolLifeCycleState.Active)
+        onlyCrankedPool
         returns (uint256 assets)
     {
         assets = previewMint(shares);
@@ -690,7 +727,7 @@ contract Pool is IPool, ERC20 {
         uint256 assets,
         address receiver,
         address owner
-    ) external virtual returns (uint256 shares) {
+    ) external virtual onlyCrankedPool returns (uint256 shares) {
         require(receiver == owner, "Pool: Withdrawal to unrelated address");
         require(receiver == msg.sender, "Pool: Must transfer to msg.sender");
         require(assets > 0, "Pool: 0 withdraw not allowed");
@@ -738,7 +775,7 @@ contract Pool is IPool, ERC20 {
         uint256 shares,
         address receiver,
         address owner
-    ) external virtual returns (uint256 assets) {
+    ) external virtual onlyCrankedPool returns (uint256 assets) {
         require(receiver == owner, "Pool: Withdrawal to unrelated address");
         require(receiver == msg.sender, "Pool: Must transfer to msg.sender");
         require(shares > 0, "Pool: 0 redeem not allowed");

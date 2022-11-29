@@ -174,4 +174,13 @@ interface IPoolController {
      * claimed once every interval, as set on the pool.
      */
     function claimFixedFee() external;
+
+    /*//////////////////////////////////////////////////////////////
+                Crank
+    //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Cranks the Pool.
+     */
+    function crank() external;
 }

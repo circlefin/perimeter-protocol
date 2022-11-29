@@ -15,11 +15,16 @@ describe("PoolController", () => {
     const [operator, poolAdmin, borrower, otherAccount, ...otherAccounts] =
       await ethers.getSigners();
 
-    const { pool, liquidityAsset, poolController, serviceConfiguration } =
-      await deployPool({
-        operator,
-        poolAdmin: poolAdmin
-      });
+    const {
+      pool,
+      liquidityAsset,
+      poolController,
+      serviceConfiguration,
+      withdrawController
+    } = await deployPool({
+      operator,
+      poolAdmin: poolAdmin
+    });
 
     const { mockERC20: collateralAsset } = await deployMockERC20();
 
@@ -48,7 +53,8 @@ describe("PoolController", () => {
       otherLoan,
       liquidityAsset,
       collateralAsset,
-      poolController
+      poolController,
+      withdrawController
     };
   }
 
@@ -713,6 +719,31 @@ describe("PoolController", () => {
       await expect(
         poolController.connect(otherAccount).defaultLoan(otherAccount.address)
       ).to.be.revertedWith("Pool: caller is not admin");
+    });
+  });
+
+  describe("crank()", () => {
+    it("reverts if not called by Pool Admin", async () => {
+      const { poolController, otherAccount } = await loadFixture(
+        loadPoolFixture
+      );
+
+      await expect(
+        poolController.connect(otherAccount).crank()
+      ).to.be.revertedWith("Pool: caller is not admin");
+    });
+
+    it("cranks the pool", async () => {
+      const { poolController, pool, poolAdmin, liquidityAsset } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      const { withdrawRequestPeriodDuration } = await pool.settings();
+      await time.increase(withdrawRequestPeriodDuration);
+      await expect(poolController.connect(poolAdmin).crank()).to.emit(
+        pool,
+        "PoolCranked"
+      );
     });
   });
 
