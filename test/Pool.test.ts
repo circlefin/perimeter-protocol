@@ -877,19 +877,15 @@ describe("Pool", () => {
     });
   });
 
-  describe.only("Pool is cranked lazily", () => {
+  describe("Pool is cranked lazily", async () => {
     it("deposit()", async () => {
       const { pool, poolAdmin, liquidityAsset, otherAccount } =
         await loadFixture(loadPoolFixture);
 
       await activatePool(pool, poolAdmin, liquidityAsset);
-      const txn = await depositToPool(
-        pool,
-        otherAccount,
-        liquidityAsset,
-        1_000_000
-      );
-      expect(txn).to.emit(pool, "PoolCranked");
+      await expect(
+        depositToPool(pool, otherAccount, liquidityAsset, 1_000_000)
+      ).to.emit(pool, "PoolCranked");
     });
 
     it("mint()", async () => {
@@ -903,10 +899,9 @@ describe("Pool", () => {
         .connect(otherAccount)
         .approve(pool.address, 1_000_000);
 
-      const txn = await pool
-        .connect(otherAccount)
-        .mint(1_000_000, otherAccount.address);
-      expect(txn).to.emit(pool, "PoolCranked");
+      await expect(
+        pool.connect(otherAccount).mint(1_000_000, otherAccount.address)
+      ).to.emit(pool, "PoolCranked");
     });
 
     it("requestRedeem()", async () => {
@@ -916,8 +911,10 @@ describe("Pool", () => {
       await activatePool(pool, poolAdmin, liquidityAsset);
       await depositToPool(pool, otherAccount, liquidityAsset, 10);
 
-      const txn = await pool.connect(otherAccount).requestRedeem(1);
-      expect(txn).to.emit(pool, "PoolCranked");
+      await expect(pool.connect(otherAccount).requestRedeem(1)).to.emit(
+        pool,
+        "PoolCranked"
+      );
     });
 
     it("requestWithdraw()", async () => {
@@ -927,8 +924,10 @@ describe("Pool", () => {
       await activatePool(pool, poolAdmin, liquidityAsset);
       await depositToPool(pool, otherAccount, liquidityAsset, 10);
 
-      const txn = await pool.connect(otherAccount).requestWithdraw(1);
-      expect(txn).to.emit(pool, "PoolCranked");
+      await expect(pool.connect(otherAccount).requestWithdraw(1)).to.emit(
+        pool,
+        "PoolCranked"
+      );
     });
 
     it("redeem()", async () => {
@@ -942,10 +941,11 @@ describe("Pool", () => {
       const { withdrawRequestPeriodDuration } = await pool.settings();
       await time.increase(withdrawRequestPeriodDuration);
 
-      const txn = await pool
-        .connect(otherAccount)
-        .redeem(1, otherAccount.address, otherAccount.address);
-      expect(txn).to.emit(pool, "PoolCranked");
+      await expect(
+        pool
+          .connect(otherAccount)
+          .redeem(1, otherAccount.address, otherAccount.address)
+      ).to.emit(pool, "PoolCranked");
     });
 
     it("withdraw()", async () => {
@@ -959,13 +959,14 @@ describe("Pool", () => {
       const { withdrawRequestPeriodDuration } = await pool.settings();
       await time.increase(withdrawRequestPeriodDuration);
 
-      const txn = await pool
-        .connect(otherAccount)
-        .withdraw(1, otherAccount.address, otherAccount.address);
-      expect(txn).to.emit(pool, "PoolCranked");
+      await expect(
+        pool
+          .connect(otherAccount)
+          .withdraw(1, otherAccount.address, otherAccount.address)
+      ).to.emit(pool, "PoolCranked");
     });
 
-    it.only("fundLoan()", async () => {
+    it("fundLoan()", async () => {
       const {
         pool,
         poolController,
@@ -978,12 +979,9 @@ describe("Pool", () => {
       await activatePool(pool, poolAdmin, liquidityAsset);
       await depositToPool(pool, otherAccount, liquidityAsset, 1_000_000);
 
-      expect(await poolController
-        .connect(poolAdmin)
-        .fundLoan(loan.address)).to.emit(pool, "PoolCrankedweofijweofije");
-
-      // console.log(txn);
-      // expect(txn).to.emit(pool, "PoolCranked");
+      await expect(
+        poolController.connect(poolAdmin).fundLoan(loan.address)
+      ).to.emit(pool, "PoolCranked");
     });
 
     it("defaultLoan()", async () => {
@@ -1007,10 +1005,9 @@ describe("Pool", () => {
       await fundLoan(loan, poolController, poolAdmin);
       await loan.connect(borrower).drawdown(await loan.principal());
 
-      const txn = await poolController
-        .connect(poolAdmin)
-        .defaultLoan(loan.address);
-      expect(txn).to.emit(pool, "PoolCranked");
+      await expect(
+        poolController.connect(poolAdmin).defaultLoan(loan.address)
+      ).to.emit(pool, "PoolCranked");
     });
 
     it("claimFixedFee()", async () => {
@@ -1019,8 +1016,10 @@ describe("Pool", () => {
 
       await activatePool(pool, poolAdmin, liquidityAsset);
       await depositToPool(pool, otherAccount, liquidityAsset, 1_000_000);
-      const txn = await poolController.connect(poolAdmin).claimFixedFee();
-      expect(txn).to.emit(pool, "PoolCranked");
+      await expect(poolController.connect(poolAdmin).claimFixedFee()).to.emit(
+        pool,
+        "PoolCranked"
+      );
     });
   });
 });
