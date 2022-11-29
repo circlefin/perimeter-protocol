@@ -25,6 +25,8 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
 
     address public tosAcceptanceRegistry;
 
+    uint256 public protocolFeeBps = 0;
+
     /**
      * @dev Holds a reference to valid LoanFactories
      */
