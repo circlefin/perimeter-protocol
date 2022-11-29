@@ -21,6 +21,8 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
 
     mapping(address => bool) public isLiquidityAsset;
 
+    mapping(address => uint256) private _firstLossMinimum;
+
     uint256 public firstLossFeeBps = 500;
 
     address public tosAcceptanceRegistry;
@@ -39,6 +41,11 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
      * @dev Emitted when a liquidity asset is set.
      */
     event LiquidityAssetSet(address addr, bool value);
+
+    /**
+     * @dev Emitted when first loss minimum is set for an asset.
+     */
+    event FirstLossMinimumSet(address addr, uint256 value);
 
     /**
      * @dev Emitted when a parameter is set.
@@ -127,6 +134,30 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
         emit TermsOfServiceRegistrySet(addr);
     }
 
+    /**
+     * @inheritdoc IServiceConfiguration
+     */
+    function setFirstLossMinimum(address addr, uint256 value)
+        external
+        override
+        onlyOperator
+    {
+        _firstLossMinimum[addr] = value;
+        emit FirstLossMinimumSet(addr, value);
+    }
+
+    function firstLossMinimum(address addr)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        return _firstLossMinimum[addr];
+    }
+
+    /**
+     * @inheritdoc IServiceConfiguration
+     */
     function setFirstLossFeeBps(uint256 value) external override onlyOperator {
         firstLossFeeBps = value;
         emit ParameterSet("firstLossFeeBps", value);
