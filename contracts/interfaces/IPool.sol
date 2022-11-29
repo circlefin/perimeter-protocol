@@ -166,7 +166,11 @@ interface IPool is IERC4626 {
     /**
      * @dev Called by the Pool Controller, it transfers the fixed fee
      */
-    function claimFixedFee(address, uint256, uint256) external;
+    function claimFixedFee(
+        address,
+        uint256,
+        uint256
+    ) external;
 
     /**
      * @dev Calculate the total amount of underlying assets held by the vault,
