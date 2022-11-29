@@ -352,8 +352,6 @@ library PoolLib {
         address loan,
         address pool
     ) external {
-        IPool(pool).removeFundedLoan(loan);
-
         ILoan(loan).markDefaulted();
 
         uint256 firstLossBalance = IERC20(asset).balanceOf(
