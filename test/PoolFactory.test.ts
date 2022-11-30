@@ -7,6 +7,7 @@ import {
   deployPoolControllerFactory,
   deployWithdrawControllerFactory
 } from "./support/pool";
+import { deployServiceConfiguration } from "./support/serviceconfiguration";
 
 describe("PoolFactory", () => {
   async function deployFixture() {
@@ -17,12 +18,10 @@ describe("PoolFactory", () => {
     const { mockERC20: liquidityAsset } = await deployMockERC20();
 
     // Deploy the Service Configuration contract
-    const ServiceConfiguration = await ethers.getContractFactory(
-      "ServiceConfiguration",
-      operator
-    );
-    const serviceConfiguration = await ServiceConfiguration.deploy();
-    await serviceConfiguration.deployed();
+    const { serviceConfiguration } = await deployServiceConfiguration(operator);
+
+    // Add ERC20 as support currency
+    await serviceConfiguration.setLiquidityAsset(liquidityAsset.address, true);
 
     const PoolLib = await ethers.getContractFactory("PoolLib");
     const poolLib = await PoolLib.deploy();
@@ -129,6 +128,16 @@ describe("PoolFactory", () => {
     await expect(
       poolFactory.createPool(liquidityAsset.address, poolSettings)
     ).to.be.revertedWith("PoolFactory: Invalid request cancellation fee");
+  });
+
+  it("reverts if liquidity asset is not supported", async () => {
+    const { poolFactory } = await loadFixture(deployFixture);
+
+    const { mockERC20: otherAsset } = await deployMockERC20();
+
+    await expect(
+      poolFactory.createPool(otherAsset.address, DEFAULT_POOL_SETTINGS)
+    ).to.be.revertedWith("PoolFactory: invalid asset");
   });
 
   it("emits PoolCreated", async () => {

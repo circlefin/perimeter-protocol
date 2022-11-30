@@ -54,4 +54,11 @@ interface IServiceConfiguration is IAccessControl {
      * @param value amount of each payment that is allocated to the first loss vault. Value is in basis points, e.g. 500 equals 5%.
      */
     function setFirstLossFeeBps(uint256 value) external;
+
+    /**
+     * @dev Sets supported liquidity assets for the protocol. Callable by the operator.
+     * @param addr Address of liquidity asset
+     * @param value Whether supported or not
+     */
+    function setLiquidityAsset(address addr, bool value) external;
 }

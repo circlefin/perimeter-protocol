@@ -92,7 +92,11 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     /**
      * @dev Set a liquidity asset as valid or not.
      */
-    function setLiquidityAsset(address addr, bool value) public onlyOperator {
+    function setLiquidityAsset(address addr, bool value)
+        public
+        override
+        onlyOperator
+    {
         isLiquidityAsset[addr] = value;
         emit LiquidityAssetSet(addr, value);
     }
