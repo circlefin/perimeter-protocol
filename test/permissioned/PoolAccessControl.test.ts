@@ -35,14 +35,14 @@ describe("PoolAccessControl", () => {
     };
   }
 
-  describe("isValidParticipant()", () => {
+  describe("isAllowed()", () => {
     it("returns false if the address is not on the allow list and has not verified via Verite", async () => {
       const { poolAccessControl, poolParticipant } = await loadFixture(
         deployFixture
       );
 
       expect(
-        await poolAccessControl.isValidParticipant(poolParticipant.address)
+        await poolAccessControl.isAllowed(poolParticipant.address)
       ).to.equal(false);
     });
 
@@ -63,7 +63,7 @@ describe("PoolAccessControl", () => {
         .allowParticipant(poolParticipant.address);
 
       expect(
-        await poolAccessControl.isValidParticipant(poolParticipant.address)
+        await poolAccessControl.isAllowed(poolParticipant.address)
       ).to.equal(true);
     });
 
@@ -104,7 +104,7 @@ describe("PoolAccessControl", () => {
         .verify(verificationResult, signature);
 
       expect(
-        await poolAccessControl.isValidParticipant(poolParticipant.address)
+        await poolAccessControl.isAllowed(poolParticipant.address)
       ).to.equal(true);
     });
 
@@ -145,13 +145,13 @@ describe("PoolAccessControl", () => {
         .verify(verificationResult, signature);
 
       expect(
-        await poolAccessControl.isValidParticipant(poolParticipant.address)
+        await poolAccessControl.isAllowed(poolParticipant.address)
       ).to.equal(true);
 
       await time.increaseTo(verificationResult.expiration + 1);
 
       expect(
-        await poolAccessControl.isValidParticipant(poolParticipant.address)
+        await poolAccessControl.isAllowed(poolParticipant.address)
       ).to.equal(false);
     });
   });

@@ -10,5 +10,5 @@ interface IPoolAccessControl {
      * @param addr The address to verify
      * @return whether the address is allowed as a participant
      */
-    function isValidParticipant(address addr) external view returns (bool);
+    function isAllowed(address addr) external view returns (bool);
 }

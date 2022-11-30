@@ -20,7 +20,7 @@ contract PermissionedPool is Pool {
      */
     modifier onlyPermittedLender() override {
         require(
-            poolAccessControl.isValidParticipant(msg.sender),
+            poolAccessControl.isAllowed(msg.sender),
             "caller is not a valid lender"
         );
         _;
@@ -66,7 +66,7 @@ contract PermissionedPool is Pool {
     function crank() public override {
         require(
             msg.sender == address(poolController) ||
-                poolAccessControl.isValidParticipant(msg.sender),
+                poolAccessControl.isAllowed(msg.sender),
             "Pool: not allowed"
         );
         super.crank();
@@ -83,7 +83,7 @@ contract PermissionedPool is Pool {
         override
         returns (uint256)
     {
-        if (!poolAccessControl.isValidParticipant(receiver)) {
+        if (!poolAccessControl.isAllowed(receiver)) {
             return 0;
         }
 
@@ -96,7 +96,7 @@ contract PermissionedPool is Pool {
      * check the receiver here.
      */
     function maxMint(address receiver) public view override returns (uint256) {
-        if (!poolAccessControl.isValidParticipant(receiver)) {
+        if (!poolAccessControl.isAllowed(receiver)) {
             return 0;
         }
 

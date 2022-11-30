@@ -79,10 +79,9 @@ contract PoolAccessControl is IPoolAccessControl, VeriteAccessControl {
     }
 
     /**
-     * @dev Checks if the given address is allowed as a Participant.
      * @inheritdoc IPoolAccessControl
      */
-    function isValidParticipant(address addr) external view returns (bool) {
+    function isAllowed(address addr) external view returns (bool) {
         return _allowedParticipants[addr] || isVerified(addr);
     }
 

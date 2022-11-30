@@ -181,8 +181,7 @@ describe("PermissionedLoan", () => {
         const { loan, borrower, poolAccessControl, liquidityAsset } =
           await loadFixture(loadLoanFixture);
 
-        expect(await poolAccessControl.isValidParticipant(borrower.address)).to
-          .be.false;
+        expect(await poolAccessControl.isAllowed(borrower.address)).to.be.false;
         await expect(
           loan
             .connect(borrower)
@@ -196,8 +195,7 @@ describe("PermissionedLoan", () => {
         const { loan, borrower, poolAccessControl, liquidityAsset } =
           await loadFixture(loadLoanFixture);
 
-        expect(await poolAccessControl.isValidParticipant(borrower.address)).to
-          .be.false;
+        expect(await poolAccessControl.isAllowed(borrower.address)).to.be.false;
         await expect(
           loan
             .connect(borrower)

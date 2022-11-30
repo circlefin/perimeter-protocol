@@ -76,9 +76,10 @@ contract VeriteAccessControl is
     /**
      * @inheritdoc IVeriteAccessControl
      */
-    function addCredentialSchema(
-        string calldata schema
-    ) external onlyVeriteAdmin {
+    function addCredentialSchema(string calldata schema)
+        external
+        onlyVeriteAdmin
+    {
         _supportedCredentialSchemas[schema] = true;
 
         emit CredentialSchemaAdded(schema);
@@ -87,9 +88,10 @@ contract VeriteAccessControl is
     /**
      * @inheritdoc IVeriteAccessControl
      */
-    function removeCredentialSchema(
-        string calldata schema
-    ) external onlyVeriteAdmin {
+    function removeCredentialSchema(string calldata schema)
+        external
+        onlyVeriteAdmin
+    {
         delete _supportedCredentialSchemas[schema];
 
         emit CredentialSchemaRemoved(schema);
