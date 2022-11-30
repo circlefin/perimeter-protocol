@@ -137,6 +137,30 @@ describe("Pool", () => {
       // 91 shares at an exchange rate of 150 / 144 = 94.79 assets rounded down
       expect(await pool.maxWithdrawRequest(lenderB.address)).to.equal(94);
     });
+
+    it("depositing requires receiver address to be the same as caller", async () => {
+      const { pool, otherAccount, liquidityAsset, poolAdmin, otherAccounts } =
+        await loadFixture(loadPoolFixture);
+
+      const receiver = otherAccounts[otherAccounts.length - 1];
+      expect(receiver.address).to.not.equal(otherAccount.address);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      // Provide capital to lender
+      const depositAmount = 1000;
+      await liquidityAsset.mint(otherAccount.address, depositAmount);
+
+      // Approve the deposit
+      await liquidityAsset
+        .connect(otherAccount)
+        .approve(pool.address, depositAmount);
+
+      // Deposit against a different receiver
+      await expect(
+        pool.connect(otherAccount).deposit(depositAmount, receiver.address)
+      ).to.be.revertedWith("Pool: invalid receiver");
+    });
   });
 
   describe("mint()", async () => {
@@ -174,6 +198,30 @@ describe("Pool", () => {
       expect(await pool.balanceOf(otherAccount.address)).to.equal(
         depositAmount
       );
+    });
+
+    it("minting requires receiver address to be the same as caller", async () => {
+      const { pool, otherAccount, liquidityAsset, poolAdmin, otherAccounts } =
+        await loadFixture(loadPoolFixture);
+
+      const receiver = otherAccounts[otherAccounts.length - 1];
+      expect(receiver.address).to.not.equal(otherAccount.address);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      // Provide capital to lender
+      const depositAmount = 1000;
+      await liquidityAsset.mint(otherAccount.address, depositAmount);
+
+      // Approve the deposit
+      await liquidityAsset
+        .connect(otherAccount)
+        .approve(pool.address, depositAmount);
+
+      // Mint against a different receiver
+      await expect(
+        pool.connect(otherAccount).mint(depositAmount, receiver.address)
+      ).to.be.revertedWith("Pool: invalid receiver");
     });
   });
 
