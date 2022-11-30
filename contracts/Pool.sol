@@ -755,7 +755,7 @@ contract Pool is IPool, ERC20 {
         uint256 assets,
         address receiver,
         address owner
-    ) external virtual onlyCrankedPool returns (uint256 shares) {
+    ) public virtual onlyCrankedPool returns (uint256 shares) {
         require(receiver == owner, "Pool: Withdrawal to unrelated address");
         require(receiver == msg.sender, "Pool: Must transfer to msg.sender");
         require(assets > 0, "Pool: 0 withdraw not allowed");
@@ -803,7 +803,7 @@ contract Pool is IPool, ERC20 {
         uint256 shares,
         address receiver,
         address owner
-    ) external virtual onlyCrankedPool returns (uint256 assets) {
+    ) public virtual onlyCrankedPool returns (uint256 assets) {
         require(receiver == owner, "Pool: Withdrawal to unrelated address");
         require(receiver == msg.sender, "Pool: Must transfer to msg.sender");
         require(shares > 0, "Pool: 0 redeem not allowed");

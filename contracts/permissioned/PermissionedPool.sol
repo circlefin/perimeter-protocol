@@ -85,6 +85,8 @@ contract PermissionedPool is Pool {
 
     /**
      * @inheritdoc Pool
+     * @dev Since Pool does not enforce that msg.sender == receiver, we only
+     * check the receiver here.
      */
     function maxDeposit(address receiver)
         public
@@ -92,10 +94,7 @@ contract PermissionedPool is Pool {
         override
         returns (uint256)
     {
-        if (
-            !poolAccessControl.isValidParticipant(msg.sender) ||
-            !poolAccessControl.isValidParticipant(receiver)
-        ) {
+        if (!poolAccessControl.isValidParticipant(receiver)) {
             return 0;
         }
 
@@ -104,12 +103,13 @@ contract PermissionedPool is Pool {
 
     /**
      * @inheritdoc Pool
+     * @dev Since Pool enforces that msg.sender must be receiver, we only check
+     * the sender here.
      */
     function deposit(uint256 assets, address receiver)
         public
         override
         onlyValidLender
-        onlyValidReceiver(receiver)
         returns (uint256 shares)
     {
         return super.deposit(assets, receiver);
@@ -117,12 +117,11 @@ contract PermissionedPool is Pool {
 
     /**
      * @inheritdoc Pool
+     * @dev Since Pool does not enforce that msg.sender == receiver, we only
+     * check the receiver here.
      */
     function maxMint(address receiver) public view override returns (uint256) {
-        if (
-            !poolAccessControl.isValidParticipant(msg.sender) ||
-            !poolAccessControl.isValidParticipant(receiver)
-        ) {
+        if (!poolAccessControl.isValidParticipant(receiver)) {
             return 0;
         }
 
@@ -131,12 +130,13 @@ contract PermissionedPool is Pool {
 
     /**
      * @inheritdoc Pool
+     * @dev Since Pool enforces that msg.sender must be receiver, we only check
+     * the sender here.
      */
     function mint(uint256 shares, address receiver)
         public
         override
         onlyValidLender
-        onlyValidReceiver(receiver)
         returns (uint256)
     {
         return super.mint(shares, receiver);
@@ -144,23 +144,27 @@ contract PermissionedPool is Pool {
 
     /**
      * @inheritdoc Pool
+     * @dev Since Pool enforces that msg.sender == receiver == owner, we
+     * only check the sender here.
      */
     function withdraw(
-        uint256, /* assets */
-        address, /* receiver */
-        address /* owner */
-    ) external override onlyValidLender returns (uint256 shares) {
-        return 0;
+        uint256 assets,
+        address receiver,
+        address owner
+    ) public override onlyValidLender returns (uint256 shares) {
+        return super.withdraw(assets, receiver, owner);
     }
 
     /**
      * @inheritdoc Pool
+     * @dev Since Pool enforces that msg.sender == receiver == owner, we
+     * only check the sender here.
      */
     function redeem(
-        uint256, /* shares */
-        address, /* receiver */
-        address /* owner */
-    ) external override onlyValidLender returns (uint256 assets) {
-        return 0;
+        uint256 shares,
+        address receiver,
+        address owner
+    ) public override onlyValidLender returns (uint256 assets) {
+        return super.redeem(shares, receiver, owner);
     }
 }
