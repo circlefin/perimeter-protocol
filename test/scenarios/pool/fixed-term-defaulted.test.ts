@@ -5,15 +5,15 @@ import {
   deployPool,
   activatePool,
   DEFAULT_POOL_SETTINGS
-} from "../../../support/pool";
+} from "../../support/pool";
 import {
   DEFAULT_LOAN_SETTINGS,
   deployLoan,
   fundLoan
-} from "../../../support/loan";
-import { deployMockERC20 } from "../../../support/erc20";
+} from "../../support/loan";
+import { deployMockERC20 } from "../../support/erc20";
 
-describe("Open Term Defaulted Loan Scenario", () => {
+describe("Fixed Term Defaulted Loan Scenario", () => {
   const INPUTS = {
     lenderDeposit: 1_000_000,
     loanAmount: 1_000_000,
@@ -51,7 +51,7 @@ describe("Open Term Defaulted Loan Scenario", () => {
       mockERC20.address,
       serviceConfiguration,
       {
-        loanType: 1 // fixed term
+        loanType: 0 // fixed term
       }
     );
 
@@ -93,16 +93,10 @@ describe("Open Term Defaulted Loan Scenario", () => {
     );
 
     // default loan
-    await loan.connect(borrower).drawdown((await loan.principal()).div(2)); // drawdown half
+    await loan.connect(borrower).drawdown(await loan.principal());
     await poolController.connect(poolAdmin).defaultLoan(loan.address);
 
-    // check that outstanding principal goes down to 500k
-    expect((await pool.accountings()).outstandingLoanPrincipals).to.equal(
-      500_000
-    );
-
-    // PA reclaims the rest
-    await loan.connect(poolAdmin).reclaimFunds(500_000);
+    // check that accountings go back to zero
     expect((await pool.accountings()).outstandingLoanPrincipals).to.equal(0);
   });
 });

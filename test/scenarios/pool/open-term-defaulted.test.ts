@@ -5,15 +5,15 @@ import {
   deployPool,
   activatePool,
   DEFAULT_POOL_SETTINGS
-} from "../../../support/pool";
+} from "../../support/pool";
 import {
   DEFAULT_LOAN_SETTINGS,
   deployLoan,
   fundLoan
-} from "../../../support/loan";
-import { deployMockERC20 } from "../../../support/erc20";
+} from "../../support/loan";
+import { deployMockERC20 } from "../../support/erc20";
 
-describe("Fixed Term Matured Loan Scenario", () => {
+describe("Open Term Defaulted Loan Scenario", () => {
   const INPUTS = {
     lenderDeposit: 1_000_000,
     loanAmount: 1_000_000,
@@ -51,7 +51,7 @@ describe("Fixed Term Matured Loan Scenario", () => {
       mockERC20.address,
       serviceConfiguration,
       {
-        loanType: 0 // fixed term
+        loanType: 1 // fixed term
       }
     );
 
@@ -73,7 +73,7 @@ describe("Fixed Term Matured Loan Scenario", () => {
     };
   }
 
-  it("Calculates outstanding loan principals", async () => {
+  it("Calculates outstanding loan principal", async () => {
     const {
       pool,
       poolController,
@@ -88,28 +88,23 @@ describe("Fixed Term Matured Loan Scenario", () => {
 
     // fund loan and drawdown
     await fundLoan(loan, poolController, poolAdmin);
-
-    // check pool accounting is correct
     expect((await pool.accountings()).outstandingLoanPrincipals).to.equal(
       1_000_000
     );
-    expect(await pool.liquidityPoolAssets()).to.equal(0);
 
-    // drawdown
-    await loan.connect(borrower).drawdown(await loan.principal());
+    // default loan
+    await loan.connect(borrower).drawdown((await loan.principal()).div(2)); // drawdown half
+    const txn = await poolController
+      .connect(poolAdmin)
+      .defaultLoan(loan.address);
 
-    // make full payment
-    await mockERC20
-      .connect(borrower)
-      .approve(
-        loan.address,
-        INPUTS.loanAmount +
-          (INPUTS.loanPayment * DEFAULT_LOAN_SETTINGS.duration) /
-            DEFAULT_LOAN_SETTINGS.paymentPeriod
-      );
-    await loan.connect(borrower).completeFullPayment();
+    // check that outstanding principal goes down to 500k
+    expect((await pool.accountings()).outstandingLoanPrincipals).to.equal(
+      500_000
+    );
 
-    // check accountings again
+    // PA reclaims the rest
+    await loan.connect(poolAdmin).reclaimFunds(500_000);
     expect((await pool.accountings()).outstandingLoanPrincipals).to.equal(0);
   });
 });
