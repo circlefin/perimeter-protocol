@@ -174,6 +174,15 @@ describe("PoolController", () => {
         poolController.connect(poolAdmin).setRequestCancellationFee(10)
       ).to.be.revertedWith("Pool: FunctionInvalidAtThisLifeCycleState");
     });
+
+    it.only("does not allow setting a request cancellation fee that's too large", async () => {
+      const { poolController, poolAdmin } =
+        await loadFixture(loadPoolFixture);
+
+      await expect(
+        poolController.connect(poolAdmin).setRequestCancellationFee(10_001)
+      ).to.be.revertedWith("Pool: fee too large");
+    });
   });
 
   describe("requestCancellationFee()", () => {
@@ -223,7 +232,7 @@ describe("PoolController", () => {
         await loadFixture(loadPoolFixture);
       await activatePool(pool, poolAdmin, liquidityAsset);
 
-      await expect(poolController.connect(poolAdmin).setWithdrawGate(10_001)).to.be.revertedWith("PoolController: invalid bps");
+      await expect(poolController.connect(poolAdmin).setWithdrawGate(10_001)).to.be.revertedWith("Pool: invalid bps");
     });
   });
 

@@ -153,6 +153,7 @@ contract PoolController is IPoolController {
     function setRequestCancellationFee(
         uint256 feeBps
     ) external onlyAdmin atState(IPoolLifeCycleState.Initialized) {
+        require(feeBps <= 10_000, "Pool: fee too large");
         _settings.requestCancellationFeeBps = feeBps;
     }
 
@@ -174,7 +175,7 @@ contract PoolController is IPoolController {
     function setWithdrawGate(
         uint256 _withdrawGateBps
     ) external onlyAdmin atInitializedOrActiveState {
-        require(_withdrawGateBps <= 10_000, "PoolController: invalid bps");
+        require(_withdrawGateBps <= 10_000, "Pool: invalid bps");
         _settings.withdrawGateBps = _withdrawGateBps;
     }
 
