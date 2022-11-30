@@ -1161,7 +1161,6 @@ describe("Loan", () => {
         .postFungibleCollateral(collateralAsset.address, 100);
       await poolController.connect(poolAdmin).fundLoan(loan.address);
       await loan.connect(borrower).drawdown(await loan.principal());
-      expect(await loan.originationFee()).to.equal(416);
 
       // Make payment
       const firstLoss = await poolController.firstLossVault();

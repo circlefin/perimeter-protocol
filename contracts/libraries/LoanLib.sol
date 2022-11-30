@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
+import "hardhat/console.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -284,41 +285,70 @@ library LoanLib {
         emit CanceledLoanPrincipalReturned(pool, amount);
     }
 
+    function previewFirstLossFee(uint256 payment, uint256 firstLossFeeBps)
+        public
+        pure
+        returns (uint256)
+    {
+        return RAY.mul(payment).mul(firstLossFeeBps).div(100_00).div(RAY);
+    }
+
+    function previewServiceFee(uint256 payment, uint256 serviceFeeBps)
+        public
+        pure
+        returns (uint256)
+    {
+        return RAY.mul(payment).mul(serviceFeeBps).div(100_00).div(RAY);
+    }
+
+    function previewOriginationFee(ILoanSettings calldata settings)
+        public
+        view
+        returns (uint256)
+    {
+        uint256 duration = settings.duration;
+        uint256 numOfPayments = settings.duration.div(settings.paymentPeriod);
+
+        return
+            settings
+                .principal
+                .mul(settings.originationBps)
+                .mul(settings.duration.mul(RAY).div(360))
+                .div(numOfPayments)
+                .div(RAY)
+                .div(10000);
+    }
+
     /**
      * @dev Calculate the fees for a given interest payment.
      */
     function previewFees(
+        ILoanSettings calldata settings,
         uint256 payment,
         uint256 firstLoss,
         uint256 poolFeePercentOfInterest,
-        uint256 latePaymentFee,
         uint256 paymentDueDate
     ) public view returns (ILoanFees memory) {
-        // First loss fee
-        uint256 firstLossFee = RAY.mul(firstLoss).mul(payment).div(10000).div(
-            RAY
-        );
-        uint256 serviceFee = RAY
-            .mul(poolFeePercentOfInterest)
-            .mul(payment)
-            .div(10000)
-            .div(RAY);
+        ILoanFees memory fees;
+
+        fees.payment = payment;
+        fees.firstLossFee = previewFirstLossFee(payment, firstLoss);
+        fees.serviceFee = previewServiceFee(payment, poolFeePercentOfInterest);
+        fees.originationFee = previewOriginationFee(settings);
 
         // Late fee is applied on top of interest payment
         uint256 lateFee;
         if (block.timestamp > paymentDueDate) {
-            lateFee = latePaymentFee;
+            lateFee = settings.latePayment;
         }
 
         // Actual interest payment to the pool
-        uint256 interestPayment = payment - serviceFee - firstLossFee + lateFee;
+        fees.interestPayment =
+            payment -
+            fees.serviceFee -
+            fees.firstLossFee +
+            lateFee;
 
-        ILoanFees memory fees;
-        fees.interestPayment = interestPayment;
-        fees.firstLossFee = firstLossFee;
-        fees.serviceFee = serviceFee;
-        fees.originationFee = 0; // TODO
-        fees.payment = payment;
         return fees;
     }
 
