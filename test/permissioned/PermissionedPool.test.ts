@@ -144,7 +144,7 @@ describe("PermissionedPool", () => {
     });
   });
 
-  describe.only("redeem()", () => {
+  describe("redeem()", () => {
     it("reverts if not allowed lender", async () => {
       const { pool, poolAdmin, liquidityAsset, otherAccount } =
         await loadFixture(loadPoolFixture);
