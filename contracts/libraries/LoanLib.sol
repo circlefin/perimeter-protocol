@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
-import "hardhat/console.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -303,10 +302,9 @@ library LoanLib {
 
     function previewOriginationFee(ILoanSettings calldata settings)
         public
-        view
+        pure
         returns (uint256)
     {
-        uint256 duration = settings.duration;
         uint256 numOfPayments = settings.duration.div(settings.paymentPeriod);
 
         return
@@ -319,6 +317,16 @@ library LoanLib {
                 .div(10000);
     }
 
+    function previewLatePaymentFee(
+        ILoanSettings calldata settings,
+        uint256 blockTimestamp,
+        uint256 paymentDueDate
+    ) public pure returns (uint256) {
+        if (blockTimestamp > paymentDueDate) {
+            return settings.latePayment;
+        }
+    }
+
     /**
      * @dev Calculate the fees for a given interest payment.
      */
@@ -327,27 +335,20 @@ library LoanLib {
         uint256 payment,
         uint256 firstLoss,
         uint256 poolFeePercentOfInterest,
+        uint256 blockTimestamp,
         uint256 paymentDueDate
-    ) public view returns (ILoanFees memory) {
+    ) public pure returns (ILoanFees memory) {
         ILoanFees memory fees;
-
         fees.payment = payment;
         fees.firstLossFee = previewFirstLossFee(payment, firstLoss);
         fees.serviceFee = previewServiceFee(payment, poolFeePercentOfInterest);
         fees.originationFee = previewOriginationFee(settings);
-
-        // Late fee is applied on top of interest payment
-        uint256 lateFee;
-        if (block.timestamp > paymentDueDate) {
-            lateFee = settings.latePayment;
-        }
-
-        // Actual interest payment to the pool
-        fees.interestPayment =
-            payment -
-            fees.serviceFee -
-            fees.firstLossFee +
-            lateFee;
+        fees.latePaymentFee = previewLatePaymentFee(
+            settings,
+            blockTimestamp,
+            paymentDueDate
+        );
+        fees.interestPayment = payment - fees.serviceFee - fees.firstLossFee;
 
         return fees;
     }

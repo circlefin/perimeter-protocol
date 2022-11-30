@@ -35,7 +35,6 @@ contract Loan is ILoan {
     uint256 public paymentDueDate;
     uint256 public callbackTimestamp;
     ILoanSettings settings;
-    ILoanFees public fees;
 
     event FundsReclaimed(uint256 amount, address pool);
 
@@ -356,6 +355,7 @@ contract Loan is ILoan {
             payment,
             _serviceConfiguration.firstLossFeeBps(),
             IPool(_pool).poolFeePercentOfInterest(),
+            block.timestamp,
             paymentDueDate
         );
 
@@ -367,7 +367,12 @@ contract Loan is ILoan {
             _fees.serviceFee,
             _fees.originationFee
         );
-        LoanLib.completePayment(liquidityAsset, _pool, _fees.interestPayment);
+
+        LoanLib.completePayment(
+            liquidityAsset,
+            _pool,
+            _fees.interestPayment + _fees.latePaymentFee
+        );
         paymentsRemaining -= 1;
         paymentDueDate += settings.paymentPeriod * 1 days;
         return payment;
@@ -388,6 +393,7 @@ contract Loan is ILoan {
                 amount,
                 _serviceConfiguration.firstLossFeeBps(),
                 IPool(_pool).poolFeePercentOfInterest(),
+                block.timestamp,
                 paymentDueDate
             );
     }
@@ -426,6 +432,7 @@ contract Loan is ILoan {
             amount,
             _serviceConfiguration.firstLossFeeBps(),
             IPool(_pool).poolFeePercentOfInterest(),
+            block.timestamp,
             paymentDueDate
         );
 
@@ -441,7 +448,9 @@ contract Loan is ILoan {
         LoanLib.completePayment(
             liquidityAsset,
             _pool,
-            _fees.interestPayment.add(outstandingPrincipal)
+            outstandingPrincipal.add(_fees.interestPayment).add(
+                _fees.latePaymentFee
+            )
         );
         IPool(_pool).notifyLoanPrincipalReturned(outstandingPrincipal);
 
