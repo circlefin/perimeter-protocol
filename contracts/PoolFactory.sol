@@ -71,6 +71,10 @@ contract PoolFactory is IPoolFactory {
             settings.requestFeeBps <= 10_000,
             "PoolFactory: Invalid request fee"
         );
+        require(
+            settings.requestCancellationFeeBps <= 10_000,
+            "PoolFactory: Invalid request cancellation fee"
+        );
 
         // Create the pool
         Pool pool = new Pool(

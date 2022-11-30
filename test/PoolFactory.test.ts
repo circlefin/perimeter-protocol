@@ -115,6 +115,22 @@ describe("PoolFactory", () => {
     ).to.be.revertedWith("PoolFactory: Invalid request fee");
   });
 
+  it("reverts if withdrawal request cancellation fee is too large", async () => {
+    const { serviceConfiguration, poolFactory, liquidityAsset } =
+      await loadFixture(deployFixture);
+
+    // Set a first loss minimum
+    await serviceConfiguration.setFirstLossMinimum(liquidityAsset.address, 1);
+
+    // Attempt to create a pool with > 100% withdraw gate
+    const poolSettings = Object.assign({}, DEFAULT_POOL_SETTINGS, {
+      requestCancellationFeeBps: 10_001
+    });
+    await expect(
+      poolFactory.createPool(liquidityAsset.address, poolSettings)
+    ).to.be.revertedWith("PoolFactory: Invalid request cancellation fee");
+  });
+
   it("emits PoolCreated", async () => {
     const { poolFactory, liquidityAsset } = await loadFixture(deployFixture);
 
