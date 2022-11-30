@@ -102,9 +102,9 @@ contract VeriteAccessControl is
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @inheritdoc IVeriteAccessControl
+     * @dev Check if an address is verified
      */
-    function isVerified(address addr) public view returns (bool) {
+    function isVerified(address addr) internal view returns (bool) {
         return _credentialVerifications[addr] > block.timestamp;
     }
 

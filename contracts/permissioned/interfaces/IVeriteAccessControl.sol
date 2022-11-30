@@ -71,11 +71,6 @@ interface IVeriteAccessControl {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Check if an address is verified
-     */
-    function isVerified(address) external view returns (bool);
-
-    /**
      * @dev Verifies a verification result and adds it to the list of valid
      * credentials until the expiration time.
      *
