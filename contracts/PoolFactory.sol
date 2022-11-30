@@ -67,6 +67,10 @@ contract PoolFactory is IPoolFactory {
             settings.withdrawGateBps <= 10_000,
             "PoolFactory: Invalid withdraw gate"
         );
+        require(
+            settings.requestFeeBps <= 10_000,
+            "PoolFactory: Invalid request fee"
+        );
 
         // Create the pool
         Pool pool = new Pool(
