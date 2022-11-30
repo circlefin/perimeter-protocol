@@ -284,42 +284,73 @@ library LoanLib {
         emit CanceledLoanPrincipalReturned(pool, amount);
     }
 
+    function previewFirstLossFee(uint256 payment, uint256 firstLossFeeBps)
+        public
+        pure
+        returns (uint256)
+    {
+        return RAY.mul(payment).mul(firstLossFeeBps).div(100_00).div(RAY);
+    }
+
+    function previewServiceFee(uint256 payment, uint256 serviceFeeBps)
+        public
+        pure
+        returns (uint256)
+    {
+        return RAY.mul(payment).mul(serviceFeeBps).div(100_00).div(RAY);
+    }
+
+    function previewOriginationFee(ILoanSettings calldata settings)
+        public
+        pure
+        returns (uint256)
+    {
+        uint256 numOfPayments = settings.duration.div(settings.paymentPeriod);
+
+        return
+            settings
+                .principal
+                .mul(settings.originationBps)
+                .mul(settings.duration.mul(RAY).div(360))
+                .div(numOfPayments)
+                .div(RAY)
+                .div(10000);
+    }
+
+    function previewLatePaymentFee(
+        ILoanSettings calldata settings,
+        uint256 blockTimestamp,
+        uint256 paymentDueDate
+    ) public pure returns (uint256) {
+        if (blockTimestamp > paymentDueDate) {
+            return settings.latePayment;
+        }
+    }
+
     /**
      * @dev Calculate the fees for a given interest payment.
      */
     function previewFees(
+        ILoanSettings calldata settings,
         uint256 payment,
         uint256 firstLoss,
         uint256 poolFeePercentOfInterest,
-        uint256 latePaymentFee,
+        uint256 blockTimestamp,
         uint256 paymentDueDate
-    )
-        public
-        view
-        returns (
-            uint256,
-            uint256,
-            uint256
-        )
-    {
-        uint256 firstLossFee = RAY.mul(firstLoss).mul(payment).div(10000).div(
-            RAY
+    ) public pure returns (ILoanFees memory) {
+        ILoanFees memory fees;
+        fees.payment = payment;
+        fees.firstLossFee = previewFirstLossFee(payment, firstLoss);
+        fees.serviceFee = previewServiceFee(payment, poolFeePercentOfInterest);
+        fees.originationFee = previewOriginationFee(settings);
+        fees.latePaymentFee = previewLatePaymentFee(
+            settings,
+            blockTimestamp,
+            paymentDueDate
         );
-        uint256 poolFee = RAY
-            .mul(poolFeePercentOfInterest)
-            .mul(payment)
-            .div(10000)
-            .div(RAY);
+        fees.interestPayment = payment - fees.serviceFee - fees.firstLossFee;
 
-        // Late fee is applied on top of interest payment
-        uint256 lateFee;
-        if (block.timestamp > paymentDueDate) {
-            lateFee = latePaymentFee;
-        }
-
-        uint256 poolPayment = payment - poolFee - firstLossFee + lateFee;
-
-        return (poolPayment, firstLossFee, poolFee);
+        return fees;
     }
 
     function payFees(

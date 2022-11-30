@@ -38,6 +38,15 @@ struct ILoanSettings {
     uint256 originationBps;
 }
 
+struct ILoanFees {
+    uint256 interestPayment; // interest payment transferred to pool
+    uint256 firstLossFee; // deducted from interest payments and transferred to first loss vault
+    uint256 serviceFee; // deducted from interest payments and transferred to fee vault
+    uint256 originationFee; // additional payment on top of interest payments and transferred to fee vault
+    uint256 latePaymentFee; // additional payment transferred to pool
+    uint256 payment; // cached monthly payment by borrowers
+}
+
 interface ILoan {
     /**
      * @dev Emitted when loan is funded.
