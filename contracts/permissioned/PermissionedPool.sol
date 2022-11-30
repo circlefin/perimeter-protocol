@@ -27,17 +27,6 @@ contract PermissionedPool is Pool {
     }
 
     /**
-     * @dev a modifier to only allow valid lenders to perform an action
-     */
-    modifier onlyValidReceiver(address receiver) {
-        require(
-            poolAccessControl.isValidParticipant(receiver),
-            "receiver is not a valid lender"
-        );
-        _;
-    }
-
-    /**
      * @dev The constructor for the PermissionedPool contract. It calls the
      * constructor of the Pool contract and then creates a new instance of the
      * PoolAccessControl contract.
@@ -88,12 +77,9 @@ contract PermissionedPool is Pool {
      * @dev Since Pool does not enforce that msg.sender == receiver, we only
      * check the receiver here.
      */
-    function maxDeposit(address receiver)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function maxDeposit(
+        address receiver
+    ) public view override returns (uint256) {
         if (!poolAccessControl.isValidParticipant(receiver)) {
             return 0;
         }
@@ -106,12 +92,10 @@ contract PermissionedPool is Pool {
      * @dev Since Pool enforces that msg.sender must be receiver, we only check
      * the sender here.
      */
-    function deposit(uint256 assets, address receiver)
-        public
-        override
-        onlyValidLender
-        returns (uint256 shares)
-    {
+    function deposit(
+        uint256 assets,
+        address receiver
+    ) public override onlyValidLender returns (uint256 shares) {
         return super.deposit(assets, receiver);
     }
 
@@ -133,12 +117,10 @@ contract PermissionedPool is Pool {
      * @dev Since Pool enforces that msg.sender must be receiver, we only check
      * the sender here.
      */
-    function mint(uint256 shares, address receiver)
-        public
-        override
-        onlyValidLender
-        returns (uint256)
-    {
+    function mint(
+        uint256 shares,
+        address receiver
+    ) public override onlyValidLender returns (uint256) {
         return super.mint(shares, receiver);
     }
 
