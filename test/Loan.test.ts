@@ -1281,7 +1281,7 @@ describe("Loan", () => {
       expect(await liquidityAsset.balanceOf(fundingVault)).to.equal(0);
 
       // Mint additional tokens to cover the interest payments
-      await liquidityAsset.mint(borrower.address, 12498);
+      await liquidityAsset.mint(borrower.address, 12498 + 50_000);
 
       // Repay some of the principal
       const prepaidPrincipal = 1_000;
@@ -1306,22 +1306,27 @@ describe("Loan", () => {
       // Relative to a full month payments, the fees will be halved
       await time.increase(THIRTY_DAYS / 2);
       const firstLossFee = 52;
-      const poolAdminFee = 208;
-      const interestPayment = 1041;
+      const serviceFee = 208;
+      const interestPayment = 989;
       const principal = 500_000;
-      const originationFee = 208;
+      const originationFee = 416 / 2;
 
       const tx = loan.connect(borrower).completeFullPayment();
       await expect(tx).to.not.be.reverted;
       await expect(tx).to.changeTokenBalance(
         liquidityAsset,
         borrower,
-        0 - interestPayment - principal - originationFee + prepaidPrincipal
+        0 -
+          interestPayment -
+          principal -
+          originationFee -
+          firstLossFee +
+          prepaidPrincipal
       );
       await expect(tx).to.changeTokenBalance(
         liquidityAsset,
         pool,
-        interestPayment + principal - prepaidPrincipal - firstLossFee
+        interestPayment + principal - prepaidPrincipal
       );
 
       const firstLoss = await pool.firstLossVault();
@@ -1333,7 +1338,7 @@ describe("Loan", () => {
       await expect(tx).to.changeTokenBalance(
         liquidityAsset,
         await pool.feeVault(),
-        poolAdminFee
+        serviceFee
       );
 
       expect(await loan.paymentsRemaining()).to.equal(0);
