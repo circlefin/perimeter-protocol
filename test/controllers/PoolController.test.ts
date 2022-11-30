@@ -217,6 +217,14 @@ describe("PoolController", () => {
     it("does not allow setting the request fee if the pool is paused", async () => {
       // TODO: Pause pool
     });
+
+    it("prevents setting a value too large ", async () => {
+      const { pool, poolController, poolAdmin, liquidityAsset } =
+        await loadFixture(loadPoolFixture);
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      await expect(poolController.connect(poolAdmin).setWithdrawGate(10_001)).to.be.revertedWith("PoolController: invalid bps");
+    });
   });
 
   describe("withdrawGate()", () => {
