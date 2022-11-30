@@ -63,6 +63,18 @@ contract PoolFactory is IPoolFactory {
                 ),
             "PoolFactory: Invalid first loss minimum"
         );
+        require(
+            settings.withdrawGateBps <= 10_000,
+            "PoolFactory: Invalid withdraw gate"
+        );
+        require(
+            settings.requestFeeBps <= 10_000,
+            "PoolFactory: Invalid request fee"
+        );
+        require(
+            settings.requestCancellationFeeBps <= 10_000,
+            "PoolFactory: Invalid request cancellation fee"
+        );
 
         // Create the pool
         Pool pool = new Pool(

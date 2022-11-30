@@ -134,6 +134,7 @@ contract PoolController is IPoolController {
         onlyAdmin
         atState(IPoolLifeCycleState.Initialized)
     {
+        require(feeBps <= 10_000, "Pool: fee too large");
         _settings.requestFeeBps = feeBps;
     }
 
@@ -159,6 +160,7 @@ contract PoolController is IPoolController {
         onlyAdmin
         atState(IPoolLifeCycleState.Initialized)
     {
+        require(feeBps <= 10_000, "Pool: fee too large");
         _settings.requestCancellationFeeBps = feeBps;
     }
 
@@ -184,6 +186,7 @@ contract PoolController is IPoolController {
         onlyAdmin
         atInitializedOrActiveState
     {
+        require(_withdrawGateBps <= 10_000, "Pool: invalid bps");
         _settings.withdrawGateBps = _withdrawGateBps;
     }
 
