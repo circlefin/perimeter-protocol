@@ -49,7 +49,7 @@ contract PermissionedPoolFactory is IPoolFactory {
             IPermissionedServiceConfiguration(_serviceConfiguration)
                 .poolAdminAccessControl()
                 .isAllowed(msg.sender),
-            "caller is not allowed pool admin"
+            "CALLER_NOT_ADMIN"
         );
         _;
     }

@@ -1,6 +1,7 @@
 import { time } from "@nomicfoundation/hardhat-network-helpers";
 import { ethers } from "ethers";
 import { v4 } from "uuid";
+import { ethers as hardhatEthers } from "hardhat";
 
 /**
  * Returns a schema for use in verification
@@ -73,4 +74,33 @@ export async function getSignedVerificationResult(
     verificationResult,
     signature
   };
+}
+
+/**
+ * Helper method which performs a successful Verite verification for a given
+ * subject on a given contract.
+ */
+export async function performVeriteVerification(
+  contract: any,
+  admin: Pick<ethers.Wallet, "_signTypedData" | "address">,
+  subject: Pick<ethers.Wallet, "_signTypedData" | "address">,
+  verifier?: Pick<ethers.Wallet, "_signTypedData" | "address">
+) {
+  verifier = verifier || (await hardhatEthers.getSigners())[5];
+
+  // Register the verifier
+  await contract.connect(admin).addTrustedVerifier(verifier.address);
+
+  // Get a signed verification result
+  const { verificationResult, signature } = await getSignedVerificationResult(
+    contract.address,
+    subject.address,
+    verifier
+  );
+
+  // Register the schema
+  await contract.connect(admin).addCredentialSchema(verificationResult.schema);
+
+  // Verify the verification result
+  await contract.connect(subject).verify(verificationResult, signature);
 }
