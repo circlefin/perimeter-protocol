@@ -651,6 +651,7 @@ contract Pool is IPool, ERC20 {
         onlyCrankedPool
         returns (uint256 shares)
     {
+        require(msg.sender == receiver, "Pool: invalid receiver");
         shares = PoolLib.executeDeposit(
             asset(),
             address(this),
@@ -707,6 +708,7 @@ contract Pool is IPool, ERC20 {
         onlyCrankedPool
         returns (uint256 assets)
     {
+        require(msg.sender == receiver, "Pool: invalid receiver");
         assets = previewMint(shares);
         PoolLib.executeDeposit(
             asset(),
