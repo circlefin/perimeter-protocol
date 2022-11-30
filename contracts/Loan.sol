@@ -36,6 +36,7 @@ contract Loan is ILoan {
     uint256 public originationFee;
     uint256 public callbackTimestamp;
     ILoanSettings settings;
+    ILoanFees fees;
 
     event FundsReclaimed(uint256 amount, address pool);
 
@@ -360,24 +361,23 @@ contract Loan is ILoan {
     {
         require(paymentsRemaining > 0, "Loan: No more payments remain");
 
-        (uint256 poolPayment, uint256 firstLossFee, uint256 poolFee) = LoanLib
-            .previewFees(
-                payment,
-                _serviceConfiguration.firstLossFeeBps(),
-                IPool(_pool).poolFeePercentOfInterest(),
-                settings.latePayment,
-                paymentDueDate
-            );
+        ILoanFees memory _fees = LoanLib.previewFees(
+            payment,
+            _serviceConfiguration.firstLossFeeBps(),
+            IPool(_pool).poolFeePercentOfInterest(),
+            settings.latePayment,
+            paymentDueDate
+        );
 
         LoanLib.payFees(
             liquidityAsset,
             IPool(_pool).firstLossVault(),
-            firstLossFee,
+            _fees.firstLossFee,
             IPool(_pool).feeVault(),
-            poolFee,
+            _fees.serviceFee,
             originationFee
         );
-        LoanLib.completePayment(liquidityAsset, _pool, poolPayment);
+        LoanLib.completePayment(liquidityAsset, _pool, _fees.interestPayment);
         paymentsRemaining -= 1;
         paymentDueDate += settings.paymentPeriod * 1 days;
         return payment;
@@ -390,22 +390,16 @@ contract Loan is ILoan {
     function previewFees(uint256 amount)
         public
         view
-        returns (
-            uint256,
-            uint256,
-            uint256
-        )
+        returns (ILoanFees memory)
     {
-        (uint256 poolPayment, uint256 firstLossFee, uint256 poolFee) = LoanLib
-            .previewFees(
+        return
+            LoanLib.previewFees(
                 amount,
                 _serviceConfiguration.firstLossFeeBps(),
                 IPool(_pool).poolFeePercentOfInterest(),
                 settings.latePayment,
                 paymentDueDate
             );
-
-        return (poolPayment, firstLossFee, poolFee);
     }
 
     /**
@@ -437,28 +431,27 @@ contract Loan is ILoan {
             amount = (payment * scalingValue) / RAY;
         }
 
-        (uint256 poolPayment, uint256 firstLossFee, uint256 poolFee) = LoanLib
-            .previewFees(
-                amount,
-                _serviceConfiguration.firstLossFeeBps(),
-                IPool(_pool).poolFeePercentOfInterest(),
-                settings.latePayment,
-                paymentDueDate
-            );
+        ILoanFees memory _fees = LoanLib.previewFees(
+            amount,
+            _serviceConfiguration.firstLossFeeBps(),
+            IPool(_pool).poolFeePercentOfInterest(),
+            settings.latePayment,
+            paymentDueDate
+        );
 
         LoanLib.payFees(
             liquidityAsset,
             IPool(_pool).firstLossVault(),
-            firstLossFee,
+            _fees.firstLossFee,
             IPool(_pool).feeVault(),
-            poolFee,
+            _fees.serviceFee,
             originationFee.mul(scalingValue).div(RAY)
         );
 
         LoanLib.completePayment(
             liquidityAsset,
             _pool,
-            poolPayment.add(outstandingPrincipal)
+            _fees.interestPayment.add(outstandingPrincipal)
         );
         IPool(_pool).notifyLoanPrincipalReturned(outstandingPrincipal);
 

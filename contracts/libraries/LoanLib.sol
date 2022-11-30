@@ -293,19 +293,12 @@ library LoanLib {
         uint256 poolFeePercentOfInterest,
         uint256 latePaymentFee,
         uint256 paymentDueDate
-    )
-        public
-        view
-        returns (
-            uint256,
-            uint256,
-            uint256
-        )
-    {
+    ) public view returns (ILoanFees memory) {
+        // First loss fee
         uint256 firstLossFee = RAY.mul(firstLoss).mul(payment).div(10000).div(
             RAY
         );
-        uint256 poolFee = RAY
+        uint256 serviceFee = RAY
             .mul(poolFeePercentOfInterest)
             .mul(payment)
             .div(10000)
@@ -317,9 +310,16 @@ library LoanLib {
             lateFee = latePaymentFee;
         }
 
-        uint256 poolPayment = payment - poolFee - firstLossFee + lateFee;
+        // Actual interest payment to the pool
+        uint256 interestPayment = payment - serviceFee - firstLossFee + lateFee;
 
-        return (poolPayment, firstLossFee, poolFee);
+        ILoanFees memory fees;
+        fees.interestPayment = interestPayment;
+        fees.firstLossFee = firstLossFee;
+        fees.serviceFee = serviceFee;
+        fees.originationFee = 0; // TODO
+        fees.payment = payment;
+        return fees;
     }
 
     function payFees(
