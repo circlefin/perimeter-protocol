@@ -14,7 +14,7 @@ export function verificationSchema() {
  */
 export function verificationDomain(contractAddress: string) {
   return {
-    name: "PoolAccessControl",
+    name: "VerificationRegistry",
     version: "1.0",
     chainId: 31337,
     verifyingContract: contractAddress
