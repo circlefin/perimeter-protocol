@@ -83,6 +83,22 @@ describe("PoolFactory", () => {
     ).to.be.revertedWith("PoolFactory: Invalid first loss minimum");
   });
 
+  it("reverts if withdraw gate is too large", async () => {
+    const { serviceConfiguration, poolFactory, liquidityAsset } =
+      await loadFixture(deployFixture);
+
+    // Set a first loss minimum
+    await serviceConfiguration.setFirstLossMinimum(liquidityAsset.address, 1);
+
+    // Attempt to create a pool with > 100% withdraw gate
+    const poolSettings = Object.assign({}, DEFAULT_POOL_SETTINGS, {
+      withdrawGateBps: 10_001
+    });
+    await expect(
+      poolFactory.createPool(liquidityAsset.address, poolSettings)
+    ).to.be.revertedWith("PoolFactory: Invalid withdraw gate");
+  });
+
   it("emits PoolCreated", async () => {
     const { poolFactory, liquidityAsset } = await loadFixture(deployFixture);
 
