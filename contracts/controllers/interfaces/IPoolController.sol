@@ -104,6 +104,12 @@ interface IPoolController {
     function withdrawGate() external view returns (uint256);
 
     /**
+     * @dev Returns the current withdraw request period duration in seconds. If the pool is closed,
+     * this is lowered (if needed) to 1 day.
+     */
+    function withdrawRequestPeriodDuration() external view returns (uint256);
+
+    /**
      * @dev
      */
     function setPoolCapacity(uint256) external;
