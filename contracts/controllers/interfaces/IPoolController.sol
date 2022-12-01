@@ -164,10 +164,9 @@ interface IPoolController {
     /**
      * @dev Withdraws first-loss from the pool. Can only be called by the Pool Admin.
      */
-    function withdrawFirstLoss(
-        uint256 amount,
-        address receiver
-    ) external returns (uint256);
+    function withdrawFirstLoss(uint256 amount, address receiver)
+        external
+        returns (uint256);
 
     /*//////////////////////////////////////////////////////////////
                 Loans

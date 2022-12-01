@@ -380,7 +380,7 @@ describe("PoolController", () => {
         loadPoolFixture
       );
 
-      const tx = poolController.connect(otherAccount).setServiceFeeBps(0)
+      const tx = poolController.connect(otherAccount).setServiceFeeBps(0);
       await expect(tx).to.be.revertedWith("Pool: caller is not admin");
     });
   });
@@ -412,7 +412,7 @@ describe("PoolController", () => {
         loadPoolFixture
       );
 
-      const tx = poolController.connect(otherAccount).setFixedFee(100, 1)
+      const tx = poolController.connect(otherAccount).setFixedFee(100, 1);
       await expect(tx).to.be.revertedWith("Pool: caller is not admin");
     });
   });
