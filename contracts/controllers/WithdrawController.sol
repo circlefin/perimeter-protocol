@@ -495,8 +495,12 @@ contract WithdrawController is IWithdrawController {
     /**
      * @dev Cranks a lender
      */
-    function crankLender(address addr) internal {
-        _withdrawState[addr] = _currentWithdrawState(addr);
+    function crankLender(address addr)
+        internal
+        returns (IPoolWithdrawState memory state)
+    {
+        state = _currentWithdrawState(addr);
+        _withdrawState[addr] = state;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -511,10 +515,9 @@ contract WithdrawController is IWithdrawController {
         onlyPool
         returns (uint256 assets)
     {
-        crankLender(owner);
+        IPoolWithdrawState memory state = crankLender(owner);
 
         // Calculate how many assets should be transferred
-        IPoolWithdrawState memory state = _currentWithdrawState(owner);
         assets = PoolLib.calculateConversion(
             shares,
             state.withdrawableAssets,
@@ -522,7 +525,7 @@ contract WithdrawController is IWithdrawController {
             false
         );
 
-        _performWithdraw(owner, shares, assets);
+        _performWithdraw(owner, state, shares, assets);
     }
 
     /**
@@ -533,10 +536,9 @@ contract WithdrawController is IWithdrawController {
         onlyPool
         returns (uint256 shares)
     {
-        crankLender(owner);
+        IPoolWithdrawState memory state = crankLender(owner);
 
         // Calculate how many shares should be burned
-        IPoolWithdrawState memory state = _currentWithdrawState(owner);
         shares = PoolLib.calculateConversion(
             assets,
             state.redeemableShares,
@@ -544,7 +546,7 @@ contract WithdrawController is IWithdrawController {
             true
         );
 
-        _performWithdraw(owner, shares, assets);
+        _performWithdraw(owner, state, shares, assets);
     }
 
     /**
@@ -552,11 +554,10 @@ contract WithdrawController is IWithdrawController {
      */
     function _performWithdraw(
         address owner,
+        IPoolWithdrawState memory currentState,
         uint256 shares,
         uint256 assets
     ) internal {
-        IPoolWithdrawState memory currentState = _currentWithdrawState(owner);
-
         require(
             assets <= currentState.withdrawableAssets,
             "Pool: InsufficientBalance"
