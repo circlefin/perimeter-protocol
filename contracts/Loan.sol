@@ -125,7 +125,6 @@ contract Loan is ILoan {
             serviceConfiguration,
             settings.duration,
             settings.paymentPeriod,
-            settings.loanType,
             settings.principal,
             liquidityAsset
         );

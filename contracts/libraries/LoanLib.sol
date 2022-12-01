@@ -76,10 +76,9 @@ library LoanLib {
         IServiceConfiguration config,
         uint256 duration,
         uint256 paymentPeriod,
-        ILoanType loanType,
         uint256 principal,
         address liquidityAsset
-    ) external {
+    ) external view {
         require(duration > 0, "LoanLib: Duration cannot be zero");
         require(paymentPeriod > 0, "LoanLib: Payment period cannot be zero");
         require(
@@ -325,6 +324,8 @@ library LoanLib {
         if (blockTimestamp > paymentDueDate) {
             return settings.latePayment;
         }
+
+        return 0;
     }
 
     /**

@@ -257,9 +257,7 @@ contract WithdrawController is IWithdrawController {
         view
         returns (uint256 shares)
     {
-        IPoolWithdrawState memory withdrawState = _currentWithdrawState(
-            msg.sender
-        );
+        IPoolWithdrawState memory withdrawState = _currentWithdrawState(owner);
         shares = PoolLib.calculateConversion(
             assets,
             withdrawState.redeemableShares,
