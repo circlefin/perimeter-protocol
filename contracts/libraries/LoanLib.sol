@@ -299,19 +299,16 @@ library LoanLib {
         return RAY.mul(payment).mul(serviceFeeBps).div(100_00).div(RAY);
     }
 
-    function previewOriginationFee(ILoanSettings calldata settings)
-        public
-        pure
-        returns (uint256)
-    {
-        uint256 numOfPayments = settings.duration.div(settings.paymentPeriod);
-
+    function previewOriginationFee(
+        ILoanSettings calldata settings,
+        uint256 scalingValue
+    ) public pure returns (uint256) {
         return
             settings
                 .principal
                 .mul(settings.originationBps)
-                .mul(settings.duration.mul(RAY).div(360))
-                .div(numOfPayments)
+                .mul(settings.duration.mul(scalingValue).div(360))
+                .div(settings.duration.div(settings.paymentPeriod))
                 .div(RAY)
                 .div(10000);
     }
@@ -337,13 +334,16 @@ library LoanLib {
         uint256 firstLoss,
         uint256 poolFeePercentOfInterest,
         uint256 blockTimestamp,
-        uint256 paymentDueDate
+        uint256 paymentDueDate,
+        uint256 scalingValue
     ) public pure returns (ILoanFees memory) {
+        // If there is a scaling value
+        payment = payment.mul(scalingValue).div(RAY);
         ILoanFees memory fees;
         fees.payment = payment;
         fees.firstLossFee = previewFirstLossFee(payment, firstLoss);
         fees.serviceFee = previewServiceFee(payment, poolFeePercentOfInterest);
-        fees.originationFee = previewOriginationFee(settings);
+        fees.originationFee = previewOriginationFee(settings, scalingValue);
         fees.latePaymentFee = previewLatePaymentFee(
             settings,
             blockTimestamp,
@@ -357,30 +357,25 @@ library LoanLib {
     function payFees(
         address asset,
         address firstLossVault,
-        uint256 firstLoss,
-        address poolAdmin,
-        uint256 poolFeePercentOfInterest,
-        uint256 originationFee
+        address feeVault,
+        ILoanFees calldata fees
     ) public {
-        if (firstLoss > 0) {
+        if (fees.firstLossFee > 0) {
             IERC20(asset).safeTransferFrom(
                 msg.sender,
                 firstLossVault,
-                firstLoss
+                fees.firstLossFee
             );
         }
-        if (poolFeePercentOfInterest > 0) {
+
+        // The FeeVault holds the balance of fees intended for the PoolAdmin.
+        // This include both the service fee and origiantion fees.
+        uint256 feeVaultAmount = fees.serviceFee + fees.originationFee;
+        if (feeVaultAmount > 0) {
             IERC20(asset).safeTransferFrom(
                 msg.sender,
-                poolAdmin,
-                poolFeePercentOfInterest
-            );
-        }
-        if (originationFee > 0) {
-            IERC20(asset).safeTransferFrom(
-                msg.sender,
-                poolAdmin,
-                originationFee
+                feeVault,
+                feeVaultAmount
             );
         }
     }
