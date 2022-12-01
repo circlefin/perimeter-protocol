@@ -18,7 +18,7 @@ contract PermissionedPool is Pool {
     /**
      * @dev a modifier to only allow valid lenders to perform an action
      */
-    modifier onlyValidLender() {
+    modifier onlyPermittedLender() override {
         require(
             poolAccessControl.isValidParticipant(msg.sender),
             "caller is not a valid lender"
@@ -92,20 +92,6 @@ contract PermissionedPool is Pool {
 
     /**
      * @inheritdoc Pool
-     * @dev Since Pool enforces that msg.sender must be receiver, we only check
-     * the sender here.
-     */
-    function deposit(uint256 assets, address receiver)
-        public
-        override
-        onlyValidLender
-        returns (uint256 shares)
-    {
-        return super.deposit(assets, receiver);
-    }
-
-    /**
-     * @inheritdoc Pool
      * @dev Since Pool does not enforce that msg.sender == receiver, we only
      * check the receiver here.
      */
@@ -115,45 +101,5 @@ contract PermissionedPool is Pool {
         }
 
         return super.maxMint(receiver);
-    }
-
-    /**
-     * @inheritdoc Pool
-     * @dev Since Pool enforces that msg.sender must be receiver, we only check
-     * the sender here.
-     */
-    function mint(uint256 shares, address receiver)
-        public
-        override
-        onlyValidLender
-        returns (uint256)
-    {
-        return super.mint(shares, receiver);
-    }
-
-    /**
-     * @inheritdoc Pool
-     * @dev Since Pool enforces that msg.sender == receiver == owner, we
-     * only check the sender here.
-     */
-    function withdraw(
-        uint256 assets,
-        address receiver,
-        address owner
-    ) public override onlyValidLender returns (uint256 shares) {
-        return super.withdraw(assets, receiver, owner);
-    }
-
-    /**
-     * @inheritdoc Pool
-     * @dev Since Pool enforces that msg.sender == receiver == owner, we
-     * only check the sender here.
-     */
-    function redeem(
-        uint256 shares,
-        address receiver,
-        address owner
-    ) public override onlyValidLender returns (uint256 assets) {
-        return super.redeem(shares, receiver, owner);
     }
 }

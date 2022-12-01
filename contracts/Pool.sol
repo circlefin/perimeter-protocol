@@ -97,6 +97,14 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
+     * @dev Modifier that can be overriden by derived classes to enforce
+     * access control.
+     */
+    modifier onlyPermittedLender() virtual {
+        _;
+    }
+
+    /**
      * @dev Constructor for Pool
      * @param liquidityAsset asset held by the poo
      * @param poolAdmin admin of the pool
@@ -648,6 +656,7 @@ contract Pool is IPool, ERC20 {
         virtual
         override
         atState(IPoolLifeCycleState.Active)
+        onlyPermittedLender
         onlyCrankedPool
         returns (uint256 shares)
     {
@@ -705,6 +714,7 @@ contract Pool is IPool, ERC20 {
         virtual
         override
         atState(IPoolLifeCycleState.Active)
+        onlyPermittedLender
         onlyCrankedPool
         returns (uint256 assets)
     {
@@ -755,7 +765,13 @@ contract Pool is IPool, ERC20 {
         uint256 assets,
         address receiver,
         address owner
-    ) public virtual onlyCrankedPool returns (uint256 shares) {
+    )
+        public
+        virtual
+        onlyPermittedLender
+        onlyCrankedPool
+        returns (uint256 shares)
+    {
         require(receiver == owner, "Pool: Withdrawal to unrelated address");
         require(receiver == msg.sender, "Pool: Must transfer to msg.sender");
         require(assets > 0, "Pool: 0 withdraw not allowed");
@@ -803,7 +819,13 @@ contract Pool is IPool, ERC20 {
         uint256 shares,
         address receiver,
         address owner
-    ) public virtual onlyCrankedPool returns (uint256 assets) {
+    )
+        public
+        virtual
+        onlyPermittedLender
+        onlyCrankedPool
+        returns (uint256 assets)
+    {
         require(receiver == owner, "Pool: Withdrawal to unrelated address");
         require(receiver == msg.sender, "Pool: Must transfer to msg.sender");
         require(shares > 0, "Pool: 0 redeem not allowed");
