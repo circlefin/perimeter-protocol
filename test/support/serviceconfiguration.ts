@@ -4,13 +4,21 @@ import { deployToSAcceptanceRegistry } from "./tosacceptanceregistry";
 /**
  * Deploy ServiceConfiguration
  */
-export async function deployServiceConfiguration(operator?: any) {
+export async function deployServiceConfiguration(operator?: any, pauser?: any) {
   const ServiceConfiguration = await ethers.getContractFactory(
     "ServiceConfiguration",
     operator
   );
   const serviceConfiguration = await ServiceConfiguration.deploy();
   await serviceConfiguration.deployed();
+
+  if (pauser) {
+    const tx = await serviceConfiguration.grantRole(
+      await serviceConfiguration.PAUSER_ROLE(),
+      pauser.address
+    );
+    await tx.wait();
+  }
 
   return {
     serviceConfiguration

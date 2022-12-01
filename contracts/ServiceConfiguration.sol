@@ -15,6 +15,11 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
     /**
+     * @dev The Pauser Role
+     */
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+
+    /**
      * @dev Whether the protocol is paused.
      */
     bool public paused = false;
@@ -74,6 +79,7 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
      * owners.
      */
     constructor() {
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         // Grant the contract deployer the Operator role
         _setupRole(OPERATOR_ROLE, msg.sender);
     }
@@ -90,13 +96,23 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     }
 
     /**
+     * @dev Require the caller be the pauser
+     */
+    modifier onlyPauser() {
+        require(
+            hasRole(PAUSER_ROLE, msg.sender),
+            "ServiceConfiguration: caller is not a pauser"
+        );
+        _;
+    }
+
+    /**
      * @dev Set a liquidity asset as valid or not.
      */
-    function setLiquidityAsset(address addr, bool value)
-        public
-        override
-        onlyOperator
-    {
+    function setLiquidityAsset(
+        address addr,
+        bool value
+    ) public override onlyOperator {
         isLiquidityAsset[addr] = value;
         emit LiquidityAssetSet(addr, value);
     }
@@ -104,7 +120,7 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     /**
      * @dev Pause/unpause the protocol.
      */
-    function setPaused(bool paused_) public onlyOperator {
+    function setPaused(bool paused_) public onlyPauser {
         paused = paused_;
         emit ProtocolPaused(paused);
     }
@@ -119,11 +135,10 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     /**
      * @inheritdoc IServiceConfiguration
      */
-    function setLoanFactory(address addr, bool isValid)
-        external
-        override
-        onlyOperator
-    {
+    function setLoanFactory(
+        address addr,
+        bool isValid
+    ) external override onlyOperator {
         isLoanFactory[addr] = isValid;
         emit LoanFactorySet(addr, isValid);
     }
@@ -131,11 +146,9 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     /**
      * @inheritdoc IServiceConfiguration
      */
-    function setToSAcceptanceRegistry(address addr)
-        external
-        override
-        onlyOperator
-    {
+    function setToSAcceptanceRegistry(
+        address addr
+    ) external override onlyOperator {
         tosAcceptanceRegistry = addr;
         emit TermsOfServiceRegistrySet(addr);
     }
@@ -143,11 +156,10 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     /**
      * @inheritdoc IServiceConfiguration
      */
-    function setFirstLossMinimum(address addr, uint256 value)
-        external
-        override
-        onlyOperator
-    {
+    function setFirstLossMinimum(
+        address addr,
+        uint256 value
+    ) external override onlyOperator {
         firstLossMinimum[addr] = value;
         emit FirstLossMinimumSet(addr, value);
     }
