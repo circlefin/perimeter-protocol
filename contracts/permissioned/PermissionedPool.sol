@@ -19,10 +19,7 @@ contract PermissionedPool is Pool {
      * @dev a modifier to only allow valid lenders to perform an action
      */
     modifier onlyPermittedLender() override {
-        require(
-            poolAccessControl.isAllowed(msg.sender),
-            "caller is not a valid lender"
-        );
+        require(poolAccessControl.isAllowed(msg.sender), "LENDER_NOT_ALLOWED");
         _;
     }
 

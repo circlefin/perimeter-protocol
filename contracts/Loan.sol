@@ -85,6 +85,14 @@ contract Loan is ILoan {
     }
 
     /**
+     * @dev Modifier that can be overriden by derived classes to enforce
+     * access control.
+     */
+    modifier onlyPermittedBorrower() virtual {
+        _;
+    }
+
+    /**
      * @dev Modifier that requires the loan not be in a terminal state.
      */
     modifier onlyNonTerminalState() {
@@ -157,6 +165,7 @@ contract Loan is ILoan {
      */
     function cancelCollateralized()
         external
+        onlyPermittedBorrower
         onlyBorrower
         atState(ILoanLifeCycleState.Collateralized)
         returns (ILoanLifeCycleState)
@@ -198,8 +207,8 @@ contract Loan is ILoan {
     }
 
     /**
-     * @dev Claims specific collateral types. Can be called by the borrower (when Canceled or Matured)
-     * or by the PA (when Defaulted)
+     * @dev Claims specific collateral types. Can be called by the borrower
+     * (when Canceled or Matured) or by the PA (when Defaulted)
      */
     function claimCollateral(
         address[] memory assets,
@@ -226,8 +235,9 @@ contract Loan is ILoan {
      * @dev Post ERC20 tokens as collateral
      */
     function postFungibleCollateral(address asset, uint256 amount)
-        public
+        external
         virtual
+        onlyPermittedBorrower
         onlyBorrower
         onlyNonTerminalState
         returns (ILoanLifeCycleState)
@@ -251,8 +261,9 @@ contract Loan is ILoan {
      * @dev Post ERC721 tokens as collateral
      */
     function postNonFungibleCollateral(address asset, uint256 tokenId)
-        public
+        external
         virtual
+        onlyPermittedBorrower
         onlyBorrower
         onlyNonTerminalState
         returns (ILoanLifeCycleState)
@@ -309,8 +320,9 @@ contract Loan is ILoan {
      * @dev Drawdown the Loan
      */
     function drawdown(uint256 amount)
-        public
+        external
         virtual
+        onlyPermittedBorrower
         onlyBorrower
         returns (uint256)
     {
@@ -331,7 +343,11 @@ contract Loan is ILoan {
      * @dev Prepay principal.
      * @dev Only callable by open term loans
      */
-    function paydownPrincipal(uint256 amount) external onlyBorrower {
+    function paydownPrincipal(uint256 amount)
+        external
+        onlyPermittedBorrower
+        onlyBorrower
+    {
         require(outstandingPrincipal >= amount, "Loan: amount too high");
         require(settings.loanType == ILoanType.Open, "Loan: invalid loan type");
         LoanLib.paydownPrincipal(liquidityAsset, amount, fundingVault);
@@ -342,7 +358,8 @@ contract Loan is ILoan {
      * @dev Complete the next payment according to loan schedule inclusive of all fees.
      */
     function completeNextPayment()
-        public
+        external
+        onlyPermittedBorrower
         onlyBorrower
         atState(ILoanLifeCycleState.Active)
         returns (uint256)
@@ -401,7 +418,8 @@ contract Loan is ILoan {
      * @dev Complete the final payment of the loan.
      */
     function completeFullPayment()
-        public
+        external
+        onlyPermittedBorrower
         onlyBorrower
         atState(ILoanLifeCycleState.Active)
         returns (uint256)
