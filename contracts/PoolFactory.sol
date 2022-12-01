@@ -75,6 +75,12 @@ contract PoolFactory is IPoolFactory {
             settings.requestCancellationFeeBps <= 10_000,
             "PoolFactory: Invalid request cancellation fee"
         );
+        require(
+            IServiceConfiguration(_serviceConfiguration).isLiquidityAsset(
+                liquidityAsset
+            ),
+            "PoolFactory: invalid asset"
+        );
 
         // Create the pool
         Pool pool = new Pool(
