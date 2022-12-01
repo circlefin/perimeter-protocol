@@ -106,7 +106,7 @@ describe("Loan", () => {
 
   async function deployFixturePoolFees() {
     const poolSettings = Object.assign({}, DEFAULT_POOL_SETTINGS, {
-      poolFeePercentOfInterest: 100
+      serviceFeeBps: 100
     });
     return deployFixture(poolSettings);
   }
@@ -138,7 +138,7 @@ describe("Loan", () => {
         principal: 500_000,
         loanType: 1,
         originationBps: 100,
-        poolFeePercentOfInterest: 100
+        serviceFeeBps: 100
       })
     );
   }
@@ -1124,7 +1124,7 @@ describe("Loan", () => {
         .postFungibleCollateral(collateralAsset.address, 100);
       await poolController.connect(poolAdmin).fundLoan(loan.address);
       await loan.connect(borrower).drawdown(await loan.principal());
-      expect(await pool.poolFeePercentOfInterest()).to.equal(100);
+      expect(await pool.serviceFeeBps()).to.equal(100);
 
       // Make payment
       const firstLoss = await poolController.firstLossVault();

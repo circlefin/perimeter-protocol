@@ -335,14 +335,14 @@ library LoanLib {
         ILoanSettings calldata settings,
         uint256 payment,
         uint256 firstLoss,
-        uint256 poolFeePercentOfInterest,
+        uint256 serviceFeeBps,
         uint256 blockTimestamp,
         uint256 paymentDueDate
     ) public pure returns (ILoanFees memory) {
         ILoanFees memory fees;
         fees.payment = payment;
         fees.firstLossFee = previewFirstLossFee(payment, firstLoss);
-        fees.serviceFee = previewServiceFee(payment, poolFeePercentOfInterest);
+        fees.serviceFee = previewServiceFee(payment, serviceFeeBps);
         fees.originationFee = previewOriginationFee(settings);
         fees.latePaymentFee = previewLatePaymentFee(
             settings,
@@ -359,7 +359,7 @@ library LoanLib {
         address firstLossVault,
         uint256 firstLoss,
         address poolAdmin,
-        uint256 poolFeePercentOfInterest,
+        uint256 serviceFeeBps,
         uint256 originationFee
     ) public {
         if (firstLoss > 0) {
@@ -369,11 +369,11 @@ library LoanLib {
                 firstLoss
             );
         }
-        if (poolFeePercentOfInterest > 0) {
+        if (serviceFeeBps > 0) {
             IERC20(asset).safeTransferFrom(
                 msg.sender,
                 poolAdmin,
-                poolFeePercentOfInterest
+                serviceFeeBps
             );
         }
         if (originationFee > 0) {

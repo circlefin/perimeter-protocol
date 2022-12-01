@@ -18,7 +18,7 @@ describe("Business Scenario 4", () => {
       withdrawRequestPeriodDuration: 7 * 24 * 60 * 60, // 7 days
       fixedFee: 0,
       fixedFeeInterval: 0,
-      poolFeePercentOfInterest: 2_000 // 20%
+      serviceFeeBps: 2_000 // 20%
     },
     loan: {
       duration: 28,

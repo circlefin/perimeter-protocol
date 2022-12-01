@@ -17,7 +17,7 @@ export const DEFAULT_POOL_SETTINGS = {
   withdrawRequestPeriodDuration: 30 * 24 * 60 * 60, // 30 days
   fixedFee: 0,
   fixedFeeInterval: 0,
-  poolFeePercentOfInterest: 0 // bps (0%)
+  serviceFeeBps: 0 // bps (0%)
 };
 
 type DeployPoolProps = {

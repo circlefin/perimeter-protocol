@@ -22,11 +22,11 @@ struct IPoolConfigurableSettings {
     uint256 requestFeeBps; // bips
     uint256 requestCancellationFeeBps; // bips
     uint256 withdrawGateBps; // Percent of liquidity pool available to withdraw, represented in BPS
+    uint256 serviceFeeBps; // Percent taken from borrower interest payments to be paid to pool admin, represented in bips
     uint256 firstLossInitialMinimum; // amount
     uint256 withdrawRequestPeriodDuration; // seconds (e.g. 30 days)
     uint256 fixedFee;
     uint256 fixedFeeInterval;
-    uint256 poolFeePercentOfInterest; // bips
 }
 
 /**
@@ -154,9 +154,10 @@ interface IPoolController {
     /**
      * @dev Withdraws first-loss from the pool. Can only be called by the Pool Admin.
      */
-    function withdrawFirstLoss(uint256 amount, address receiver)
-        external
-        returns (uint256);
+    function withdrawFirstLoss(
+        uint256 amount,
+        address receiver
+    ) external returns (uint256);
 
     /*//////////////////////////////////////////////////////////////
                 Loans

@@ -197,8 +197,8 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev The fee
      */
-    function poolFeePercentOfInterest() external view returns (uint256) {
-        return settings().poolFeePercentOfInterest;
+    function serviceFeeBps() external view returns (uint256) {
+        return settings().serviceFeeBps;
     }
 
     /**
