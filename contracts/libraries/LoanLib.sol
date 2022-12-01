@@ -15,7 +15,7 @@ library LoanLib {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
-    uint256 constant RAY = 10**27;
+    uint256 constant RAY = 10 ** 27;
 
     /**
      * @dev Emitted when loan is funded.
@@ -283,35 +283,30 @@ library LoanLib {
         emit CanceledLoanPrincipalReturned(pool, amount);
     }
 
-    function previewFirstLossFee(uint256 payment, uint256 firstLossFeeBps)
-        public
-        pure
-        returns (uint256)
-    {
+    function previewFirstLossFee(
+        uint256 payment,
+        uint256 firstLossFeeBps
+    ) public pure returns (uint256) {
         return RAY.mul(payment).mul(firstLossFeeBps).div(100_00).div(RAY);
     }
 
-    function previewServiceFee(uint256 payment, uint256 serviceFeeBps)
-        public
-        pure
-        returns (uint256)
-    {
+    function previewServiceFee(
+        uint256 payment,
+        uint256 serviceFeeBps
+    ) public pure returns (uint256) {
         return RAY.mul(payment).mul(serviceFeeBps).div(100_00).div(RAY);
     }
 
-    function previewOriginationFee(ILoanSettings calldata settings)
-        public
-        pure
-        returns (uint256)
-    {
-        uint256 numOfPayments = settings.duration.div(settings.paymentPeriod);
-
+    function previewOriginationFee(
+        ILoanSettings calldata settings,
+        uint256 scalingValue
+    ) public pure returns (uint256) {
         return
             settings
                 .principal
                 .mul(settings.originationBps)
-                .mul(settings.duration.mul(RAY).div(360))
-                .div(numOfPayments)
+                .mul(settings.duration.mul(scalingValue).div(360))
+                .div(settings.duration.div(settings.paymentPeriod))
                 .div(RAY)
                 .div(10000);
     }
@@ -337,13 +332,16 @@ library LoanLib {
         uint256 firstLoss,
         uint256 serviceFeeBps,
         uint256 blockTimestamp,
-        uint256 paymentDueDate
+        uint256 paymentDueDate,
+        uint256 scalingValue
     ) public pure returns (ILoanFees memory) {
+        // If there is a scaling value
+        payment = payment.mul(scalingValue).div(RAY);
         ILoanFees memory fees;
         fees.payment = payment;
         fees.firstLossFee = previewFirstLossFee(payment, firstLoss);
         fees.serviceFee = previewServiceFee(payment, serviceFeeBps);
-        fees.originationFee = previewOriginationFee(settings);
+        fees.originationFee = previewOriginationFee(settings, scalingValue);
         fees.latePaymentFee = previewLatePaymentFee(
             settings,
             blockTimestamp,
@@ -357,30 +355,25 @@ library LoanLib {
     function payFees(
         address asset,
         address firstLossVault,
-        uint256 firstLoss,
-        address poolAdmin,
-        uint256 serviceFeeBps,
-        uint256 originationFee
+        address feeVault,
+        ILoanFees calldata fees
     ) public {
-        if (firstLoss > 0) {
+        if (fees.firstLossFee > 0) {
             IERC20(asset).safeTransferFrom(
                 msg.sender,
                 firstLossVault,
-                firstLoss
+                fees.firstLossFee
             );
         }
-        if (serviceFeeBps > 0) {
+
+        // The FeeVault holds the balance of fees intended for the PoolAdmin.
+        // This include both the service fee and origiantion fees.
+        uint256 feeVaultAmount = fees.serviceFee + fees.originationFee;
+        if (feeVaultAmount > 0) {
             IERC20(asset).safeTransferFrom(
                 msg.sender,
-                poolAdmin,
-                serviceFeeBps
-            );
-        }
-        if (originationFee > 0) {
-            IERC20(asset).safeTransferFrom(
-                msg.sender,
-                poolAdmin,
-                originationFee
+                feeVault,
+                feeVaultAmount
             );
         }
     }

@@ -35,14 +35,14 @@ describe("PoolAccessControl", () => {
     };
   }
 
-  describe("isValidParticipant()", () => {
+  describe("isAllowed()", () => {
     it("returns false if the address is not on the allow list and has not verified via Verite", async () => {
       const { poolAccessControl, poolParticipant } = await loadFixture(
         deployFixture
       );
 
       expect(
-        await poolAccessControl.isValidParticipant(poolParticipant.address)
+        await poolAccessControl.isAllowed(poolParticipant.address)
       ).to.equal(false);
     });
 
@@ -63,7 +63,7 @@ describe("PoolAccessControl", () => {
         .allowParticipant(poolParticipant.address);
 
       expect(
-        await poolAccessControl.isValidParticipant(poolParticipant.address)
+        await poolAccessControl.isAllowed(poolParticipant.address)
       ).to.equal(true);
     });
 
@@ -81,7 +81,9 @@ describe("PoolAccessControl", () => {
         .acceptTermsOfService();
 
       // Register the verifier
-      await poolAccessControl.connect(poolAdmin).addVerifier(verifier.address);
+      await poolAccessControl
+        .connect(poolAdmin)
+        .addTrustedVerifier(verifier.address);
 
       // Get a signed verification result
       const { verificationResult, signature } =
@@ -94,7 +96,7 @@ describe("PoolAccessControl", () => {
       // Register the schema
       await poolAccessControl
         .connect(poolAdmin)
-        .addSchema(verificationResult.schema);
+        .addCredentialSchema(verificationResult.schema);
 
       // Verify the verification result
       await poolAccessControl
@@ -102,7 +104,7 @@ describe("PoolAccessControl", () => {
         .verify(verificationResult, signature);
 
       expect(
-        await poolAccessControl.isValidParticipant(poolParticipant.address)
+        await poolAccessControl.isAllowed(poolParticipant.address)
       ).to.equal(true);
     });
 
@@ -120,7 +122,9 @@ describe("PoolAccessControl", () => {
         .acceptTermsOfService();
 
       // Register the verifier
-      await poolAccessControl.connect(poolAdmin).addVerifier(verifier.address);
+      await poolAccessControl
+        .connect(poolAdmin)
+        .addTrustedVerifier(verifier.address);
 
       // Get a signed verification result
       const { verificationResult, signature } =
@@ -133,7 +137,7 @@ describe("PoolAccessControl", () => {
       // Register the schema
       await poolAccessControl
         .connect(poolAdmin)
-        .addSchema(verificationResult.schema);
+        .addCredentialSchema(verificationResult.schema);
 
       // Verify the verification result
       await poolAccessControl
@@ -141,13 +145,13 @@ describe("PoolAccessControl", () => {
         .verify(verificationResult, signature);
 
       expect(
-        await poolAccessControl.isValidParticipant(poolParticipant.address)
+        await poolAccessControl.isAllowed(poolParticipant.address)
       ).to.equal(true);
 
       await time.increaseTo(verificationResult.expiration + 1);
 
       expect(
-        await poolAccessControl.isValidParticipant(poolParticipant.address)
+        await poolAccessControl.isAllowed(poolParticipant.address)
       ).to.equal(false);
     });
   });
@@ -201,52 +205,58 @@ describe("PoolAccessControl", () => {
     });
   });
 
-  describe("addVerifier()", () => {
+  describe("addTrustedVerifier()", () => {
     it("adds a new verifier", async () => {
       const { poolAccessControl, poolAdmin, verifier } = await loadFixture(
         deployFixture
       );
 
       await expect(
-        poolAccessControl.connect(poolAdmin).addVerifier(verifier.address)
+        poolAccessControl
+          .connect(poolAdmin)
+          .addTrustedVerifier(verifier.address)
       )
-        .to.emit(poolAccessControl, "VerifierAdded")
+        .to.emit(poolAccessControl, "TrustedVerifierAdded")
         .withArgs(verifier.address);
     });
   });
 
-  describe("removeVerifier()", () => {
+  describe("removeTrustedVerifier()", () => {
     it("removes a verifier", async () => {
       const { poolAccessControl, poolAdmin, verifier } = await loadFixture(
         deployFixture
       );
 
       await expect(
-        poolAccessControl.connect(poolAdmin).removeVerifier(verifier.address)
+        poolAccessControl
+          .connect(poolAdmin)
+          .removeTrustedVerifier(verifier.address)
       )
-        .to.emit(poolAccessControl, "VerifierRemoved")
+        .to.emit(poolAccessControl, "TrustedVerifierRemoved")
         .withArgs(verifier.address);
     });
   });
 
-  describe("addSchema()", () => {
+  describe("addCredentialSchema()", () => {
     it("adds a new verifier", async () => {
       const { poolAccessControl, poolAdmin } = await loadFixture(deployFixture);
 
       await expect(
-        poolAccessControl.connect(poolAdmin).addSchema("schema://kyc")
+        poolAccessControl.connect(poolAdmin).addCredentialSchema("schema://kyc")
       )
         .to.emit(poolAccessControl, "CredentialSchemaAdded")
         .withArgs("schema://kyc");
     });
   });
 
-  describe("removeSchema()", () => {
+  describe("removeCredentialSchema()", () => {
     it("removes a verifier", async () => {
       const { poolAccessControl, poolAdmin } = await loadFixture(deployFixture);
 
       await expect(
-        poolAccessControl.connect(poolAdmin).removeSchema("schema://kyc")
+        poolAccessControl
+          .connect(poolAdmin)
+          .removeCredentialSchema("schema://kyc")
       )
         .to.emit(poolAccessControl, "CredentialSchemaRemoved")
         .withArgs("schema://kyc");
@@ -259,7 +269,9 @@ describe("PoolAccessControl", () => {
         await loadFixture(deployFixture);
 
       // Register the verifier
-      await poolAccessControl.connect(poolAdmin).addVerifier(verifier.address);
+      await poolAccessControl
+        .connect(poolAdmin)
+        .addTrustedVerifier(verifier.address);
 
       // Get a signed verification result
       const { verificationResult, signature } =
@@ -272,14 +284,14 @@ describe("PoolAccessControl", () => {
       // Register the schema
       await poolAccessControl
         .connect(poolAdmin)
-        .addSchema(verificationResult.schema);
+        .addCredentialSchema(verificationResult.schema);
 
       // Verify the verification result
       await expect(
         poolAccessControl
           .connect(poolParticipant)
           .verify(verificationResult, signature)
-      ).to.be.revertedWith("PoolAccessControl: subject not accepted ToS");
+      ).to.be.revertedWith("MISSING_TOS_ACCEPTANCE");
     });
 
     it("reverts if the schema is not supported", async () => {
@@ -296,7 +308,9 @@ describe("PoolAccessControl", () => {
         .acceptTermsOfService();
 
       // Register the verifier
-      await poolAccessControl.connect(poolAdmin).addVerifier(verifier.address);
+      await poolAccessControl
+        .connect(poolAdmin)
+        .addTrustedVerifier(verifier.address);
 
       // Get a signed verification result
       const { verificationResult, signature } =
@@ -311,7 +325,7 @@ describe("PoolAccessControl", () => {
         poolAccessControl
           .connect(poolParticipant)
           .verify(verificationResult, signature)
-      ).to.be.revertedWith("PoolAccessControl: unsupported credential schema");
+      ).to.be.revertedWith("INVALID_CREDENTIAL_SCHEMA");
     });
 
     it("reverts if the expiration is in the past", async () => {
@@ -328,7 +342,9 @@ describe("PoolAccessControl", () => {
         .acceptTermsOfService();
 
       // Register the verifier
-      await poolAccessControl.connect(poolAdmin).addVerifier(verifier.address);
+      await poolAccessControl
+        .connect(poolAdmin)
+        .addTrustedVerifier(verifier.address);
 
       // Get a signed verification result
       const { verificationResult, signature } =
@@ -342,14 +358,14 @@ describe("PoolAccessControl", () => {
       // Register the schema
       await poolAccessControl
         .connect(poolAdmin)
-        .addSchema(verificationResult.schema);
+        .addCredentialSchema(verificationResult.schema);
 
       // Verify the verification result
       await expect(
         poolAccessControl
           .connect(poolParticipant)
           .verify(verificationResult, signature)
-      ).to.be.revertedWith("PoolAccessControl: Verification result expired");
+      ).to.be.revertedWith("VERIFICATION_RESULT_EXPIRED");
     });
 
     it("reverts if it is verified by an unsupported verifier", async () => {
@@ -376,16 +392,14 @@ describe("PoolAccessControl", () => {
       // Register the schema
       await poolAccessControl
         .connect(poolAdmin)
-        .addSchema(verificationResult.schema);
+        .addCredentialSchema(verificationResult.schema);
 
       // Verify the verification result
       await expect(
         poolAccessControl
           .connect(poolParticipant)
           .verify(verificationResult, signature)
-      ).to.be.revertedWith(
-        "PoolAccessControl: Signed digest cannot be verified"
-      );
+      ).to.be.revertedWith("INVALID_SIGNER");
     });
 
     it("passes if given a valid verification from a trusted verifier", async () => {
@@ -402,7 +416,9 @@ describe("PoolAccessControl", () => {
         .acceptTermsOfService();
 
       // Register the verifier
-      await poolAccessControl.connect(poolAdmin).addVerifier(verifier.address);
+      await poolAccessControl
+        .connect(poolAdmin)
+        .addTrustedVerifier(verifier.address);
 
       // Get a signed verification result
       const { verificationResult, signature } =
@@ -415,7 +431,7 @@ describe("PoolAccessControl", () => {
       // Register the schema
       await poolAccessControl
         .connect(poolAdmin)
-        .addSchema(verificationResult.schema);
+        .addCredentialSchema(verificationResult.schema);
 
       // Verify the verification result
       await expect(

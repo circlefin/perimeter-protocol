@@ -19,12 +19,6 @@ describe("Crank Variations", () => {
     // Set the request fee to 0, for simplicity
     await poolController.connect(poolAdmin).setRequestFee(0);
 
-    // activate the pool
-    await activatePool(pool, poolAdmin, liquidityAsset);
-
-    // deposit 1M tokens from Alice
-    await depositToPool(pool, aliceLender, liquidityAsset, DEPOSIT_AMOUNT);
-
     const { withdrawRequestPeriodDuration } = await pool.settings();
 
     return {
@@ -46,11 +40,18 @@ describe("Crank Variations", () => {
       poolAdmin,
       withdrawRequestPeriodDuration,
       withdrawController,
+      liquidityAsset,
       poolController
     } = await loadFixture(loadPoolFixture);
 
     // Set the withdraw gate to 25%
     await poolController.connect(poolAdmin).setWithdrawGate(5000);
+
+    // activate the pool
+    await activatePool(pool, poolAdmin, liquidityAsset);
+
+    // deposit 1M tokens from Alice
+    await depositToPool(pool, aliceLender, liquidityAsset, DEPOSIT_AMOUNT);
 
     // Request maximum in window 0
     expect(await withdrawController.withdrawPeriod()).to.equal(0);
@@ -104,6 +105,12 @@ describe("Crank Variations", () => {
       withdrawController,
       poolController
     } = await loadFixture(loadPoolFixture);
+
+    // activate the pool
+    await activatePool(pool, poolAdmin, liquidityAsset);
+
+    // deposit 1M tokens from Alice
+    await depositToPool(pool, aliceLender, liquidityAsset, DEPOSIT_AMOUNT);
 
     // deposit 1M tokens from Bob as well
     await depositToPool(pool, bobLender, liquidityAsset, DEPOSIT_AMOUNT);
@@ -192,6 +199,12 @@ describe("Crank Variations", () => {
       poolController
     } = await loadFixture(loadPoolFixture);
 
+    // activate the pool
+    await activatePool(pool, poolAdmin, liquidityAsset);
+
+    // deposit 1M tokens from Alice
+    await depositToPool(pool, aliceLender, liquidityAsset, DEPOSIT_AMOUNT);
+
     // Set the withdraw gate to 50%
     await poolController.connect(poolAdmin).setWithdrawGate(5000);
 
@@ -245,5 +258,51 @@ describe("Crank Variations", () => {
     expect(await pool.maxRedeem(bobLender.address)).to.equal(
       DEPOSIT_AMOUNT / 2 - 1
     );
+  });
+
+  it("on pool close, you can withdraw sooner", async () => {
+    const {
+      pool,
+      aliceLender,
+      bobLender,
+      liquidityAsset,
+      poolAdmin,
+      withdrawRequestPeriodDuration,
+      withdrawController,
+      poolController
+    } = await loadFixture(loadPoolFixture);
+
+    // Set the withdraw gate to 50%, and fees to 0 to simplify numbers.
+    await poolController.connect(poolAdmin).setWithdrawGate(5000);
+    await poolController.connect(poolAdmin).setRequestFee(0);
+
+    // activate the pool
+    await activatePool(pool, poolAdmin, liquidityAsset);
+
+    // deposit 1M tokens from Alice
+    await depositToPool(pool, aliceLender, liquidityAsset, DEPOSIT_AMOUNT);
+
+    // Request maximum in window 0 for Alice
+    expect(await withdrawController.withdrawPeriod()).to.equal(0);
+    await pool.connect(aliceLender).requestRedeem(DEPOSIT_AMOUNT);
+
+    // close the pool
+    const newCloseDate = (await time.latest()) + 2; // Skip ahead so that it's not in the past by the time of the next call.
+    await poolController.connect(poolAdmin).setPoolEndDate(newCloseDate);
+    await time.increaseTo(newCloseDate + 1);
+
+    // Check that the pool is closed
+    expect(await pool.state()).to.equal(3);
+
+    // Check that we're still in the same withdraw period, since it has only been a few seconds.
+    expect(await withdrawController.withdrawPeriod()).to.equal(0);
+
+    // Fast forward 1 day...previously the window was 30 days
+    await time.increase(86400);
+
+    await pool.crank();
+    expect(await pool.maxRedeem(aliceLender.address)).to.equal(
+      DEPOSIT_AMOUNT - 1
+    ); // withdrawal dust
   });
 });

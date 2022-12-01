@@ -355,16 +355,15 @@ contract Loan is ILoan {
             _serviceConfiguration.firstLossFeeBps(),
             IPool(_pool).serviceFeeBps(),
             block.timestamp,
-            paymentDueDate
+            paymentDueDate,
+            RAY
         );
 
         LoanLib.payFees(
             liquidityAsset,
             IPool(_pool).firstLossVault(),
-            _fees.firstLossFee,
             IPool(_pool).feeVault(),
-            _fees.serviceFee,
-            _fees.originationFee
+            _fees
         );
 
         LoanLib.completePayment(
@@ -393,7 +392,8 @@ contract Loan is ILoan {
                 _serviceConfiguration.firstLossFeeBps(),
                 IPool(_pool).serviceFeeBps(),
                 block.timestamp,
-                paymentDueDate
+                paymentDueDate,
+                RAY
             );
     }
 
@@ -406,42 +406,40 @@ contract Loan is ILoan {
         atState(ILoanLifeCycleState.Active)
         returns (uint256)
     {
-        uint256 amount = payment.mul(paymentsRemaining);
         uint256 scalingValue = RAY;
 
-        // We will pro-rate open term loans for their last month of service
-        // If payment is overdue, we use default value of RAY. scalingValue is in RAYS.
-        if (
-            settings.loanType == ILoanType.Open &&
-            paymentDueDate > block.timestamp
-        ) {
-            // Calculate the scaling value
-            // RAY - ((paymentDueDate - blocktimestamp) * RAY / paymentPeriod (seconds))
-            scalingValue = RAY.sub(
-                (paymentDueDate - block.timestamp).mul(RAY).div(
-                    settings.paymentPeriod * 1 days
-                )
-            );
-            // Adjust payment accordingly
-            amount = (payment * scalingValue) / RAY;
+        if (settings.loanType == ILoanType.Open) {
+            // If an open term loan payment is not overdue, we will prorate the
+            // payment
+            if (paymentDueDate > block.timestamp) {
+                // Calculate the scaling value
+                // RAY - ((paymentDueDate - blocktimestamp) * RAY / paymentPeriod (seconds))
+                scalingValue = RAY.sub(
+                    (paymentDueDate - block.timestamp).mul(RAY).div(
+                        settings.paymentPeriod * 1 days
+                    )
+                );
+            }
+        } else {
+            // Fixed term loans must pay all outstanding interest payments and fees.
+            scalingValue = RAY.mul(paymentsRemaining);
         }
 
         ILoanFees memory _fees = LoanLib.previewFees(
             settings,
-            amount,
+            payment,
             _serviceConfiguration.firstLossFeeBps(),
             IPool(_pool).serviceFeeBps(),
             block.timestamp,
-            paymentDueDate
+            paymentDueDate,
+            scalingValue
         );
 
         LoanLib.payFees(
             liquidityAsset,
             IPool(_pool).firstLossVault(),
-            _fees.firstLossFee,
             IPool(_pool).feeVault(),
-            _fees.serviceFee,
-            _fees.originationFee.mul(scalingValue).div(RAY)
+            _fees
         );
 
         LoanLib.completePayment(
@@ -457,7 +455,7 @@ contract Loan is ILoan {
         _state = ILoanLifeCycleState.Matured;
 
         IPool(_pool).notifyLoanStateTransitioned();
-        return amount;
+        return payment;
     }
 
     /**

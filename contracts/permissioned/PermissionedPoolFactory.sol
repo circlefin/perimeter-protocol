@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
-// import "./interfaces/IPoolAdminAccessControl.sol";
 import "./interfaces/IPermissionedServiceConfiguration.sol";
 import "../interfaces/IPoolFactory.sol";
 import "./PermissionedPool.sol";
@@ -50,7 +49,7 @@ contract PermissionedPoolFactory is IPoolFactory {
             IPermissionedServiceConfiguration(_serviceConfiguration)
                 .poolAdminAccessControl()
                 .isAllowed(msg.sender),
-            "caller is not allowed pool admin"
+            "CALLER_NOT_ADMIN"
         );
         _;
     }

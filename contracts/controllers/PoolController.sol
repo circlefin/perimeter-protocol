@@ -204,6 +204,19 @@ contract PoolController is IPoolController {
     /**
      * @inheritdoc IPoolController
      */
+    function withdrawRequestPeriodDuration() public view returns (uint256) {
+        return
+            Math.min(
+                _settings.withdrawRequestPeriodDuration,
+                state() == IPoolLifeCycleState.Closed
+                    ? 1 days
+                    : _settings.withdrawRequestPeriodDuration
+            );
+    }
+
+    /**
+     * @inheritdoc IPoolController
+     */
     function setPoolCapacity(uint256 newCapacity) external onlyAdmin {
         require(newCapacity >= pool.totalAssets(), "Pool: invalid capacity");
         _settings.maxCapacity = newCapacity;

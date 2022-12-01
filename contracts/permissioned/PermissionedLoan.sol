@@ -20,7 +20,7 @@ contract PermissionedLoan is Loan {
      */
     modifier onlyValidBorrower() {
         require(
-            poolAccessControl.isValidParticipant(msg.sender),
+            poolAccessControl.isAllowed(msg.sender),
             "caller is not a valid borrower"
         );
         _;

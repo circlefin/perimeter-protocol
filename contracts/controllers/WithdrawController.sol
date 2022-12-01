@@ -64,7 +64,7 @@ contract WithdrawController is IWithdrawController {
         period = PoolLib.calculateCurrentWithdrawPeriod(
             block.timestamp,
             _pool.activatedAt(),
-            _pool.settings().withdrawRequestPeriodDuration
+            _pool.poolController().withdrawRequestPeriodDuration()
         );
     }
 

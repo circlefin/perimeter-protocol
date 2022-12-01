@@ -8,7 +8,12 @@ import {
   fundLoan,
   DEFAULT_LOAN_SETTINGS
 } from "../support/loan";
-import { activatePool, deployPool, depositToPool } from "../support/pool";
+import {
+  activatePool,
+  DEFAULT_POOL_SETTINGS,
+  deployPool,
+  depositToPool
+} from "../support/pool";
 
 describe("PoolController", () => {
   async function loadPoolFixture() {
@@ -270,6 +275,50 @@ describe("PoolController", () => {
 
       // TODO: Close Pool
       // expect(await pool.withdrawGate()).to.equal(10_000);
+    });
+  });
+
+  describe("withdrawRequestPeriodDuration()", () => {
+    it("returns the value set by PA", async () => {
+      const { poolController } = await loadFixture(loadPoolFixture);
+
+      expect(await poolController.withdrawRequestPeriodDuration()).to.equal(
+        DEFAULT_POOL_SETTINGS.withdrawRequestPeriodDuration
+      );
+    });
+
+    it("if the pool is closed, the withdraw window shrinks to 1 day", async () => {
+      const { poolController } = await loadFixture(loadPoolFixture);
+
+      const { endDate } = await poolController.settings();
+      await time.increaseTo(endDate);
+
+      expect(await poolController.state()).to.equal(3); // sanity check its closed
+      expect(await poolController.withdrawRequestPeriodDuration()).to.equal(
+        86400
+      ); // 1 day
+    });
+
+    it("if the pool is closed, the withdraw window won't increase if it's already less than 1 day", async () => {
+      const { operator, poolAdmin } = await loadFixture(loadPoolFixture);
+
+      const overriddenPoolSettings = {
+        withdrawRequestPeriodDuration: 86399
+      };
+
+      const { poolController: newPoolController } = await deployPool({
+        operator,
+        poolAdmin: poolAdmin,
+        settings: overriddenPoolSettings
+      });
+
+      const { endDate } = await newPoolController.settings();
+      await time.increaseTo(endDate);
+
+      expect(await newPoolController.state()).to.equal(3); // sanity check its closed
+      expect(await newPoolController.withdrawRequestPeriodDuration()).to.equal(
+        overriddenPoolSettings.withdrawRequestPeriodDuration
+      ); // Unchanged
     });
   });
 
