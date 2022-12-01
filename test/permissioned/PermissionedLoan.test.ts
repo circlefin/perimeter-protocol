@@ -186,7 +186,7 @@ describe("PermissionedLoan", () => {
           loan
             .connect(borrower)
             .postFungibleCollateral(liquidityAsset.address, 10)
-        ).to.be.revertedWith("caller is not a valid borrower");
+        ).to.be.revertedWith("BORROWER_NOT_ALLOWED");
       });
     });
 
@@ -200,7 +200,7 @@ describe("PermissionedLoan", () => {
           loan
             .connect(borrower)
             .postNonFungibleCollateral(liquidityAsset.address, "123")
-        ).to.be.revertedWith("caller is not a valid borrower");
+        ).to.be.revertedWith("BORROWER_NOT_ALLOWED");
       });
     });
 
@@ -240,8 +240,48 @@ describe("PermissionedLoan", () => {
           .connect(poolAdmin)
           .removeParticipant(borrower.address);
         await expect(loan.connect(borrower).drawdown(1)).to.be.revertedWith(
-          "caller is not a valid borrower"
+          "BORROWER_NOT_ALLOWED"
         );
+      });
+    });
+
+    describe("cancelCollateralized()", () => {
+      it("reverts if borrower not an allowed participant", async () => {
+        const { loan, borrower } = await loadFixture(loadLoanFixture);
+
+        await expect(
+          loan.connect(borrower).cancelCollateralized()
+        ).to.be.revertedWith("BORROWER_NOT_ALLOWED");
+      });
+    });
+
+    describe("paydownPrincipal()", () => {
+      it("reverts if borrower not an allowed participant", async () => {
+        const { loan, borrower } = await loadFixture(loadLoanFixture);
+
+        await expect(
+          loan.connect(borrower).paydownPrincipal(100)
+        ).to.be.revertedWith("BORROWER_NOT_ALLOWED");
+      });
+    });
+
+    describe("completeNextPayment()", () => {
+      it("reverts if borrower not an allowed participant", async () => {
+        const { loan, borrower } = await loadFixture(loadLoanFixture);
+
+        await expect(
+          loan.connect(borrower).completeNextPayment()
+        ).to.be.revertedWith("BORROWER_NOT_ALLOWED");
+      });
+    });
+
+    describe("completeFullPayment()", () => {
+      it("reverts if borrower not an allowed participant", async () => {
+        const { loan, borrower } = await loadFixture(loadLoanFixture);
+
+        await expect(
+          loan.connect(borrower).completeFullPayment()
+        ).to.be.revertedWith("BORROWER_NOT_ALLOWED");
       });
     });
   });

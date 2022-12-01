@@ -99,7 +99,7 @@ describe("PermissionedPool", () => {
 
       await expect(
         pool.connect(otherAccount).deposit(10, otherAccount.address)
-      ).to.be.revertedWith("caller is not a valid lender");
+      ).to.be.revertedWith("LENDER_NOT_ALLOWED");
     });
 
     it("allows deposits if allowed lender", async () => {
@@ -126,7 +126,7 @@ describe("PermissionedPool", () => {
 
       await expect(
         pool.connect(otherAccount).mint(10, otherAccount.address)
-      ).to.be.revertedWith("caller is not a valid lender");
+      ).to.be.revertedWith("LENDER_NOT_ALLOWED");
     });
 
     it("allows minting if allowed lender", async () => {
@@ -155,7 +155,7 @@ describe("PermissionedPool", () => {
         pool
           .connect(otherAccount)
           .redeem(10, otherAccount.address, otherAccount.address)
-      ).to.be.revertedWith("caller is not a valid lender");
+      ).to.be.revertedWith("LENDER_NOT_ALLOWED");
     });
 
     it("allows redeeming if allowed lender", async () => {
@@ -187,7 +187,7 @@ describe("PermissionedPool", () => {
         pool
           .connect(otherAccount)
           .withdraw(10, otherAccount.address, otherAccount.address)
-      ).to.be.revertedWith("caller is not a valid lender");
+      ).to.be.revertedWith("LENDER_NOT_ALLOWED");
     });
 
     it("allows withdrawing if allowed lender", async () => {

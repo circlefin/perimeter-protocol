@@ -18,10 +18,10 @@ contract PermissionedLoan is Loan {
     /**
      * @dev a modifier to only allow valid borrowers to perform an action
      */
-    modifier onlyValidBorrower() {
+    modifier onlyPermittedBorrower() override {
         require(
             poolAccessControl.isAllowed(msg.sender),
-            "caller is not a valid borrower"
+            "BORROWER_NOT_ALLOWED"
         );
         _;
     }
@@ -49,41 +49,5 @@ contract PermissionedLoan is Loan {
         )
     {
         poolAccessControl = PermissionedPool(pool).poolAccessControl();
-    }
-
-    /**
-     * @inheritdoc Loan
-     */
-    function postFungibleCollateral(address asset, uint256 amount)
-        public
-        override
-        onlyValidBorrower
-        returns (ILoanLifeCycleState)
-    {
-        return super.postFungibleCollateral(asset, amount);
-    }
-
-    /**
-     * @inheritdoc Loan
-     */
-    function postNonFungibleCollateral(address asset, uint256 tokenId)
-        public
-        override
-        onlyValidBorrower
-        returns (ILoanLifeCycleState)
-    {
-        return super.postNonFungibleCollateral(asset, tokenId);
-    }
-
-    /**
-     * @inheritdoc Loan
-     */
-    function drawdown(uint256 amount)
-        public
-        override
-        onlyValidBorrower
-        returns (uint256)
-    {
-        return super.drawdown(amount);
     }
 }
