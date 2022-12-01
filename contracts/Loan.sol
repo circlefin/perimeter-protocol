@@ -407,15 +407,11 @@ contract Loan is ILoan {
         atState(ILoanLifeCycleState.Active)
         returns (uint256)
     {
-        uint256 amount;
         uint256 scalingValue = RAY;
 
         if (settings.loanType == ILoanType.Open) {
-            // Open term loans only need to pay off their last payment
-            amount = payment;
-
-            // If payment is not overdue, we will prorate the payment
-            // If overdue, we use the default value
+            // If an open term loan payment is not overdue, we will prorate the
+            // payment
             if (paymentDueDate > block.timestamp) {
                 // Calculate the scaling value
                 // RAY - ((paymentDueDate - blocktimestamp) * RAY / paymentPeriod (seconds))
@@ -427,12 +423,12 @@ contract Loan is ILoan {
             }
         } else {
             // Fixed term loans must pay all outstanding interest payments and fees.
-            amount = payment.mul(paymentsRemaining);
+            scalingValue = RAY.mul(paymentsRemaining);
         }
 
         ILoanFees memory _fees = LoanLib.previewFees(
             settings,
-            amount,
+            payment,
             _serviceConfiguration.firstLossFeeBps(),
             IPool(_pool).poolFeePercentOfInterest(),
             block.timestamp,
@@ -460,7 +456,7 @@ contract Loan is ILoan {
         _state = ILoanLifeCycleState.Matured;
 
         IPool(_pool).notifyLoanStateTransitioned();
-        return amount;
+        return payment;
     }
 
     /**

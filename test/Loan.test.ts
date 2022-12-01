@@ -1182,6 +1182,55 @@ describe("Loan", () => {
       const newDueDate = await loan.paymentDueDate();
       expect(newDueDate).to.equal(dueDate.add(THIRTY_DAYS));
     });
+
+    it("can collect origination fees from the full payment", async () => {
+      const {
+        borrower,
+        collateralAsset,
+        liquidityAsset,
+        loan,
+        pool,
+        poolController,
+        poolAdmin
+      } = await loadFixture(deployFixtureOriginationFees);
+
+      // Setup
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await loan
+        .connect(borrower)
+        .postFungibleCollateral(collateralAsset.address, 100);
+      await poolController.connect(poolAdmin).fundLoan(loan.address);
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      // 500,000 token loan with 180 day term
+      // Loan has 100bps origination fee
+      await liquidityAsset.mint(borrower.address, 2_500);
+      // Loan has 500bps interest
+      await liquidityAsset.mint(borrower.address, 12_498);
+
+      // Make payment
+      const firstLoss = await poolController.firstLossVault();
+      const feeVault = await pool.feeVault();
+      await liquidityAsset
+        .connect(borrower)
+        .approve(loan.address, 12498 + 500_000 + 2_500);
+      const tx = loan.connect(borrower).completeFullPayment();
+      await expect(tx).to.not.be.reverted;
+      await expect(tx).to.changeTokenBalance(
+        liquidityAsset,
+        borrower,
+        -12498 - 500_000 - 2_500
+      );
+      await expect(tx).to.changeTokenBalance(
+        liquidityAsset,
+        pool,
+        500_000 + 12_498 - 624
+      );
+      await expect(tx).to.changeTokenBalance(liquidityAsset, feeVault, 2_500);
+      await expect(tx).to.changeTokenBalance(liquidityAsset, firstLoss, 624);
+      expect(await loan.paymentsRemaining()).to.equal(0);
+      expect(await loan.state()).to.equal(5);
+    });
   });
 
   describe("callbacks", () => {
@@ -1309,7 +1358,7 @@ describe("Loan", () => {
       const serviceFee = 208;
       const interestPayment = 989;
       const principal = 500_000;
-      const originationFee = 416 / 2;
+      const originationFee = 208;
 
       const tx = loan.connect(borrower).completeFullPayment();
       await expect(tx).to.not.be.reverted;
