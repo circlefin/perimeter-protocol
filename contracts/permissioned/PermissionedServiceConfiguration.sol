@@ -21,6 +21,7 @@ contract PermissionedServiceConfiguration is ServiceConfiguration {
         IPoolAdminAccessControl _poolAdminAccessControl
     ) public onlyOperator {
         poolAdminAccessControl = _poolAdminAccessControl;
+
         emit AddressSet(
             "POOL_ADMIN_PERMISSION",
             address(poolAdminAccessControl)

@@ -8,11 +8,12 @@ import {
   deployWithdrawControllerFactory
 } from "../support/pool";
 import { deployToSAcceptanceRegistry } from "../support/tosacceptanceregistry";
+import { performVeriteVerification } from "../support/verite";
 
 describe("PermissionedPoolFactory", () => {
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
-    const [operator, otherAccount] = await ethers.getSigners();
+    const [operator, poolAdmin, otherAccount] = await ethers.getSigners();
 
     // Deploy the liquidity asset
     const { mockERC20: liquidityAsset } = await deployMockERC20();
@@ -97,6 +98,7 @@ describe("PermissionedPoolFactory", () => {
       poolFactory,
       poolAdminAccessControl,
       operator,
+      poolAdmin,
       otherAccount,
       liquidityAsset,
       tosAcceptanceRegistry
@@ -105,47 +107,62 @@ describe("PermissionedPoolFactory", () => {
 
   it("emits PoolCreated", async () => {
     const {
+      operator,
       poolFactory,
       poolAdminAccessControl,
+      poolAdmin,
+      liquidityAsset,
+      tosAcceptanceRegistry
+    } = await loadFixture(deployFixture);
+
+    await tosAcceptanceRegistry.connect(poolAdmin).acceptTermsOfService();
+    await performVeriteVerification(
+      poolAdminAccessControl,
+      operator,
+      poolAdmin
+    );
+
+    await expect(
+      poolFactory
+        .connect(poolAdmin)
+        .createPool(liquidityAsset.address, DEFAULT_POOL_SETTINGS)
+    ).to.emit(poolFactory, "PoolCreated");
+  });
+
+  it("reverts if not called by a verified Pool Admin", async () => {
+    const {
+      operator,
+      poolFactory,
+      poolAdminAccessControl,
+      poolAdmin,
       otherAccount,
       liquidityAsset,
       tosAcceptanceRegistry
     } = await loadFixture(deployFixture);
 
-    await tosAcceptanceRegistry.connect(otherAccount).acceptTermsOfService();
-    await poolAdminAccessControl.allow(otherAccount.getAddress());
+    await tosAcceptanceRegistry.connect(poolAdmin).acceptTermsOfService();
+
+    // Verify the pool Admin, not the otherAccount
+    await performVeriteVerification(
+      poolAdminAccessControl,
+      operator,
+      poolAdmin
+    );
 
     await expect(
       poolFactory
         .connect(otherAccount)
         .createPool(liquidityAsset.address, DEFAULT_POOL_SETTINGS)
-    ).to.emit(poolFactory, "PoolCreated");
-  });
-
-  it("reverts if not called by a Pool Admin", async () => {
-    const {
-      poolFactory,
-      poolAdminAccessControl,
-      otherAccount,
-      liquidityAsset,
-      tosAcceptanceRegistry
-    } = await loadFixture(deployFixture);
-
-    await tosAcceptanceRegistry.connect(otherAccount).acceptTermsOfService();
-    await poolAdminAccessControl.allow(otherAccount.getAddress());
-
-    await expect(
-      poolFactory.createPool(liquidityAsset.address, DEFAULT_POOL_SETTINGS)
-    ).to.be.revertedWith("caller is not allowed pool admin");
+    ).to.be.revertedWith("CALLER_NOT_ADMIN");
   });
 
   it("access control reverts if PM hasn't accepted ToS", async () => {
-    const { poolAdminAccessControl, otherAccount } = await loadFixture(
+    const { poolAdminAccessControl, operator, poolAdmin } = await loadFixture(
       deployFixture
     );
 
     await expect(
-      poolAdminAccessControl.allow(otherAccount.getAddress())
-    ).to.be.revertedWith("Pool: no ToS acceptance recorded");
+      performVeriteVerification(poolAdminAccessControl, operator, poolAdmin)
+    ).to.be.revertedWith("MISSING_TOS_ACCEPTANCE");
   });
 });

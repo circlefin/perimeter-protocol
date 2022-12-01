@@ -6,6 +6,7 @@ import {
   deployPermissionedServiceConfiguration,
   deployServiceConfiguration
 } from "./serviceconfiguration";
+import { performVeriteVerification } from "./verite";
 
 export const DEFAULT_POOL_SETTINGS = {
   maxCapacity: 10_000_000,
@@ -128,7 +129,7 @@ export async function deployPermissionedPool({
   } = await deployPermissionedServiceConfiguration(operator);
 
   await tosAcceptanceRegistry.connect(poolAdmin).acceptTermsOfService();
-  await poolAdminAccessControl.connect(operator).allow(poolAdmin.address);
+  await performVeriteVerification(poolAdminAccessControl, operator, poolAdmin);
 
   const PoolLib = await ethers.getContractFactory("PoolLib");
   const poolLib = await PoolLib.deploy();
