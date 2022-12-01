@@ -53,11 +53,7 @@ library PoolLib {
     /**
      * @dev See IPool
      */
-    event FirstLossApplied(
-        address indexed loan,
-        uint256 amount,
-        uint256 outstandingLosses
-    );
+    event FirstLossApplied(address indexed loan, uint256 amount);
 
     /**
      * @dev See IPool for event definition
@@ -358,12 +354,7 @@ library PoolLib {
             address(firstLossVault)
         );
 
-        // TODO - handle open-term loans where principal may
-        // not be fully oustanding.
-        uint256 outstandingLoanDebt = ILoan(loan).outstandingPrincipal() +
-            ILoan(loan).paymentsRemaining() *
-            ILoan(loan).payment();
-
+        uint256 outstandingLoanDebt = ILoan(loan).outstandingPrincipal();
         uint256 firstLossRequired = firstLossBalance >= outstandingLoanDebt
             ? outstandingLoanDebt
             : firstLossBalance;
@@ -371,11 +362,7 @@ library PoolLib {
         FirstLossVault(firstLossVault).withdraw(firstLossRequired, pool);
 
         emit LoanDefaulted(loan);
-        emit FirstLossApplied(
-            loan,
-            firstLossRequired,
-            outstandingLoanDebt.sub(firstLossRequired)
-        );
+        emit FirstLossApplied(loan, firstLossRequired);
     }
 
     /*//////////////////////////////////////////////////////////////

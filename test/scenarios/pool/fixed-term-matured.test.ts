@@ -5,15 +5,15 @@ import {
   deployPool,
   activatePool,
   DEFAULT_POOL_SETTINGS
-} from "../../../support/pool";
+} from "../../support/pool";
 import {
   DEFAULT_LOAN_SETTINGS,
   deployLoan,
   fundLoan
-} from "../../../support/loan";
-import { deployMockERC20 } from "../../../support/erc20";
+} from "../../support/loan";
+import { deployMockERC20 } from "../../support/erc20";
 
-describe("Open Term Matured Loan Scenario", () => {
+describe("Fixed Term Matured Loan Scenario", () => {
   const INPUTS = {
     lenderDeposit: 1_000_000,
     loanAmount: 1_000_000,
@@ -23,10 +23,9 @@ describe("Open Term Matured Loan Scenario", () => {
   async function loadFixtures() {
     const [operator, poolAdmin, lender, borrower] = await ethers.getSigners();
 
-    const endTime = (await time.latest()) + 5_184_000; // 60 days.
     const poolSettings = {
       ...DEFAULT_POOL_SETTINGS,
-      endDate: endTime
+      endDate: (await time.latest()) + 5_184_000
     };
     const { mockERC20 } = await deployMockERC20();
     const { pool, serviceConfiguration, poolController } = await deployPool({
@@ -52,7 +51,7 @@ describe("Open Term Matured Loan Scenario", () => {
       mockERC20.address,
       serviceConfiguration,
       {
-        loanType: 1 // open term
+        loanType: 0 // fixed term
       }
     );
 
@@ -74,7 +73,7 @@ describe("Open Term Matured Loan Scenario", () => {
     };
   }
 
-  it("Calculates outstanding loan principal", async () => {
+  it("Calculates outstanding loan principals", async () => {
     const {
       pool,
       poolController,
@@ -87,7 +86,7 @@ describe("Open Term Matured Loan Scenario", () => {
 
     await pool.connect(lender).deposit(INPUTS.lenderDeposit, lender.address);
 
-    // fund loan and drawdown 1/2 of principal
+    // fund loan and drawdown
     await fundLoan(loan, poolController, poolAdmin);
 
     // check pool accounting is correct
@@ -96,16 +95,10 @@ describe("Open Term Matured Loan Scenario", () => {
     );
     expect(await pool.liquidityPoolAssets()).to.equal(0);
 
-    // drawdown half
-    await loan.connect(borrower).drawdown(500_000);
+    // drawdown
+    await loan.connect(borrower).drawdown(await loan.principal());
 
-    // pool admin reclaims the remaining 500k, check that accountings were updated
-    await loan.connect(poolAdmin).reclaimFunds(500_000);
-    expect((await pool.accountings()).outstandingLoanPrincipals).to.equal(
-      500_000
-    );
-
-    // Payback a portion of the principal
+    // make full payment
     await mockERC20
       .connect(borrower)
       .approve(
@@ -114,22 +107,9 @@ describe("Open Term Matured Loan Scenario", () => {
           (INPUTS.loanPayment * DEFAULT_LOAN_SETTINGS.duration) /
             DEFAULT_LOAN_SETTINGS.paymentPeriod
       );
-    await loan.connect(borrower).paydownPrincipal(500_000);
-    // check accountings again
-    expect((await pool.accountings()).outstandingLoanPrincipals).to.equal(
-      500_000
-    );
-
-    // Complete payment
     await loan.connect(borrower).completeFullPayment();
 
-    // check accountings again -- there's still 500k in the vault waiting for the
-    // PA to claim.
-    expect((await pool.accountings()).outstandingLoanPrincipals).to.equal(
-      500_000
-    );
-    expect(await mockERC20.balanceOf(loan.fundingVault())).to.equal(500_000);
-    await loan.connect(poolAdmin).reclaimFunds(500_000);
+    // check accountings again
     expect((await pool.accountings()).outstandingLoanPrincipals).to.equal(0);
   });
 });

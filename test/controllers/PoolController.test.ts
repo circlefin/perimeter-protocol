@@ -42,6 +42,14 @@ describe("PoolController", () => {
       serviceConfiguration
     );
 
+    const { loan: openTermLoan } = await deployLoan(
+      pool.address,
+      borrower.address,
+      liquidityAsset.address,
+      serviceConfiguration,
+      { loanType: 1 }
+    );
+
     return {
       operator,
       poolAdmin,
@@ -54,7 +62,8 @@ describe("PoolController", () => {
       liquidityAsset,
       collateralAsset,
       poolController,
-      withdrawController
+      withdrawController,
+      openTermLoan
     };
   }
 
@@ -718,13 +727,7 @@ describe("PoolController", () => {
       const outstandingLoanPrincipalsBefore = (await pool.accountings())
         .outstandingLoanPrincipals;
       const firstLossAvailable = await poolController.firstLossBalance();
-
-      // Expected loan outstanding stand = principal + numberPayments * payments
-      const loanPaymentsRemaining = await loan.paymentsRemaining();
-      const loanPaymentAmount = await loan.payment();
-      const loanOustandingDebt = loanPrincipal.add(
-        loanPaymentsRemaining.mul(loanPaymentAmount)
-      );
+      const loanOustandingDebt = loanPrincipal;
 
       // Confirm that first loss is NOT enough to cover the outstanding loan debt
       expect(firstLossAvailable).to.be.lessThan(loanOustandingDebt);
@@ -735,11 +738,7 @@ describe("PoolController", () => {
         .to.emit(poolController, "LoanDefaulted")
         .withArgs(loan.address)
         .to.emit(poolController, "FirstLossApplied")
-        .withArgs(
-          loan.address,
-          firstLossAvailable,
-          loanOustandingDebt.sub(firstLossAvailable)
-        );
+        .withArgs(loan.address, firstLossAvailable);
 
       // Check accountings after
       // Pool accountings should be updated
@@ -753,6 +752,55 @@ describe("PoolController", () => {
       // Pool liquidity reserve should now contain the first loss
       expect(await liquidityAsset.balanceOf(pool.address)).to.equal(
         firstLossAvailable
+      );
+    });
+
+    it("defaults only supply first loss to cover outstanding loan principal", async () => {
+      const {
+        pool,
+        poolAdmin,
+        liquidityAsset,
+        openTermLoan,
+        borrower,
+        otherAccount,
+        poolController
+      } = await loadFixture(loadPoolFixture);
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      // Deposit to pool and fund loan
+      await depositToPool(pool, otherAccount, liquidityAsset, 1_000_000);
+      await fundLoan(openTermLoan, poolController, poolAdmin);
+
+      await openTermLoan.connect(borrower).drawdown(500_000); // drawdown half
+
+      // Deposit enough FL to cover full loan principal
+      await liquidityAsset.mint(poolAdmin.address, 900_000);
+      await liquidityAsset
+        .connect(poolAdmin)
+        .approve(poolController.address, 900_000);
+      await poolController
+        .connect(poolAdmin)
+        .depositFirstLoss(900_000, poolAdmin.address);
+
+      expect(await poolController.firstLossBalance()).to.equal(1_000_000);
+
+      // Trigger default
+      const txn = await poolController
+        .connect(poolAdmin)
+        .defaultLoan(openTermLoan.address);
+
+      // Check that 500k moved from vault to pool
+      await expect(txn)
+        .to.changeTokenBalance(
+          liquidityAsset,
+          await pool.firstLossVault(),
+          -500_000
+        )
+        .to.changeTokenBalance(liquidityAsset, pool.address, +500_000);
+
+      await expect(txn).to.emit(poolController, "FirstLossApplied").withArgs(
+        openTermLoan.address,
+        500_000 // outstanding principal
       );
     });
 

@@ -51,11 +51,7 @@ interface IPoolController {
     /**
      * @dev Emitted when first loss capital is used to cover loan defaults
      */
-    event FirstLossApplied(
-        address indexed loan,
-        uint256 amount,
-        uint256 outstandingLoss
-    );
+    event FirstLossApplied(address indexed loan, uint256 amount);
 
     function admin() external view returns (address);
 
