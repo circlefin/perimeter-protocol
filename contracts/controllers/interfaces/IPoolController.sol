@@ -21,12 +21,12 @@ struct IPoolConfigurableSettings {
     uint256 endDate; // epoch seconds
     uint256 requestFeeBps; // bips
     uint256 requestCancellationFeeBps; // bips
-    uint256 withdrawGateBps; // Percent of liquidity pool available to withdraw, represented in BPS
-    uint256 serviceFeeBps; // Percent taken from borrower interest payments to be paid to pool admin, represented in bips
-    uint256 firstLossInitialMinimum; // amount
+    uint256 withdrawGateBps; // bips, percent of liquidity pool available to withdraw
+    uint256 serviceFeeBps; // bips, percent taken from borrower payments to be paid to pool admin
+    uint256 firstLossInitialMinimum; // amount of tokens to be deposited to first loss before a pool is active
     uint256 withdrawRequestPeriodDuration; // seconds (e.g. 30 days)
-    uint256 fixedFee;
-    uint256 fixedFeeInterval;
+    uint256 fixedFee; // amount of tokens the pool admin can claim every interval
+    uint256 fixedFeeInterval; // interval in days at which a pool admin can claim fixed fees from the pool
 }
 
 /**
