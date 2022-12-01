@@ -1,4 +1,5 @@
 import { ethers } from "hardhat";
+import { time } from "@nomicfoundation/hardhat-network-helpers";
 import { MockERC20, Pool } from "../../typechain-types";
 import { deployMockERC20 } from "./erc20";
 import {
@@ -311,4 +312,9 @@ export async function deployPoolControllerFactory(
   });
   const factory = await Factory.deploy(serviceConfigAddress);
   return factory.deployed();
+}
+
+export async function progressWithdrawWindow(pool: any) {
+  const { withdrawRequestPeriodDuration } = await pool.settings();
+  await time.increase(withdrawRequestPeriodDuration);
 }

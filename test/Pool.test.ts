@@ -1,7 +1,12 @@
 import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { deployPool, depositToPool, activatePool } from "./support/pool";
+import {
+  deployPool,
+  depositToPool,
+  activatePool,
+  DEFAULT_POOL_SETTINGS
+} from "./support/pool";
 import { deployLoan, collateralizeLoan, fundLoan } from "./support/loan";
 
 describe("Pool", () => {
@@ -66,6 +71,47 @@ describe("Pool", () => {
 
     return { pool, otherAccount, loan, borrower, liquidityAsset };
   }
+
+  describe("maxDeposit()", async () => {
+    it("returns 0 when pool is still initialized", async () => {
+      const { pool, otherAccount } = await loadFixture(loadPoolFixture);
+      expect(await pool.maxDeposit(otherAccount.address)).to.equal(0);
+    });
+
+    it("returns the full pool capacity when the pool is activated", async () => {
+      const { pool, poolAdmin, otherAccount, liquidityAsset } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      expect(await pool.maxDeposit(otherAccount.address)).to.equal(
+        DEFAULT_POOL_SETTINGS.maxCapacity
+      );
+    });
+
+    it("returns the full pool capacity less totalAvailableAssets", async () => {
+      const { pool, poolAdmin, otherAccount, liquidityAsset } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      const depositAmt = 10;
+      await depositToPool(pool, otherAccount, liquidityAsset, depositAmt);
+
+      expect(await pool.maxDeposit(otherAccount.address)).to.equal(
+        DEFAULT_POOL_SETTINGS.maxCapacity - depositAmt
+      );
+    });
+
+    it("returns 0 when pool is closed ", async () => {
+      const { pool, poolAdmin, otherAccount, liquidityAsset } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      const { endDate } = await pool.settings();
+      await time.increaseTo(endDate);
+      expect(await pool.maxDeposit(otherAccount.address)).to.equal(0);
+    });
+  });
 
   describe("deposit()", async () => {
     it("deposit cannot be called if pool is initialized", async () => {
@@ -160,6 +206,47 @@ describe("Pool", () => {
       await expect(
         pool.connect(otherAccount).deposit(depositAmount, receiver.address)
       ).to.be.revertedWith("Pool: invalid receiver");
+    });
+  });
+
+  describe("maxMint()", async () => {
+    it("returns 0 when pool is still initialized", async () => {
+      const { pool, otherAccount } = await loadFixture(loadPoolFixture);
+      expect(await pool.maxMint(otherAccount.address)).to.equal(0);
+    });
+
+    it("returns the full pool capacity when the pool is activated", async () => {
+      const { pool, poolAdmin, otherAccount, liquidityAsset } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      expect(await pool.maxMint(otherAccount.address)).to.equal(
+        DEFAULT_POOL_SETTINGS.maxCapacity
+      );
+    });
+
+    it("returns the full pool capacity less totalAvailableAssets", async () => {
+      const { pool, poolAdmin, otherAccount, liquidityAsset } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      const depositAmt = 10;
+      await depositToPool(pool, otherAccount, liquidityAsset, depositAmt);
+
+      expect(await pool.maxMint(otherAccount.address)).to.equal(
+        DEFAULT_POOL_SETTINGS.maxCapacity - depositAmt
+      );
+    });
+
+    it("returns 0 when pool is closed ", async () => {
+      const { pool, poolAdmin, otherAccount, liquidityAsset } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      const { endDate } = await pool.settings();
+      await time.increaseTo(endDate);
+      expect(await pool.maxMint(otherAccount.address)).to.equal(0);
     });
   });
 
