@@ -236,6 +236,18 @@ contract PoolController is IPoolController {
         emit PoolSettingsUpdated();
     }
 
+    /**
+     * @inheritdoc IPoolController
+     */
+    function setFixedFee(uint256 amount, uint256 interval) external onlyAdmin {
+        if (amount > 0) {
+            require(interval > 0, "Pool: invalid fixed fee");
+        }
+        _settings.fixedFee = amount;
+        _settings.fixedFeeInterval = interval;
+        emit PoolSettingsUpdated();
+    }
+
     /*//////////////////////////////////////////////////////////////
                 State
     //////////////////////////////////////////////////////////////*/

@@ -73,6 +73,11 @@ interface IPoolController {
     function setServiceFeeBps(uint256) external;
 
     /**
+     * @dev Allow the current pool admin to update the fixed fee.
+     */
+    function setFixedFee(uint256 amount, uint256 interval) external;
+
+    /**
      * @dev Allow the current pool admin to update the pool fees
      * before the pool has been activated.
      */
@@ -159,9 +164,10 @@ interface IPoolController {
     /**
      * @dev Withdraws first-loss from the pool. Can only be called by the Pool Admin.
      */
-    function withdrawFirstLoss(uint256 amount, address receiver)
-        external
-        returns (uint256);
+    function withdrawFirstLoss(
+        uint256 amount,
+        address receiver
+    ) external returns (uint256);
 
     /*//////////////////////////////////////////////////////////////
                 Loans
