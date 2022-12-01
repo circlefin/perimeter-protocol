@@ -263,7 +263,7 @@ contract Pool is IPool, ERC20 {
     /**
      * @inheritdoc IPool
      */
-    function notifyLoanPrincipalReturned(uint256 amount) external {
+    function onLoanPrincipalReturned(uint256 amount) external {
         require(_fundedLoans[msg.sender], "Pool: not funded loan");
         _accountings.outstandingLoanPrincipals -= amount;
     }
@@ -271,7 +271,7 @@ contract Pool is IPool, ERC20 {
     /**
      * @inheritdoc IPool
      */
-    function notifyLoanStateTransitioned() external override {
+    function onLoanStateTransitioned() external override {
         require(_fundedLoans[msg.sender], "Pool: not funded loan");
 
         ILoanLifeCycleState loanState = ILoan(msg.sender).state();
