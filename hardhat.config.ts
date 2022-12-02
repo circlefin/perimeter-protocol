@@ -3,6 +3,7 @@ import "@nomicfoundation/hardhat-toolbox";
 import "hardhat-contract-sizer";
 import "./tasks/serviceConfiguration";
 import "./tasks/tosAcceptanceRegistry";
+import "solidity-docgen";
 
 type ExtendedHardhatUserConfig = {
   networks: {
