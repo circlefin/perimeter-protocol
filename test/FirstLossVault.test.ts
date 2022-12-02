@@ -72,6 +72,30 @@ describe("FirstLossVault", () => {
         poolBalancePrior.add(amountToWithdraw)
       );
     });
+
+    it("amount withdrawn increments with each withdraw", async () => {
+      const { firstLossVault, liquidityAsset, poolController } =
+        await loadFixture(deployFixture);
+
+      const amountToWithdraw = VAULT_BALANCE.div(2);
+      expect(await firstLossVault.totalWithdrawn()).to.equal(0);
+
+      // Pull funds from locker once
+      await firstLossVault
+        .connect(poolController)
+        .withdraw(amountToWithdraw, poolController.address);
+
+      expect(await firstLossVault.totalWithdrawn()).to.equal(amountToWithdraw);
+
+      // Pull funds from locker again
+      await firstLossVault
+        .connect(poolController)
+        .withdraw(amountToWithdraw, poolController.address);
+
+      expect(await firstLossVault.totalWithdrawn()).to.equal(
+        amountToWithdraw.mul(2)
+      );
+    });
   });
 
   describe("Permissions", async () => {

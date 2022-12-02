@@ -195,7 +195,7 @@ interface IPool is IERC4626 {
     function totalAvailableSupply() external view returns (uint256);
 
     /**
-     * @dev The accrued interest at the current block.
+     * @dev The expected accrued interest at the current block.
      */
     function currentExpectedInterest() external view returns (uint256 interest);
 }

@@ -13,6 +13,7 @@ contract FirstLossVault {
     using SafeERC20 for IERC20;
 
     address public poolController;
+    uint256 public totalWithdrawn;
     IERC20 private _asset;
 
     /**
@@ -52,5 +53,6 @@ contract FirstLossVault {
     {
         require(receiver != address(0), "FirstLossVault: 0 address");
         _asset.safeTransfer(receiver, amount);
+        totalWithdrawn += amount;
     }
 }
