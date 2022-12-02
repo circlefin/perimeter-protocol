@@ -21,7 +21,7 @@ library PoolLib {
     using SafeMath for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    uint256 public constant RAY = 10 ** 27;
+    uint256 public constant RAY = 10**27;
     /**
      * @dev Emitted when first loss is supplied to the pool.
      */
@@ -88,10 +88,11 @@ library PoolLib {
     /**
      * @dev Divide two numbers and round the result up
      */
-    function divideCeil(
-        uint256 lhs,
-        uint256 rhs
-    ) internal pure returns (uint256) {
+    function divideCeil(uint256 lhs, uint256 rhs)
+        internal
+        pure
+        returns (uint256)
+    {
         return (lhs + rhs - 1) / rhs;
     }
 
@@ -456,10 +457,11 @@ library PoolLib {
      * @dev Calculate the fee for making a withdrawRequest or a redeemRequest.
      * Per the EIP-4626 spec, this method rounds up.
      */
-    function calculateRequestFee(
-        uint256 shares,
-        uint256 requestFeeBps
-    ) public pure returns (uint256) {
+    function calculateRequestFee(uint256 shares, uint256 requestFeeBps)
+        public
+        pure
+        returns (uint256)
+    {
         return divideCeil(shares * requestFeeBps, 10_000);
     }
 

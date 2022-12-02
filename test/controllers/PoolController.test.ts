@@ -804,6 +804,37 @@ describe("PoolController", () => {
       );
     });
 
+    it("defaulted loan principals are tracked in Pool accountings", async () => {
+      const {
+        collateralAsset,
+        pool,
+        poolAdmin,
+        liquidityAsset,
+        loan,
+        borrower,
+        otherAccount,
+        poolController
+      } = await loadFixture(loadPoolFixture);
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      // Collateralize loan
+      await collateralizeLoan(loan, borrower, collateralAsset);
+
+      // Deposit to pool and fund loan
+      const loanPrincipal = await loan.principal();
+      await depositToPool(pool, otherAccount, liquidityAsset, loanPrincipal);
+      await fundLoan(loan, poolController, poolAdmin);
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      // Get an accounting snapshot prior to the default
+      expect((await pool.accountings()).totalDefaults).to.equal(0);
+
+      poolController.connect(poolAdmin).defaultLoan(loan.address);
+      expect((await pool.accountings()).totalDefaults).to.equal(
+        await loan.principal()
+      );
+    });
+
     it("defaults only supply first loss to cover outstanding loan principal", async () => {
       const {
         pool,

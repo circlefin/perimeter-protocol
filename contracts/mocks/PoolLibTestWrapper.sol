@@ -210,10 +210,11 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
             );
     }
 
-    function calculateRequestFee(
-        uint256 shares,
-        uint256 requestFeeBps
-    ) external pure returns (uint256) {
+    function calculateRequestFee(uint256 shares, uint256 requestFeeBps)
+        external
+        pure
+        returns (uint256)
+    {
         return PoolLib.calculateRequestFee(shares, requestFeeBps);
     }
 

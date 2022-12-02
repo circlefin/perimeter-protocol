@@ -158,21 +158,28 @@ describe("Pool", () => {
 
       // Provide capital to lender
       const depositAmountTotal = 500;
-      // We'll deposit 2 separate times
       await liquidityAsset.mint(otherAccount.address, depositAmountTotal);
-
-      // Approve the deposit
       await liquidityAsset
         .connect(otherAccount)
         .approve(pool.address, depositAmountTotal);
 
-      // Deposit first half
-      await pool.connect(otherAccount).deposit(depositAmountTotal / 2, otherAccount.address);;
-      expect((await pool.accountings()).totalAssetsDeposited).to.equal(depositAmountTotal / 2);
+      expect((await pool.accountings()).totalAssetsDeposited).to.equal(0);
 
-      // Deposit 2nd 
-      await pool.connect(otherAccount).deposit(depositAmountTotal / 2, otherAccount.address);;
-      expect((await pool.accountings()).totalAssetsDeposited).to.equal(depositAmountTotal);
+      // Deposit first half
+      await pool
+        .connect(otherAccount)
+        .deposit(depositAmountTotal / 2, otherAccount.address);
+      expect((await pool.accountings()).totalAssetsDeposited).to.equal(
+        depositAmountTotal / 2
+      );
+
+      // Deposit 2nd
+      await pool
+        .connect(otherAccount)
+        .deposit(depositAmountTotal / 2, otherAccount.address);
+      expect((await pool.accountings()).totalAssetsDeposited).to.equal(
+        depositAmountTotal
+      );
     });
 
     it("depositing uses an exchange rate based on available assets", async () => {
@@ -320,21 +327,28 @@ describe("Pool", () => {
 
       // Provide capital to lender
       const depositAmountTotal = 500;
-      // We'll deposit 2 separate times
       await liquidityAsset.mint(otherAccount.address, depositAmountTotal);
-
-      // Approve the deposit
       await liquidityAsset
         .connect(otherAccount)
         .approve(pool.address, depositAmountTotal);
 
-      // Deposit first half
-      await pool.connect(otherAccount).mint(depositAmountTotal / 2, otherAccount.address);;
-      expect((await pool.accountings()).totalAssetsDeposited).to.equal(depositAmountTotal / 2);
+      expect((await pool.accountings()).totalAssetsDeposited).to.equal(0);
 
-      // Deposit 2nd 
-      await pool.connect(otherAccount).mint(depositAmountTotal / 2, otherAccount.address);;
-      expect((await pool.accountings()).totalAssetsDeposited).to.equal(depositAmountTotal);
+      // Deposit first half
+      await pool
+        .connect(otherAccount)
+        .mint(depositAmountTotal / 2, otherAccount.address);
+      expect((await pool.accountings()).totalAssetsDeposited).to.equal(
+        depositAmountTotal / 2
+      );
+
+      // Deposit 2nd
+      await pool
+        .connect(otherAccount)
+        .mint(depositAmountTotal / 2, otherAccount.address);
+      expect((await pool.accountings()).totalAssetsDeposited).to.equal(
+        depositAmountTotal
+      );
     });
 
     it("minting requires receiver address to be the same as caller", async () => {
@@ -906,15 +920,15 @@ describe("Pool", () => {
       await time.increase(withdrawRequestPeriodDuration);
       await pool.connect(poolAdmin).crank();
 
+      expect((await pool.accountings()).totalAssetsWithdrawn).to.equal(0);
+
       await pool
         .connect(otherAccount)
         .redeem(9, otherAccount.address, otherAccount.address);
 
       expect((await pool.accountings()).totalAssetsWithdrawn).to.equal(9);
 
-      await pool
-        .connect(bob)
-        .redeem(29, bob.address, bob.address);
+      await pool.connect(bob).redeem(29, bob.address, bob.address);
 
       expect((await pool.accountings()).totalAssetsWithdrawn).to.equal(38);
     });
@@ -1056,15 +1070,15 @@ describe("Pool", () => {
       await time.increase(withdrawRequestPeriodDuration);
       await pool.connect(poolAdmin).crank();
 
+      expect((await pool.accountings()).totalAssetsWithdrawn).to.equal(0);
+
       await pool
         .connect(otherAccount)
         .withdraw(9, otherAccount.address, otherAccount.address);
 
       expect((await pool.accountings()).totalAssetsWithdrawn).to.equal(9);
 
-      await pool
-        .connect(bob)
-        .withdraw(29, bob.address, bob.address);
+      await pool.connect(bob).withdraw(29, bob.address, bob.address);
 
       expect((await pool.accountings()).totalAssetsWithdrawn).to.equal(38);
     });
