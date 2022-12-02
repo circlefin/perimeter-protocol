@@ -21,7 +21,7 @@ library PoolLib {
     using SafeMath for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    uint256 public constant RAY = 10**27;
+    uint256 public constant RAY = 10 ** 27;
     /**
      * @dev Emitted when first loss is supplied to the pool.
      */
@@ -88,11 +88,10 @@ library PoolLib {
     /**
      * @dev Divide two numbers and round the result up
      */
-    function divideCeil(uint256 lhs, uint256 rhs)
-        internal
-        pure
-        returns (uint256)
-    {
+    function divideCeil(
+        uint256 lhs,
+        uint256 rhs
+    ) internal pure returns (uint256) {
         return (lhs + rhs - 1) / rhs;
     }
 
@@ -213,34 +212,6 @@ library PoolLib {
     }
 
     /**
-     * @dev Calculates the APY for the pool
-     * @param totalWithdrawals Aggregate withdrawals
-     * @param totalDeposits Aggregate deposits
-     * @param expectedInterest Expected interest at the current block
-     * @param outstandingPrincipals Outstanding loan principals
-     * @param liquidityReserve Liquidity Reserveo of the pool
-     * @return apy The APY in bps
-     */
-    function calculateAPY(
-        uint256 totalWithdrawals,
-        uint256 totalDeposits,
-        uint256 expectedInterest,
-        uint256 outstandingPrincipals,
-        uint256 liquidityReserve
-    ) external pure returns (uint256 apy) {
-        if (totalDeposits == 0) {
-            return 0;
-        }
-
-        uint256 assetsOut = totalWithdrawals
-            .add(expectedInterest)
-            .add(outstandingPrincipals)
-            .add(liquidityReserve);
-
-        return assetsOut.sub(totalDeposits).mul(10_000).div(totalDeposits);
-    }
-
-    /**
      * @dev Computes the exchange rate for converting assets to shares
      * @param input The input to the conversion
      * @param numerator Numerator of the conversion rate
@@ -351,7 +322,8 @@ library PoolLib {
         uint256 assets,
         uint256 shares,
         uint256 maxDeposit,
-        function(address, uint256) mint
+        function(address, uint256) mint,
+        IPoolAccountings storage accountings
     ) internal returns (uint256) {
         require(shares > 0, "Pool: 0 deposit not allowed");
         require(assets <= maxDeposit, "Pool: Exceeds max deposit");
@@ -360,6 +332,7 @@ library PoolLib {
         mint(sharesReceiver, shares);
 
         emit Deposit(msg.sender, sharesReceiver, assets, shares);
+        accountings.totalAssetsDeposited += assets;
         return shares;
     }
 
@@ -483,11 +456,10 @@ library PoolLib {
      * @dev Calculate the fee for making a withdrawRequest or a redeemRequest.
      * Per the EIP-4626 spec, this method rounds up.
      */
-    function calculateRequestFee(uint256 shares, uint256 requestFeeBps)
-        public
-        pure
-        returns (uint256)
-    {
+    function calculateRequestFee(
+        uint256 shares,
+        uint256 requestFeeBps
+    ) public pure returns (uint256) {
         return divideCeil(shares * requestFeeBps, 10_000);
     }
 

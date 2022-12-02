@@ -14,6 +14,7 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     EnumerableSet.AddressSet private _activeLoans;
+    IPoolAccountings private _accountings;
 
     event LifeCycleStateTransition(IPoolLifeCycleState state);
     event FirstLossDeposited(
@@ -157,7 +158,8 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
                 assets,
                 shares,
                 maxDeposit,
-                _mint
+                _mint,
+                _accountings
             );
     }
 
@@ -208,11 +210,10 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
             );
     }
 
-    function calculateRequestFee(uint256 shares, uint256 requestFeeBps)
-        external
-        pure
-        returns (uint256)
-    {
+    function calculateRequestFee(
+        uint256 shares,
+        uint256 requestFeeBps
+    ) external pure returns (uint256) {
         return PoolLib.calculateRequestFee(shares, requestFeeBps);
     }
 
@@ -243,22 +244,5 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
     ) public pure returns (uint256) {
         return
             PoolLib.calculateMaxCancellation(state, requestCancellationFeeBps);
-    }
-
-    function calculateAPY(
-        uint256 totalWithdrawals,
-        uint256 totalDeposits,
-        uint256 expectedInterest,
-        uint256 outstandingPrincipals,
-        uint256 liquidityReserve
-    ) public pure returns (uint256) {
-        return
-            PoolLib.calculateAPY(
-                totalWithdrawals,
-                totalDeposits,
-                expectedInterest,
-                outstandingPrincipals,
-                liquidityReserve
-            );
     }
 }

@@ -10,11 +10,11 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
  * @title Data type storing collected accounting statistics
  */
 struct IPoolAccountings {
-    uint256 defaultsTotal;
     uint256 outstandingLoanPrincipals;
     uint256 fixedFeeDueDate;
-    uint256 totalDeposits;
-    uint256 totalWithdrawals;
+    uint256 totalAssetsDeposited;
+    uint256 totalAssetsWithdrawn;
+    uint256 totalDefaults;
 }
 
 /**
@@ -193,5 +193,5 @@ interface IPool is IERC4626 {
     /**
      * @dev The accrued interest at the current block.
      */
-    function currentAccruedInterest() external view returns (uint256 interest);
+    function currentExpectedInterest() external view returns (uint256 interest);
 }

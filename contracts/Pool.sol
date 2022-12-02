@@ -200,20 +200,6 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
-     * @inheritdoc IPool
-     */
-    function apy() external view override returns (uint256 bps) {
-        return
-            PoolLib.calculateAPY(
-                _accountings.totalWithdrawals,
-                _accountings.totalDeposits,
-                PoolLib.calculateExpectedInterest(_fundedLoans),
-                _accountings.outstandingLoanPrincipals,
-                liquidityPoolAssets()
-            );
-    }
-
-    /**
      * @dev The fee
      */
     function poolFeePercentOfInterest() external view returns (uint256) {
@@ -298,8 +284,10 @@ contract Pool is IPool, ERC20 {
             _activeLoans.add(msg.sender);
         } else if (loanState == ILoanLifeCycleState.Defaulted) {
             _activeLoans.remove(msg.sender);
-            _accountings.outstandingLoanPrincipals -= ILoan(msg.sender)
+            uint256 outstandingPrincipal = ILoan(msg.sender)
                 .outstandingPrincipal();
+            _accountings.outstandingLoanPrincipals -= outstandingPrincipal;
+            _accountings.totalDefaults += outstandingPrincipal;
         }
     }
 
@@ -337,7 +325,7 @@ contract Pool is IPool, ERC20 {
         external
         view
         override
-        returns (uint256 interest)
+        returns (uint256)
     {
         return PoolLib.calculateExpectedInterest(_activeLoans);
     }
@@ -685,7 +673,8 @@ contract Pool is IPool, ERC20 {
             assets,
             previewDeposit(assets),
             maxDeposit(receiver),
-            _mint
+            _mint,
+            _accountings
         );
     }
 
@@ -740,7 +729,8 @@ contract Pool is IPool, ERC20 {
             assets,
             previewDeposit(assets),
             maxDeposit(receiver),
-            _mint
+            _mint,
+            _accountings
         );
     }
 
@@ -853,6 +843,9 @@ contract Pool is IPool, ERC20 {
 
         // Burn the shares
         _burn(owner, shares);
+
+        // Updating accountings
+        _accountings.totalAssetsWithdrawn += assets;
 
         emit Withdraw(owner, owner, owner, assets, shares);
     }
