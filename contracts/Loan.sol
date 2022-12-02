@@ -370,7 +370,7 @@ contract Loan is ILoan {
             settings,
             payment,
             _serviceConfiguration.firstLossFeeBps(),
-            IPool(_pool).poolFeePercentOfInterest(),
+            IPool(_pool).serviceFeeBps(),
             block.timestamp,
             paymentDueDate,
             RAY
@@ -407,7 +407,7 @@ contract Loan is ILoan {
                 settings,
                 amount,
                 _serviceConfiguration.firstLossFeeBps(),
-                IPool(_pool).poolFeePercentOfInterest(),
+                IPool(_pool).serviceFeeBps(),
                 block.timestamp,
                 paymentDueDate,
                 RAY
@@ -447,7 +447,7 @@ contract Loan is ILoan {
             settings,
             payment,
             _serviceConfiguration.firstLossFeeBps(),
-            IPool(_pool).poolFeePercentOfInterest(),
+            IPool(_pool).serviceFeeBps(),
             block.timestamp,
             paymentDueDate,
             scalingValue

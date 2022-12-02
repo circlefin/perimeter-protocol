@@ -112,7 +112,7 @@ interface IPool is IERC4626 {
     /**
      * @dev The pool fee, in bps, taken from each interest payment
      */
-    function poolFeePercentOfInterest() external view returns (uint256);
+    function serviceFeeBps() external view returns (uint256);
 
     /**
      * @dev Submits a withdrawal request, incurring a fee.

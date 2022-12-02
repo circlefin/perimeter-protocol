@@ -332,7 +332,7 @@ library LoanLib {
         ILoanSettings calldata settings,
         uint256 payment,
         uint256 firstLoss,
-        uint256 poolFeePercentOfInterest,
+        uint256 serviceFeeBps,
         uint256 blockTimestamp,
         uint256 paymentDueDate,
         uint256 scalingValue
@@ -342,7 +342,7 @@ library LoanLib {
         ILoanFees memory fees;
         fees.payment = payment;
         fees.firstLossFee = previewFirstLossFee(payment, firstLoss);
-        fees.serviceFee = previewServiceFee(payment, poolFeePercentOfInterest);
+        fees.serviceFee = previewServiceFee(payment, serviceFeeBps);
         fees.originationFee = previewOriginationFee(settings, scalingValue);
         fees.latePaymentFee = previewLatePaymentFee(
             settings,

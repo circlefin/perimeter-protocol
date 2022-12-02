@@ -10,6 +10,8 @@ import {
 import { deployLoan, collateralizeLoan, fundLoan } from "./support/loan";
 
 describe("Pool", () => {
+  const ONE_DAY = 86400;
+
   async function loadPoolFixture() {
     const [operator, poolAdmin, borrower, otherAccount, ...otherAccounts] =
       await ethers.getSigners();
@@ -1200,15 +1202,38 @@ describe("Pool", () => {
       const { pool, poolAdmin, poolController, liquidityAsset, otherAccount } =
         await loadFixture(loadPoolFixture);
 
+      // Set fixed fee to 100 tokens every 30 days
+      await poolController.connect(poolAdmin).setFixedFee(100, 30);
+
       await activatePool(pool, poolAdmin, liquidityAsset);
       await depositToPool(pool, otherAccount, liquidityAsset, 1_000_000);
 
-      const { withdrawRequestPeriodDuration } = await pool.settings();
-      await time.increase(withdrawRequestPeriodDuration);
+      // Fast forward 1 interval
+      const { fixedFeeInterval } = await pool.settings();
+      await time.increase(fixedFeeInterval.mul(ONE_DAY));
 
-      await expect(poolController.connect(poolAdmin).claimFixedFee()).to.emit(
-        pool,
-        "PoolCranked"
+      // Claim the fixed fee
+      const tx = poolController.connect(poolAdmin).claimFixedFee();
+      await expect(tx).to.emit(pool, "PoolCranked");
+      await expect(tx).to.changeTokenBalance(
+        liquidityAsset,
+        poolAdmin.address,
+        100
+      );
+
+      // Set fixed fee to 200 tokens every 30 days
+      await poolController.connect(poolAdmin).setFixedFee(200, 30);
+
+      // Fast forward 1 interval
+      await time.increase(fixedFeeInterval.mul(ONE_DAY));
+
+      //
+      const tx2 = poolController.connect(poolAdmin).claimFixedFee();
+      await expect(tx2).to.emit(pool, "PoolCranked");
+      await expect(tx2).to.changeTokenBalance(
+        liquidityAsset,
+        poolAdmin.address,
+        200
       );
     });
   });

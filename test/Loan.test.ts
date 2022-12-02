@@ -106,7 +106,7 @@ describe("Loan", () => {
 
   async function deployFixturePoolFees() {
     const poolSettings = Object.assign({}, DEFAULT_POOL_SETTINGS, {
-      poolFeePercentOfInterest: 100
+      serviceFeeBps: 100
     });
     return deployFixture(poolSettings);
   }
@@ -138,7 +138,7 @@ describe("Loan", () => {
         principal: 500_000,
         loanType: 1,
         originationBps: 100,
-        poolFeePercentOfInterest: 100
+        serviceFeeBps: 100
       })
     );
   }
@@ -1124,7 +1124,7 @@ describe("Loan", () => {
         .postFungibleCollateral(collateralAsset.address, 100);
       await poolController.connect(poolAdmin).fundLoan(loan.address);
       await loan.connect(borrower).drawdown(await loan.principal());
-      expect(await pool.poolFeePercentOfInterest()).to.equal(100);
+      expect(await pool.serviceFeeBps()).to.equal(100);
 
       // Make payment
       const firstLoss = await poolController.firstLossVault();
@@ -1141,6 +1141,55 @@ describe("Loan", () => {
       expect(await loan.paymentsRemaining()).to.equal(5);
       const newDueDate = await loan.paymentDueDate();
       expect(newDueDate).to.equal(dueDate.add(THIRTY_DAYS));
+    });
+
+    it("pool service fees can change between payments", async () => {
+      const {
+        borrower,
+        collateralAsset,
+        liquidityAsset,
+        loan,
+        pool,
+        poolController,
+        poolAdmin
+      } = await loadFixture(deployFixturePoolFees);
+
+      // Setup
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await loan
+        .connect(borrower)
+        .postFungibleCollateral(collateralAsset.address, 100);
+      await poolController.connect(poolAdmin).fundLoan(loan.address);
+      await loan.connect(borrower).drawdown(await loan.principal());
+      expect(await pool.serviceFeeBps()).to.equal(100);
+
+      // Make payment
+      const firstLoss = await poolController.firstLossVault();
+      const feeVault = await pool.feeVault();
+      const dueDate = await loan.paymentDueDate();
+      expect(await loan.paymentsRemaining()).to.equal(6);
+      await liquidityAsset.connect(borrower).approve(loan.address, 2083);
+      const tx = loan.connect(borrower).completeNextPayment();
+      await expect(tx).to.not.be.reverted;
+      await expect(tx).to.changeTokenBalance(liquidityAsset, borrower, -2083);
+      await expect(tx).to.changeTokenBalance(liquidityAsset, pool, 1959);
+      await expect(tx).to.changeTokenBalance(liquidityAsset, feeVault, 20);
+      await expect(tx).to.changeTokenBalance(liquidityAsset, firstLoss, 104);
+      expect(await loan.paymentsRemaining()).to.equal(5);
+      const newDueDate = await loan.paymentDueDate();
+      expect(newDueDate).to.equal(dueDate.add(THIRTY_DAYS));
+
+      // Change Service Fee
+      poolController.connect(poolAdmin).setServiceFeeBps(200);
+
+      // Make second payment, service fee is doubled and all other fees remain the same
+      await liquidityAsset.connect(borrower).approve(loan.address, 2083);
+      const tx2 = loan.connect(borrower).completeNextPayment();
+      await expect(tx2).to.not.be.reverted;
+      await expect(tx2).to.changeTokenBalance(liquidityAsset, borrower, -2083);
+      await expect(tx2).to.changeTokenBalance(liquidityAsset, pool, 1938);
+      await expect(tx2).to.changeTokenBalance(liquidityAsset, feeVault, 41);
+      await expect(tx2).to.changeTokenBalance(liquidityAsset, firstLoss, 104);
     });
 
     it("can collect origination fees from the next payment", async () => {

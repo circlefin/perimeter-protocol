@@ -402,6 +402,70 @@ describe("PoolController", () => {
     });
   });
 
+  describe("setServiceFeeBps()", () => {
+    it("allows change the pool service fee", async () => {
+      const { poolController, poolAdmin } = await loadFixture(loadPoolFixture);
+
+      expect((await poolController.settings()).serviceFeeBps).to.equal(0);
+
+      const tx = poolController.connect(poolAdmin).setServiceFeeBps(500);
+
+      await expect(tx).to.emit(poolController, "PoolSettingsUpdated");
+      expect((await poolController.settings()).serviceFeeBps).to.equal(500);
+    });
+
+    it("reverts if set above 10,000", async () => {
+      const { poolController, poolAdmin } = await loadFixture(loadPoolFixture);
+
+      const tx = poolController.connect(poolAdmin).setServiceFeeBps(10_000);
+      await expect(tx).to.not.be.reverted;
+
+      const tx2 = poolController.connect(poolAdmin).setServiceFeeBps(10_001);
+      await expect(tx2).to.be.revertedWith("Pool: invalid service fee");
+    });
+
+    it("reverts if not called by Pool Admin", async () => {
+      const { poolController, otherAccount } = await loadFixture(
+        loadPoolFixture
+      );
+
+      const tx = poolController.connect(otherAccount).setServiceFeeBps(0);
+      await expect(tx).to.be.revertedWith("Pool: caller is not admin");
+    });
+  });
+
+  describe("setFixedFee()", () => {
+    it("changes the pool fixed fee", async () => {
+      const { poolController, poolAdmin } = await loadFixture(loadPoolFixture);
+
+      expect((await poolController.settings()).fixedFee).to.equal(0);
+      expect((await poolController.settings()).fixedFeeInterval).to.equal(0);
+
+      const tx = poolController.connect(poolAdmin).setFixedFee(100, 1);
+
+      await expect(tx).to.emit(poolController, "PoolSettingsUpdated");
+      expect((await poolController.settings()).fixedFee).to.equal(100);
+      expect((await poolController.settings()).fixedFeeInterval).to.equal(1);
+    });
+
+    it("reverts if the amount is greater than 0 and the interval is 0", async () => {
+      const { poolController, poolAdmin } = await loadFixture(loadPoolFixture);
+
+      const tx = poolController.connect(poolAdmin).setFixedFee(100, 0);
+
+      await expect(tx).to.be.revertedWith("Pool: invalid fixed fee");
+    });
+
+    it("reverts if not called by Pool Admin", async () => {
+      const { poolController, otherAccount } = await loadFixture(
+        loadPoolFixture
+      );
+
+      const tx = poolController.connect(otherAccount).setFixedFee(100, 1);
+      await expect(tx).to.be.revertedWith("Pool: caller is not admin");
+    });
+  });
+
   describe("state()", () => {
     it("is closed when pool end date passes", async () => {
       const { poolController } = await loadFixture(loadPoolFixture);
