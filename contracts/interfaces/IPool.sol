@@ -15,6 +15,7 @@ struct IPoolAccountings {
     uint256 totalAssetsDeposited;
     uint256 totalAssetsWithdrawn;
     uint256 totalDefaults;
+    uint256 totalFirstLossApplied;
 }
 
 /**
@@ -173,6 +174,11 @@ interface IPool is IERC4626 {
      * @dev Called by a loan, it notifies the pool that the loan has transitioned stated.
      */
     function onLoanStateTransitioned() external;
+
+    /**
+     * @dev Called by the PoolController, notifies the Pool that a loan has been defaulted.
+     */
+    function onLoanDefaulted(address loan, uint256 firstLossApplied) external;
 
     /**
      * @dev Called by the Pool Controller, it transfers the fixed fee

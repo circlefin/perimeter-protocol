@@ -804,7 +804,7 @@ describe("PoolController", () => {
       );
     });
 
-    it("defaulted loan principals are tracked in Pool accountings", async () => {
+    it("defaults update totalDefaults and totalFirstLossApplied in Pool accountings", async () => {
       const {
         collateralAsset,
         pool,
@@ -826,12 +826,17 @@ describe("PoolController", () => {
       await fundLoan(loan, poolController, poolAdmin);
       await loan.connect(borrower).drawdown(await loan.principal());
 
-      // Get an accounting snapshot prior to the default
+      // Check accountings
       expect((await pool.accountings()).totalDefaults).to.equal(0);
+      expect((await pool.accountings()).totalFirstLossApplied).to.equal(0);
 
       poolController.connect(poolAdmin).defaultLoan(loan.address);
       expect((await pool.accountings()).totalDefaults).to.equal(
         await loan.principal()
+      );
+      // FL is only 100k, whereas loan principal is 1M.
+      expect((await pool.accountings()).totalFirstLossApplied).to.equal(
+        DEFAULT_POOL_SETTINGS.firstLossInitialMinimum
       );
     });
 

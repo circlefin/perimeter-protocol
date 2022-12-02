@@ -362,6 +362,7 @@ library PoolLib {
             : firstLossBalance;
 
         FirstLossVault(firstLossVault).withdraw(firstLossRequired, pool);
+        IPool(pool).onLoanDefaulted(loan, firstLossRequired);
 
         emit LoanDefaulted(loan);
         emit FirstLossApplied(loan, firstLossRequired);

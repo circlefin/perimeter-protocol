@@ -280,17 +280,28 @@ contract Pool is IPool, ERC20 {
         require(_fundedLoans[msg.sender], "Pool: not funded loan");
 
         ILoanLifeCycleState loanState = ILoan(msg.sender).state();
-        if (loanState == ILoanLifeCycleState.Matured) {
-            _activeLoans.remove(msg.sender);
+        if (
+            loanState == ILoanLifeCycleState.Matured ||
+            loanState == ILoanLifeCycleState.Defaulted
+        ) {
+            require(_activeLoans.remove(msg.sender), "Pool: not active loan");
         } else if (loanState == ILoanLifeCycleState.Active) {
             _activeLoans.add(msg.sender);
-        } else if (loanState == ILoanLifeCycleState.Defaulted) {
-            _activeLoans.remove(msg.sender);
-            uint256 outstandingPrincipal = ILoan(msg.sender)
-                .outstandingPrincipal();
-            _accountings.outstandingLoanPrincipals -= outstandingPrincipal;
-            _accountings.totalDefaults += outstandingPrincipal;
         }
+    }
+
+    /**
+     * @inheritdoc IPool
+     */
+    function onLoanDefaulted(address loan, uint256 firstLossApplied)
+        external
+        override
+        onlyPoolController
+    {
+        uint256 outstandingPrincipal = ILoan(loan).outstandingPrincipal();
+        _accountings.outstandingLoanPrincipals -= outstandingPrincipal;
+        _accountings.totalDefaults += outstandingPrincipal;
+        _accountings.totalFirstLossApplied += firstLossApplied;
     }
 
     /**
