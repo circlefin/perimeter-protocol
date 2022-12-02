@@ -335,12 +335,7 @@ contract Pool is IPool, ERC20 {
     /**
      * @inheritdoc IPool
      */
-    function liquidityPoolAssets()
-        public
-        view
-        override
-        returns (uint256 assets)
-    {
+    function liquidityPoolAssets() public view returns (uint256 assets) {
         assets = PoolLib.calculateTotalAvailableAssets(
             address(_liquidityAsset),
             address(this),
