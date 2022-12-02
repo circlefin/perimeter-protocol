@@ -109,10 +109,11 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     /**
      * @dev Set a liquidity asset as valid or not.
      */
-    function setLiquidityAsset(
-        address addr,
-        bool value
-    ) public override onlyOperator {
+    function setLiquidityAsset(address addr, bool value)
+        public
+        override
+        onlyOperator
+    {
         isLiquidityAsset[addr] = value;
         emit LiquidityAssetSet(addr, value);
     }
@@ -135,10 +136,11 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     /**
      * @inheritdoc IServiceConfiguration
      */
-    function setLoanFactory(
-        address addr,
-        bool isValid
-    ) external override onlyOperator {
+    function setLoanFactory(address addr, bool isValid)
+        external
+        override
+        onlyOperator
+    {
         isLoanFactory[addr] = isValid;
         emit LoanFactorySet(addr, isValid);
     }
@@ -146,9 +148,11 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     /**
      * @inheritdoc IServiceConfiguration
      */
-    function setToSAcceptanceRegistry(
-        address addr
-    ) external override onlyOperator {
+    function setToSAcceptanceRegistry(address addr)
+        external
+        override
+        onlyOperator
+    {
         tosAcceptanceRegistry = addr;
         emit TermsOfServiceRegistrySet(addr);
     }
@@ -156,10 +160,11 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     /**
      * @inheritdoc IServiceConfiguration
      */
-    function setFirstLossMinimum(
-        address addr,
-        uint256 value
-    ) external override onlyOperator {
+    function setFirstLossMinimum(address addr, uint256 value)
+        external
+        override
+        onlyOperator
+    {
         firstLossMinimum[addr] = value;
         emit FirstLossMinimumSet(addr, value);
     }
