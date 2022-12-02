@@ -190,7 +190,12 @@ contract Pool is IPool, ERC20 {
     /**
      * @dev The pool accounting variables;
      */
-    function accountings() external view returns (IPoolAccountings memory) {
+    function accountings()
+        external
+        view
+        override
+        returns (IPoolAccountings memory)
+    {
         return _accountings;
     }
 
@@ -275,15 +280,28 @@ contract Pool is IPool, ERC20 {
         require(_fundedLoans[msg.sender], "Pool: not funded loan");
 
         ILoanLifeCycleState loanState = ILoan(msg.sender).state();
-        if (loanState == ILoanLifeCycleState.Matured) {
-            _activeLoans.remove(msg.sender);
+        if (
+            loanState == ILoanLifeCycleState.Matured ||
+            loanState == ILoanLifeCycleState.Defaulted
+        ) {
+            require(_activeLoans.remove(msg.sender), "Pool: not active loan");
         } else if (loanState == ILoanLifeCycleState.Active) {
             _activeLoans.add(msg.sender);
-        } else if (loanState == ILoanLifeCycleState.Defaulted) {
-            _activeLoans.remove(msg.sender);
-            _accountings.outstandingLoanPrincipals -= ILoan(msg.sender)
-                .outstandingPrincipal();
         }
+    }
+
+    /**
+     * @inheritdoc IPool
+     */
+    function onLoanDefaulted(address loan, uint256 firstLossApplied)
+        external
+        override
+        onlyPoolController
+    {
+        uint256 outstandingPrincipal = ILoan(loan).outstandingPrincipal();
+        _accountings.outstandingLoanPrincipals -= outstandingPrincipal;
+        _accountings.totalDefaults += outstandingPrincipal;
+        _accountings.totalFirstLossApplied += firstLossApplied;
     }
 
     /**
@@ -311,6 +329,18 @@ contract Pool is IPool, ERC20 {
             address(this),
             withdrawController.totalRedeemableShares()
         );
+    }
+
+    /**
+     * @inheritdoc IPool
+     */
+    function currentExpectedInterest()
+        external
+        view
+        override
+        returns (uint256)
+    {
+        return PoolLib.calculateExpectedInterest(_activeLoans);
     }
 
     /**
@@ -668,7 +698,8 @@ contract Pool is IPool, ERC20 {
             assets,
             previewDeposit(assets),
             maxDeposit(receiver),
-            _mint
+            _mint,
+            _accountings
         );
     }
 
@@ -727,7 +758,8 @@ contract Pool is IPool, ERC20 {
             assets,
             previewDeposit(assets),
             maxDeposit(receiver),
-            _mint
+            _mint,
+            _accountings
         );
     }
 
@@ -852,6 +884,9 @@ contract Pool is IPool, ERC20 {
 
         // Burn the shares
         _burn(owner, shares);
+
+        // Updating accountings
+        _accountings.totalAssetsWithdrawn += assets;
 
         emit Withdraw(owner, owner, owner, assets, shares);
     }

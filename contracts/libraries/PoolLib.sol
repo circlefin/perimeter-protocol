@@ -323,7 +323,8 @@ library PoolLib {
         uint256 assets,
         uint256 shares,
         uint256 maxDeposit,
-        function(address, uint256) mint
+        function(address, uint256) mint,
+        IPoolAccountings storage accountings
     ) internal returns (uint256) {
         require(shares > 0, "Pool: 0 deposit not allowed");
         require(assets <= maxDeposit, "Pool: Exceeds max deposit");
@@ -332,6 +333,7 @@ library PoolLib {
         mint(sharesReceiver, shares);
 
         emit Deposit(msg.sender, sharesReceiver, assets, shares);
+        accountings.totalAssetsDeposited += assets;
         return shares;
     }
 
@@ -360,6 +362,7 @@ library PoolLib {
             : firstLossBalance;
 
         FirstLossVault(firstLossVault).withdraw(firstLossRequired, pool);
+        IPool(pool).onLoanDefaulted(loan, firstLossRequired);
 
         emit LoanDefaulted(loan);
         emit FirstLossApplied(loan, firstLossRequired);

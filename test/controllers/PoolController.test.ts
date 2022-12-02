@@ -868,6 +868,42 @@ describe("PoolController", () => {
       );
     });
 
+    it("defaults update totalDefaults and totalFirstLossApplied in Pool accountings", async () => {
+      const {
+        collateralAsset,
+        pool,
+        poolAdmin,
+        liquidityAsset,
+        loan,
+        borrower,
+        otherAccount,
+        poolController
+      } = await loadFixture(loadPoolFixture);
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      // Collateralize loan
+      await collateralizeLoan(loan, borrower, collateralAsset);
+
+      // Deposit to pool and fund loan
+      const loanPrincipal = await loan.principal();
+      await depositToPool(pool, otherAccount, liquidityAsset, loanPrincipal);
+      await fundLoan(loan, poolController, poolAdmin);
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      // Check accountings
+      expect((await pool.accountings()).totalDefaults).to.equal(0);
+      expect((await pool.accountings()).totalFirstLossApplied).to.equal(0);
+
+      poolController.connect(poolAdmin).defaultLoan(loan.address);
+      expect((await pool.accountings()).totalDefaults).to.equal(
+        await loan.principal()
+      );
+      // FL is only 100k, whereas loan principal is 1M.
+      expect((await pool.accountings()).totalFirstLossApplied).to.equal(
+        DEFAULT_POOL_SETTINGS.firstLossInitialMinimum
+      );
+    });
+
     it("defaults only supply first loss to cover outstanding loan principal", async () => {
       const {
         pool,

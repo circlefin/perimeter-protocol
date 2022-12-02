@@ -7,7 +7,12 @@ import {
   activatePool,
   DEFAULT_POOL_SETTINGS
 } from "./support/pool";
-import { deployLoan, collateralizeLoan, fundLoan } from "./support/loan";
+import {
+  deployLoan,
+  collateralizeLoan,
+  fundLoan,
+  DEFAULT_LOAN_SETTINGS
+} from "./support/loan";
 
 describe("Pool", () => {
   const ONE_DAY = 86400;
@@ -152,6 +157,38 @@ describe("Pool", () => {
       );
     });
 
+    it("Pool tracks total deposits in its accountings", async () => {
+      const { pool, otherAccount, liquidityAsset, poolAdmin } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      // Provide capital to lender
+      const depositAmountTotal = 500;
+      await liquidityAsset.mint(otherAccount.address, depositAmountTotal);
+      await liquidityAsset
+        .connect(otherAccount)
+        .approve(pool.address, depositAmountTotal);
+
+      expect((await pool.accountings()).totalAssetsDeposited).to.equal(0);
+
+      // Deposit first half
+      await pool
+        .connect(otherAccount)
+        .deposit(depositAmountTotal / 2, otherAccount.address);
+      expect((await pool.accountings()).totalAssetsDeposited).to.equal(
+        depositAmountTotal / 2
+      );
+
+      // Deposit 2nd
+      await pool
+        .connect(otherAccount)
+        .deposit(depositAmountTotal / 2, otherAccount.address);
+      expect((await pool.accountings()).totalAssetsDeposited).to.equal(
+        depositAmountTotal
+      );
+    });
+
     it("depositing uses an exchange rate based on available assets", async () => {
       const { pool, liquidityAsset, poolAdmin, otherAccounts } =
         await loadFixture(loadPoolFixture);
@@ -286,6 +323,38 @@ describe("Pool", () => {
       // Check that shares were received, 1:1 to the liquidity as first lender
       expect(await pool.balanceOf(otherAccount.address)).to.equal(
         depositAmount
+      );
+    });
+
+    it("Pool tracks total transferred assets through mint() in its accountings", async () => {
+      const { pool, otherAccount, liquidityAsset, poolAdmin } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      // Provide capital to lender
+      const depositAmountTotal = 500;
+      await liquidityAsset.mint(otherAccount.address, depositAmountTotal);
+      await liquidityAsset
+        .connect(otherAccount)
+        .approve(pool.address, depositAmountTotal);
+
+      expect((await pool.accountings()).totalAssetsDeposited).to.equal(0);
+
+      // Deposit first half
+      await pool
+        .connect(otherAccount)
+        .mint(depositAmountTotal / 2, otherAccount.address);
+      expect((await pool.accountings()).totalAssetsDeposited).to.equal(
+        depositAmountTotal / 2
+      );
+
+      // Deposit 2nd
+      await pool
+        .connect(otherAccount)
+        .mint(depositAmountTotal / 2, otherAccount.address);
+      expect((await pool.accountings()).totalAssetsDeposited).to.equal(
+        depositAmountTotal
       );
     });
 
@@ -842,6 +911,35 @@ describe("Pool", () => {
       );
     });
 
+    it("tracks total withdrawn assets trasnferred through redeem() in pool accountings", async () => {
+      const { pool, poolAdmin, liquidityAsset, otherAccount, otherAccounts } =
+        await loadFixture(loadPoolFixture);
+
+      const { withdrawRequestPeriodDuration } = await pool.settings();
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      const bob = otherAccounts[0];
+
+      await depositToPool(pool, otherAccount, liquidityAsset, 100);
+      await pool.connect(otherAccount).requestRedeem(10);
+      await depositToPool(pool, bob, liquidityAsset, 100);
+      await pool.connect(bob).requestRedeem(30);
+
+      await time.increase(withdrawRequestPeriodDuration);
+      await pool.connect(poolAdmin).crank();
+
+      expect((await pool.accountings()).totalAssetsWithdrawn).to.equal(0);
+
+      await pool
+        .connect(otherAccount)
+        .redeem(9, otherAccount.address, otherAccount.address);
+
+      expect((await pool.accountings()).totalAssetsWithdrawn).to.equal(9);
+
+      await pool.connect(bob).redeem(29, bob.address, bob.address);
+
+      expect((await pool.accountings()).totalAssetsWithdrawn).to.equal(38);
+    });
+
     it("reverts if the number of shares is too large", async () => {
       const { pool, poolAdmin, liquidityAsset, otherAccount, otherAccounts } =
         await loadFixture(loadPoolFixture);
@@ -961,6 +1059,35 @@ describe("Pool", () => {
       expect(await pool.balanceOf(otherAccount.address)).to.equal(
         startingShares.sub(9)
       );
+    });
+
+    it("tracks total withdrawn assets in pool accountings", async () => {
+      const { pool, poolAdmin, liquidityAsset, otherAccount, otherAccounts } =
+        await loadFixture(loadPoolFixture);
+
+      const { withdrawRequestPeriodDuration } = await pool.settings();
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      const bob = otherAccounts[0];
+
+      await depositToPool(pool, otherAccount, liquidityAsset, 100);
+      await pool.connect(otherAccount).requestRedeem(10);
+      await depositToPool(pool, bob, liquidityAsset, 100);
+      await pool.connect(bob).requestRedeem(30);
+
+      await time.increase(withdrawRequestPeriodDuration);
+      await pool.connect(poolAdmin).crank();
+
+      expect((await pool.accountings()).totalAssetsWithdrawn).to.equal(0);
+
+      await pool
+        .connect(otherAccount)
+        .withdraw(9, otherAccount.address, otherAccount.address);
+
+      expect((await pool.accountings()).totalAssetsWithdrawn).to.equal(9);
+
+      await pool.connect(bob).withdraw(29, bob.address, bob.address);
+
+      expect((await pool.accountings()).totalAssetsWithdrawn).to.equal(38);
     });
 
     it("reverts if the number of shares is too large", async () => {
@@ -1234,6 +1361,63 @@ describe("Pool", () => {
         liquidityAsset,
         poolAdmin.address,
         200
+      );
+    });
+  });
+
+  describe("currentExpectedInterest()", async () => {
+    it("returns 0 if there are no active loans", async () => {
+      const {
+        pool,
+        poolController,
+        loan,
+        poolAdmin,
+        liquidityAsset,
+        otherAccount
+      } = await loadFixture(loadPoolFixture);
+
+      expect(await pool.currentExpectedInterest()).to.equal(0);
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        DEFAULT_LOAN_SETTINGS.principal
+      );
+      await poolController.connect(poolAdmin).fundLoan(loan.address);
+
+      await time.increase(86400); // 1 day
+      // loan hasn't been drawn down so it still should be zero
+      expect(await pool.currentExpectedInterest()).to.equal(0);
+    });
+
+    it("returns a portion of interest payment for an active loan ", async () => {
+      const {
+        pool,
+        poolController,
+        loan,
+        borrower,
+        poolAdmin,
+        liquidityAsset,
+        otherAccount
+      } = await loadFixture(loadPoolFixture);
+
+      expect(await pool.currentExpectedInterest()).to.equal(0);
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        DEFAULT_LOAN_SETTINGS.principal
+      );
+      await poolController.connect(poolAdmin).fundLoan(loan.address);
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      await time.increase(86400); // 1 day
+
+      // Loan was drawdown 1 day ago, so expected interest is payment * 1 day / paymentInterval (days)
+      expect(await pool.currentExpectedInterest()).to.equal(
+        (await loan.payment()).div(await loan.paymentPeriod())
       );
     });
   });

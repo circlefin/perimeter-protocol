@@ -10,9 +10,12 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
  * @title Data type storing collected accounting statistics
  */
 struct IPoolAccountings {
-    uint256 defaultsTotal;
     uint256 outstandingLoanPrincipals;
     uint256 fixedFeeDueDate;
+    uint256 totalAssetsDeposited;
+    uint256 totalAssetsWithdrawn;
+    uint256 totalDefaults;
+    uint256 totalFirstLossApplied;
 }
 
 /**
@@ -173,6 +176,11 @@ interface IPool is IERC4626 {
     function onLoanStateTransitioned() external;
 
     /**
+     * @dev Called by the PoolController, notifies the Pool that a loan has been defaulted.
+     */
+    function onLoanDefaulted(address loan, uint256 firstLossApplied) external;
+
+    /**
      * @dev Called by the Pool Controller, it transfers the fixed fee
      */
     function claimFixedFee(
@@ -191,4 +199,9 @@ interface IPool is IERC4626 {
      * @dev The total available supply that is not marked for withdrawal
      */
     function totalAvailableSupply() external view returns (uint256);
+
+    /**
+     * @dev The accrued interest at the current block.
+     */
+    function currentExpectedInterest() external view returns (uint256 interest);
 }
