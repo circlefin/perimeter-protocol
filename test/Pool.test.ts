@@ -7,7 +7,12 @@ import {
   activatePool,
   DEFAULT_POOL_SETTINGS
 } from "./support/pool";
-import { deployLoan, collateralizeLoan, fundLoan } from "./support/loan";
+import {
+  deployLoan,
+  collateralizeLoan,
+  fundLoan,
+  DEFAULT_LOAN_SETTINGS
+} from "./support/loan";
 
 describe("Pool", () => {
   async function loadPoolFixture() {
@@ -1331,6 +1336,63 @@ describe("Pool", () => {
       await expect(poolController.connect(poolAdmin).claimFixedFee()).to.emit(
         pool,
         "PoolCranked"
+      );
+    });
+  });
+
+  describe("currentExpectedInterest()", async () => {
+    it("returns 0 if there are no active loans", async () => {
+      const {
+        pool,
+        poolController,
+        loan,
+        poolAdmin,
+        liquidityAsset,
+        otherAccount
+      } = await loadFixture(loadPoolFixture);
+
+      expect(await pool.currentExpectedInterest()).to.equal(0);
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        DEFAULT_LOAN_SETTINGS.principal
+      );
+      await poolController.connect(poolAdmin).fundLoan(loan.address);
+
+      await time.increase(86400); // 1 day
+      // loan hasn't been drawn down so it still should be zero
+      expect(await pool.currentExpectedInterest()).to.equal(0);
+    });
+
+    it("returns a portion of interest payment for an active loan ", async () => {
+      const {
+        pool,
+        poolController,
+        loan,
+        borrower,
+        poolAdmin,
+        liquidityAsset,
+        otherAccount
+      } = await loadFixture(loadPoolFixture);
+
+      expect(await pool.currentExpectedInterest()).to.equal(0);
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        DEFAULT_LOAN_SETTINGS.principal
+      );
+      await poolController.connect(poolAdmin).fundLoan(loan.address);
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      await time.increase(86400); // 1 day
+
+      // Loan was drawdown 1 day ago, so expected interest is payment * 1 day / paymentInterval (days)
+      expect(await pool.currentExpectedInterest()).to.equal(
+        (await loan.payment()).div(await loan.paymentPeriod())
       );
     });
   });
