@@ -13,17 +13,17 @@ import {
   fundLoan,
   DEFAULT_LOAN_SETTINGS
 } from "./support/loan";
+import { getCommonSigners } from "./support/utils";
 
 describe("Pool", () => {
   const ONE_DAY = 86400;
 
   async function loadPoolFixture() {
-    const [operator, poolAdmin, borrower, otherAccount, ...otherAccounts] =
-      await ethers.getSigners();
+    const { poolAdmin, borrower, otherAccount, otherAccounts } =
+      await getCommonSigners();
 
     const { pool, liquidityAsset, serviceConfiguration, poolController } =
       await deployPool({
-        operator,
         poolAdmin: poolAdmin
       });
 
@@ -395,8 +395,7 @@ describe("Pool", () => {
         borrower,
         otherAccounts
       } = await loadFixture(loadPoolFixture);
-      const lender = otherAccounts[10];
-
+      const lender = otherAccounts[0];
       await activatePool(pool, poolAdmin, liquidityAsset);
       await collateralizeLoan(loan, borrower, collateralAsset);
 

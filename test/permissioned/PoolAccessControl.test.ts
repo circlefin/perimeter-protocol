@@ -2,19 +2,23 @@ import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { deployPermissionedPool } from "../support/pool";
+import { getCommonSigners } from "../support/utils";
 import { getSignedVerificationResult } from "../support/verite";
 
 describe("PoolAccessControl", () => {
   async function deployFixture() {
-    const [operator, poolAdmin, verifier, poolParticipant, ...otherAccounts] =
-      await ethers.getSigners();
-    const { pool, tosAcceptanceRegistry, liquidityAsset } =
-      await deployPermissionedPool({
-        operator,
-        poolAdmin
-      });
+    const { operator, poolAdmin, otherAccounts } = await getCommonSigners();
 
-    await tosAcceptanceRegistry.updateTermsOfService("http://circle.com");
+    const verifier = otherAccounts[0];
+    const poolParticipant = otherAccounts[1];
+
+    const { pool, tosAcceptanceRegistry, liquidityAsset } = await deployPermissionedPool({
+      poolAdmin
+    });
+
+    await tosAcceptanceRegistry
+      .connect(operator)
+      .updateTermsOfService("http://circle.com");
 
     // Deploy the PermissionedPoolFactory contract
     const PoolAccessControl = await ethers.getContractFactory(

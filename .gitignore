@@ -21,3 +21,6 @@ typechain-types
 cache
 artifacts
 
+# OpenZeppelin
+.openzeppelin/unknown-*.json
+.openzeppelin/.session

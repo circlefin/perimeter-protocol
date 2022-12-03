@@ -7,6 +7,7 @@ import {
   deployServiceConfiguration
 } from "./serviceconfiguration";
 import { performVeriteVerification } from "./verite";
+import { getCommonSigners } from "./utils";
 
 export const DEFAULT_POOL_SETTINGS = {
   maxCapacity: 10_000_000,
@@ -22,7 +23,6 @@ export const DEFAULT_POOL_SETTINGS = {
 };
 
 type DeployPoolProps = {
-  operator: any;
   poolAdmin: any;
   settings?: Partial<typeof DEFAULT_POOL_SETTINGS>;
   liquidityAsset?: MockERC20;
@@ -32,7 +32,6 @@ type DeployPoolProps = {
  * Deploy an "Initialized" Pool
  */
 export async function deployPool({
-  operator,
   poolAdmin,
   settings,
   liquidityAsset
@@ -42,9 +41,12 @@ export async function deployPool({
     ...settings
   };
   liquidityAsset = liquidityAsset ?? (await deployMockERC20()).mockERC20;
+  const { operator } = await getCommonSigners();
 
-  const { serviceConfiguration } = await deployServiceConfiguration(operator);
-  await serviceConfiguration.setLiquidityAsset(liquidityAsset.address, true);
+  const { serviceConfiguration } = await deployServiceConfiguration();
+  await serviceConfiguration
+    .connect(operator)
+    .setLiquidityAsset(liquidityAsset.address, true);
 
   const PoolLib = await ethers.getContractFactory("PoolLib");
   const poolLib = await PoolLib.deploy();
@@ -112,21 +114,20 @@ export async function deployPool({
  */
 export async function deployPermissionedPool({
   poolAdmin,
-  operator,
   settings,
   liquidityAsset
 }: DeployPoolProps) {
+  const { operator } = await getCommonSigners();
   const poolSettings = {
     ...DEFAULT_POOL_SETTINGS,
     ...settings
   };
   liquidityAsset = liquidityAsset ?? (await deployMockERC20()).mockERC20;
-
   const {
     serviceConfiguration,
     tosAcceptanceRegistry,
     poolAdminAccessControl
-  } = await deployPermissionedServiceConfiguration(operator);
+  } = await deployPermissionedServiceConfiguration();
 
   await serviceConfiguration
     .connect(operator)

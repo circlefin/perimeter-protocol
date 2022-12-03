@@ -13,7 +13,7 @@ import {
   fundLoan,
   matureLoan
 } from "./support/loan";
-import { findEventByName } from "./support/utils";
+import { findEventByName, getCommonSigners } from "./support/utils";
 
 describe("Loan", () => {
   const THIRTY_DAYS = 30 * 60 * 60 * 24;
@@ -24,14 +24,14 @@ describe("Loan", () => {
       principal: 500_000
     })
   ) {
-    // Contracts are deployed using the first signer/account by default
-    const [operator, poolAdmin, borrower, lender, other] =
-      await ethers.getSigners();
+    const { admin, operator, poolAdmin, borrower, lender, other } =
+      await getCommonSigners();
 
     // Create a pool
     const { pool, poolController, liquidityAsset, serviceConfiguration } =
       await deployPool({
-        operator,
+        protocolAdmin: admin,
+        operator: operator,
         poolAdmin: poolAdmin,
         settings: poolSettings
       });
@@ -49,7 +49,9 @@ describe("Loan", () => {
     const loanFactory = await LoanFactory.deploy(serviceConfiguration.address);
     await loanFactory.deployed();
 
-    await serviceConfiguration.setLoanFactory(loanFactory.address, true);
+    await serviceConfiguration
+      .connect(operator)
+      .setLoanFactory(loanFactory.address, true);
 
     const depositAmount = 1_000_000;
     await liquidityAsset.mint(lender.address, 10_000_000);

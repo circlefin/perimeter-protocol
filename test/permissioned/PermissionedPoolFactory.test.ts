@@ -7,25 +7,22 @@ import {
   deployPoolControllerFactory,
   deployWithdrawControllerFactory
 } from "../support/pool";
+import { deployPermissionedServiceConfiguration } from "../support/serviceconfiguration";
 import { deployToSAcceptanceRegistry } from "../support/tosacceptanceregistry";
+import { getCommonSigners } from "../support/utils";
 import { performVeriteVerification } from "../support/verite";
 
 describe("PermissionedPoolFactory", () => {
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
-    const [operator, poolAdmin, otherAccount] = await ethers.getSigners();
+    const { operator, poolAdmin, otherAccount } = await getCommonSigners();
 
     // Deploy the liquidity asset
     const { mockERC20: liquidityAsset } = await deployMockERC20();
 
     // Deploy the Service Configuration contract
-    const PermissionedServiceConfiguration = await ethers.getContractFactory(
-      "PermissionedServiceConfiguration",
-      operator
-    );
-    const permissionedServiceConfiguration =
-      await PermissionedServiceConfiguration.deploy();
-    await permissionedServiceConfiguration.deployed();
+    const { serviceConfiguration: permissionedServiceConfiguration } =
+      await deployPermissionedServiceConfiguration();
 
     // Deploy ToS Registry
     const { tosAcceptanceRegistry } = await deployToSAcceptanceRegistry(
@@ -94,9 +91,9 @@ describe("PermissionedPoolFactory", () => {
     await poolFactory.deployed();
 
     // Initialize ServiceConfiguration
-    const tx = await permissionedServiceConfiguration.setPoolAdminAccessControl(
-      poolAdminAccessControl.address
-    );
+    const tx = await permissionedServiceConfiguration
+      .connect(operator)
+      .setPoolAdminAccessControl(poolAdminAccessControl.address);
     await tx.wait();
 
     return {

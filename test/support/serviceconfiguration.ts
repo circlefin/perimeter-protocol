@@ -1,16 +1,24 @@
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import { deployToSAcceptanceRegistry } from "./tosacceptanceregistry";
+import { getCommonSigners } from "./utils";
 
 /**
  * Deploy ServiceConfiguration
  */
-export async function deployServiceConfiguration(operator?: any) {
+export async function deployServiceConfiguration() {
+  const { admin, operator } = await getCommonSigners();
   const ServiceConfiguration = await ethers.getContractFactory(
     "ServiceConfiguration",
-    operator
+    admin
   );
-  const serviceConfiguration = await ServiceConfiguration.deploy();
+  const serviceConfiguration = await upgrades.deployProxy(
+    ServiceConfiguration,
+    { kind: "uups" }
+  );
   await serviceConfiguration.deployed();
+  await serviceConfiguration
+    .connect(admin)
+    .grantRole(await serviceConfiguration.OPERATOR_ROLE(), operator.address);
 
   return {
     serviceConfiguration
@@ -20,13 +28,23 @@ export async function deployServiceConfiguration(operator?: any) {
 /**
  * Deploy PermissionedServiceConfiguration
  */
-export async function deployPermissionedServiceConfiguration(operator: any) {
+export async function deployPermissionedServiceConfiguration() {
+  const { admin, operator } = await getCommonSigners();
+
   const ServiceConfiguration = await ethers.getContractFactory(
     "PermissionedServiceConfiguration",
-    operator
+    admin
   );
-  const serviceConfiguration = await ServiceConfiguration.deploy();
+  const serviceConfiguration = await upgrades.deployProxy(
+    ServiceConfiguration,
+    { kind: "uups" }
+  );
   await serviceConfiguration.deployed();
+
+  // Grant operator
+  await serviceConfiguration
+    .connect(admin)
+    .grantRole(await serviceConfiguration.OPERATOR_ROLE(), operator.address);
 
   const { tosAcceptanceRegistry } = await deployToSAcceptanceRegistry(
     serviceConfiguration
