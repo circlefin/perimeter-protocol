@@ -80,11 +80,6 @@ contract ServiceConfiguration is
      */
     event TermsOfServiceRegistrySet(address indexed registry);
 
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
-        _disableInitializers();
-    }
-
     /**
      * @dev Modifier that checks that the caller account has the Operator role.
      */

@@ -30,6 +30,11 @@ abstract contract DeployerUUPSUpgradeable is
         _;
     }
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     /**
      * @inheritdoc UUPSUpgradeable
      */
