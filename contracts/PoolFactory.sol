@@ -12,17 +12,17 @@ contract PoolFactory is IPoolFactory {
     /**
      * @dev Reference to the ServiceConfiguration contract
      */
-    address private _serviceConfiguration;
+    address internal _serviceConfiguration;
 
     /**
      * @dev Reference to the WithdrawControllerFactory contract
      */
-    address private _withdrawControllerFactory;
+    address internal _withdrawControllerFactory;
 
     /**
      * @dev Reference to the PoolControllerFactory contract
      */
-    address private _poolControllerFactory;
+    address internal _poolControllerFactory;
 
     constructor(
         address serviceConfiguration,
@@ -83,6 +83,18 @@ contract PoolFactory is IPoolFactory {
         );
 
         // Create the pool
+        address addr = initializePool(liquidityAsset, settings);
+        emit PoolCreated(addr);
+        return addr;
+    }
+
+    /**
+     * @dev Creates the new Pool contract.
+     */
+    function initializePool(
+        address liquidityAsset,
+        IPoolConfigurableSettings calldata settings
+    ) internal virtual returns (address) {
         Pool pool = new Pool(
             liquidityAsset,
             msg.sender,
@@ -93,9 +105,6 @@ contract PoolFactory is IPoolFactory {
             "PerimeterPoolToken",
             "PPT"
         );
-
-        address addr = address(pool);
-        emit PoolCreated(addr);
-        return addr;
+        return address(pool);
     }
 }

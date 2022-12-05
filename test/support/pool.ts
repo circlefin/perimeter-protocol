@@ -128,6 +128,10 @@ export async function deployPermissionedPool({
     poolAdminAccessControl
   } = await deployPermissionedServiceConfiguration(operator);
 
+  await serviceConfiguration
+    .connect(operator)
+    .setLiquidityAsset(liquidityAsset.address, true);
+
   await tosAcceptanceRegistry.connect(poolAdmin).acceptTermsOfService();
   await performVeriteVerification(poolAdminAccessControl, operator, poolAdmin);
 

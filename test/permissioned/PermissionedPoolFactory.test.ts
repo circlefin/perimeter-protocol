@@ -40,6 +40,11 @@ describe("PermissionedPoolFactory", () => {
       .connect(operator)
       .updateTermsOfService("https://terms.example");
 
+    // Add liquidity asset
+    await permissionedServiceConfiguration
+      .connect(operator)
+      .setLiquidityAsset(liquidityAsset.address, true);
+
     // Deploy the PoolAdminAccessControl contract
     const PoolAdminAccessControl = await ethers.getContractFactory(
       "PoolAdminAccessControl"

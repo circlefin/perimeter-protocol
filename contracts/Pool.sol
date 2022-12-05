@@ -127,7 +127,6 @@ contract Pool is IPool, ERC20 {
         _liquidityAsset = IERC20(liquidityAsset);
         _feeVault = new FeeVault(address(this));
 
-        // Build the withdraw controller
         withdrawController = IWithdrawController(
             IWithdrawControllerFactory(withdrawControllerFactory)
                 .createController(address(this))
