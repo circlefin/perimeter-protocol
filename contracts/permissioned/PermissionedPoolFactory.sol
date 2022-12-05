@@ -3,12 +3,13 @@ pragma solidity ^0.8.16;
 
 import "./interfaces/IPermissionedServiceConfiguration.sol";
 import "../PoolFactory.sol";
+import "@openzeppelin/contracts/proxy/beacon/IBeacon.sol";
 import "./PermissionedPool.sol";
 
 /**
  * @title PermissionedPoolFactory
  */
-contract PermissionedPoolFactory is PoolFactory {
+contract PermissionedPoolFactory is PoolFactory, IBeacon {
     /**
      * @dev Reference to a PoolAccessControlFactory
      */

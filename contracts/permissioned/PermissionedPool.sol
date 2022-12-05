@@ -24,11 +24,11 @@ contract PermissionedPool is Pool {
     }
 
     /**
-     * @dev The constructor for the PermissionedPool contract. It calls the
+     * @dev The initialize function for the PermissionedPool contract. It calls the
      * constructor of the Pool contract and then creates a new instance of the
      * PoolAccessControl contract.
      */
-    constructor(
+    function initialize(
         address liquidityAsset,
         address poolAdmin,
         address serviceConfiguration,
@@ -38,8 +38,8 @@ contract PermissionedPool is Pool {
         IPoolConfigurableSettings memory poolSettings,
         string memory tokenName,
         string memory tokenSymbol
-    )
-        Pool(
+    ) public initializer {
+        super.initialize(
             liquidityAsset,
             poolAdmin,
             serviceConfiguration,
@@ -48,8 +48,7 @@ contract PermissionedPool is Pool {
             poolSettings,
             tokenName,
             tokenSymbol
-        )
-    {
+        );
         poolAccessControl = IPoolAccessControl(
             IPoolAccessControlFactory(poolAccessControlFactory).create(
                 address(this)
@@ -74,12 +73,9 @@ contract PermissionedPool is Pool {
      * @dev Since Pool does not enforce that msg.sender == receiver, we only
      * check the receiver here.
      */
-    function maxDeposit(address receiver)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function maxDeposit(
+        address receiver
+    ) public view override returns (uint256) {
         if (!poolAccessControl.isAllowed(receiver)) {
             return 0;
         }

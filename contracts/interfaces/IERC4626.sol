@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 /**
  * @title The interface according to the ERC-4626 standard.
  */
-interface IERC4626 is IERC20 {
+interface IERC4626 is IERC20Upgradeable {
     /**
      * @dev Emitted when tokens are deposited into the vault via the mint and deposit methods.
      */
@@ -63,9 +63,10 @@ interface IERC4626 is IERC20 {
      * @dev Deposits assets of underlying tokens into the vault and grants ownership of shares to receiver.
      * Emits a {Deposit} event.
      */
-    function deposit(uint256 assets, address receiver)
-        external
-        returns (uint256);
+    function deposit(
+        uint256 assets,
+        address receiver
+    ) external returns (uint256);
 
     /**
      * @dev Returns the maximum amount of shares that can be minted in a single mint call by the receiver.
