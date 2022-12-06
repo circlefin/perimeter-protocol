@@ -1,5 +1,6 @@
 import { time } from "@nomicfoundation/hardhat-network-helpers";
 import { ethers } from "ethers";
+import { expect } from "chai";
 import { v4 } from "uuid";
 import { ethers as hardhatEthers } from "hardhat";
 
@@ -102,5 +103,7 @@ export async function performVeriteVerification(
   await contract.connect(admin).addCredentialSchema(verificationResult.schema);
 
   // Verify the verification result
-  await contract.connect(subject).verify(verificationResult, signature);
+  await expect(contract.connect(subject).verify(verificationResult, signature))
+    .to.emit(contract, "VerificationResultConfirmed")
+    .withArgs(subject.address);
 }
