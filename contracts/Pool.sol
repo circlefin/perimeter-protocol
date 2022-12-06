@@ -8,25 +8,26 @@ import "./controllers/interfaces/IWithdrawController.sol";
 import "./controllers/interfaces/IPoolController.sol";
 import "./factories/interfaces/IWithdrawControllerFactory.sol";
 import "./factories/interfaces/IPoolControllerFactory.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "./libraries/PoolLib.sol";
 import "./FeeVault.sol";
 import "./FirstLossVault.sol";
+import "./upgrades/interfaces/IBeaconImplementation.sol";
 
 /**
  * @title Pool
  */
-contract Pool is IPool, ERC20 {
-    using SafeERC20 for IERC20;
+contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
+    using SafeERC20Upgradeable for IERC20Upgradeable;
     using SafeMath for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    IERC20 private _liquidityAsset;
+    IERC20Upgradeable private _liquidityAsset;
     FeeVault private _feeVault;
     IPoolAccountings private _accountings;
 
@@ -105,7 +106,7 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
-     * @dev Constructor for Pool
+     * @dev Initializer for Pool
      * @param liquidityAsset asset held by the poo
      * @param poolAdmin admin of the pool
      * @param serviceConfiguration address of global service configuration
@@ -114,7 +115,7 @@ contract Pool is IPool, ERC20 {
      * @param tokenName Name used for issued pool tokens
      * @param tokenSymbol Symbol used for issued pool tokens
      */
-    constructor(
+    function initialize(
         address liquidityAsset,
         address poolAdmin,
         address serviceConfiguration,
@@ -123,8 +124,9 @@ contract Pool is IPool, ERC20 {
         IPoolConfigurableSettings memory poolSettings,
         string memory tokenName,
         string memory tokenSymbol
-    ) ERC20(tokenName, tokenSymbol) {
-        _liquidityAsset = IERC20(liquidityAsset);
+    ) public initializer {
+        __ERC20_init(tokenName, tokenSymbol);
+        _liquidityAsset = IERC20Upgradeable(liquidityAsset);
         _feeVault = new FeeVault(address(this));
 
         // Build the withdraw controller
@@ -366,7 +368,7 @@ contract Pool is IPool, ERC20 {
         );
 
         _accountings.fixedFeeDueDate += fixedFeeInterval * 1 days;
-        IERC20(_liquidityAsset).safeTransfer(recipient, fixedFee);
+        IERC20Upgradeable(_liquidityAsset).safeTransfer(recipient, fixedFee);
     }
 
     /*//////////////////////////////////////////////////////////////

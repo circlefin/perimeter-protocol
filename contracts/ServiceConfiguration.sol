@@ -1,33 +1,44 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "./interfaces/IServiceConfiguration.sol";
+import "./upgrades/DeployerUUPSUpgradeable.sol";
+import "hardhat/console.sol";
 
 /**
  * @title The ServiceConfiguration contract
  * @dev Implementation of the {IServiceConfiguration} interface.
  */
-contract ServiceConfiguration is AccessControl, IServiceConfiguration {
+contract ServiceConfiguration is
+    IServiceConfiguration,
+    AccessControlUpgradeable,
+    DeployerUUPSUpgradeable
+{
     /**
      * @dev The Operator Role
      */
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
     /**
+     * @dev The Operator Role
+     */
+    bytes32 public constant DEPLOYER_ROLE = keccak256("DEPLOYER_ROLE");
+
+    /**
      * @dev Whether the protocol is paused.
      */
-    bool public paused = false;
+    bool public paused;
 
     mapping(address => bool) public isLiquidityAsset;
 
     mapping(address => uint256) public firstLossMinimum;
 
-    uint256 public firstLossFeeBps = 500;
+    uint256 public firstLossFeeBps;
 
     address public tosAcceptanceRegistry;
 
-    uint256 public protocolFeeBps = 0;
+    uint256 public protocolFeeBps;
 
     /**
      * @dev Holds a reference to valid LoanFactories
@@ -70,15 +81,6 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     event TermsOfServiceRegistrySet(address indexed registry);
 
     /**
-     * @dev Constructor for the contract, which sets up the default roles and
-     * owners.
-     */
-    constructor() {
-        // Grant the contract deployer the Operator role
-        _setupRole(OPERATOR_ROLE, msg.sender);
-    }
-
-    /**
      * @dev Modifier that checks that the caller account has the Operator role.
      */
     modifier onlyOperator() {
@@ -87,6 +89,19 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
             "ServiceConfiguration: caller is not an operator"
         );
         _;
+    }
+
+    /**
+     * @dev Constructor for the contract, which sets up the default roles and
+     * owners.
+     */
+    function initialize() public initializer {
+        // Initialize values
+        paused = false;
+        firstLossFeeBps = 500;
+        protocolFeeBps = 0;
+
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     /**
@@ -114,6 +129,13 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
      */
     function isOperator(address addr) external view returns (bool) {
         return hasRole(OPERATOR_ROLE, addr);
+    }
+
+    /**
+     * @inheritdoc IServiceConfiguration
+     */
+    function isDeployer(address addr) external view returns (bool) {
+        return hasRole(DEPLOYER_ROLE, addr);
     }
 
     /**
@@ -158,5 +180,12 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     function setFirstLossFeeBps(uint256 value) external override onlyOperator {
         firstLossFeeBps = value;
         emit ParameterSet("firstLossFeeBps", value);
+    }
+
+    /**
+     * @inheritdoc IServiceConfigurable
+     */
+    function serviceConfiguration() external view override returns (address) {
+        return address(this);
     }
 }

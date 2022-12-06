@@ -4,6 +4,7 @@ pragma solidity ^0.8.16;
 import "./interfaces/IPermissionedServiceConfiguration.sol";
 import "../PoolFactory.sol";
 import "./PermissionedPool.sol";
+import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 
 /**
  * @title PermissionedPoolFactory
@@ -61,17 +62,22 @@ contract PermissionedPoolFactory is PoolFactory {
         address liquidityAsset,
         IPoolConfigurableSettings calldata settings
     ) internal override returns (address) {
-        PermissionedPool pool = new PermissionedPool(
-            liquidityAsset,
-            msg.sender,
-            address(_serviceConfiguration),
-            _withdrawControllerFactory,
-            _poolControllerFactory,
-            _poolAccessControlFactory,
-            settings,
-            "PerimeterPoolToken",
-            "PPT"
+        // Create beacon proxy
+        BeaconProxy proxy = new BeaconProxy(
+            address(this),
+            abi.encodeWithSelector(
+                PermissionedPool.initialize.selector,
+                liquidityAsset,
+                msg.sender,
+                _serviceConfiguration,
+                _withdrawControllerFactory,
+                _poolControllerFactory,
+                _poolAccessControlFactory,
+                settings,
+                "PerimeterPoolToken",
+                "PPT"
+            )
         );
-        return address(pool);
+        return address(proxy);
     }
 }

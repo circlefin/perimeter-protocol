@@ -1,7 +1,9 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { deployServiceConfiguration } from "../support/serviceconfiguration";
 import { deployToSAcceptanceRegistry } from "../support/tosacceptanceregistry";
+import { getCommonSigners } from "../support/utils";
 import { performVeriteVerification } from "../support/verite";
 
 describe("PoolAdminAccessControl", () => {
@@ -10,23 +12,20 @@ describe("PoolAdminAccessControl", () => {
   // and reset Hardhat Network to that snapshot in every test.
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
-    const [operator, otherAccount] = await ethers.getSigners();
+    const { operator, otherAccount } = await getCommonSigners();
 
     // Deploy the Service Configuration contract
-    const ServiceConfiguration = await ethers.getContractFactory(
-      "ServiceConfiguration",
-      operator
-    );
-    const serviceConfiguration = await ServiceConfiguration.deploy();
-    await serviceConfiguration.deployed();
+    const { serviceConfiguration } = await deployServiceConfiguration();
 
     const { tosAcceptanceRegistry } = await deployToSAcceptanceRegistry(
       serviceConfiguration
     );
-    await tosAcceptanceRegistry.updateTermsOfService("https://terms.xyz");
-    await serviceConfiguration.setToSAcceptanceRegistry(
-      tosAcceptanceRegistry.address
-    );
+    await tosAcceptanceRegistry
+      .connect(operator)
+      .updateTermsOfService("https://terms.xyz");
+    await serviceConfiguration
+      .connect(operator)
+      .setToSAcceptanceRegistry(tosAcceptanceRegistry.address);
 
     // Deploy the PoolAdminAccessControl contract
     const PoolAdminAccessControl = await ethers.getContractFactory(

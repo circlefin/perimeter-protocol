@@ -15,10 +15,11 @@ import {
   deployPermissionedPool,
   depositToPool
 } from "../support/pool";
+import { getCommonSigners } from "../support/utils";
 
 describe("PermissionedLoan", () => {
   async function loadLoanFixture() {
-    const [operator, poolAdmin, borrower, lender] = await ethers.getSigners();
+    const { operator, poolAdmin, borrower, lender } = await getCommonSigners();
 
     const { mockERC20: liquidityAsset } = await deployMockERC20();
     const NftAsset = await ethers.getContractFactory("MockERC721");
@@ -35,7 +36,6 @@ describe("PermissionedLoan", () => {
       serviceConfiguration,
       poolController
     } = await deployPermissionedPool({
-      operator,
       poolAdmin: poolAdmin,
       settings: DEFAULT_POOL_SETTINGS,
       liquidityAsset: liquidityAsset
@@ -45,7 +45,6 @@ describe("PermissionedLoan", () => {
       pool.address,
       borrower.address,
       liquidityAsset.address,
-      operator,
       serviceConfiguration
     );
 

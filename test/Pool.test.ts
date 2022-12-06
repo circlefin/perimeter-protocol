@@ -13,19 +13,25 @@ import {
   fundLoan,
   DEFAULT_LOAN_SETTINGS
 } from "./support/loan";
+import { getCommonSigners } from "./support/utils";
 
 describe("Pool", () => {
   const ONE_DAY = 86400;
 
   async function loadPoolFixture() {
-    const [operator, poolAdmin, borrower, otherAccount, ...otherAccounts] =
-      await ethers.getSigners();
+    const { poolAdmin, borrower, otherAccount, otherAccounts, deployer } =
+      await getCommonSigners();
 
-    const { pool, liquidityAsset, serviceConfiguration, poolController } =
-      await deployPool({
-        operator,
-        poolAdmin: poolAdmin
-      });
+    const {
+      pool,
+      liquidityAsset,
+      serviceConfiguration,
+      poolController,
+      poolFactory,
+      poolLib
+    } = await deployPool({
+      poolAdmin: poolAdmin
+    });
 
     const CollateralAsset = await ethers.getContractFactory("MockERC20");
     const collateralAsset = await CollateralAsset.deploy("Test Coin", "TC", 18);
@@ -40,6 +46,9 @@ describe("Pool", () => {
 
     return {
       pool,
+      poolLib,
+      deployer,
+      poolFactory,
       poolController,
       collateralAsset,
       liquidityAsset,
@@ -395,8 +404,7 @@ describe("Pool", () => {
         borrower,
         otherAccounts
       } = await loadFixture(loadPoolFixture);
-      const lender = otherAccounts[10];
-
+      const lender = otherAccounts[0];
       await activatePool(pool, poolAdmin, liquidityAsset);
       await collateralizeLoan(loan, borrower, collateralAsset);
 
@@ -1419,6 +1427,27 @@ describe("Pool", () => {
       expect(await pool.currentExpectedInterest()).to.equal(
         (await loan.payment()).div(await loan.paymentPeriod())
       );
+    });
+  });
+
+  describe("Updates", () => {
+    it("Can be upgraded through the beacon", async () => {
+      const { pool, poolFactory, deployer, poolLib } = await loadFixture(
+        loadPoolFixture
+      );
+
+      // new implementation
+      const V2Impl = await ethers.getContractFactory("PoolMockV2", {
+        libraries: {
+          PoolLib: poolLib.address
+        }
+      });
+      const v2Impl = await V2Impl.deploy();
+      await poolFactory.connect(deployer).setImplementation(v2Impl.address);
+
+      // Check that it upgraded
+      const poolV2 = V2Impl.attach(pool.address);
+      expect(await poolV2.foo()).to.be.true;
     });
   });
 });

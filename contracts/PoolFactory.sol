@@ -4,11 +4,13 @@ pragma solidity ^0.8.16;
 import "./Pool.sol";
 import "./interfaces/IServiceConfiguration.sol";
 import "./interfaces/IPoolFactory.sol";
+import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
+import "./upgrades/interfaces/IBeacon.sol";
 
 /**
  * @title PoolFactory
  */
-contract PoolFactory is IPoolFactory {
+contract PoolFactory is IPoolFactory, IBeacon {
     /**
      * @dev Reference to the ServiceConfiguration contract
      */
@@ -24,6 +26,22 @@ contract PoolFactory is IPoolFactory {
      */
     address internal _poolControllerFactory;
 
+    /**
+     * @inheritdoc IBeacon
+     */
+    address public implementation;
+
+    /**
+     * @dev Modifier that requires that the sender is registered as a protocol deployer.
+     */
+    modifier onlyDeployer() {
+        require(
+            IServiceConfiguration(_serviceConfiguration).isDeployer(msg.sender),
+            "Upgrade: unauthorized"
+        );
+        _;
+    }
+
     constructor(
         address serviceConfiguration,
         address withdrawControllerFactory,
@@ -35,6 +53,18 @@ contract PoolFactory is IPoolFactory {
     }
 
     /**
+     * @inheritdoc IBeacon
+     */
+    function setImplementation(address newImplementation)
+        external
+        override
+        onlyDeployer
+    {
+        implementation = newImplementation;
+        emit ImplementationSet(newImplementation);
+    }
+
+    /**
      * @dev Creates a pool
      * @dev Emits `PoolCreated` event.
      */
@@ -42,6 +72,10 @@ contract PoolFactory is IPoolFactory {
         address liquidityAsset,
         IPoolConfigurableSettings calldata settings
     ) public virtual returns (address poolAddress) {
+        require(
+            implementation != address(0),
+            "PoolFactory: no implementation set"
+        );
         require(
             IServiceConfiguration(_serviceConfiguration).paused() == false,
             "PoolFactory: Protocol paused"
@@ -95,16 +129,21 @@ contract PoolFactory is IPoolFactory {
         address liquidityAsset,
         IPoolConfigurableSettings calldata settings
     ) internal virtual returns (address) {
-        Pool pool = new Pool(
-            liquidityAsset,
-            msg.sender,
-            _serviceConfiguration,
-            _withdrawControllerFactory,
-            _poolControllerFactory,
-            settings,
-            "PerimeterPoolToken",
-            "PPT"
+        // Create beacon proxy
+        BeaconProxy proxy = new BeaconProxy(
+            address(this),
+            abi.encodeWithSelector(
+                Pool.initialize.selector,
+                liquidityAsset,
+                msg.sender,
+                _serviceConfiguration,
+                _withdrawControllerFactory,
+                _poolControllerFactory,
+                settings,
+                "PerimeterPoolToken",
+                "PPT"
+            )
         );
-        return address(pool);
+        return address(proxy);
     }
 }

@@ -3,6 +3,7 @@ import {
   deployServiceConfiguration,
   deployPermissionedServiceConfiguration
 } from "./serviceconfiguration";
+import { getCommonSigners } from "./utils";
 
 const SEVEN_DAYS = 6 * 60 * 60 * 24;
 
@@ -34,7 +35,11 @@ export async function deployLoan(
         serviceConfiguration: existingServiceConfiguration
       });
 
-  await serviceConfiguration.setLiquidityAsset(liquidityAsset, true);
+  const { operator } = await getCommonSigners();
+
+  await serviceConfiguration
+    .connect(operator)
+    .setLiquidityAsset(liquidityAsset, true);
 
   const loanSettings = {
     ...DEFAULT_LOAN_SETTINGS,
@@ -52,7 +57,9 @@ export async function deployLoan(
   const loanFactory = await LoanFactory.deploy(serviceConfiguration.address);
   await loanFactory.deployed();
 
-  await serviceConfiguration.setLoanFactory(loanFactory.address, true);
+  await serviceConfiguration
+    .connect(operator)
+    .setLoanFactory(loanFactory.address, true);
 
   const txn = await loanFactory.createLoan(borrower, pool, liquidityAsset, {
     loanType: loanSettings.loanType,
@@ -80,12 +87,12 @@ export async function deployPermissionedLoan(
   pool: any,
   borrower: any,
   liquidityAsset: any,
-  operator: any,
   existingServiceConfiguration: any = null,
   overriddenLoanTerms?: Partial<typeof DEFAULT_LOAN_SETTINGS>
 ) {
+  const { operator } = await getCommonSigners();
   const { serviceConfiguration } = await (existingServiceConfiguration == null
-    ? deployPermissionedServiceConfiguration(operator)
+    ? deployPermissionedServiceConfiguration()
     : {
         serviceConfiguration: existingServiceConfiguration
       });
@@ -116,7 +123,9 @@ export async function deployPermissionedLoan(
   );
   await loanFactory.deployed();
 
-  await serviceConfiguration.setLoanFactory(loanFactory.address, true);
+  await serviceConfiguration
+    .connect(operator)
+    .setLoanFactory(loanFactory.address, true);
 
   const txn = await loanFactory.createLoan(borrower, pool, liquidityAsset, {
     loanType: loanSettings.loanType,
