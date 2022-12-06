@@ -177,7 +177,7 @@ describe("Business Scenario 1", () => {
       pool
         .connect(lenderA)
         .deposit(INPUTS.lenderADepositAmount, lenderA.address)
-    ).to.be.revertedWith("CALLER_NOT_PERMITTED_LENDER");
+    ).to.be.revertedWith("LENDER_NOT_ALLOWED");
 
     // Allow via Verite
     await performVeriteVerification(poolAccessControl, poolAdmin, lenderA);

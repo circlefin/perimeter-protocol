@@ -169,7 +169,7 @@ describe("Business Scenario 4", () => {
     await advanceToDay(startTime, 8);
     await expect(
       pool.connect(lenderB).requestRedeem(300_000_000_000)
-    ).to.be.revertedWith("CALLER_NOT_PERMITTED_LENDER");
+    ).to.be.revertedWith("LENDER_NOT_ALLOWED");
     await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
     await pool.connect(lenderB).requestRedeem(300_000_000_000);
 
