@@ -195,6 +195,7 @@ describe("Business Scenario 2", () => {
 
     // +8 days, lenderB requests 300k PT redemption
     await advanceToDay(startTime, 8);
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
     await pool.connect(lenderB).requestRedeem(300_000_000_000);
 
     // +11 days, first loan payment made
@@ -248,6 +249,7 @@ describe("Business Scenario 2", () => {
 
     // +29 days, lender B requests remaining PT redemption
     await advanceToDay(startTime, 29);
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
     await pool
       .connect(lenderB)
       .requestRedeem(await pool.maxRedeemRequest(lenderB.address));

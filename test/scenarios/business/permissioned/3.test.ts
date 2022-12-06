@@ -179,7 +179,7 @@ describe("Business Scenario 3", () => {
     await pool.connect(lenderA).crank(); // crank runs, but is meaningless
     await pool.connect(lenderA).requestRedeem(200_000_000_000);
 
-    // +8 days, lenderB requests 300k PT redeption
+    // +8 days, lenderB requests 300k PT redemption
     await advanceToDay(startTime, 8);
     await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
     await pool.connect(lenderB).requestRedeem(300_000_000_000);

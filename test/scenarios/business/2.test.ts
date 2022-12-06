@@ -170,7 +170,7 @@ describe("Business Scenario 2", () => {
     expect(await pool.maxWithdraw(lenderA.address)).to.equal(0);
     expect(await pool.maxWithdraw(lenderB.address)).to.equal(0);
 
-    // +8 days, lenderB requests 300k PT redeption
+    // +8 days, lenderB requests 300k PT redemption
     await advanceToDay(startTime, 8);
     await pool.connect(lenderB).requestRedeem(300_000_000_000);
 
