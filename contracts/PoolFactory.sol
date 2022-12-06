@@ -4,8 +4,8 @@ pragma solidity ^0.8.16;
 import "./Pool.sol";
 import "./interfaces/IServiceConfiguration.sol";
 import "./interfaces/IPoolFactory.sol";
-import "@openzeppelin/contracts/proxy/beacon/IBeacon.sol";
-import "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
+import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
+import "./upgrades/IBeacon.sol";
 
 /**
  * @title PoolFactory
@@ -27,14 +27,9 @@ contract PoolFactory is IPoolFactory, IBeacon {
     address internal _poolControllerFactory;
 
     /**
-     * @dev Reference to the PoolControllerFactory contract
+     * @inheritdoc IBeacon
      */
     address public implementation;
-
-    /**
-     * @dev Emitted when a new implementation is set.
-     */
-    event PoolImplementationSet(address indexed implementation);
 
     /**
      * @dev Modifier that requires that the sender is registered as a protocol deployer.
@@ -61,13 +56,15 @@ contract PoolFactory is IPoolFactory, IBeacon {
     }
 
     /**
-     * @dev Sets a new Pool implementation.
+     * @inheritdoc IBeacon
      */
-    function setImplementation(
-        address newImplementation
-    ) external onlyDeployer {
+    function setImplementation(address newImplementation)
+        external
+        override
+        onlyDeployer
+    {
         implementation = newImplementation;
-        emit PoolImplementationSet(newImplementation);
+        emit ImplementationSet(newImplementation);
     }
 
     /**

@@ -13,7 +13,7 @@ import { getCommonSigners } from "./support/utils";
 describe("PoolFactory", () => {
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
-    const { operator } = await getCommonSigners();
+    const { operator, deployer } = await getCommonSigners();
 
     // Deploy the liquidity asset
     const { mockERC20: liquidityAsset } = await deployMockERC20();
@@ -39,17 +39,23 @@ describe("PoolFactory", () => {
       serviceConfiguration.address
     );
 
-    const PoolFactory = await ethers.getContractFactory("PoolFactory", {
-      libraries: {
-        PoolLib: poolLib.address
-      }
-    });
+    const PoolFactory = await ethers.getContractFactory("PoolFactory");
     const poolFactory = await PoolFactory.deploy(
       serviceConfiguration.address,
       withdrawControllerFactory.address,
       poolControllerFactory.address
     );
+
     await poolFactory.deployed();
+
+    // Set Pool implementation on Factory
+    const PoolImpl = await ethers.getContractFactory("Pool", {
+      libraries: {
+        PoolLib: poolLib.address
+      }
+    });
+    const poolImpl = await PoolImpl.deploy();
+    await poolFactory.connect(deployer).setImplementation(poolImpl.address);
 
     return {
       operator,

@@ -6,7 +6,7 @@ import { getCommonSigners } from "./utils";
  * Deploy ServiceConfiguration
  */
 export async function deployServiceConfiguration() {
-  const { admin, operator } = await getCommonSigners();
+  const { admin, operator, deployer } = await getCommonSigners();
   const ServiceConfiguration = await ethers.getContractFactory(
     "ServiceConfiguration",
     admin
@@ -20,6 +20,10 @@ export async function deployServiceConfiguration() {
     .connect(admin)
     .grantRole(await serviceConfiguration.OPERATOR_ROLE(), operator.address);
 
+  await serviceConfiguration
+    .connect(admin)
+    .grantRole(await serviceConfiguration.DEPLOYER_ROLE(), deployer.address);
+
   return {
     serviceConfiguration
   };
@@ -29,7 +33,7 @@ export async function deployServiceConfiguration() {
  * Deploy PermissionedServiceConfiguration
  */
 export async function deployPermissionedServiceConfiguration() {
-  const { admin, operator } = await getCommonSigners();
+  const { admin, operator, deployer } = await getCommonSigners();
 
   const ServiceConfiguration = await ethers.getContractFactory(
     "PermissionedServiceConfiguration",
@@ -45,6 +49,10 @@ export async function deployPermissionedServiceConfiguration() {
   await serviceConfiguration
     .connect(admin)
     .grantRole(await serviceConfiguration.OPERATOR_ROLE(), operator.address);
+
+  await serviceConfiguration
+    .connect(admin)
+    .grantRole(await serviceConfiguration.DEPLOYER_ROLE(), deployer.address);
 
   const { tosAcceptanceRegistry } = await deployToSAcceptanceRegistry(
     serviceConfiguration

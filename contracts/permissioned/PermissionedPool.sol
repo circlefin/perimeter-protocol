@@ -73,9 +73,12 @@ contract PermissionedPool is Pool {
      * @dev Since Pool does not enforce that msg.sender == receiver, we only
      * check the receiver here.
      */
-    function maxDeposit(
-        address receiver
-    ) public view override returns (uint256) {
+    function maxDeposit(address receiver)
+        public
+        view
+        override
+        returns (uint256)
+    {
         if (!poolAccessControl.isAllowed(receiver)) {
             return 0;
         }

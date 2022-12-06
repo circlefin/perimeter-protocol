@@ -63,10 +63,9 @@ interface IERC4626 is IERC20Upgradeable {
      * @dev Deposits assets of underlying tokens into the vault and grants ownership of shares to receiver.
      * Emits a {Deposit} event.
      */
-    function deposit(
-        uint256 assets,
-        address receiver
-    ) external returns (uint256);
+    function deposit(uint256 assets, address receiver)
+        external
+        returns (uint256);
 
     /**
      * @dev Returns the maximum amount of shares that can be minted in a single mint call by the receiver.

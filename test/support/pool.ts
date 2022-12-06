@@ -41,7 +41,7 @@ export async function deployPool({
     ...settings
   };
   liquidityAsset = liquidityAsset ?? (await deployMockERC20()).mockERC20;
-  const { operator } = await getCommonSigners();
+  const { operator, deployer } = await getCommonSigners();
 
   const { serviceConfiguration } = await deployServiceConfiguration();
   await serviceConfiguration
@@ -62,10 +62,7 @@ export async function deployPool({
   );
 
   const PoolFactory = await ethers.getContractFactory("PoolFactory", {
-    signer: poolAdmin,
-    libraries: {
-      PoolLib: poolLib.address
-    }
+    signer: poolAdmin
   });
   const poolFactory = await PoolFactory.deploy(
     serviceConfiguration.address,
@@ -73,6 +70,15 @@ export async function deployPool({
     poolControllerFactory.address
   );
   await poolFactory.deployed();
+
+  // Set Pool implementation on Factory
+  const PoolImpl = await ethers.getContractFactory("Pool", {
+    libraries: {
+      PoolLib: poolLib.address
+    }
+  });
+  const poolImpl = await PoolImpl.deploy();
+  await poolFactory.connect(deployer).setImplementation(poolImpl.address);
 
   const txn = await poolFactory
     .connect(poolAdmin)
@@ -102,6 +108,8 @@ export async function deployPool({
 
   return {
     pool,
+    poolLib,
+    poolFactory,
     liquidityAsset,
     serviceConfiguration,
     withdrawController,
@@ -117,7 +125,7 @@ export async function deployPermissionedPool({
   settings,
   liquidityAsset
 }: DeployPoolProps) {
-  const { operator } = await getCommonSigners();
+  const { operator, deployer } = await getCommonSigners();
   const poolSettings = {
     ...DEFAULT_POOL_SETTINGS,
     ...settings
@@ -160,10 +168,7 @@ export async function deployPermissionedPool({
   const PoolFactory = await ethers.getContractFactory(
     "PermissionedPoolFactory",
     {
-      signer: poolAdmin,
-      libraries: {
-        PoolLib: poolLib.address
-      }
+      signer: poolAdmin
     }
   );
   const poolFactory = await PoolFactory.deploy(
@@ -173,6 +178,23 @@ export async function deployPermissionedPool({
     poolAccessControlFactory.address
   );
   await poolFactory.deployed();
+
+  // Deploy PermissionedPool implementation contract
+  const PermissionedPoolImpl = await ethers.getContractFactory(
+    "PermissionedPool",
+    {
+      libraries: {
+        PoolLib: poolLib.address
+      }
+    }
+  );
+  const permissionedPoolImpl = await PermissionedPoolImpl.deploy();
+  await permissionedPoolImpl.deployed();
+
+  // Set implementation on factory
+  await poolFactory
+    .connect(deployer)
+    .setImplementation(permissionedPoolImpl.address);
 
   const txn = await poolFactory
     .connect(poolAdmin)

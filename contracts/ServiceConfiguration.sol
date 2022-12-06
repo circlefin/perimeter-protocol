@@ -3,7 +3,7 @@ pragma solidity ^0.8.16;
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "./interfaces/IServiceConfiguration.sol";
-import "./DeployerUUPSUpgradeable.sol";
+import "./upgrades/DeployerUUPSUpgradeable.sol";
 import "hardhat/console.sol";
 
 /**
