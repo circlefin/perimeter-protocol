@@ -26,6 +26,7 @@ type DeployPoolProps = {
   poolAdmin: any;
   settings?: Partial<typeof DEFAULT_POOL_SETTINGS>;
   liquidityAsset?: MockERC20;
+  pauser?: any;
 };
 
 /**
@@ -35,7 +36,8 @@ export async function deployPool({
   operator,
   poolAdmin,
   settings,
-  liquidityAsset
+  liquidityAsset,
+  pauser
 }: DeployPoolProps) {
   const poolSettings = {
     ...DEFAULT_POOL_SETTINGS,
@@ -43,7 +45,10 @@ export async function deployPool({
   };
   liquidityAsset = liquidityAsset ?? (await deployMockERC20()).mockERC20;
 
-  const { serviceConfiguration } = await deployServiceConfiguration(operator);
+  const { serviceConfiguration } = await deployServiceConfiguration(
+    operator,
+    pauser
+  );
   await serviceConfiguration.setLiquidityAsset(liquidityAsset.address, true);
 
   const PoolLib = await ethers.getContractFactory("PoolLib");

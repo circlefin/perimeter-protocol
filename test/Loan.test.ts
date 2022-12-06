@@ -25,7 +25,7 @@ describe("Loan", () => {
     })
   ) {
     // Contracts are deployed using the first signer/account by default
-    const [operator, poolAdmin, borrower, lender, other] =
+    const [operator, pauser, poolAdmin, borrower, lender, other] =
       await ethers.getSigners();
 
     // Create a pool
@@ -33,7 +33,8 @@ describe("Loan", () => {
       await deployPool({
         operator,
         poolAdmin: poolAdmin,
-        settings: poolSettings
+        settings: poolSettings,
+        pauser
       });
 
     await activatePool(pool, poolAdmin, liquidityAsset);
@@ -94,6 +95,7 @@ describe("Loan", () => {
       loan,
       loanFactory,
       operator,
+      pauser,
       poolAdmin,
       borrower,
       collateralAsset,
@@ -182,6 +184,19 @@ describe("Loan", () => {
         "Loan: caller is not borrower"
       );
     });
+
+    it("reverts if protocol is paused", async () => {
+      const { loan, serviceConfiguration, pauser, borrower } =
+        await loadFixture(deployFixture);
+
+      // Pause Protocol
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      // Cancel
+      await expect(loan.connect(borrower).cancelRequested()).to.be.revertedWith(
+        "Loan: Protocol paused"
+      );
+    });
   });
 
   describe("cancelCollateralized", () => {
@@ -241,6 +256,24 @@ describe("Loan", () => {
       await expect(
         loan.connect(other).cancelCollateralized()
       ).to.be.revertedWith("Loan: caller is not borrower");
+    });
+
+    it("reverts if the protocol is paused", async () => {
+      const { loan, borrower, collateralAsset, serviceConfiguration, pauser } =
+        await loadFixture(deployFixture);
+
+      // Post collateral
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await loan
+        .connect(borrower)
+        .postFungibleCollateral(collateralAsset.address, 100);
+
+      // Pause protocol
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      await expect(
+        loan.connect(borrower).cancelCollateralized()
+      ).to.be.revertedWith("Loan: Protocol paused");
     });
   });
 
@@ -387,9 +420,57 @@ describe("Loan", () => {
 
       expect(await loan.state()).to.equal(2);
     });
+
+    it("reverts if protocol is paused", async () => {
+      const {
+        serviceConfiguration,
+        pauser,
+        borrower,
+        liquidityAsset,
+        loan,
+        poolController,
+        poolAdmin
+      } = await loadFixture(deployFixture);
+
+      await collateralizeLoan(loan, borrower, liquidityAsset);
+      await fundLoan(loan, poolController, poolAdmin);
+      await time.increaseTo(await loan.dropDeadTimestamp());
+
+      // Pause Protocol
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      const tx = loan.connect(borrower).cancelFunded();
+      await expect(tx).to.be.revertedWith("Loan: Protocol paused");
+    });
   });
 
   describe("claimCollateral", () => {
+    it("reverts if protocol is paused", async () => {
+      const {
+        loan,
+        poolAdmin,
+        liquidityAsset,
+        poolController,
+        borrower,
+        collateralAsset,
+        serviceConfiguration,
+        pauser
+      } = await loadFixture(deployFixture);
+
+      // fund and mature loan
+      await collateralizeLoan(loan, borrower, collateralAsset);
+      await fundLoan(loan, poolController, poolAdmin);
+      await loan.connect(borrower).drawdown(await loan.principal());
+      await matureLoan(loan, borrower, liquidityAsset);
+
+      // Pause protocol
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      await expect(
+        loan.connect(borrower).claimCollateral([], [])
+      ).to.be.revertedWith("Loan: Protocol paused");
+    });
+
     describe("Permissions", () => {
       describe("Loan is Requested", () => {
         it("reverts if called by PM or borrower", async () => {
@@ -696,6 +777,21 @@ describe("Loan", () => {
       expect(await loan.state()).to.equal(1);
     });
 
+    it("reverts if protocol is paused", async () => {
+      const { loan, collateralAsset, borrower, serviceConfiguration, pauser } =
+        await loadFixture(deployFixture);
+
+      // Pause protocol
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await expect(
+        loan
+          .connect(borrower)
+          .postFungibleCollateral(collateralAsset.address, 100)
+      ).to.be.revertedWith("Loan: Protocol paused");
+    });
+
     it("reverts if not called by the borrower", async () => {
       const { loan, collateralAsset, other } = await loadFixture(deployFixture);
 
@@ -747,6 +843,23 @@ describe("Loan", () => {
 
       balanceOf = await nftAsset.balanceOf(await loan._collateralVault());
       expect(balanceOf).to.equal(1);
+    });
+
+    it("reverts if protocol is paused", async () => {
+      const { loan, nftAsset, borrower, serviceConfiguration, pauser } =
+        await loadFixture(deployFixture);
+      await nftAsset.mint(borrower.address);
+      const tokenId = await nftAsset.tokenOfOwnerByIndex(borrower.address, 0);
+      await nftAsset.connect(borrower).approve(loan.address, tokenId);
+
+      // Pause protocol
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      await expect(
+        loan
+          .connect(borrower)
+          .postNonFungibleCollateral(nftAsset.address, tokenId)
+      ).to.be.revertedWith("Loan: Protocol paused");
     });
 
     it("reverts if not called by the borrower", async () => {
@@ -891,6 +1004,39 @@ describe("Loan", () => {
         .drawdown(await loan.principal());
       await expect(drawDownTx2).to.be.revertedWith("LoanLib: invalid state");
     });
+
+    it("reverts if the protocol is paused", async () => {
+      const fixture = await loadFixture(deployFixture);
+      const {
+        borrower,
+        collateralAsset,
+        loan,
+        poolController,
+        poolAdmin,
+        serviceConfiguration,
+        pauser
+      } = fixture;
+
+      // Setup and fund loan
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await expect(
+        loan
+          .connect(borrower)
+          .postFungibleCollateral(collateralAsset.address, 100)
+      ).not.to.be.reverted;
+      await expect(poolController.connect(poolAdmin).fundLoan(loan.address)).not
+        .to.be.reverted;
+      expect(await loan.state()).to.equal(4);
+
+      // Pause Protocol
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      // Draw down the funds
+      const drawDownTx = loan
+        .connect(borrower)
+        .drawdown(await loan.principal());
+      await expect(drawDownTx).to.be.revertedWith("Loan: Protocol paused");
+    });
   });
 
   describe("markDefaulted", () => {
@@ -943,6 +1089,38 @@ describe("Loan", () => {
   });
 
   describe("payments", () => {
+    it("reverts if the protocol is paused", async () => {
+      const {
+        borrower,
+        collateralAsset,
+
+        loan,
+        poolController,
+        poolAdmin,
+        serviceConfiguration,
+        pauser
+      } = await loadFixture(deployFixture);
+
+      // Setup
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await loan
+        .connect(borrower)
+        .postFungibleCollateral(collateralAsset.address, 100);
+      await poolController.connect(poolAdmin).fundLoan(loan.address);
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      // Pause protocol
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      // Make payment
+      const tx = loan.connect(borrower).completeNextPayment();
+      await expect(tx).to.be.revertedWith("Loan: Protocol paused");
+
+      // Make full payment
+      const tx2 = loan.connect(borrower).completeFullPayment();
+      await expect(tx2).to.be.revertedWith("Loan: Protocol paused");
+    });
+
     it("calculates payments correctly", async () => {
       const fixture = await loadFixture(deployFixture);
       const { loan } = fixture;
@@ -1252,9 +1430,19 @@ describe("Loan", () => {
     it("can only be called back by pool admin", async () => {
       const { loan, other } = await loadFixture(deployFixture);
 
-      // Setup
       const tx = loan.connect(other).markCallback();
       await expect(tx).to.be.reverted;
+    });
+
+    it("reverts when protocol is paused", async () => {
+      const { loan, serviceConfiguration, pauser, poolAdmin } =
+        await loadFixture(deployFixture);
+
+      // Pause protocol
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      const tx = loan.connect(poolAdmin).markCallback();
+      await expect(tx).to.be.revertedWith("Loan: Protocol paused");
     });
   });
 
@@ -1314,7 +1502,9 @@ describe("Loan", () => {
         loan,
         pool,
         poolController,
-        poolAdmin
+        poolAdmin,
+        serviceConfiguration,
+        pauser
       } = await deployFixtureOpenTerm();
 
       // Setup
@@ -1413,6 +1603,80 @@ describe("Loan", () => {
         pool,
         prepaidPrincipal
       );
+
+      // Pause protocol
+      await serviceConfiguration.connect(pauser).setPaused(true);
+      await expect(loan.connect(poolAdmin).reclaimFunds(0)).to.be.revertedWith(
+        "Loan: Protocol paused"
+      );
+    });
+
+    it("reverts if protocol paused when calling reclaimFunds", async () => {
+      const {
+        borrower,
+        collateralAsset,
+        liquidityAsset,
+        loan,
+        poolController,
+        poolAdmin,
+        serviceConfiguration,
+        pauser
+      } = await deployFixtureOpenTerm();
+
+      // Setup
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await loan
+        .connect(borrower)
+        .postFungibleCollateral(collateralAsset.address, 100);
+      await poolController.connect(poolAdmin).fundLoan(loan.address);
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      // Repay some of the principal
+      const prepaidPrincipal = 1_000;
+      await liquidityAsset
+        .connect(borrower)
+        .approve(loan.address, prepaidPrincipal);
+      await loan.connect(borrower).paydownPrincipal(prepaidPrincipal);
+
+      // Pause protocol
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      // Reclaim funds
+      await expect(loan.connect(poolAdmin).reclaimFunds(0)).to.be.revertedWith(
+        "Loan: Protocol paused"
+      );
+    });
+
+    it("reverts if protocol paused when calling paydownPrincipal", async () => {
+      const {
+        borrower,
+        collateralAsset,
+        liquidityAsset,
+        loan,
+        poolController,
+        poolAdmin,
+        serviceConfiguration,
+        pauser
+      } = await deployFixtureOpenTerm();
+
+      // Setup
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await loan
+        .connect(borrower)
+        .postFungibleCollateral(collateralAsset.address, 100);
+      await poolController.connect(poolAdmin).fundLoan(loan.address);
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      // Pause protocol
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      // Repay some of the principal
+      const prepaidPrincipal = 1_000;
+      await liquidityAsset
+        .connect(borrower)
+        .approve(loan.address, prepaidPrincipal);
+      const tx = loan.connect(borrower).paydownPrincipal(prepaidPrincipal);
+      await expect(tx).to.be.revertedWith("Loan: Protocol paused");
     });
   });
 });

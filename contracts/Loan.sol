@@ -297,7 +297,6 @@ contract Loan is ILoan {
      * @dev Can only be called by the pool
      */
     function fund() external onlyPool returns (ILoanLifeCycleState) {
-        requireNotPaused();
         require(
             _state == ILoanLifeCycleState.Requested ||
                 _state == ILoanLifeCycleState.Collateralized,
@@ -498,7 +497,6 @@ contract Loan is ILoan {
         atState(ILoanLifeCycleState.Active)
         returns (ILoanLifeCycleState)
     {
-        requireNotPaused();
         _state = ILoanLifeCycleState.Defaulted;
         IPool(_pool).onLoanStateTransitioned();
         emit LifeCycleStateTransition(_state);
