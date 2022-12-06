@@ -16,7 +16,7 @@ import "./FundingVault.sol";
  */
 contract Loan is ILoan {
     using SafeMath for uint256;
-    uint256 constant RAY = 10 ** 27;
+    uint256 constant RAY = 10**27;
 
     IServiceConfiguration private _serviceConfiguration;
     address private immutable _factory;
@@ -238,10 +238,7 @@ contract Loan is ILoan {
     /**
      * @dev Post ERC20 tokens as collateral
      */
-    function postFungibleCollateral(
-        address asset,
-        uint256 amount
-    )
+    function postFungibleCollateral(address asset, uint256 amount)
         external
         virtual
         onlyPermittedBorrower
@@ -268,10 +265,7 @@ contract Loan is ILoan {
     /**
      * @dev Post ERC721 tokens as collateral
      */
-    function postNonFungibleCollateral(
-        address asset,
-        uint256 tokenId
-    )
+    function postNonFungibleCollateral(address asset, uint256 tokenId)
         external
         virtual
         onlyPermittedBorrower
@@ -333,9 +327,13 @@ contract Loan is ILoan {
     /**
      * @dev Drawdown the Loan
      */
-    function drawdown(
-        uint256 amount
-    ) external virtual onlyPermittedBorrower onlyBorrower returns (uint256) {
+    function drawdown(uint256 amount)
+        external
+        virtual
+        onlyPermittedBorrower
+        onlyBorrower
+        returns (uint256)
+    {
         requireNotPaused();
         (_state, paymentDueDate) = LoanLib.drawdown(
             amount,
@@ -354,9 +352,11 @@ contract Loan is ILoan {
      * @dev Prepay principal.
      * @dev Only callable by open term loans
      */
-    function paydownPrincipal(
-        uint256 amount
-    ) external onlyPermittedBorrower onlyBorrower {
+    function paydownPrincipal(uint256 amount)
+        external
+        onlyPermittedBorrower
+        onlyBorrower
+    {
         requireNotPaused();
         require(outstandingPrincipal >= amount, "Loan: amount too high");
         require(settings.loanType == ILoanType.Open, "Loan: invalid loan type");
@@ -408,9 +408,11 @@ contract Loan is ILoan {
      * @dev Preview fees for a given interest payment amount.
      * @param amount allows previewing the fee for a full or prorated payment.
      */
-    function previewFees(
-        uint256 amount
-    ) public view returns (ILoanFees memory) {
+    function previewFees(uint256 amount)
+        public
+        view
+        returns (ILoanFees memory)
+    {
         return
             LoanLib.previewFees(
                 settings,

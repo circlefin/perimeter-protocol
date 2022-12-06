@@ -128,17 +128,15 @@ interface ILoan {
      */
     function paymentDueDate() external view returns (uint256);
 
-    function postFungibleCollateral(
-        address asset,
-        uint256 amount
-    ) external returns (ILoanLifeCycleState);
+    function postFungibleCollateral(address asset, uint256 amount)
+        external
+        returns (ILoanLifeCycleState);
 
     function fungibleCollateral() external view returns (address[] memory);
 
-    function postNonFungibleCollateral(
-        address asset,
-        uint256 tokenId
-    ) external returns (ILoanLifeCycleState);
+    function postNonFungibleCollateral(address asset, uint256 tokenId)
+        external
+        returns (ILoanLifeCycleState);
 
     function nonFungibleCollateral()
         external
