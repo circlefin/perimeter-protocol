@@ -1431,7 +1431,7 @@ describe("Pool", () => {
   });
 
   describe("Updates", () => {
-    it.only("Can be upgraded through the beacon", async () => {
+    it("Can be upgraded through the beacon", async () => {
       const { pool, poolFactory, deployer, poolLib } = await loadFixture(
         loadPoolFixture
       );

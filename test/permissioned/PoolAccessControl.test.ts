@@ -12,9 +12,10 @@ describe("PoolAccessControl", () => {
     const verifier = otherAccounts[0];
     const poolParticipant = otherAccounts[1];
 
-    const { pool, tosAcceptanceRegistry, liquidityAsset } = await deployPermissionedPool({
-      poolAdmin
-    });
+    const { pool, tosAcceptanceRegistry, liquidityAsset } =
+      await deployPermissionedPool({
+        poolAdmin
+      });
 
     await tosAcceptanceRegistry
       .connect(operator)

@@ -21,10 +21,9 @@ abstract contract DeployerUUPSUpgradeable is
      */
     modifier onlyDeployer() {
         require(
-            msg.sender != address(0) &&
-                IServiceConfiguration(this.serviceConfiguration()).isDeployer(
-                    msg.sender
-                ),
+            IServiceConfiguration(this.serviceConfiguration()).isDeployer(
+                msg.sender
+            ),
             "Upgrade: unauthorized"
         );
         _;

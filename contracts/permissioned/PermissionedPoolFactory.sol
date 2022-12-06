@@ -3,33 +3,17 @@ pragma solidity ^0.8.16;
 
 import "./interfaces/IPermissionedServiceConfiguration.sol";
 import "../PoolFactory.sol";
-import "../upgrades/IBeacon.sol";
 import "./PermissionedPool.sol";
 import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 
 /**
  * @title PermissionedPoolFactory
  */
-contract PermissionedPoolFactory is PoolFactory, IBeacon {
+contract PermissionedPoolFactory is PoolFactory {
     /**
      * @dev Reference to a PoolAccessControlFactory
      */
     address private _poolAccessControlFactory;
-
-    constructor(
-        address serviceConfiguration,
-        address withdrawControllerFactory,
-        address poolControllerFactory,
-        address poolAccessControlFactory
-    )
-        PoolFactory(
-            serviceConfiguration,
-            withdrawControllerFactory,
-            poolControllerFactory
-        )
-    {
-        _poolAccessControlFactory = poolAccessControlFactory;
-    }
 
     /**
      * @dev Check that `msg.sender` is a PoolAdmin.

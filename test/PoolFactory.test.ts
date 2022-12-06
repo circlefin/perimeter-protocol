@@ -59,11 +59,31 @@ describe("PoolFactory", () => {
 
     return {
       operator,
+      deployer,
       poolFactory,
       liquidityAsset,
       serviceConfiguration
     };
   }
+
+  it("reverts if there's no implementation set", async () => {
+    const { poolFactory, liquidityAsset, deployer } = await loadFixture(
+      deployFixture
+    );
+
+    // set implementation to 0
+    await poolFactory
+      .connect(deployer)
+      .setImplementation(ethers.constants.AddressZero);
+
+    // ensure it reverts
+    const poolSettings = Object.assign({}, DEFAULT_POOL_SETTINGS, {
+      withdrawRequestPeriodDuration: 0
+    });
+    await expect(
+      poolFactory.createPool(liquidityAsset.address, poolSettings)
+    ).to.be.revertedWith("PoolFactory: no implementation set");
+  });
 
   it("reverts if given a zero withdraw window", async () => {
     const { poolFactory, liquidityAsset } = await loadFixture(deployFixture);
@@ -164,5 +184,20 @@ describe("PoolFactory", () => {
     await expect(
       poolFactory.createPool(liquidityAsset.address, DEFAULT_POOL_SETTINGS)
     ).to.emit(poolFactory, "PoolCreated");
+  });
+
+  it("deployer can set new implementations", async () => {
+    const {
+      poolFactory,
+      liquidityAsset: mockNewImplementation,
+      deployer
+    } = await loadFixture(deployFixture);
+
+    // set implementation to a mock new value
+    await expect(
+      poolFactory
+        .connect(deployer)
+        .setImplementation(mockNewImplementation.address)
+    ).to.emit(poolFactory, "ImplementationSet");
   });
 });

@@ -5,7 +5,7 @@ import "./Pool.sol";
 import "./interfaces/IServiceConfiguration.sol";
 import "./interfaces/IPoolFactory.sol";
 import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
-import "./upgrades/IBeacon.sol";
+import "./upgrades/interfaces/IBeacon.sol";
 
 /**
  * @title PoolFactory
@@ -36,10 +36,7 @@ contract PoolFactory is IPoolFactory, IBeacon {
      */
     modifier onlyDeployer() {
         require(
-            msg.sender != address(0) &&
-                IServiceConfiguration(_serviceConfiguration).isDeployer(
-                    msg.sender
-                ),
+            IServiceConfiguration(_serviceConfiguration).isDeployer(msg.sender),
             "Upgrade: unauthorized"
         );
         _;
@@ -147,6 +144,6 @@ contract PoolFactory is IPoolFactory, IBeacon {
                 "PPT"
             )
         );
-        return address(pool);
+        return address(proxy);
     }
 }
