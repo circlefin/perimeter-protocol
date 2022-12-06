@@ -8,10 +8,11 @@ describe("PoolAccessControl", () => {
   async function deployFixture() {
     const [operator, poolAdmin, verifier, poolParticipant, ...otherAccounts] =
       await ethers.getSigners();
-    const { pool, tosAcceptanceRegistry } = await deployPermissionedPool({
-      operator,
-      poolAdmin
-    });
+    const { pool, tosAcceptanceRegistry, liquidityAsset } =
+      await deployPermissionedPool({
+        operator,
+        poolAdmin
+      });
 
     await tosAcceptanceRegistry.updateTermsOfService("http://circle.com");
 
