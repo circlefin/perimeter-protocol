@@ -8,7 +8,7 @@ import { performVeriteVerification } from "../../../support/verite";
 
 const ONE_DAY = 3600 * 24;
 
-describe("Business Scenario 1", () => {
+describe("Permissioned Business Scenario 1", () => {
   const INPUTS = {
     lenderADepositAmount: 500_000_000_000, // $500k in USDC
     lenderBDepositAmount: 200_000_000_000, // $200k in USDC

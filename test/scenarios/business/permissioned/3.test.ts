@@ -6,7 +6,7 @@ import { deployLoan, fundLoan } from "../../../support/loan";
 import { deployMockERC20 } from "../../../support/erc20";
 import { performVeriteVerification } from "../../../support/verite";
 
-describe("Business Scenario 3", () => {
+describe("Permissioned Business Scenario 3", () => {
   const INPUTS = {
     lenderADepositAmount: 500_000_000_000, // $500k in USDC
     lenderBDepositAmount: 500_000_000_000, // $500k in USDC
