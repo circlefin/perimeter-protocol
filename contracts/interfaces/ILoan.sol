@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
+import "./IServiceConfiguration.sol";
 import "../FundingVault.sol";
 
 /**
@@ -127,15 +128,17 @@ interface ILoan {
      */
     function paymentDueDate() external view returns (uint256);
 
-    function postFungibleCollateral(address asset, uint256 amount)
-        external
-        returns (ILoanLifeCycleState);
+    function postFungibleCollateral(
+        address asset,
+        uint256 amount
+    ) external returns (ILoanLifeCycleState);
 
     function fungibleCollateral() external view returns (address[] memory);
 
-    function postNonFungibleCollateral(address asset, uint256 tokenId)
-        external
-        returns (ILoanLifeCycleState);
+    function postNonFungibleCollateral(
+        address asset,
+        uint256 tokenId
+    ) external returns (ILoanLifeCycleState);
 
     function nonFungibleCollateral()
         external
@@ -172,4 +175,9 @@ interface ILoan {
     function markCallback() external;
 
     function liquidityAsset() external view returns (address);
+
+    function serviceConfiguration()
+        external
+        view
+        returns (IServiceConfiguration);
 }

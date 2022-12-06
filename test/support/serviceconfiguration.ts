@@ -28,13 +28,24 @@ export async function deployServiceConfiguration(operator?: any, pauser?: any) {
 /**
  * Deploy PermissionedServiceConfiguration
  */
-export async function deployPermissionedServiceConfiguration(operator: any) {
+export async function deployPermissionedServiceConfiguration(
+  operator: any,
+  pauser?: any
+) {
   const ServiceConfiguration = await ethers.getContractFactory(
     "PermissionedServiceConfiguration",
     operator
   );
   const serviceConfiguration = await ServiceConfiguration.deploy();
   await serviceConfiguration.deployed();
+
+  if (pauser) {
+    const tx = await serviceConfiguration.grantRole(
+      await serviceConfiguration.PAUSER_ROLE(),
+      pauser.address
+    );
+    await tx.wait();
+  }
 
   const { tosAcceptanceRegistry } = await deployToSAcceptanceRegistry(
     serviceConfiguration

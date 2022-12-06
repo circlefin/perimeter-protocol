@@ -2,6 +2,7 @@
 pragma solidity ^0.8.16;
 
 import "./IERC4626.sol";
+import "./IServiceConfiguration.sol";
 import "../controllers/interfaces/IPoolController.sol";
 import "../controllers/interfaces/IWithdrawController.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -70,6 +71,14 @@ interface IPool is IERC4626 {
      * @dev The WithdrawController contract
      */
     function withdrawController() external view returns (IWithdrawController);
+
+    /**
+     * @dev The ServiceConfiguration.
+     */
+    function serviceConfiguration()
+        external
+        view
+        returns (IServiceConfiguration);
 
     /**
      * @dev The current configurable pool settings.
@@ -175,11 +184,7 @@ interface IPool is IERC4626 {
     /**
      * @dev Called by the Pool Controller, it transfers the fixed fee
      */
-    function claimFixedFee(
-        address,
-        uint256,
-        uint256
-    ) external;
+    function claimFixedFee(address, uint256, uint256) external;
 
     /**
      * @dev Calculate the total amount of underlying assets held by the vault,

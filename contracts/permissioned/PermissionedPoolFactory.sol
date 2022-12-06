@@ -62,6 +62,10 @@ contract PermissionedPoolFactory is IPoolFactory {
         IPoolConfigurableSettings calldata settings
     ) public override onlyVerifiedPoolAdmin returns (address poolAddress) {
         require(
+            IServiceConfiguration(_serviceConfiguration).paused() == false,
+            "PoolFactory: Protocol paused"
+        );
+        require(
             settings.withdrawRequestPeriodDuration > 0,
             "PoolFactory: Invalid duration"
         );
