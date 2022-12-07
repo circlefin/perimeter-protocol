@@ -256,6 +256,27 @@ contract PoolController is IPoolController {
         return _liquidityAsset.balanceOf(address(_firstLossVault));
     }
 
+    /**
+     * @inheritdoc IPoolController
+     */
+    function setServiceFeeBps(uint256 serviceFeeBps) external onlyAdmin {
+        require(serviceFeeBps <= 10000, "Pool: invalid service fee");
+        _settings.serviceFeeBps = serviceFeeBps;
+        emit PoolSettingsUpdated();
+    }
+
+    /**
+     * @inheritdoc IPoolController
+     */
+    function setFixedFee(uint256 amount, uint256 interval) external onlyAdmin {
+        if (amount > 0) {
+            require(interval > 0, "Pool: invalid fixed fee");
+        }
+        _settings.fixedFee = amount;
+        _settings.fixedFeeInterval = interval;
+        emit PoolSettingsUpdated();
+    }
+
     /*//////////////////////////////////////////////////////////////
                 State
     //////////////////////////////////////////////////////////////*/

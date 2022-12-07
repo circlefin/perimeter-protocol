@@ -1,21 +1,32 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import { deployMockERC20 } from "./support/erc20";
 import { deployServiceConfiguration } from "./support/serviceconfiguration";
+import { getCommonSigners } from "./support/utils";
 
 describe("ServiceConfiguration", () => {
   async function deployFixture() {
-    const [operator, pauser, otherAccount] = await ethers.getSigners();
+    const { admin, operator, deployer, pauser, otherAccount } =
+      await getCommonSigners();
 
-    const { serviceConfiguration } = await deployServiceConfiguration(
-      operator,
-      pauser
-    );
+    const { serviceConfiguration } = await deployServiceConfiguration();
+
+    // Grant operator
+    await serviceConfiguration
+      .connect(admin)
+      .grantRole(await serviceConfiguration.OPERATOR_ROLE(), operator.address);
+
+    // Grant deployer
+    await serviceConfiguration
+      .connect(admin)
+      .grantRole(await serviceConfiguration.DEPLOYER_ROLE(), deployer.address);
 
     return {
+      admin,
       operator,
       pauser,
+      deployer,
       otherAccount,
       serviceConfiguration
     };
@@ -153,7 +164,9 @@ describe("ServiceConfiguration", () => {
     });
 
     it("can be updated", async () => {
-      const { serviceConfiguration } = await loadFixture(deployFixture);
+      const { serviceConfiguration, operator } = await loadFixture(
+        deployFixture
+      );
 
       const { mockERC20 } = await deployMockERC20();
 
@@ -161,7 +174,7 @@ describe("ServiceConfiguration", () => {
         await serviceConfiguration.firstLossMinimum(mockERC20.address)
       ).to.equal(0);
 
-      await serviceConfiguration.setFirstLossMinimum(
+      await serviceConfiguration.connect(operator).setFirstLossMinimum(
         mockERC20.address,
         10_000_000000 // $10,000
       );
@@ -192,6 +205,39 @@ describe("ServiceConfiguration", () => {
       await expect(tx2).to.be.revertedWith(
         "ServiceConfiguration: caller is not an operator"
       );
+    });
+  });
+
+  describe("Upgrades", () => {
+    it("deployer can upgrade", async () => {
+      const { serviceConfiguration, deployer } = await loadFixture(
+        deployFixture
+      );
+
+      const ServiceConfiguration = await ethers.getContractFactory(
+        "ServiceConfigurationMockV2",
+        deployer
+      );
+      const upgradedServiceConfig = await upgrades.upgradeProxy(
+        serviceConfiguration.address,
+        ServiceConfiguration
+      );
+      expect(await upgradedServiceConfig.foo()).to.be.true;
+    });
+
+    it("others can't upgrade", async () => {
+      const { serviceConfiguration, admin } = await loadFixture(deployFixture);
+
+      const ServiceConfiguration = await ethers.getContractFactory(
+        "ServiceConfigurationMockV2",
+        admin
+      );
+      await expect(
+        upgrades.upgradeProxy(
+          serviceConfiguration.address,
+          ServiceConfiguration
+        )
+      ).to.be.revertedWith("Upgrade: unauthorized");
     });
   });
 });

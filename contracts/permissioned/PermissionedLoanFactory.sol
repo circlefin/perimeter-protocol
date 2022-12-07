@@ -15,17 +15,14 @@ contract PermissionedLoanFactory is LoanFactory {
 
     /**
      * @inheritdoc LoanFactory
+     * @dev Deploys PermissionedLoan
      */
-    function createLoan(
+    function initializeLoan(
         address borrower,
         address pool,
         address liquidityAsset,
         ILoanSettings memory settings
-    ) public virtual override returns (address LoanAddress) {
-        require(
-            _serviceConfiguration.paused() == false,
-            "LoanFactory: Protocol paused"
-        );
+    ) internal override returns (address) {
         Loan loan = new PermissionedLoan(
             _serviceConfiguration,
             address(this),
@@ -34,9 +31,6 @@ contract PermissionedLoanFactory is LoanFactory {
             liquidityAsset,
             settings
         );
-        address addr = address(loan);
-        emit LoanCreated(addr);
-        _isLoan[addr] = true;
-        return addr;
+        return address(loan);
     }
 }

@@ -1,14 +1,20 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "./interfaces/IServiceConfiguration.sol";
+import "./upgrades/DeployerUUPSUpgradeable.sol";
+import "hardhat/console.sol";
 
 /**
  * @title The ServiceConfiguration contract
  * @dev Implementation of the {IServiceConfiguration} interface.
  */
-contract ServiceConfiguration is AccessControl, IServiceConfiguration {
+contract ServiceConfiguration is
+    IServiceConfiguration,
+    AccessControlUpgradeable,
+    DeployerUUPSUpgradeable
+{
     /**
      * @dev The Operator Role
      */
@@ -20,19 +26,24 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     /**
+     * @dev The Operator Role
+     */
+    bytes32 public constant DEPLOYER_ROLE = keccak256("DEPLOYER_ROLE");
+
+    /**
      * @dev Whether the protocol is paused.
      */
-    bool public paused = false;
+    bool public paused;
 
     mapping(address => bool) public isLiquidityAsset;
 
     mapping(address => uint256) public firstLossMinimum;
 
-    uint256 public firstLossFeeBps = 500;
+    uint256 public firstLossFeeBps;
 
     address public tosAcceptanceRegistry;
 
-    uint256 public protocolFeeBps = 0;
+    uint256 public protocolFeeBps;
 
     /**
      * @dev Holds a reference to valid LoanFactories
@@ -75,16 +86,6 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     event TermsOfServiceRegistrySet(address indexed registry);
 
     /**
-     * @dev Constructor for the contract, which sets up the default roles and
-     * owners.
-     */
-    constructor() {
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        // Grant the contract deployer the Operator role
-        _setupRole(OPERATOR_ROLE, msg.sender);
-    }
-
-    /**
      * @dev Modifier that checks that the caller account has the Operator role.
      */
     modifier onlyOperator() {
@@ -107,13 +108,25 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     }
 
     /**
+     * @dev Constructor for the contract, which sets up the default roles and
+     * owners.
+     */
+    function initialize() public initializer {
+        // Initialize values
+        paused = false;
+        firstLossFeeBps = 500;
+        protocolFeeBps = 0;
+
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    }
+
+    /**
      * @dev Set a liquidity asset as valid or not.
      */
-    function setLiquidityAsset(address addr, bool value)
-        public
-        override
-        onlyOperator
-    {
+    function setLiquidityAsset(
+        address addr,
+        bool value
+    ) public override onlyOperator {
         isLiquidityAsset[addr] = value;
         emit LiquidityAssetSet(addr, value);
     }
@@ -136,11 +149,17 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     /**
      * @inheritdoc IServiceConfiguration
      */
-    function setLoanFactory(address addr, bool isValid)
-        external
-        override
-        onlyOperator
-    {
+    function isDeployer(address addr) external view returns (bool) {
+        return hasRole(DEPLOYER_ROLE, addr);
+    }
+
+    /**
+     * @inheritdoc IServiceConfiguration
+     */
+    function setLoanFactory(
+        address addr,
+        bool isValid
+    ) external override onlyOperator {
         isLoanFactory[addr] = isValid;
         emit LoanFactorySet(addr, isValid);
     }
@@ -148,11 +167,9 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     /**
      * @inheritdoc IServiceConfiguration
      */
-    function setToSAcceptanceRegistry(address addr)
-        external
-        override
-        onlyOperator
-    {
+    function setToSAcceptanceRegistry(
+        address addr
+    ) external override onlyOperator {
         tosAcceptanceRegistry = addr;
         emit TermsOfServiceRegistrySet(addr);
     }
@@ -160,11 +177,10 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     /**
      * @inheritdoc IServiceConfiguration
      */
-    function setFirstLossMinimum(address addr, uint256 value)
-        external
-        override
-        onlyOperator
-    {
+    function setFirstLossMinimum(
+        address addr,
+        uint256 value
+    ) external override onlyOperator {
         firstLossMinimum[addr] = value;
         emit FirstLossMinimumSet(addr, value);
     }
@@ -175,5 +191,12 @@ contract ServiceConfiguration is AccessControl, IServiceConfiguration {
     function setFirstLossFeeBps(uint256 value) external override onlyOperator {
         firstLossFeeBps = value;
         emit ParameterSet("firstLossFeeBps", value);
+    }
+
+    /**
+     * @inheritdoc IServiceConfigurable
+     */
+    function serviceConfiguration() external view override returns (address) {
+        return address(this);
     }
 }

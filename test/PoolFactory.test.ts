@@ -8,23 +8,23 @@ import {
   deployWithdrawControllerFactory
 } from "./support/pool";
 import { deployServiceConfiguration } from "./support/serviceconfiguration";
+import { getCommonSigners } from "./support/utils";
 
 describe("PoolFactory", () => {
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
-    const [operator, pauser] = await ethers.getSigners();
+    const { operator, deployer, pauser } = await getCommonSigners();
 
     // Deploy the liquidity asset
     const { mockERC20: liquidityAsset } = await deployMockERC20();
 
     // Deploy the Service Configuration contract
-    const { serviceConfiguration } = await deployServiceConfiguration(
-      operator,
-      pauser
-    );
+    const { serviceConfiguration } = await deployServiceConfiguration();
 
     // Add ERC20 as support currency
-    await serviceConfiguration.setLiquidityAsset(liquidityAsset.address, true);
+    await serviceConfiguration
+      .connect(operator)
+      .setLiquidityAsset(liquidityAsset.address, true);
 
     const PoolLib = await ethers.getContractFactory("PoolLib");
     const poolLib = await PoolLib.deploy();
@@ -39,25 +39,52 @@ describe("PoolFactory", () => {
       serviceConfiguration.address
     );
 
-    const PoolFactory = await ethers.getContractFactory("PoolFactory", {
-      libraries: {
-        PoolLib: poolLib.address
-      }
-    });
+    const PoolFactory = await ethers.getContractFactory("PoolFactory");
     const poolFactory = await PoolFactory.deploy(
       serviceConfiguration.address,
       withdrawControllerFactory.address,
       poolControllerFactory.address
     );
+
     await poolFactory.deployed();
 
+    // Set Pool implementation on Factory
+    const PoolImpl = await ethers.getContractFactory("Pool", {
+      libraries: {
+        PoolLib: poolLib.address
+      }
+    });
+    const poolImpl = await PoolImpl.deploy();
+    await poolFactory.connect(deployer).setImplementation(poolImpl.address);
+
     return {
+      operator,
+      deployer,
       poolFactory,
       liquidityAsset,
       serviceConfiguration,
       pauser
     };
   }
+
+  it("reverts if there's no implementation set", async () => {
+    const { poolFactory, liquidityAsset, deployer } = await loadFixture(
+      deployFixture
+    );
+
+    // set implementation to 0
+    await poolFactory
+      .connect(deployer)
+      .setImplementation(ethers.constants.AddressZero);
+
+    // ensure it reverts
+    const poolSettings = Object.assign({}, DEFAULT_POOL_SETTINGS, {
+      withdrawRequestPeriodDuration: 0
+    });
+    await expect(
+      poolFactory.createPool(liquidityAsset.address, poolSettings)
+    ).to.be.revertedWith("PoolFactory: no implementation set");
+  });
 
   it("reverts if given a zero withdraw window", async () => {
     const { poolFactory, liquidityAsset } = await loadFixture(deployFixture);
@@ -71,11 +98,13 @@ describe("PoolFactory", () => {
   });
 
   it("reverts if the first loss minimum is not sufficient", async () => {
-    const { serviceConfiguration, poolFactory, liquidityAsset } =
+    const { serviceConfiguration, poolFactory, liquidityAsset, operator } =
       await loadFixture(deployFixture);
 
     // Set a first loss minimum
-    await serviceConfiguration.setFirstLossMinimum(liquidityAsset.address, 1);
+    await serviceConfiguration
+      .connect(operator)
+      .setFirstLossMinimum(liquidityAsset.address, 1);
 
     // Attempt to create a pool with 0 first loss minimum
     const poolSettings = Object.assign({}, DEFAULT_POOL_SETTINGS, {
@@ -87,11 +116,13 @@ describe("PoolFactory", () => {
   });
 
   it("reverts if withdraw gate is too large", async () => {
-    const { serviceConfiguration, poolFactory, liquidityAsset } =
+    const { operator, serviceConfiguration, poolFactory, liquidityAsset } =
       await loadFixture(deployFixture);
 
     // Set a first loss minimum
-    await serviceConfiguration.setFirstLossMinimum(liquidityAsset.address, 1);
+    await serviceConfiguration
+      .connect(operator)
+      .setFirstLossMinimum(liquidityAsset.address, 1);
 
     // Attempt to create a pool with > 100% withdraw gate
     const poolSettings = Object.assign({}, DEFAULT_POOL_SETTINGS, {
@@ -103,11 +134,13 @@ describe("PoolFactory", () => {
   });
 
   it("reverts if withdrawal request fee is too large", async () => {
-    const { serviceConfiguration, poolFactory, liquidityAsset } =
+    const { operator, serviceConfiguration, poolFactory, liquidityAsset } =
       await loadFixture(deployFixture);
 
     // Set a first loss minimum
-    await serviceConfiguration.setFirstLossMinimum(liquidityAsset.address, 1);
+    await serviceConfiguration
+      .connect(operator)
+      .setFirstLossMinimum(liquidityAsset.address, 1);
 
     // Attempt to create a pool with > 100% withdraw gate
     const poolSettings = Object.assign({}, DEFAULT_POOL_SETTINGS, {
@@ -119,11 +152,13 @@ describe("PoolFactory", () => {
   });
 
   it("reverts if withdrawal request cancellation fee is too large", async () => {
-    const { serviceConfiguration, poolFactory, liquidityAsset } =
+    const { operator, serviceConfiguration, poolFactory, liquidityAsset } =
       await loadFixture(deployFixture);
 
     // Set a first loss minimum
-    await serviceConfiguration.setFirstLossMinimum(liquidityAsset.address, 1);
+    await serviceConfiguration
+      .connect(operator)
+      .setFirstLossMinimum(liquidityAsset.address, 1);
 
     // Attempt to create a pool with > 100% withdraw gate
     const poolSettings = Object.assign({}, DEFAULT_POOL_SETTINGS, {
@@ -164,5 +199,20 @@ describe("PoolFactory", () => {
     await expect(
       poolFactory.createPool(liquidityAsset.address, DEFAULT_POOL_SETTINGS)
     ).to.emit(poolFactory, "PoolCreated");
+  });
+
+  it("deployer can set new implementations", async () => {
+    const {
+      poolFactory,
+      liquidityAsset: mockNewImplementation,
+      deployer
+    } = await loadFixture(deployFixture);
+
+    // set implementation to a mock new value
+    await expect(
+      poolFactory
+        .connect(deployer)
+        .setImplementation(mockNewImplementation.address)
+    ).to.emit(poolFactory, "ImplementationSet");
   });
 });

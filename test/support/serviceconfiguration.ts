@@ -1,24 +1,32 @@
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import { deployToSAcceptanceRegistry } from "./tosacceptanceregistry";
+import { getCommonSigners } from "./utils";
 
 /**
  * Deploy ServiceConfiguration
  */
-export async function deployServiceConfiguration(operator?: any, pauser?: any) {
+export async function deployServiceConfiguration() {
+  const { admin, operator, deployer, pauser } = await getCommonSigners();
   const ServiceConfiguration = await ethers.getContractFactory(
     "ServiceConfiguration",
-    operator
+    admin
   );
-  const serviceConfiguration = await ServiceConfiguration.deploy();
+  const serviceConfiguration = await upgrades.deployProxy(
+    ServiceConfiguration,
+    { kind: "uups" }
+  );
   await serviceConfiguration.deployed();
+  await serviceConfiguration
+    .connect(admin)
+    .grantRole(await serviceConfiguration.OPERATOR_ROLE(), operator.address);
 
-  if (pauser) {
-    const tx = await serviceConfiguration.grantRole(
-      await serviceConfiguration.PAUSER_ROLE(),
-      pauser.address
-    );
-    await tx.wait();
-  }
+  await serviceConfiguration
+    .connect(admin)
+    .grantRole(await serviceConfiguration.DEPLOYER_ROLE(), deployer.address);
+
+  await serviceConfiguration
+    .connect(admin)
+    .grantRole(await serviceConfiguration.PAUSER_ROLE(), pauser.address);
 
   return {
     serviceConfiguration
@@ -28,24 +36,31 @@ export async function deployServiceConfiguration(operator?: any, pauser?: any) {
 /**
  * Deploy PermissionedServiceConfiguration
  */
-export async function deployPermissionedServiceConfiguration(
-  operator: any,
-  pauser?: any
-) {
+export async function deployPermissionedServiceConfiguration() {
+  const { admin, operator, deployer, pauser } = await getCommonSigners();
+
   const ServiceConfiguration = await ethers.getContractFactory(
     "PermissionedServiceConfiguration",
-    operator
+    admin
   );
-  const serviceConfiguration = await ServiceConfiguration.deploy();
+  const serviceConfiguration = await upgrades.deployProxy(
+    ServiceConfiguration,
+    { kind: "uups" }
+  );
   await serviceConfiguration.deployed();
 
-  if (pauser) {
-    const tx = await serviceConfiguration.grantRole(
-      await serviceConfiguration.PAUSER_ROLE(),
-      pauser.address
-    );
-    await tx.wait();
-  }
+  // Grant operator
+  await serviceConfiguration
+    .connect(admin)
+    .grantRole(await serviceConfiguration.OPERATOR_ROLE(), operator.address);
+
+  await serviceConfiguration
+    .connect(admin)
+    .grantRole(await serviceConfiguration.DEPLOYER_ROLE(), deployer.address);
+
+  await serviceConfiguration
+    .connect(admin)
+    .grantRole(await serviceConfiguration.PAUSER_ROLE(), pauser.address);
 
   const { tosAcceptanceRegistry } = await deployToSAcceptanceRegistry(
     serviceConfiguration

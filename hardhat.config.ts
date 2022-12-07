@@ -1,8 +1,10 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
+import "@openzeppelin/hardhat-upgrades";
 import "hardhat-contract-sizer";
 import "./tasks/serviceConfiguration";
 import "./tasks/tosAcceptanceRegistry";
+import "solidity-docgen";
 
 type ExtendedHardhatUserConfig = {
   networks: {

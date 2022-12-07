@@ -36,11 +36,26 @@ contract LoanFactory {
         address pool,
         address liquidityAsset,
         ILoanSettings memory settings
-    ) public virtual returns (address LoanAddress) {
+    ) public returns (address LoanAddress) {
         require(
             _serviceConfiguration.paused() == false,
             "LoanFactory: Protocol paused"
         );
+        address addr = initializeLoan(borrower, pool, liquidityAsset, settings);
+        emit LoanCreated(addr);
+        _isLoan[addr] = true;
+        return addr;
+    }
+
+    /**
+     * @dev Internal initialization of Loan contract
+     */
+    function initializeLoan(
+        address borrower,
+        address pool,
+        address liquidityAsset,
+        ILoanSettings memory settings
+    ) internal virtual returns (address) {
         Loan loan = new Loan(
             _serviceConfiguration,
             address(this),
@@ -49,10 +64,7 @@ contract LoanFactory {
             liquidityAsset,
             settings
         );
-        address addr = address(loan);
-        emit LoanCreated(addr);
-        _isLoan[addr] = true;
-        return addr;
+        return address(loan);
     }
 
     /**

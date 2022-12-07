@@ -14,6 +14,7 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     EnumerableSet.AddressSet private _activeLoans;
+    IPoolAccountings private _accountings;
 
     event LifeCycleStateTransition(IPoolLifeCycleState state);
     event FirstLossDeposited(
@@ -157,7 +158,8 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
                 assets,
                 shares,
                 maxDeposit,
-                _mint
+                _mint,
+                _accountings
             );
     }
 

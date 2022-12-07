@@ -14,17 +14,18 @@ import {
   deployPool,
   depositToPool
 } from "../support/pool";
+import { getCommonSigners } from "../support/utils";
 
 describe("PoolController", () => {
   async function loadPoolFixture() {
-    const [
+    const {
       operator,
       poolAdmin,
       pauser,
       borrower,
       otherAccount,
       ...otherAccounts
-    ] = await ethers.getSigners();
+    } = await getCommonSigners();
 
     const {
       pool,
@@ -33,9 +34,7 @@ describe("PoolController", () => {
       serviceConfiguration,
       withdrawController
     } = await deployPool({
-      operator,
-      poolAdmin: poolAdmin,
-      pauser
+      poolAdmin: poolAdmin
     });
 
     const { mockERC20: collateralAsset } = await deployMockERC20();
@@ -82,11 +81,9 @@ describe("PoolController", () => {
   }
 
   async function loadPoolFixtureWithFees() {
-    const [operator, poolAdmin, pauser, otherAccount] =
-      await ethers.getSigners();
+    const { poolAdmin, pauser, otherAccount } = await getCommonSigners();
     const { pool, poolController, liquidityAsset, serviceConfiguration } =
       await deployPool({
-        operator,
         poolAdmin,
         settings: { fixedFee: 100, fixedFeeInterval: 30 },
         pauser
@@ -346,14 +343,13 @@ describe("PoolController", () => {
     });
 
     it("if the pool is closed, the withdraw window won't increase if it's already less than 1 day", async () => {
-      const { operator, poolAdmin } = await loadFixture(loadPoolFixture);
+      const { poolAdmin } = await loadFixture(loadPoolFixture);
 
       const overriddenPoolSettings = {
         withdrawRequestPeriodDuration: 86399
       };
 
       const { poolController: newPoolController } = await deployPool({
-        operator,
         poolAdmin: poolAdmin,
         settings: overriddenPoolSettings
       });
@@ -468,6 +464,70 @@ describe("PoolController", () => {
       await expect(
         poolController.connect(otherAccount).setPoolEndDate(1)
       ).to.be.revertedWith("Pool: caller is not admin");
+    });
+  });
+
+  describe("setServiceFeeBps()", () => {
+    it("allows change the pool service fee", async () => {
+      const { poolController, poolAdmin } = await loadFixture(loadPoolFixture);
+
+      expect((await poolController.settings()).serviceFeeBps).to.equal(0);
+
+      const tx = poolController.connect(poolAdmin).setServiceFeeBps(500);
+
+      await expect(tx).to.emit(poolController, "PoolSettingsUpdated");
+      expect((await poolController.settings()).serviceFeeBps).to.equal(500);
+    });
+
+    it("reverts if set above 10,000", async () => {
+      const { poolController, poolAdmin } = await loadFixture(loadPoolFixture);
+
+      const tx = poolController.connect(poolAdmin).setServiceFeeBps(10_000);
+      await expect(tx).to.not.be.reverted;
+
+      const tx2 = poolController.connect(poolAdmin).setServiceFeeBps(10_001);
+      await expect(tx2).to.be.revertedWith("Pool: invalid service fee");
+    });
+
+    it("reverts if not called by Pool Admin", async () => {
+      const { poolController, otherAccount } = await loadFixture(
+        loadPoolFixture
+      );
+
+      const tx = poolController.connect(otherAccount).setServiceFeeBps(0);
+      await expect(tx).to.be.revertedWith("Pool: caller is not admin");
+    });
+  });
+
+  describe("setFixedFee()", () => {
+    it("changes the pool fixed fee", async () => {
+      const { poolController, poolAdmin } = await loadFixture(loadPoolFixture);
+
+      expect((await poolController.settings()).fixedFee).to.equal(0);
+      expect((await poolController.settings()).fixedFeeInterval).to.equal(0);
+
+      const tx = poolController.connect(poolAdmin).setFixedFee(100, 1);
+
+      await expect(tx).to.emit(poolController, "PoolSettingsUpdated");
+      expect((await poolController.settings()).fixedFee).to.equal(100);
+      expect((await poolController.settings()).fixedFeeInterval).to.equal(1);
+    });
+
+    it("reverts if the amount is greater than 0 and the interval is 0", async () => {
+      const { poolController, poolAdmin } = await loadFixture(loadPoolFixture);
+
+      const tx = poolController.connect(poolAdmin).setFixedFee(100, 0);
+
+      await expect(tx).to.be.revertedWith("Pool: invalid fixed fee");
+    });
+
+    it("reverts if not called by Pool Admin", async () => {
+      const { poolController, otherAccount } = await loadFixture(
+        loadPoolFixture
+      );
+
+      const tx = poolController.connect(otherAccount).setFixedFee(100, 1);
+      await expect(tx).to.be.revertedWith("Pool: caller is not admin");
     });
   });
 
@@ -1009,6 +1069,42 @@ describe("PoolController", () => {
       // Pool liquidity reserve should now contain the first loss
       expect(await liquidityAsset.balanceOf(pool.address)).to.equal(
         firstLossAvailable
+      );
+    });
+
+    it("defaults update totalDefaults and totalFirstLossApplied in Pool accountings", async () => {
+      const {
+        collateralAsset,
+        pool,
+        poolAdmin,
+        liquidityAsset,
+        loan,
+        borrower,
+        otherAccount,
+        poolController
+      } = await loadFixture(loadPoolFixture);
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      // Collateralize loan
+      await collateralizeLoan(loan, borrower, collateralAsset);
+
+      // Deposit to pool and fund loan
+      const loanPrincipal = await loan.principal();
+      await depositToPool(pool, otherAccount, liquidityAsset, loanPrincipal);
+      await fundLoan(loan, poolController, poolAdmin);
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      // Check accountings
+      expect((await pool.accountings()).totalDefaults).to.equal(0);
+      expect((await pool.accountings()).totalFirstLossApplied).to.equal(0);
+
+      poolController.connect(poolAdmin).defaultLoan(loan.address);
+      expect((await pool.accountings()).totalDefaults).to.equal(
+        await loan.principal()
+      );
+      // FL is only 100k, whereas loan principal is 1M.
+      expect((await pool.accountings()).totalFirstLossApplied).to.equal(
+        DEFAULT_POOL_SETTINGS.firstLossInitialMinimum
       );
     });
 

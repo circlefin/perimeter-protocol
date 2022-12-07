@@ -3,26 +3,21 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { deployMockERC20 } from "../support/erc20";
 import { DEFAULT_LOAN_SETTINGS } from "../support/loan";
+import { deployPermissionedServiceConfiguration } from "../support/serviceconfiguration";
 import { deployToSAcceptanceRegistry } from "../support/tosacceptanceregistry";
-import { findEventByName } from "../support/utils";
+import { findEventByName, getCommonSigners } from "../support/utils";
 
 describe("PermissionedLoanFactory", () => {
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
-    const [operator, borrower, pool] = await ethers.getSigners();
-
+    const { operator, borrower, otherAccounts } = await getCommonSigners();
+    const mockPool = otherAccounts[0];
     // Deploy the liquidity asset
     const { mockERC20: liquidityAsset } = await deployMockERC20();
 
     // Deploy the Service Configuration contract
-    const PermissionedServiceConfiguration = await ethers.getContractFactory(
-      "PermissionedServiceConfiguration",
-      operator
-    );
-
-    const permissionedServiceConfiguration =
-      await PermissionedServiceConfiguration.deploy();
-    await permissionedServiceConfiguration.deployed();
+    const { serviceConfiguration: permissionedServiceConfiguration } =
+      await deployPermissionedServiceConfiguration();
     await permissionedServiceConfiguration
       .connect(operator)
       .setLiquidityAsset(liquidityAsset.address, true);
@@ -59,7 +54,7 @@ describe("PermissionedLoanFactory", () => {
       loanFactory,
       operator,
       borrower,
-      pool,
+      mockPool,
       liquidityAsset,
       tosAcceptanceRegistry,
       permissionedServiceConfiguration
@@ -70,7 +65,7 @@ describe("PermissionedLoanFactory", () => {
     const {
       loanFactory,
       borrower,
-      pool,
+      mockPool,
       liquidityAsset,
       tosAcceptanceRegistry
     } = await loadFixture(deployFixture);
@@ -81,7 +76,7 @@ describe("PermissionedLoanFactory", () => {
       .connect(borrower)
       .createLoan(
         borrower.address,
-        pool.address,
+        mockPool.address,
         liquidityAsset.address,
         DEFAULT_LOAN_SETTINGS
       );

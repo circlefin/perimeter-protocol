@@ -2,15 +2,15 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { deployPool } from "./support/pool";
+import { getCommonSigners } from "./support/utils";
 
 describe("FeeVault", () => {
   const VAULT_BALANCE = ethers.BigNumber.from(100);
 
   async function deployFixture() {
-    const [operator, pauser, poolAdmin, otherAccount] =
-      await ethers.getSigners();
+    const { pauser, poolAdmin, otherAccount } = await getCommonSigners();
 
-    const { pool } = await deployPool({ operator, poolAdmin, pauser });
+    const { pool } = await deployPool({ poolAdmin });
 
     const FeeVault = await ethers.getContractFactory("FeeVault");
     const feeVault = await FeeVault.deploy(pool.address);
