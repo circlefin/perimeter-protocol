@@ -13,10 +13,14 @@ describe("PoolAccessControl", () => {
     const verifier = otherAccounts[0];
     const poolParticipant = otherAccounts[1];
 
-    const { pool, tosAcceptanceRegistry, poolAccessControlFactory } =
-      await deployPermissionedPool({
-        poolAdmin
-      });
+    const {
+      pool,
+      tosAcceptanceRegistry,
+      poolAccessControlFactory,
+      poolAccessControlImpl
+    } = await deployPermissionedPool({
+      poolAdmin
+    });
 
     await tosAcceptanceRegistry
       .connect(operator)
@@ -35,7 +39,8 @@ describe("PoolAccessControl", () => {
       otherAccounts,
       poolAccessControl,
       tosAcceptanceRegistry,
-      poolAccessControlFactory
+      poolAccessControlFactory,
+      poolAccessControlImpl
     };
   }
 
@@ -267,46 +272,6 @@ describe("PoolAccessControl", () => {
     });
   });
 
-  describe("Upgrades", () => {
-    it("can be upgraded", async () => {
-      const { poolAccessControl, poolAccessControlFactory, deployer } =
-        await loadFixture(deployFixture);
-
-      const V2Impl = await ethers.getContractFactory("PoolAccessControlMockV2");
-      const v2Impl = await V2Impl.deploy();
-
-      // Set new implementation
-      await expect(
-        poolAccessControlFactory
-          .connect(deployer)
-          .setImplementation(v2Impl.address)
-      ).to.emit(poolAccessControlFactory, "ImplementationSet");
-
-      // Check new implementation
-      const poolAccessControlV2 = await ethers.getContractAt(
-        "PoolAccessControlMockV2",
-        poolAccessControl.address
-      );
-      expect(await poolAccessControlV2.foo()).to.be.true;
-    });
-
-    it("reverts if non-deployer tries to upgrade", async () => {
-      const { poolAccessControlFactory, poolAdmin } = await loadFixture(
-        deployFixture
-      );
-
-      const V2Impl = await ethers.getContractFactory("PoolAccessControlMockV2");
-      const v2Impl = await V2Impl.deploy();
-
-      // Set new implementation
-      await expect(
-        poolAccessControlFactory
-          .connect(poolAdmin)
-          .setImplementation(v2Impl.address)
-      ).to.be.revertedWith("Upgrade: unauthorized");
-    });
-  });
-
   describe("verify()", () => {
     it("reverts if the subject has not accepted ToS", async () => {
       const { poolAccessControl, poolParticipant, verifier, poolAdmin } =
@@ -485,6 +450,46 @@ describe("PoolAccessControl", () => {
       )
         .to.emit(poolAccessControl, "VerificationResultConfirmed")
         .withArgs(poolParticipant.address);
+    });
+  });
+
+  describe("Upgrades", () => {
+    it("can be upgraded", async () => {
+      const { poolAccessControl, poolAccessControlFactory, deployer } =
+        await loadFixture(deployFixture);
+
+      const V2Impl = await ethers.getContractFactory("PoolAccessControlMockV2");
+      const v2Impl = await V2Impl.deploy();
+
+      // Set new implementation
+      await expect(
+        poolAccessControlFactory
+          .connect(deployer)
+          .setImplementation(v2Impl.address)
+      ).to.emit(poolAccessControlFactory, "ImplementationSet");
+
+      // Check new implementation
+      const poolAccessControlV2 = await ethers.getContractAt(
+        "PoolAccessControlMockV2",
+        poolAccessControl.address
+      );
+      expect(await poolAccessControlV2.foo()).to.be.true;
+    });
+
+    it("reverts if non-deployer tries to upgrade", async () => {
+      const { poolAccessControlFactory, poolAdmin } = await loadFixture(
+        deployFixture
+      );
+
+      const V2Impl = await ethers.getContractFactory("PoolAccessControlMockV2");
+      const v2Impl = await V2Impl.deploy();
+
+      // Set new implementation
+      await expect(
+        poolAccessControlFactory
+          .connect(poolAdmin)
+          .setImplementation(v2Impl.address)
+      ).to.be.revertedWith("Upgrade: unauthorized");
     });
   });
 });

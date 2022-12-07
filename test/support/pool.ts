@@ -248,7 +248,8 @@ export async function deployPermissionedPool({
     tosAcceptanceRegistry,
     poolAdminAccessControl,
     poolAccessControl,
-    poolAccessControlFactory
+    poolAccessControlFactory,
+    poolAccessControlImpl
   };
 }
 

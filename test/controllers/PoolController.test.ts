@@ -1345,5 +1345,18 @@ describe("PoolController", () => {
       const poolControllerV2 = V2Impl.attach(poolController.address);
       expect(await poolControllerV2.foo()).to.be.true;
     });
+
+    it("reverts if non-deployer tries to upgrade", async () => {
+      const { poolAdmin, poolControllerFactory } = await loadFixture(
+        loadPoolFixture
+      );
+
+      // new implementation
+      await expect(
+        poolControllerFactory
+          .connect(poolAdmin)
+          .setImplementation(ethers.constants.AddressZero)
+      ).to.be.revertedWith("Upgrade: unauthorized");
+    });
   });
 });
