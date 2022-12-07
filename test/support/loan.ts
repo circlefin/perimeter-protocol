@@ -35,7 +35,7 @@ export async function deployLoan(
         serviceConfiguration: existingServiceConfiguration
       });
 
-  const { operator } = await getCommonSigners();
+  const { operator, deployer } = await getCommonSigners();
 
   await serviceConfiguration
     .connect(operator)
@@ -49,17 +49,22 @@ export async function deployLoan(
   const LoanLib = await ethers.getContractFactory("LoanLib");
   const loanLib = await LoanLib.deploy();
 
-  const LoanFactory = await ethers.getContractFactory("LoanFactory", {
+  const LoanImpl = await ethers.getContractFactory("Loan", {
     libraries: {
       LoanLib: loanLib.address
     }
   });
+  const loanImpl = await LoanImpl.deploy();
+
+  const LoanFactory = await ethers.getContractFactory("LoanFactory");
   const loanFactory = await LoanFactory.deploy(serviceConfiguration.address);
   await loanFactory.deployed();
 
   await serviceConfiguration
     .connect(operator)
     .setLoanFactory(loanFactory.address, true);
+
+  await loanFactory.connect(deployer).setImplementation(loanImpl.address);
 
   const txn = await loanFactory.createLoan(borrower, pool, liquidityAsset, {
     loanType: loanSettings.loanType,
@@ -90,7 +95,7 @@ export async function deployPermissionedLoan(
   existingServiceConfiguration: any = null,
   overriddenLoanTerms?: Partial<typeof DEFAULT_LOAN_SETTINGS>
 ) {
-  const { operator } = await getCommonSigners();
+  const { operator, deployer } = await getCommonSigners();
   const { serviceConfiguration } = await (existingServiceConfiguration == null
     ? deployPermissionedServiceConfiguration()
     : {
@@ -109,13 +114,15 @@ export async function deployPermissionedLoan(
   const LoanLib = await ethers.getContractFactory("LoanLib");
   const loanLib = await LoanLib.deploy();
 
-  const PermissionedLoanFactory = await ethers.getContractFactory(
-    "PermissionedLoanFactory",
-    {
-      libraries: {
-        LoanLib: loanLib.address
-      }
+  const LoanImpl = await ethers.getContractFactory("PermissionedLoan", {
+    libraries: {
+      LoanLib: loanLib.address
     }
+  });
+  const loanImpl = await LoanImpl.deploy();
+
+  const PermissionedLoanFactory = await ethers.getContractFactory(
+    "PermissionedLoanFactory"
   );
 
   const loanFactory = await PermissionedLoanFactory.deploy(
@@ -126,6 +133,8 @@ export async function deployPermissionedLoan(
   await serviceConfiguration
     .connect(operator)
     .setLoanFactory(loanFactory.address, true);
+
+  await loanFactory.connect(deployer).setImplementation(loanImpl.address);
 
   const txn = await loanFactory.createLoan(borrower, pool, liquidityAsset, {
     loanType: loanSettings.loanType,

@@ -100,6 +100,7 @@ contract ServiceConfiguration is
         paused = false;
         firstLossFeeBps = 500;
         protocolFeeBps = 0;
+        _serviceConfiguration = IServiceConfiguration(address(this));
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
@@ -180,12 +181,5 @@ contract ServiceConfiguration is
     function setFirstLossFeeBps(uint256 value) external override onlyOperator {
         firstLossFeeBps = value;
         emit ParameterSet("firstLossFeeBps", value);
-    }
-
-    /**
-     * @inheritdoc IServiceConfigurable
-     */
-    function serviceConfiguration() external view override returns (address) {
-        return address(this);
     }
 }

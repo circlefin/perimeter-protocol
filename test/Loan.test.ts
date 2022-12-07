@@ -24,7 +24,7 @@ describe("Loan", () => {
       principal: 500_000
     })
   ) {
-    const { admin, operator, poolAdmin, borrower, lender, other } =
+    const { admin, deployer, operator, poolAdmin, borrower, lender, other } =
       await getCommonSigners();
 
     // Create a pool
@@ -41,17 +41,24 @@ describe("Loan", () => {
     const LoanLib = await ethers.getContractFactory("LoanLib");
     const loanLib = await LoanLib.deploy();
 
-    const LoanFactory = await ethers.getContractFactory("LoanFactory", {
-      libraries: {
-        LoanLib: loanLib.address
-      }
-    });
+    const LoanFactory = await ethers.getContractFactory("LoanFactory");
     const loanFactory = await LoanFactory.deploy(serviceConfiguration.address);
     await loanFactory.deployed();
 
     await serviceConfiguration
       .connect(operator)
       .setLoanFactory(loanFactory.address, true);
+
+    // Deploy Loan implementation contract
+    const LoanImpl = await ethers.getContractFactory("Loan", {
+      libraries: {
+        LoanLib: loanLib.address
+      }
+    });
+    const loanImpl = await LoanImpl.deploy();
+
+    // Set implementation on the LoanFactory
+    await loanFactory.connect(deployer).setImplementation(loanImpl.address);
 
     const depositAmount = 1_000_000;
     await liquidityAsset.mint(lender.address, 10_000_000);
@@ -92,8 +99,10 @@ describe("Loan", () => {
 
     return {
       pool,
+      deployer,
       poolController,
       loan,
+      loanLib,
       loanFactory,
       operator,
       poolAdmin,
@@ -1464,6 +1473,29 @@ describe("Loan", () => {
         pool,
         prepaidPrincipal
       );
+    });
+  });
+
+  describe("Upgrades", () => {
+    it("can be upgraded", async () => {
+      const { loan, loanFactory, deployer, loanLib } = await loadFixture(
+        deployFixture
+      );
+
+      // new implementation
+      const V2Impl = await ethers.getContractFactory("LoanMockV2", {
+        libraries: {
+          LoanLib: loanLib.address
+        }
+      });
+      const v2Impl = await V2Impl.deploy();
+      await expect(
+        loanFactory.connect(deployer).setImplementation(v2Impl.address)
+      ).to.emit(loanFactory, "ImplementationSet");
+
+      // Check that it upgraded
+      const loanV2 = V2Impl.attach(loan.address);
+      expect(await loanV2.foo()).to.be.true;
     });
   });
 });

@@ -7,11 +7,12 @@ import "./interfaces/IPoolController.sol";
 import "../libraries/PoolLib.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "../upgrades/interfaces/IBeaconImplementation.sol";
 
 /**
  * @title WithdrawState
  */
-contract WithdrawController is IWithdrawController {
+contract WithdrawController is IWithdrawController, IBeaconImplementation {
     using SafeMath for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -44,9 +45,9 @@ contract WithdrawController is IWithdrawController {
     }
 
     /**
-     * @dev Constructor for a Pool's withdraw state
+     * @dev Initializer for a Pool's withdraw state
      */
-    constructor(address pool) {
+    function initialize(address pool) public initializer {
         _pool = IPool(pool);
     }
 

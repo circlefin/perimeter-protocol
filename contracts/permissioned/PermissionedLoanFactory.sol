@@ -15,7 +15,7 @@ contract PermissionedLoanFactory is LoanFactory {
 
     /**
      * @inheritdoc LoanFactory
-     * @dev Deploys PermissionedLoan
+     * @dev Deploys BeaconProxy for PermissionedLoan
      */
     function initializeLoan(
         address borrower,
@@ -23,14 +23,18 @@ contract PermissionedLoanFactory is LoanFactory {
         address liquidityAsset,
         ILoanSettings memory settings
     ) internal override returns (address) {
-        Loan loan = new PermissionedLoan(
-            _serviceConfiguration,
+        BeaconProxy proxy = new BeaconProxy(
             address(this),
-            borrower,
-            pool,
-            liquidityAsset,
-            settings
+            abi.encodeWithSelector(
+                PermissionedLoan.initialize.selector,
+                address(_serviceConfiguration),
+                address(this),
+                borrower,
+                pool,
+                liquidityAsset,
+                settings
+            )
         );
-        return address(loan);
+        return address(proxy);
     }
 }
