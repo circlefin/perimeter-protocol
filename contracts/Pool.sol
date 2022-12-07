@@ -247,10 +247,10 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
      */
     function fundLoan(address addr)
         external
+        onlyNotPaused
         onlyPoolController
         onlyCrankedPool
     {
-        requireNotPaused();
         ILoan loan = ILoan(addr);
         uint256 principal = loan.principal();
 
@@ -380,8 +380,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
         address recipient,
         uint256 fixedFee,
         uint256 fixedFeeInterval
-    ) external onlyPoolController onlyCrankedPool {
-        requireNotPaused();
+    ) external onlyNotPaused onlyPoolController onlyCrankedPool {
         require(
             _accountings.fixedFeeDueDate < block.timestamp,
             "Pool: fixed fee not due"
@@ -389,13 +388,6 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
 
         _accountings.fixedFeeDueDate += fixedFeeInterval * 1 days;
         IERC20Upgradeable(_liquidityAsset).safeTransfer(recipient, fixedFee);
-    }
-
-    function requireNotPaused() internal view {
-        require(
-            IServiceConfiguration(_serviceConfiguration).paused() == false,
-            "Pool: Protocol paused"
-        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -555,12 +547,12 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
      */
     function cancelWithdrawRequest(uint256 assets)
         external
+        onlyNotPaused
         onlyActivatedPool
         onlyLender
         onlyCrankedPool
         returns (uint256 shares)
     {
-        requireNotPaused();
         shares = convertToShares(assets);
         _performRequestCancellation(msg.sender, shares, assets);
     }
@@ -574,7 +566,6 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
         uint256 shares,
         uint256 assets
     ) internal {
-        requireNotPaused();
         require(
             maxRequestCancellation(owner) >= shares,
             "Pool: InsufficientBalance"
@@ -593,8 +584,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
     /**
      * @inheritdoc IPool
      */
-    function crank() public virtual {
-        requireNotPaused();
+    function crank() public virtual onlyNotPaused {
         _crank();
     }
 
@@ -720,12 +710,12 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
         public
         virtual
         override
+        onlyNotPaused
         atState(IPoolLifeCycleState.Active)
         onlyPermittedLender
         onlyCrankedPool
         returns (uint256 shares)
     {
-        requireNotPaused();
         require(msg.sender == receiver, "Pool: invalid receiver");
         shares = PoolLib.executeDeposit(
             asset(),
@@ -780,12 +770,12 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
         public
         virtual
         override
+        onlyNotPaused
         atState(IPoolLifeCycleState.Active)
         onlyPermittedLender
         onlyCrankedPool
         returns (uint256 assets)
     {
-        requireNotPaused();
         require(msg.sender == receiver, "Pool: invalid receiver");
         assets = previewMint(shares);
         PoolLib.executeDeposit(
@@ -837,11 +827,11 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
     )
         public
         virtual
+        onlyNotPaused
         onlyPermittedLender
         onlyCrankedPool
         returns (uint256 shares)
     {
-        requireNotPaused();
         require(receiver == owner, "Pool: Withdrawal to unrelated address");
         require(receiver == msg.sender, "Pool: Must transfer to msg.sender");
         require(assets > 0, "Pool: 0 withdraw not allowed");
@@ -892,11 +882,11 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
     )
         public
         virtual
+        onlyNotPaused
         onlyPermittedLender
         onlyCrankedPool
         returns (uint256 assets)
     {
-        requireNotPaused();
         require(receiver == owner, "Pool: Withdrawal to unrelated address");
         require(receiver == msg.sender, "Pool: Must transfer to msg.sender");
         require(shares > 0, "Pool: 0 redeem not allowed");
