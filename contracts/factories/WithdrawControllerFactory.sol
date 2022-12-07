@@ -4,18 +4,18 @@ pragma solidity ^0.8.16;
 import "../controllers/WithdrawController.sol";
 import "../interfaces/IServiceConfiguration.sol";
 import "./interfaces/IWithdrawControllerFactory.sol";
+import "../upgrades/BeaconProxyFactory.sol";
+import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 
 /**
  * @title WithdrawController Factory
  */
-contract WithdrawControllerFactory is IWithdrawControllerFactory {
-    /**
-     * @dev Reference to the ServiceConfiguration contract
-     */
-    address private _serviceConfiguration;
-
+contract WithdrawControllerFactory is
+    IWithdrawControllerFactory,
+    BeaconProxyFactory
+{
     constructor(address serviceConfiguration) {
-        _serviceConfiguration = serviceConfiguration;
+        _serviceConfiguration = IServiceConfiguration(serviceConfiguration);
     }
 
     /**
@@ -27,12 +27,16 @@ contract WithdrawControllerFactory is IWithdrawControllerFactory {
         returns (address addr)
     {
         require(
-            IServiceConfiguration(_serviceConfiguration).paused() == false,
+            _serviceConfiguration.paused() == false,
             "WithdrawControllerFactory: Protocol paused"
         );
 
-        WithdrawController withdrawController = new WithdrawController(pool);
-        addr = address(withdrawController);
+        BeaconProxy proxy = new BeaconProxy(
+            address(this),
+            abi.encodeWithSelector(WithdrawController.initialize.selector, pool)
+        );
+
+        addr = address(proxy);
         emit WithdrawControllerCreated(addr);
     }
 }

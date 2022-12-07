@@ -8,28 +8,29 @@ import "./interfaces/IServiceConfiguration.sol";
 import "./libraries/LoanLib.sol";
 import "./CollateralVault.sol";
 import "./FundingVault.sol";
+import "./upgrades/interfaces/IBeaconImplementation.sol";
 
 /**
  * @title Loan
  *
  * Empty Loan contract.
  */
-contract Loan is ILoan {
+contract Loan is ILoan, IBeaconImplementation {
     using SafeMath for uint256;
     uint256 constant RAY = 10**27;
 
     IServiceConfiguration private _serviceConfiguration;
-    address private immutable _factory;
+    address private _factory;
     ILoanLifeCycleState private _state = ILoanLifeCycleState.Requested;
-    address private immutable _borrower;
-    address private immutable _pool;
-    CollateralVault public immutable _collateralVault;
-    FundingVault public immutable fundingVault;
+    address private _borrower;
+    address private _pool;
+    CollateralVault public _collateralVault;
+    FundingVault public fundingVault;
     address[] private _fungibleCollateral;
     ILoanNonFungibleCollateral[] private _nonFungibleCollateral;
-    uint256 public immutable createdAt;
-    address public immutable liquidityAsset;
-    uint256 public immutable payment;
+    uint256 public createdAt;
+    address public liquidityAsset;
+    uint256 public payment;
     uint256 public outstandingPrincipal;
     uint256 public paymentsRemaining;
     uint256 public paymentDueDate;
@@ -122,15 +123,15 @@ contract Loan is ILoan {
         _;
     }
 
-    constructor(
-        IServiceConfiguration serviceConfiguration,
+    function initialize(
+        address serviceConfiguration,
         address factory_,
         address borrower_,
         address pool_,
         address liquidityAsset_,
         ILoanSettings memory settings_
-    ) {
-        _serviceConfiguration = serviceConfiguration;
+    ) public virtual initializer {
+        _serviceConfiguration = IServiceConfiguration(serviceConfiguration);
         _factory = factory_;
         _borrower = borrower_;
         _pool = pool_;
@@ -141,7 +142,7 @@ contract Loan is ILoan {
         settings = settings_;
 
         LoanLib.validateLoan(
-            serviceConfiguration,
+            _serviceConfiguration,
             settings.duration,
             settings.paymentPeriod,
             settings.principal,

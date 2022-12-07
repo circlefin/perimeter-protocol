@@ -2,26 +2,41 @@ import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { activatePool, deployPool, depositToPool } from "../support/pool";
+import { getCommonSigners } from "../support/utils";
 
 describe("WithdrawController", () => {
   async function loadPoolFixture() {
-    const [operator, poolAdmin, borrower, otherAccount, ...otherAccounts] =
-      await ethers.getSigners();
-
-    const { pool, liquidityAsset, withdrawController } = await deployPool({
+    const {
       operator,
+      deployer,
+      poolAdmin,
+      borrower,
+      otherAccount,
+      otherAccounts
+    } = await getCommonSigners();
+
+    const {
+      pool,
+      withdrawControllerFactory,
+      poolLib,
+      liquidityAsset,
+      withdrawController
+    } = await deployPool({
       poolAdmin: poolAdmin
     });
 
     return {
       operator,
+      deployer,
       poolAdmin,
       borrower,
       otherAccount,
       otherAccounts,
       pool,
       liquidityAsset,
-      withdrawController
+      withdrawController,
+      withdrawControllerFactory,
+      poolLib
     };
   }
 
@@ -254,6 +269,37 @@ describe("WithdrawController", () => {
         .connect(otherAccount)
         .redeem(9, otherAccount.address, otherAccount.address);
       expect(await withdrawController.totalRedeemableShares()).to.equal(1); // snapshot dust
+    });
+  });
+
+  describe("Upgrades", () => {
+    it("Can be upgraded", async () => {
+      const {
+        withdrawController,
+        withdrawControllerFactory,
+        poolLib,
+        deployer
+      } = await loadFixture(loadPoolFixture);
+
+      // new implementation
+      const V2Impl = await ethers.getContractFactory(
+        "WithdrawControllerMockV2",
+        {
+          libraries: {
+            PoolLib: poolLib.address
+          }
+        }
+      );
+      const v2Impl = await V2Impl.deploy();
+      await expect(
+        withdrawControllerFactory
+          .connect(deployer)
+          .setImplementation(v2Impl.address)
+      ).to.emit(withdrawControllerFactory, "ImplementationSet");
+
+      // Check that it upgraded
+      const withdrawControllerV2 = V2Impl.attach(withdrawController.address);
+      expect(await withdrawControllerV2.foo()).to.be.true;
     });
   });
 });

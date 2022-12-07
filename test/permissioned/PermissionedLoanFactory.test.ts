@@ -2,7 +2,8 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { deployMockERC20 } from "../support/erc20";
-import { DEFAULT_LOAN_SETTINGS } from "../support/loan";
+import { deployPermissionedPool, DEFAULT_POOL_SETTINGS } from "../support/pool";
+import { DEFAULT_LOAN_SETTINGS, deployPermissionedLoan } from "../support/loan";
 import { deployPermissionedServiceConfiguration } from "../support/serviceconfiguration";
 import { deployToSAcceptanceRegistry } from "../support/tosacceptanceregistry";
 import { findEventByName, getCommonSigners } from "../support/utils";
@@ -10,27 +11,32 @@ import { findEventByName, getCommonSigners } from "../support/utils";
 describe("PermissionedLoanFactory", () => {
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
-    const { operator, borrower, otherAccounts } = await getCommonSigners();
-    const mockPool = otherAccounts[0];
+    const { operator, poolAdmin, borrower, otherAccounts, deployer } =
+      await getCommonSigners();
+
     // Deploy the liquidity asset
     const { mockERC20: liquidityAsset } = await deployMockERC20();
 
-    // Deploy the Service Configuration contract
-    const { serviceConfiguration: permissionedServiceConfiguration } =
-      await deployPermissionedServiceConfiguration();
+    // Deploy PermissionedPool
+    const {
+      pool,
+      tosAcceptanceRegistry,
+      serviceConfiguration: permissionedServiceConfiguration
+    } = await deployPermissionedPool({
+      poolAdmin: poolAdmin,
+      settings: DEFAULT_POOL_SETTINGS,
+      liquidityAsset: liquidityAsset
+    });
+
     await permissionedServiceConfiguration
       .connect(operator)
       .setLiquidityAsset(liquidityAsset.address, true);
-
-    // Deploy ToS Registry
-    const { tosAcceptanceRegistry } = await deployToSAcceptanceRegistry(
-      permissionedServiceConfiguration
-    );
 
     // Configure ToS
     await permissionedServiceConfiguration
       .connect(operator)
       .setToSAcceptanceRegistry(tosAcceptanceRegistry.address);
+
     await tosAcceptanceRegistry
       .connect(operator)
       .updateTermsOfService("https://terms.example");
@@ -39,22 +45,36 @@ describe("PermissionedLoanFactory", () => {
     const LoanLib = await ethers.getContractFactory("LoanLib");
     const loanLib = await LoanLib.deploy();
 
-    // Deploy the PermissionedPoolFactory
-    const LoanFactory = await ethers.getContractFactory("LoanFactory", {
-      libraries: {
-        LoanLib: loanLib.address
-      }
-    });
+    // Deploy the PermissionedLoanFactory
+    const LoanFactory = await ethers.getContractFactory(
+      "PermissionedLoanFactory"
+    );
     const loanFactory = await LoanFactory.deploy(
       permissionedServiceConfiguration.address
     );
     await loanFactory.deployed();
 
+    // Deployer PermissionedLoan implementation
+    const PermissionedLoan = await ethers.getContractFactory(
+      "PermissionedLoan",
+      {
+        libraries: {
+          LoanLib: loanLib.address
+        }
+      }
+    );
+    const permissionedLoan = await PermissionedLoan.deploy();
+
+    // Set implementation on factory
+    await loanFactory
+      .connect(deployer)
+      .setImplementation(permissionedLoan.address);
+
     return {
       loanFactory,
       operator,
       borrower,
-      mockPool,
+      pool,
       liquidityAsset,
       tosAcceptanceRegistry,
       permissionedServiceConfiguration
@@ -65,7 +85,7 @@ describe("PermissionedLoanFactory", () => {
     const {
       loanFactory,
       borrower,
-      mockPool,
+      pool,
       liquidityAsset,
       tosAcceptanceRegistry
     } = await loadFixture(deployFixture);
@@ -76,7 +96,7 @@ describe("PermissionedLoanFactory", () => {
       .connect(borrower)
       .createLoan(
         borrower.address,
-        mockPool.address,
+        pool.address,
         liquidityAsset.address,
         DEFAULT_LOAN_SETTINGS
       );

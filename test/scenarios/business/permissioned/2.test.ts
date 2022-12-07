@@ -1,11 +1,12 @@
 import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { deployPool, activatePool } from "../../support/pool";
-import { deployLoan, fundLoan } from "../../support/loan";
-import { deployMockERC20 } from "../../support/erc20";
+import { deployPermissionedPool, activatePool } from "../../../support/pool";
+import { deployLoan, fundLoan } from "../../../support/loan";
+import { deployMockERC20 } from "../../../support/erc20";
+import { performVeriteVerification } from "../../../support/verite";
 
-describe("Business Scenario 2", () => {
+describe("Permissioned Business Scenario 2", () => {
   const INPUTS = {
     lenderADepositAmount: 500_000_000_000, // $500k in USDC
     lenderBDepositAmount: 500_000_000_000, // $500k in USDC
@@ -51,13 +52,19 @@ describe("Business Scenario 2", () => {
       "MUSDC",
       6
     );
-    const { pool, serviceConfiguration, withdrawController, poolController } =
-      await deployPool({
-        operator,
-        poolAdmin: poolAdmin,
-        settings: poolSettings,
-        liquidityAsset: mockUSDC
-      });
+    const {
+      pool,
+      serviceConfiguration,
+      withdrawController,
+      poolController,
+      poolAccessControl,
+      tosAcceptanceRegistry
+    } = await deployPermissionedPool({
+      operator,
+      poolAdmin: poolAdmin,
+      settings: poolSettings,
+      liquidityAsset: mockUSDC
+    });
 
     // Confirm FL fee is set to 5%
     expect(await serviceConfiguration.firstLossFeeBps()).to.equal(500);
@@ -93,6 +100,8 @@ describe("Business Scenario 2", () => {
       startTime,
       pool,
       poolController,
+      poolAccessControl,
+      tosAcceptanceRegistry,
       lenderA,
       lenderB,
       mockUSDC,
@@ -108,6 +117,8 @@ describe("Business Scenario 2", () => {
       startTime,
       pool,
       poolController,
+      poolAccessControl,
+      tosAcceptanceRegistry,
       lenderA,
       lenderB,
       mockUSDC,
@@ -123,8 +134,18 @@ describe("Business Scenario 2", () => {
     // Check that PM has no USDC balance
     expect(await mockUSDC.balanceOf(poolAdmin.address)).to.equal(0);
 
+    // Update lenderA and lenderB to accept ToS
+    await tosAcceptanceRegistry.connect(lenderA).acceptTermsOfService();
+    await tosAcceptanceRegistry.connect(lenderB).acceptTermsOfService();
+
     // +2 days, lenderA deposits
     await advanceToDay(startTime, 2);
+    await expect(
+      pool
+        .connect(lenderA)
+        .deposit(INPUTS.lenderADepositAmount, lenderA.address)
+    ).to.be.revertedWith("LENDER_NOT_ALLOWED");
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderA);
     await pool
       .connect(lenderA)
       .deposit(INPUTS.lenderADepositAmount, lenderA.address);
@@ -138,6 +159,7 @@ describe("Business Scenario 2", () => {
 
     // +3 days, LenderB deposits
     await advanceToDay(startTime, 3);
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
     await pool
       .connect(lenderB)
       .deposit(INPUTS.lenderBDepositAmount, lenderB.address);
@@ -156,7 +178,8 @@ describe("Business Scenario 2", () => {
 
     // +7 days, lenderA requests 200k PT redemption
     await advanceToDay(startTime, 7);
-    await pool.crank(); // crank runs, but is meaningless
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderA);
+    await pool.connect(lenderA).crank(); // crank runs, but is meaningless
     await pool.connect(lenderA).requestRedeem(200_000_000_000);
     // check balances
     expect(
@@ -172,6 +195,7 @@ describe("Business Scenario 2", () => {
 
     // +8 days, lenderB requests 300k PT redemption
     await advanceToDay(startTime, 8);
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
     await pool.connect(lenderB).requestRedeem(300_000_000_000);
 
     // +11 days, first loan payment made
@@ -181,7 +205,8 @@ describe("Business Scenario 2", () => {
 
     // +14 days, run the crank
     await advanceToDay(startTime, 14);
-    await pool.crank();
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
+    await pool.connect(lenderB).crank();
     // check balances
     expect(await pool.maxRedeem(lenderA.address)).to.equal(283960890);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(425941335);
@@ -197,7 +222,8 @@ describe("Business Scenario 2", () => {
 
     // +21 days, run the crank
     await advanceToDay(startTime, 21);
-    await pool.crank();
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderA);
+    await pool.connect(lenderA).crank();
     // check balances
     expect(await pool.maxRedeem(lenderA.address)).to.equal(195141980444);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(292712970667);
@@ -206,13 +232,15 @@ describe("Business Scenario 2", () => {
 
     // +22 days, lender A requests remaining PT redemption
     await advanceToDay(startTime, 22);
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderA);
     await pool
       .connect(lenderA)
       .requestRedeem(await pool.maxRedeemRequest(lenderA.address));
 
     // +28 days, run the crank
     await advanceToDay(startTime, 28);
-    await pool.crank();
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
+    await pool.connect(lenderB).crank();
     // check balances
     expect(await pool.maxRedeem(lenderA.address)).to.equal(425828499681);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(298694213967);
@@ -221,13 +249,15 @@ describe("Business Scenario 2", () => {
 
     // +29 days, lender B requests remaining PT redemption
     await advanceToDay(startTime, 29);
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
     await pool
       .connect(lenderB)
       .requestRedeem(await pool.maxRedeemRequest(lenderB.address));
 
     // +35 days, run the crank
     await advanceToDay(startTime, 35);
-    await pool.crank();
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
+    await pool.connect(lenderB).crank();
     // check balances
     expect(await pool.maxRedeem(lenderA.address)).to.equal(451009487935);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(387442345077);
@@ -236,7 +266,8 @@ describe("Business Scenario 2", () => {
 
     // + to close, crank, inspect results
     await time.increaseTo((await pool.settings()).endDate);
-    await pool.crank();
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderA);
+    await pool.connect(lenderA).crank();
 
     // check balances
     // Lender A and B can redeem the same # of shares, but their assets differ
@@ -251,6 +282,7 @@ describe("Business Scenario 2", () => {
     expect(await pool.totalAvailableSupply()).to.be.lt(5);
 
     // Sanity check that withdrawals can actually be done at advertised rate
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderA);
     const txn1 = await pool
       .connect(lenderA)
       .withdraw(500320728572, lenderA.address, lenderA.address);
@@ -261,6 +293,7 @@ describe("Business Scenario 2", () => {
       +500320728572
     );
 
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
     const txn2 = await pool
       .connect(lenderB)
       .withdraw(502595938094, lenderB.address, lenderB.address);

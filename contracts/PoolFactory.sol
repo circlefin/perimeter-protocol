@@ -5,17 +5,12 @@ import "./Pool.sol";
 import "./interfaces/IServiceConfiguration.sol";
 import "./interfaces/IPoolFactory.sol";
 import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
-import "./upgrades/interfaces/IBeacon.sol";
+import "./upgrades/BeaconProxyFactory.sol";
 
 /**
  * @title PoolFactory
  */
-contract PoolFactory is IPoolFactory, IBeacon {
-    /**
-     * @dev Reference to the ServiceConfiguration contract
-     */
-    address internal _serviceConfiguration;
-
+contract PoolFactory is IPoolFactory, BeaconProxyFactory {
     /**
      * @dev Reference to the WithdrawControllerFactory contract
      */
@@ -26,42 +21,14 @@ contract PoolFactory is IPoolFactory, IBeacon {
      */
     address internal _poolControllerFactory;
 
-    /**
-     * @inheritdoc IBeacon
-     */
-    address public implementation;
-
-    /**
-     * @dev Modifier that requires that the sender is registered as a protocol deployer.
-     */
-    modifier onlyDeployer() {
-        require(
-            IServiceConfiguration(_serviceConfiguration).isDeployer(msg.sender),
-            "Upgrade: unauthorized"
-        );
-        _;
-    }
-
     constructor(
         address serviceConfiguration,
         address withdrawControllerFactory,
         address poolControllerFactory
     ) {
-        _serviceConfiguration = serviceConfiguration;
+        _serviceConfiguration = IServiceConfiguration(serviceConfiguration);
         _withdrawControllerFactory = withdrawControllerFactory;
         _poolControllerFactory = poolControllerFactory;
-    }
-
-    /**
-     * @inheritdoc IBeacon
-     */
-    function setImplementation(address newImplementation)
-        external
-        override
-        onlyDeployer
-    {
-        implementation = newImplementation;
-        emit ImplementationSet(newImplementation);
     }
 
     /**
@@ -77,7 +44,7 @@ contract PoolFactory is IPoolFactory, IBeacon {
             "PoolFactory: no implementation set"
         );
         require(
-            IServiceConfiguration(_serviceConfiguration).paused() == false,
+            _serviceConfiguration.paused() == false,
             "PoolFactory: Protocol paused"
         );
         require(
@@ -92,9 +59,7 @@ contract PoolFactory is IPoolFactory, IBeacon {
         }
         require(
             settings.firstLossInitialMinimum >=
-                IServiceConfiguration(_serviceConfiguration).firstLossMinimum(
-                    liquidityAsset
-                ),
+                _serviceConfiguration.firstLossMinimum(liquidityAsset),
             "PoolFactory: Invalid first loss minimum"
         );
         require(
@@ -110,9 +75,7 @@ contract PoolFactory is IPoolFactory, IBeacon {
             "PoolFactory: Invalid request cancellation fee"
         );
         require(
-            IServiceConfiguration(_serviceConfiguration).isLiquidityAsset(
-                liquidityAsset
-            ),
+            _serviceConfiguration.isLiquidityAsset(liquidityAsset),
             "PoolFactory: invalid asset"
         );
 

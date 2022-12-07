@@ -461,6 +461,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
         external
         onlyNotPaused
         onlyActivatedPool
+        onlyPermittedLender
         onlyLender
         onlyCrankedPool
         returns (uint256 assets)
@@ -476,6 +477,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
         external
         onlyNotPaused
         onlyActivatedPool
+        onlyPermittedLender
         onlyLender
         onlyCrankedPool
         returns (uint256 shares)
@@ -530,6 +532,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
         external
         onlyNotPaused
         onlyActivatedPool
+        onlyPermittedLender
         onlyLender
         onlyCrankedPool
         returns (uint256 assets)
@@ -549,6 +552,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
         external
         onlyNotPaused
         onlyActivatedPool
+        onlyPermittedLender
         onlyLender
         onlyCrankedPool
         returns (uint256 shares)

@@ -109,6 +109,8 @@ export async function deployPool({
 
   return {
     pool,
+    poolControllerFactory,
+    withdrawControllerFactory,
     poolLib,
     poolFactory,
     liquidityAsset,
@@ -321,12 +323,19 @@ export async function deployWithdrawControllerFactory(
   poolLibAddress: string,
   serviceConfigAddress: string
 ) {
-  const Factory = await ethers.getContractFactory("WithdrawControllerFactory", {
+  const { deployer } = await getCommonSigners();
+
+  const Factory = await ethers.getContractFactory("WithdrawControllerFactory");
+  const factory = await Factory.deploy(serviceConfigAddress);
+
+  const Impl = await ethers.getContractFactory("WithdrawController", {
     libraries: {
       PoolLib: poolLibAddress
     }
   });
-  const factory = await Factory.deploy(serviceConfigAddress);
+  const impl = await Impl.deploy();
+  factory.connect(deployer).setImplementation(impl.address);
+
   return factory.deployed();
 }
 
@@ -334,12 +343,19 @@ export async function deployPoolControllerFactory(
   poolLibAddress: string,
   serviceConfigAddress: string
 ) {
-  const Factory = await ethers.getContractFactory("PoolControllerFactory", {
+  const { deployer } = await getCommonSigners();
+  const Factory = await ethers.getContractFactory("PoolControllerFactory");
+  const factory = await Factory.deploy(serviceConfigAddress);
+
+  // Attach PoolController implementation
+  const Impl = await ethers.getContractFactory("PoolController", {
     libraries: {
       PoolLib: poolLibAddress
     }
   });
-  const factory = await Factory.deploy(serviceConfigAddress);
+  const impl = await Impl.deploy();
+  factory.connect(deployer).setImplementation(impl.address);
+
   return factory.deployed();
 }
 

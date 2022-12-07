@@ -20,15 +20,19 @@ describe("PoolController", () => {
   async function loadPoolFixture() {
     const {
       operator,
-      poolAdmin,
+      deployer,
       pauser,
+      poolAdmin,
       borrower,
       otherAccount,
-      ...otherAccounts
+      otherAccounts
     } = await getCommonSigners();
 
     const {
       pool,
+      poolLib,
+      poolControllerFactory,
+      withdrawControllerFactory,
       liquidityAsset,
       poolController,
       serviceConfiguration,
@@ -64,12 +68,16 @@ describe("PoolController", () => {
     return {
       operator,
       pauser,
+      deployer,
       poolAdmin,
       borrower,
       otherAccount,
       otherAccounts,
       serviceConfiguration,
       pool,
+      poolLib,
+      poolControllerFactory,
+      withdrawControllerFactory,
       loan,
       otherLoan,
       liquidityAsset,
@@ -1312,6 +1320,30 @@ describe("PoolController", () => {
 
       const tx2 = poolController.connect(poolAdmin).claimFixedFee();
       await expect(tx2).to.changeTokenBalance(liquidityAsset, poolAdmin, 100);
+    });
+  });
+
+  describe("Upgrades", () => {
+    it("Can be upgraded", async () => {
+      const { poolController, poolLib, poolControllerFactory, deployer } =
+        await loadFixture(loadPoolFixture);
+
+      // new implementation
+      const V2Impl = await ethers.getContractFactory("PoolControllerMockV2", {
+        libraries: {
+          PoolLib: poolLib.address
+        }
+      });
+      const v2Impl = await V2Impl.deploy();
+      await expect(
+        poolControllerFactory
+          .connect(deployer)
+          .setImplementation(v2Impl.address)
+      ).to.emit(poolControllerFactory, "ImplementationSet");
+
+      // Check that it upgraded
+      const poolControllerV2 = V2Impl.attach(poolController.address);
+      expect(await poolControllerV2.foo()).to.be.true;
     });
   });
 });
