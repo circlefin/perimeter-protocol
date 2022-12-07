@@ -320,12 +320,19 @@ export async function deployWithdrawControllerFactory(
   poolLibAddress: string,
   serviceConfigAddress: string
 ) {
-  const Factory = await ethers.getContractFactory("WithdrawControllerFactory", {
+  const { deployer } = await getCommonSigners();
+
+  const Factory = await ethers.getContractFactory("WithdrawControllerFactory");
+  const factory = await Factory.deploy(serviceConfigAddress);
+
+  const Impl = await ethers.getContractFactory("WithdrawController", {
     libraries: {
       PoolLib: poolLibAddress
     }
   });
-  const factory = await Factory.deploy(serviceConfigAddress);
+  const impl = await Impl.deploy();
+  factory.connect(deployer).setImplementation(impl.address);
+
   return factory.deployed();
 }
 

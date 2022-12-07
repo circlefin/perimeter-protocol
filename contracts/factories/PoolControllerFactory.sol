@@ -5,6 +5,7 @@ import "../controllers/PoolController.sol";
 import "../interfaces/IServiceConfiguration.sol";
 import "../factories/interfaces/IPoolControllerFactory.sol";
 import "../upgrades/BeaconProxyFactory.sol";
+import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 
 /**
  * @title PoolAdmin controller Factory
