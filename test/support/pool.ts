@@ -158,6 +158,15 @@ export async function deployPermissionedPool({
     serviceConfiguration.address
   );
 
+  // Deploy PoolAccessControl implementation
+  const PoolAccessControlImpl = await ethers.getContractFactory(
+    "PoolAccessControl"
+  );
+  const poolAccessControlImpl = await PoolAccessControlImpl.deploy();
+  await poolAccessControlFactory
+    .connect(deployer)
+    .setImplementation(poolAccessControlImpl.address);
+
   const withdrawControllerFactory = await deployWithdrawControllerFactory(
     poolLib.address,
     serviceConfiguration.address
@@ -238,7 +247,8 @@ export async function deployPermissionedPool({
     poolController,
     tosAcceptanceRegistry,
     poolAdminAccessControl,
-    poolAccessControl
+    poolAccessControl,
+    poolAccessControlFactory
   };
 }
 

@@ -6,6 +6,7 @@ import "./interfaces/IPermissionedServiceConfiguration.sol";
 import "./interfaces/IToSAcceptanceRegistry.sol";
 import "../interfaces/IPool.sol";
 import "./VeriteAccessControl.sol";
+import "../upgrades/interfaces/IBeaconImplementation.sol";
 
 /**
  * @title The PoolAccessControl contract
@@ -14,7 +15,11 @@ import "./VeriteAccessControl.sol";
  * This implementation implements a basic Allow-List of addresses, which can
  * be managed only by the Pool Admin.
  */
-contract PoolAccessControl is IPoolAccessControl, VeriteAccessControl {
+contract PoolAccessControl is
+    IPoolAccessControl,
+    IBeaconImplementation,
+    VeriteAccessControl
+{
     /**
      * @dev Reference to the pool
      */
@@ -66,9 +71,12 @@ contract PoolAccessControl is IPoolAccessControl, VeriteAccessControl {
     }
 
     /**
-     * @dev The constructor for the PoolAccessControl contract
+     * @dev The initializer for the PoolAccessControl contract
      */
-    constructor(address pool, address tosAcceptanceRegistry) {
+    function initialize(address pool, address tosAcceptanceRegistry)
+        public
+        initializer
+    {
         require(
             tosAcceptanceRegistry != address(0),
             "Pool: invalid ToS registry"

@@ -64,6 +64,15 @@ describe("PermissionedPoolFactory", () => {
       serviceConfiguration.address
     );
 
+    // Deploy and attach implementation
+    const PoolAccessControl = await ethers.getContractFactory(
+      "PoolAccessControl"
+    );
+    const poolAccessControlImpl = await PoolAccessControl.deploy();
+    await poolAccessControlFactory
+      .connect(deployer)
+      .setImplementation(poolAccessControlImpl.address);
+
     const withdrawControllerFactory = await deployWithdrawControllerFactory(
       poolLib.address,
       serviceConfiguration.address

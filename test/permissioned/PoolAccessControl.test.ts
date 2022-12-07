@@ -7,12 +7,13 @@ import { getSignedVerificationResult } from "../support/verite";
 
 describe("PoolAccessControl", () => {
   async function deployFixture() {
-    const { operator, poolAdmin, otherAccounts } = await getCommonSigners();
+    const { operator, poolAdmin, deployer, otherAccounts } =
+      await getCommonSigners();
 
     const verifier = otherAccounts[0];
     const poolParticipant = otherAccounts[1];
 
-    const { pool, tosAcceptanceRegistry, liquidityAsset } =
+    const { pool, tosAcceptanceRegistry, poolAccessControlFactory } =
       await deployPermissionedPool({
         poolAdmin
       });
@@ -21,23 +22,20 @@ describe("PoolAccessControl", () => {
       .connect(operator)
       .updateTermsOfService("http://circle.com");
 
-    // Deploy the PermissionedPoolFactory contract
-    const PoolAccessControl = await ethers.getContractFactory(
-      "PoolAccessControl"
+    const poolAccessControl = await ethers.getContractAt(
+      "PoolAccessControl",
+      await pool.poolAccessControl()
     );
-    const poolAccessControl = await PoolAccessControl.deploy(
-      pool.address,
-      tosAcceptanceRegistry.address
-    );
-    await poolAccessControl.deployed();
 
     return {
+      deployer,
       poolAdmin,
       verifier,
       poolParticipant,
       otherAccounts,
       poolAccessControl,
-      tosAcceptanceRegistry
+      tosAcceptanceRegistry,
+      poolAccessControlFactory
     };
   }
 
@@ -266,6 +264,46 @@ describe("PoolAccessControl", () => {
       )
         .to.emit(poolAccessControl, "CredentialSchemaRemoved")
         .withArgs("schema://kyc");
+    });
+  });
+
+  describe("Upgrades", () => {
+    it("can be upgraded", async () => {
+      const { poolAccessControl, poolAccessControlFactory, deployer } =
+        await loadFixture(deployFixture);
+
+      const V2Impl = await ethers.getContractFactory("PoolAccessControlMockV2");
+      const v2Impl = await V2Impl.deploy();
+
+      // Set new implementation
+      await expect(
+        poolAccessControlFactory
+          .connect(deployer)
+          .setImplementation(v2Impl.address)
+      ).to.emit(poolAccessControlFactory, "ImplementationSet");
+
+      // Check new implementation
+      const poolAccessControlV2 = await ethers.getContractAt(
+        "PoolAccessControlMockV2",
+        poolAccessControl.address
+      );
+      expect(await poolAccessControlV2.foo()).to.be.true;
+    });
+
+    it("reverts if non-deployer tries to upgrade", async () => {
+      const { poolAccessControlFactory, poolAdmin } = await loadFixture(
+        deployFixture
+      );
+
+      const V2Impl = await ethers.getContractFactory("PoolAccessControlMockV2");
+      const v2Impl = await V2Impl.deploy();
+
+      // Set new implementation
+      await expect(
+        poolAccessControlFactory
+          .connect(poolAdmin)
+          .setImplementation(v2Impl.address)
+      ).to.be.revertedWith("Upgrade: unauthorized");
     });
   });
 
