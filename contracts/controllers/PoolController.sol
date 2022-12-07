@@ -429,6 +429,10 @@ contract PoolController is IPoolController {
         pool.crank();
     }
 
+    /*//////////////////////////////////////////////////////////////
+                Utility
+    //////////////////////////////////////////////////////////////*/
+
     function requireNotPaused() internal view {
         require(
             IServiceConfiguration(serviceConfiguration).paused() == false,
