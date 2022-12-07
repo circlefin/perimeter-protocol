@@ -32,6 +32,7 @@ contract PoolController is IPoolController {
             IServiceConfiguration(serviceConfiguration).paused() == false,
             "Pool: Protocol paused"
         );
+        _;
     }
 
     /**
@@ -139,7 +140,9 @@ contract PoolController is IPoolController {
     /**
      * @inheritdoc IPoolController
      */
-    function setRequestFee(uint256 feeBps)
+    function setRequestFee(
+        uint256 feeBps
+    )
         external
         onlyNotPaused
         onlyAdmin
@@ -152,11 +155,9 @@ contract PoolController is IPoolController {
     /**
      * @inheritdoc IPoolController
      */
-    function requestFee(uint256 sharesOrAssets)
-        public
-        view
-        returns (uint256 feeShares)
-    {
+    function requestFee(
+        uint256 sharesOrAssets
+    ) public view returns (uint256 feeShares) {
         feeShares = PoolLib.calculateRequestFee(
             sharesOrAssets,
             _settings.requestFeeBps
@@ -166,7 +167,9 @@ contract PoolController is IPoolController {
     /**
      * @inheritdoc IPoolController
      */
-    function setRequestCancellationFee(uint256 feeBps)
+    function setRequestCancellationFee(
+        uint256 feeBps
+    )
         external
         onlyNotPaused
         onlyAdmin
@@ -179,11 +182,9 @@ contract PoolController is IPoolController {
     /**
      * @inheritdoc IPoolController
      */
-    function requestCancellationFee(uint256 sharesOrAssets)
-        public
-        view
-        returns (uint256 feeShares)
-    {
+    function requestCancellationFee(
+        uint256 sharesOrAssets
+    ) public view returns (uint256 feeShares) {
         feeShares = PoolLib.calculateCancellationFee(
             sharesOrAssets,
             _settings.requestCancellationFeeBps
@@ -193,12 +194,9 @@ contract PoolController is IPoolController {
     /**
      * @inheritdoc IPoolController
      */
-    function setWithdrawGate(uint256 _withdrawGateBps)
-        external
-        onlyNotPaused
-        onlyAdmin
-        atInitializedOrActiveState
-    {
+    function setWithdrawGate(
+        uint256 _withdrawGateBps
+    ) external onlyNotPaused onlyAdmin atInitializedOrActiveState {
         require(_withdrawGateBps <= 10_000, "Pool: invalid bps");
         _settings.withdrawGateBps = _withdrawGateBps;
     }
@@ -230,11 +228,9 @@ contract PoolController is IPoolController {
     /**
      * @inheritdoc IPoolController
      */
-    function setPoolCapacity(uint256 newCapacity)
-        external
-        onlyNotPaused
-        onlyAdmin
-    {
+    function setPoolCapacity(
+        uint256 newCapacity
+    ) external onlyNotPaused onlyAdmin {
         require(newCapacity >= pool.totalAssets(), "Pool: invalid capacity");
         _settings.maxCapacity = newCapacity;
         emit PoolSettingsUpdated();
@@ -270,11 +266,9 @@ contract PoolController is IPoolController {
     /**
      * @inheritdoc IPoolController
      */
-    function setServiceFeeBps(uint256 serviceFeeBps)
-        external
-        onlyNotPaused
-        onlyAdmin
-    {
+    function setServiceFeeBps(
+        uint256 serviceFeeBps
+    ) external onlyNotPaused onlyAdmin {
         require(serviceFeeBps <= 10000, "Pool: invalid service fee");
         _settings.serviceFeeBps = serviceFeeBps;
         emit PoolSettingsUpdated();
@@ -283,11 +277,10 @@ contract PoolController is IPoolController {
     /**
      * @inheritdoc IPoolController
      */
-    function setFixedFee(uint256 amount, uint256 interval)
-        external
-        onlyNotPaused
-        onlyAdmin
-    {
+    function setFixedFee(
+        uint256 amount,
+        uint256 interval
+    ) external onlyNotPaused onlyAdmin {
         if (amount > 0) {
             require(interval > 0, "Pool: invalid fixed fee");
         }
@@ -358,12 +351,10 @@ contract PoolController is IPoolController {
     /**
      * @inheritdoc IPoolController
      */
-    function depositFirstLoss(uint256 amount, address spender)
-        external
-        onlyNotPaused
-        onlyAdmin
-        atInitializedOrActiveState
-    {
+    function depositFirstLoss(
+        uint256 amount,
+        address spender
+    ) external onlyNotPaused onlyAdmin atInitializedOrActiveState {
         // not sure we need thos
         require(address(_firstLossVault) != address(0), "Pool: 0 address");
         _liquidityAsset.safeTransferFrom(
@@ -388,7 +379,10 @@ contract PoolController is IPoolController {
     /**
      * @inheritdoc IPoolController
      */
-    function withdrawFirstLoss(uint256 amount, address receiver)
+    function withdrawFirstLoss(
+        uint256 amount,
+        address receiver
+    )
         external
         onlyNotPaused
         onlyAdmin
@@ -416,7 +410,9 @@ contract PoolController is IPoolController {
     /**
      * @inheritdoc IPoolController
      */
-    function fundLoan(address addr)
+    function fundLoan(
+        address addr
+    )
         external
         onlyNotPaused
         onlyAdmin
@@ -429,13 +425,9 @@ contract PoolController is IPoolController {
     /**
      * @inheritdoc IPoolController
      */
-    function defaultLoan(address loan)
-        external
-        onlyNotPaused
-        onlyAdmin
-        atActiveOrClosedState
-        onlyCrankedPool
-    {
+    function defaultLoan(
+        address loan
+    ) external onlyNotPaused onlyAdmin atActiveOrClosedState onlyCrankedPool {
         require(loan != address(0), "Pool: 0 address");
         require(pool.isActiveLoan(loan), "Pool: not active loan");
 
