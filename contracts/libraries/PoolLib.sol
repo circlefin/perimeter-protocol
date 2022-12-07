@@ -226,7 +226,7 @@ library PoolLib {
         uint256 denominator,
         bool roundUp
     ) external pure returns (uint256 output) {
-        if (numerator == 0) {
+        if (numerator == 0 || denominator == 0) {
             return input;
         }
 
