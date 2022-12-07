@@ -1478,8 +1478,9 @@ describe("Loan", () => {
 
   describe("Upgrades", () => {
     it("can be upgraded", async () => {
-      const { poolAdmin, loan, loanFactory, deployer, loanLib } =
-        await loadFixture(deployFixture);
+      const { loan, loanFactory, deployer, loanLib } = await loadFixture(
+        deployFixture
+      );
 
       // new implementation
       const V2Impl = await ethers.getContractFactory("LoanMockV2", {
@@ -1488,7 +1489,9 @@ describe("Loan", () => {
         }
       });
       const v2Impl = await V2Impl.deploy();
-      await loanFactory.connect(deployer).setImplementation(v2Impl.address);
+      await expect(
+        loanFactory.connect(deployer).setImplementation(v2Impl.address)
+      ).to.emit(loanFactory, "ImplementationSet");
 
       // Check that it upgraded
       const loanV2 = V2Impl.attach(loan.address);

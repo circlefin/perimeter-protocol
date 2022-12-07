@@ -186,7 +186,7 @@ describe("PoolFactory", () => {
     ).to.emit(poolFactory, "PoolCreated");
   });
 
-  it("deployer can set new implementations", async () => {
+  it.only("deployer can set new implementations", async () => {
     const {
       poolFactory,
       liquidityAsset: mockNewImplementation,

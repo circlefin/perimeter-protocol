@@ -1104,9 +1104,11 @@ describe("PoolController", () => {
         }
       });
       const v2Impl = await V2Impl.deploy();
-      await poolControllerFactory
-        .connect(deployer)
-        .setImplementation(v2Impl.address);
+      await expect(
+        poolControllerFactory
+          .connect(deployer)
+          .setImplementation(v2Impl.address)
+      ).to.emit(poolControllerFactory, "ImplementationSet");
 
       // Check that it upgraded
       const poolControllerV2 = V2Impl.attach(poolController.address);

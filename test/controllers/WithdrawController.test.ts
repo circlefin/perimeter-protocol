@@ -291,9 +291,11 @@ describe("WithdrawController", () => {
         }
       );
       const v2Impl = await V2Impl.deploy();
-      await withdrawControllerFactory
-        .connect(deployer)
-        .setImplementation(v2Impl.address);
+      await expect(
+        withdrawControllerFactory
+          .connect(deployer)
+          .setImplementation(v2Impl.address)
+      ).to.emit(withdrawControllerFactory, "ImplementationSet");
 
       // Check that it upgraded
       const withdrawControllerV2 = V2Impl.attach(withdrawController.address);
