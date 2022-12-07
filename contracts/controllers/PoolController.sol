@@ -26,15 +26,6 @@ contract PoolController is IPoolController, IBeaconImplementation {
     IERC20 private _liquidityAsset;
 
     /**
-     * @dev Emitted when first loss is supplied to the pool.
-     */
-    event FirstLossDeposited(
-        address indexed caller,
-        address indexed spender,
-        uint256 amount
-    );
-
-    /**
      * @dev Modifier that checks that the caller is the pool's admin.
      */
     modifier onlyAdmin() {

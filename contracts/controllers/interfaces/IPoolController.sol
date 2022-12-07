@@ -49,6 +49,15 @@ interface IPoolController {
     event LoanDefaulted(address indexed loan);
 
     /**
+     * @dev Emitted when first loss is supplied to the pool.
+     */
+    event FirstLossDeposited(
+        address indexed caller,
+        address indexed spender,
+        uint256 amount
+    );
+
+    /**
      * @dev Emitted when first loss capital is used to cover loan defaults
      */
     event FirstLossApplied(address indexed loan, uint256 amount);
