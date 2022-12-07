@@ -441,6 +441,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
     function requestRedeem(uint256 shares)
         external
         onlyActivatedPool
+        onlyPermittedLender
         onlyLender
         onlyCrankedPool
         returns (uint256 assets)
@@ -455,6 +456,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
     function requestWithdraw(uint256 assets)
         external
         onlyActivatedPool
+        onlyPermittedLender
         onlyLender
         onlyCrankedPool
         returns (uint256 shares)
@@ -508,6 +510,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
     function cancelRedeemRequest(uint256 shares)
         external
         onlyActivatedPool
+        onlyPermittedLender
         onlyLender
         onlyCrankedPool
         returns (uint256 assets)
@@ -526,6 +529,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
     function cancelWithdrawRequest(uint256 assets)
         external
         onlyActivatedPool
+        onlyPermittedLender
         onlyLender
         onlyCrankedPool
         returns (uint256 shares)

@@ -12,7 +12,7 @@ import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
  * Other contracts should inherit this contract to add Verite-specific
  * access control logic.
  */
-contract VeriteAccessControl is
+abstract contract VeriteAccessControl is
     IVeriteAccessControl,
     EIP712("VerificationRegistry", "1.0")
 {

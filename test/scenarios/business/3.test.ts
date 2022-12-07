@@ -39,7 +39,7 @@ describe("Business Scenario 3", () => {
   }
 
   async function fixtures() {
-    const [operator, poolManager, lenderA, lenderB, borrower] =
+    const [operator, poolAdmin, lenderA, lenderB, borrower] =
       await ethers.getSigners();
     const endTime = (await time.latest()) + 5_184_000; // 60 days.
     const poolSettings = {
@@ -53,7 +53,7 @@ describe("Business Scenario 3", () => {
     );
     const { pool, serviceConfiguration, poolController } = await deployPool({
       operator,
-      poolAdmin: poolManager,
+      poolAdmin: poolAdmin,
       settings: poolSettings,
       liquidityAsset: mockUSDC
     });
@@ -62,7 +62,7 @@ describe("Business Scenario 3", () => {
     expect(await serviceConfiguration.firstLossFeeBps()).to.equal(500);
 
     // activate pool
-    await activatePool(pool, poolManager, mockUSDC);
+    await activatePool(pool, poolAdmin, mockUSDC);
     const startTime = (await pool.activatedAt()).toNumber();
 
     // Mint for lenders
@@ -95,7 +95,7 @@ describe("Business Scenario 3", () => {
       lenderA,
       lenderB,
       mockUSDC,
-      poolManager,
+      poolAdmin,
       borrower,
       loan
     };
@@ -109,7 +109,7 @@ describe("Business Scenario 3", () => {
       lenderA,
       lenderB,
       mockUSDC,
-      poolManager,
+      poolAdmin,
       borrower,
       loan
     } = await loadFixture(fixtures);
@@ -118,7 +118,7 @@ describe("Business Scenario 3", () => {
     // check that FL is zero
     expect(await poolController.firstLossBalance()).to.equal(0);
     // Check that PM has no USDC balance
-    expect(await mockUSDC.balanceOf(poolManager.address)).to.equal(0);
+    expect(await mockUSDC.balanceOf(poolAdmin.address)).to.equal(0);
 
     // +2 days, lenderA deposits
     await advanceToDay(startTime, 2);
@@ -148,7 +148,7 @@ describe("Business Scenario 3", () => {
 
     // +4  days, loan is funded
     await advanceToDay(startTime, 4);
-    await fundLoan(loan, poolController, poolManager);
+    await fundLoan(loan, poolController, poolAdmin);
     await loan.connect(borrower).drawdown(INPUTS.loan.principal);
 
     // +7 days, lenderA requests 200k PT redemption
@@ -156,7 +156,7 @@ describe("Business Scenario 3", () => {
     await pool.crank(); // crank runs, but is meaningless
     await pool.connect(lenderA).requestRedeem(200_000_000_000);
 
-    // +8 days, lenderB requests 300k PT redeption
+    // +8 days, lenderB requests 300k PT redemption
     await advanceToDay(startTime, 8);
     await pool.connect(lenderB).requestRedeem(300_000_000_000);
 
