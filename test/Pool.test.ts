@@ -11,13 +11,20 @@ import { deployLoan, collateralizeLoan, fundLoan } from "./support/loan";
 
 describe("Pool", () => {
   async function loadPoolFixture() {
-    const [operator, poolAdmin, borrower, otherAccount, ...otherAccounts] =
-      await ethers.getSigners();
+    const [
+      operator,
+      pauser,
+      poolAdmin,
+      borrower,
+      otherAccount,
+      ...otherAccounts
+    ] = await ethers.getSigners();
 
     const { pool, liquidityAsset, serviceConfiguration, poolController } =
       await deployPool({
         operator,
-        poolAdmin: poolAdmin
+        poolAdmin: poolAdmin,
+        pauser
       });
 
     const CollateralAsset = await ethers.getContractFactory("MockERC20");
@@ -40,7 +47,9 @@ describe("Pool", () => {
       borrower,
       otherAccount,
       loan,
-      otherAccounts
+      otherAccounts,
+      serviceConfiguration,
+      pauser
     };
   }
 
@@ -567,6 +576,17 @@ describe("Pool", () => {
     });
 
     describe("requestRedeem()", () => {
+      it("reverts if the protocol is paused", async () => {
+        const { pool, otherAccount, serviceConfiguration, pauser } =
+          await loadFixture(loadPoolFixture);
+
+        await serviceConfiguration.connect(pauser).setPaused(true);
+
+        await expect(
+          pool.connect(otherAccount).requestRedeem(100)
+        ).to.be.revertedWith("Pool: Protocol paused");
+      });
+
       it("reverts if the pool is not active", async () => {
         const { pool, otherAccount } = await loadFixture(loadPoolFixture);
 
@@ -701,6 +721,17 @@ describe("Pool", () => {
     });
 
     describe("requestWithdraw()", () => {
+      it("reverts if the protocol is paused", async () => {
+        const { pool, otherAccount, serviceConfiguration, pauser } =
+          await loadFixture(loadPoolFixture);
+
+        await serviceConfiguration.connect(pauser).setPaused(true);
+
+        await expect(
+          pool.connect(otherAccount).requestWithdraw(100)
+        ).to.be.revertedWith("Pool: Protocol paused");
+      });
+
       it("reverts if the pool is not active", async () => {
         const { pool, otherAccount } = await loadFixture(loadPoolFixture);
 
@@ -1210,6 +1241,33 @@ describe("Pool", () => {
         pool,
         "PoolCranked"
       );
+    });
+  });
+
+  describe("cancelRedeemRequest()", () => {
+    it("it reverts when protocol is paused", async () => {
+      const {
+        pool,
+        poolAdmin,
+        liquidityAsset,
+        otherAccount,
+        serviceConfiguration,
+        pauser
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(pool, otherAccount, liquidityAsset, 10);
+      await pool.connect(otherAccount).requestRedeem(5);
+
+      const { withdrawRequestPeriodDuration } = await pool.settings();
+      await time.increase(withdrawRequestPeriodDuration);
+
+      // Pause protocol
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      await expect(
+        pool.connect(otherAccount).cancelRedeemRequest(0)
+      ).to.be.revertedWith("Pool: Protocol paused");
     });
   });
 });

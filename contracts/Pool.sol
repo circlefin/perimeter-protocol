@@ -79,6 +79,14 @@ contract Pool is IPool, ERC20 {
     }
 
     /**
+     * @dev Modifier to check that the protocol is not paused
+     */
+    modifier onlyNotPaused() {
+        require(!_serviceConfiguration.paused(), "Pool: Protocol paused");
+        _;
+    }
+
+    /**
      * @dev Modifier that checks that the pool is Initialized or Active
      */
     modifier atState(IPoolLifeCycleState state_) {
@@ -427,12 +435,12 @@ contract Pool is IPool, ERC20 {
      */
     function requestRedeem(uint256 shares)
         external
+        onlyNotPaused
         onlyActivatedPool
         onlyLender
         onlyCrankedPool
         returns (uint256 assets)
     {
-        requireNotPaused();
         assets = convertToAssets(shares);
         _performRedeemRequest(msg.sender, shares, assets);
     }
@@ -442,12 +450,12 @@ contract Pool is IPool, ERC20 {
      */
     function requestWithdraw(uint256 assets)
         external
+        onlyNotPaused
         onlyActivatedPool
         onlyLender
         onlyCrankedPool
         returns (uint256 shares)
     {
-        requireNotPaused();
         shares = convertToShares(assets);
         _performRedeemRequest(msg.sender, shares, assets);
     }
@@ -462,7 +470,6 @@ contract Pool is IPool, ERC20 {
         uint256 shares,
         uint256 assets
     ) internal {
-        requireNotPaused();
         require(
             withdrawController.maxRedeemRequest(owner) >= shares,
             "Pool: InsufficientBalance"
@@ -497,12 +504,12 @@ contract Pool is IPool, ERC20 {
      */
     function cancelRedeemRequest(uint256 shares)
         external
+        onlyNotPaused
         onlyActivatedPool
         onlyLender
         onlyCrankedPool
         returns (uint256 assets)
     {
-        requireNotPaused();
         assets = convertToAssets(shares);
         _performRequestCancellation(msg.sender, shares, assets);
     }
