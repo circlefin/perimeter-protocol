@@ -26,28 +26,22 @@ contract PermissionedLoan is Loan {
         _;
     }
 
-    /**
-     * @dev The constructor for the PermissionedLoan contract. It holds a reference
-     * to the corresponding PermissionedPool's access control contract to enforce the
-     * same controls on borrowers.
-     */
-    constructor(
-        IServiceConfiguration serviceConfiguration,
-        address factory,
-        address borrower,
-        address pool,
+    function initialize(
+        address serviceConfiguration,
+        address factory_,
+        address borrower_,
+        address pool_,
         address liquidityAsset_,
         ILoanSettings memory settings_
-    )
-        Loan(
+    ) public override {
+        super.initialize(
             serviceConfiguration,
-            factory,
-            borrower,
-            pool,
+            factory_,
+            borrower_,
+            pool_,
             liquidityAsset_,
             settings_
-        )
-    {
-        poolAccessControl = PermissionedPool(pool).poolAccessControl();
+        );
+        poolAccessControl = PermissionedPool(pool_).poolAccessControl();
     }
 }

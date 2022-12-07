@@ -1,27 +1,20 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
-import "./Loan.sol";
 import "./interfaces/IServiceConfiguration.sol";
+import "./interfaces/ILoanFactory.sol";
+import "./Loan.sol";
+import "./upgrades/BeaconProxyFactory.sol";
+import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 
 /**
  * @title LoanFactory
  */
-contract LoanFactory {
-    /**
-     * @dev Reference to the ServiceConfiguration contract
-     */
-    IServiceConfiguration internal _serviceConfiguration;
-
+contract LoanFactory is ILoanFactory, BeaconProxyFactory {
     /**
      * @dev Mapping of created loans
      */
     mapping(address => bool) internal _isLoan;
-
-    /**
-     * @dev Emitted when a Loan is created.
-     */
-    event LoanCreated(address indexed addr);
 
     constructor(address serviceConfiguration) {
         _serviceConfiguration = IServiceConfiguration(serviceConfiguration);
@@ -41,6 +34,7 @@ contract LoanFactory {
             _serviceConfiguration.paused() == false,
             "LoanFactory: Protocol paused"
         );
+        require(implementation != address(0), "LoanFactory: no implementation");
         address addr = initializeLoan(borrower, pool, liquidityAsset, settings);
         emit LoanCreated(addr);
         _isLoan[addr] = true;
@@ -48,7 +42,7 @@ contract LoanFactory {
     }
 
     /**
-     * @dev Internal initialization of Loan contract
+     * @dev Internal initialization of Beacon proxy for Loans
      */
     function initializeLoan(
         address borrower,
@@ -56,15 +50,19 @@ contract LoanFactory {
         address liquidityAsset,
         ILoanSettings memory settings
     ) internal virtual returns (address) {
-        Loan loan = new Loan(
-            _serviceConfiguration,
+        BeaconProxy proxy = new BeaconProxy(
             address(this),
-            borrower,
-            pool,
-            liquidityAsset,
-            settings
+            abi.encodeWithSelector(
+                Loan.initialize.selector,
+                address(_serviceConfiguration),
+                address(this),
+                borrower,
+                pool,
+                liquidityAsset,
+                settings
+            )
         );
-        return address(loan);
+        return address(proxy);
     }
 
     /**
