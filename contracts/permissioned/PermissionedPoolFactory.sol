@@ -20,7 +20,7 @@ contract PermissionedPoolFactory is PoolFactory {
      */
     modifier onlyVerifiedPoolAdmin() {
         require(
-            IPermissionedServiceConfiguration(_serviceConfiguration)
+            IPermissionedServiceConfiguration(address(_serviceConfiguration))
                 .poolAdminAccessControl()
                 .isAllowed(msg.sender),
             "CALLER_NOT_ADMIN"
