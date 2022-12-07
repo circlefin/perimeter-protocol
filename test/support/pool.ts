@@ -108,6 +108,8 @@ export async function deployPool({
 
   return {
     pool,
+    poolControllerFactory,
+    withdrawControllerFactory,
     poolLib,
     poolFactory,
     liquidityAsset,
