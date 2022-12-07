@@ -25,6 +25,16 @@ contract PoolController is IPoolController {
     IERC20 private _liquidityAsset;
 
     /**
+     * @dev Modifier that checks that the protocol is not paused.
+     */
+    modifier onlyNotPaused() {
+        require(
+            IServiceConfiguration(serviceConfiguration).paused() == false,
+            "Pool: Protocol paused"
+        );
+    }
+
+    /**
      * @dev Modifier that checks that the caller is the pool's admin.
      */
     modifier onlyAdmin() {
@@ -131,10 +141,10 @@ contract PoolController is IPoolController {
      */
     function setRequestFee(uint256 feeBps)
         external
+        onlyNotPaused
         onlyAdmin
         atState(IPoolLifeCycleState.Initialized)
     {
-        requireNotPaused();
         require(feeBps <= 10_000, "Pool: fee too large");
         _settings.requestFeeBps = feeBps;
     }
@@ -158,10 +168,10 @@ contract PoolController is IPoolController {
      */
     function setRequestCancellationFee(uint256 feeBps)
         external
+        onlyNotPaused
         onlyAdmin
         atState(IPoolLifeCycleState.Initialized)
     {
-        requireNotPaused();
         require(feeBps <= 10_000, "Pool: fee too large");
         _settings.requestCancellationFeeBps = feeBps;
     }
@@ -174,7 +184,6 @@ contract PoolController is IPoolController {
         view
         returns (uint256 feeShares)
     {
-        requireNotPaused();
         feeShares = PoolLib.calculateCancellationFee(
             sharesOrAssets,
             _settings.requestCancellationFeeBps
@@ -186,10 +195,10 @@ contract PoolController is IPoolController {
      */
     function setWithdrawGate(uint256 _withdrawGateBps)
         external
+        onlyNotPaused
         onlyAdmin
         atInitializedOrActiveState
     {
-        requireNotPaused();
         require(_withdrawGateBps <= 10_000, "Pool: invalid bps");
         _settings.withdrawGateBps = _withdrawGateBps;
     }
@@ -221,8 +230,11 @@ contract PoolController is IPoolController {
     /**
      * @inheritdoc IPoolController
      */
-    function setPoolCapacity(uint256 newCapacity) external onlyAdmin {
-        requireNotPaused();
+    function setPoolCapacity(uint256 newCapacity)
+        external
+        onlyNotPaused
+        onlyAdmin
+    {
         require(newCapacity >= pool.totalAssets(), "Pool: invalid capacity");
         _settings.maxCapacity = newCapacity;
         emit PoolSettingsUpdated();
@@ -231,8 +243,7 @@ contract PoolController is IPoolController {
     /**
      * @inheritdoc IPoolController
      */
-    function setPoolEndDate(uint256 endDate) external onlyAdmin {
-        requireNotPaused();
+    function setPoolEndDate(uint256 endDate) external onlyNotPaused onlyAdmin {
         require(_settings.endDate > endDate, "Pool: can't move end date up");
         require(
             endDate > block.timestamp,
@@ -259,8 +270,11 @@ contract PoolController is IPoolController {
     /**
      * @inheritdoc IPoolController
      */
-    function setServiceFeeBps(uint256 serviceFeeBps) external onlyAdmin {
-        requireNotPaused();
+    function setServiceFeeBps(uint256 serviceFeeBps)
+        external
+        onlyNotPaused
+        onlyAdmin
+    {
         require(serviceFeeBps <= 10000, "Pool: invalid service fee");
         _settings.serviceFeeBps = serviceFeeBps;
         emit PoolSettingsUpdated();
@@ -269,8 +283,11 @@ contract PoolController is IPoolController {
     /**
      * @inheritdoc IPoolController
      */
-    function setFixedFee(uint256 amount, uint256 interval) external onlyAdmin {
-        requireNotPaused();
+    function setFixedFee(uint256 amount, uint256 interval)
+        external
+        onlyNotPaused
+        onlyAdmin
+    {
         if (amount > 0) {
             require(interval > 0, "Pool: invalid fixed fee");
         }
@@ -343,10 +360,10 @@ contract PoolController is IPoolController {
      */
     function depositFirstLoss(uint256 amount, address spender)
         external
+        onlyNotPaused
         onlyAdmin
         atInitializedOrActiveState
     {
-        requireNotPaused();
         // not sure we need thos
         require(address(_firstLossVault) != address(0), "Pool: 0 address");
         _liquidityAsset.safeTransferFrom(
@@ -373,11 +390,11 @@ contract PoolController is IPoolController {
      */
     function withdrawFirstLoss(uint256 amount, address receiver)
         external
+        onlyNotPaused
         onlyAdmin
         atState(IPoolLifeCycleState.Closed)
         returns (uint256)
     {
-        requireNotPaused();
         require(pool.numActiveLoans() == 0, "Pool: loans still active");
         require(address(_firstLossVault) != address(0), "Pool: 0 address");
         require(receiver != address(0), "Pool: 0 address");
@@ -401,11 +418,11 @@ contract PoolController is IPoolController {
      */
     function fundLoan(address addr)
         external
+        onlyNotPaused
         onlyAdmin
         atState(IPoolLifeCycleState.Active)
         isPoolLoan(addr)
     {
-        requireNotPaused();
         pool.fundLoan(addr);
     }
 
@@ -414,11 +431,11 @@ contract PoolController is IPoolController {
      */
     function defaultLoan(address loan)
         external
+        onlyNotPaused
         onlyAdmin
         atActiveOrClosedState
         onlyCrankedPool
     {
-        requireNotPaused();
         require(loan != address(0), "Pool: 0 address");
         require(pool.isActiveLoan(loan), "Pool: not active loan");
 
@@ -434,8 +451,7 @@ contract PoolController is IPoolController {
                 Fees
     //////////////////////////////////////////////////////////////*/
 
-    function claimFixedFee() external onlyAdmin {
-        requireNotPaused();
+    function claimFixedFee() external onlyNotPaused onlyAdmin {
         pool.claimFixedFee(
             msg.sender,
             _settings.fixedFee,
@@ -450,16 +466,5 @@ contract PoolController is IPoolController {
     function crank() external override onlyAdmin {
         requireNotPaused();
         pool.crank();
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                Utility
-    //////////////////////////////////////////////////////////////*/
-
-    function requireNotPaused() internal view {
-        require(
-            IServiceConfiguration(serviceConfiguration).paused() == false,
-            "Pool: Protocol paused"
-        );
     }
 }
