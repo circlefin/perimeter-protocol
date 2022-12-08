@@ -6,9 +6,6 @@ import "../../interfaces/IServiceConfiguration.sol";
 import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 import "./MockBeaconImplementation.sol";
 
-/**
- * @dev Simulated new Loan implementation
- */
 contract MockBeaconProxyFactory is BeaconProxyFactory {
     event Created(address proxy);
 

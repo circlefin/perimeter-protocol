@@ -3,9 +3,6 @@ pragma solidity ^0.8.16;
 
 import "../../upgrades/BeaconImplementation.sol";
 
-/**
- * @dev Simulated new Loan implementation
- */
 contract MockBeaconImplementation is BeaconImplementation {
     function foo() external pure virtual returns (string memory) {
         return "bar";
