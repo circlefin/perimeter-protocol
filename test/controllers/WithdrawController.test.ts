@@ -301,18 +301,5 @@ describe("WithdrawController", () => {
       const withdrawControllerV2 = V2Impl.attach(withdrawController.address);
       expect(await withdrawControllerV2.foo()).to.be.true;
     });
-
-    it("reverts if non-deployer tries to upgrade", async () => {
-      const { withdrawControllerFactory, poolAdmin } = await loadFixture(
-        loadPoolFixture
-      );
-
-      // new implementation
-      await expect(
-        withdrawControllerFactory
-          .connect(poolAdmin)
-          .setImplementation(ethers.constants.AddressZero)
-      ).to.be.revertedWith("Upgrade: unauthorized");
-    });
   });
 });

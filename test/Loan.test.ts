@@ -1759,15 +1759,5 @@ describe("Loan", () => {
       const loanV2 = V2Impl.attach(loan.address);
       expect(await loanV2.foo()).to.be.true;
     });
-
-    it("reverts if non-deployer tries to upgrade", async () => {
-      const { loanFactory, operator } = await loadFixture(deployFixture);
-
-      await expect(
-        loanFactory
-          .connect(operator)
-          .setImplementation(ethers.constants.AddressZero)
-      ).to.be.revertedWith("Upgrade: unauthorized");
-    });
   });
 });

@@ -5,6 +5,7 @@ import "./interfaces/IPoolAdminAccessControl.sol";
 import "./interfaces/IPermissionedServiceConfiguration.sol";
 import "./interfaces/IToSAcceptanceRegistry.sol";
 import "./VeriteAccessControl.sol";
+import "../upgrades/BeaconImplementation.sol";
 
 /**
  * @title The PoolAdminAccessControl contract
@@ -15,6 +16,7 @@ import "./VeriteAccessControl.sol";
  */
 contract PoolAdminAccessControl is
     IPoolAdminAccessControl,
+    BeaconImplementation,
     VeriteAccessControl
 {
     /**
@@ -48,8 +50,9 @@ contract PoolAdminAccessControl is
     }
 
     /**
-     * @dev Constructor for the contract, which sets the ServiceConfiguration.
+     * @dev Initializer for the contract, which sets the ServiceConfiguration.
      */
+
     constructor(address serviceConfiguration) {
         _serviceConfiguration = IPermissionedServiceConfiguration(
             serviceConfiguration

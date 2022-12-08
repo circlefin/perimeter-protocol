@@ -8,14 +8,14 @@ import "./interfaces/IServiceConfiguration.sol";
 import "./libraries/LoanLib.sol";
 import "./CollateralVault.sol";
 import "./FundingVault.sol";
-import "./upgrades/interfaces/IBeaconImplementation.sol";
+import "./upgrades/BeaconImplementation.sol";
 
 /**
  * @title Loan
  *
  * Empty Loan contract.
  */
-contract Loan is ILoan, IBeaconImplementation {
+contract Loan is ILoan, BeaconImplementation {
     using SafeMath for uint256;
     uint256 constant RAY = 10**27;
 

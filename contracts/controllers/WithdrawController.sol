@@ -7,12 +7,12 @@ import "./interfaces/IPoolController.sol";
 import "../libraries/PoolLib.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "../upgrades/interfaces/IBeaconImplementation.sol";
+import "../upgrades/BeaconImplementation.sol";
 
 /**
  * @title WithdrawState
  */
-contract WithdrawController is IWithdrawController, IBeaconImplementation {
+contract WithdrawController is IWithdrawController, BeaconImplementation {
     using SafeMath for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
 

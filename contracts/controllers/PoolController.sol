@@ -9,12 +9,12 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "../upgrades/interfaces/IBeaconImplementation.sol";
+import "../upgrades/BeaconImplementation.sol";
 
 /**
  * @title WithdrawState
  */
-contract PoolController is IPoolController, IBeaconImplementation {
+contract PoolController is IPoolController, BeaconImplementation {
     using SafeERC20 for IERC20;
 
     IPool public pool;

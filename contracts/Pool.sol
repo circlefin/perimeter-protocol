@@ -17,12 +17,12 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "./libraries/PoolLib.sol";
 import "./FeeVault.sol";
 import "./FirstLossVault.sol";
-import "./upgrades/interfaces/IBeaconImplementation.sol";
+import "./upgrades/BeaconImplementation.sol";
 
 /**
  * @title Pool
  */
-contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
+contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using SafeMath for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;

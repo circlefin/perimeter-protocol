@@ -475,21 +475,5 @@ describe("PoolAccessControl", () => {
       );
       expect(await poolAccessControlV2.foo()).to.be.true;
     });
-
-    it("reverts if non-deployer tries to upgrade", async () => {
-      const { poolAccessControlFactory, poolAdmin } = await loadFixture(
-        deployFixture
-      );
-
-      const V2Impl = await ethers.getContractFactory("PoolAccessControlMockV2");
-      const v2Impl = await V2Impl.deploy();
-
-      // Set new implementation
-      await expect(
-        poolAccessControlFactory
-          .connect(poolAdmin)
-          .setImplementation(v2Impl.address)
-      ).to.be.revertedWith("Upgrade: unauthorized");
-    });
   });
 });

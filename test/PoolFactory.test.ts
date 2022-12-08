@@ -215,15 +215,4 @@ describe("PoolFactory", () => {
         .setImplementation(mockNewImplementation.address)
     ).to.emit(poolFactory, "ImplementationSet");
   });
-
-  it("reverts if non-deployer tries to upgrade implementation", async () => {
-    const { poolFactory, operator } = await loadFixture(deployFixture);
-
-    // Set new implementation
-    await expect(
-      poolFactory
-        .connect(operator)
-        .setImplementation(ethers.constants.AddressZero)
-    ).to.be.revertedWith("Upgrade: unauthorized");
-  });
 });

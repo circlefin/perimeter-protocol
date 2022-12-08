@@ -6,7 +6,7 @@ import "./interfaces/IPermissionedServiceConfiguration.sol";
 import "./interfaces/IToSAcceptanceRegistry.sol";
 import "../interfaces/IPool.sol";
 import "./VeriteAccessControl.sol";
-import "../upgrades/interfaces/IBeaconImplementation.sol";
+import "../upgrades/BeaconImplementation.sol";
 
 /**
  * @title The PoolAccessControl contract
@@ -17,7 +17,7 @@ import "../upgrades/interfaces/IBeaconImplementation.sol";
  */
 contract PoolAccessControl is
     IPoolAccessControl,
-    IBeaconImplementation,
+    BeaconImplementation,
     VeriteAccessControl
 {
     /**

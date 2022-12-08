@@ -1,0 +1,25 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.16;
+
+import "../../upgrades/BeaconImplementation.sol";
+
+/**
+ * @dev Simulated new Loan implementation
+ */
+contract MockBeaconImplementation is BeaconImplementation {
+    event InitializedCalled();
+
+    function foo() external pure virtual returns (string memory) {
+        return "bar";
+    }
+
+    function initialize() public initializer {
+        emit InitializedCalled();
+    }
+}
+
+contract MockBeaconImplementationV2 is MockBeaconImplementation {
+    function foo() external pure override returns (string memory) {
+        return "baz";
+    }
+}
