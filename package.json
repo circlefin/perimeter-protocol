@@ -11,7 +11,8 @@
     "lint:solidity": "solhint contracts/**/*.sol",
     "test": "npx hardhat test",
     "test:coverage": "npx hardhat coverage",
-    "test:gas": "REPORT_GAS=true npx hardhat test"
+    "test:gas": "REPORT_GAS=true npx hardhat test",
+    "type-check": "tsc --pretty --noEmit"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^2.0.0",
