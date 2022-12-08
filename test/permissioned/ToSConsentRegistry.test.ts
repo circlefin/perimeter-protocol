@@ -1,14 +1,15 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-import { ethers } from "hardhat";
-import { deployServiceConfiguration } from "./support/serviceconfiguration";
-import { deployToSAcceptanceRegistry } from "./support/tosacceptanceregistry";
+import { ethers, upgrades } from "hardhat";
+import { deployServiceConfiguration } from "../support/serviceconfiguration";
+import { deployToSAcceptanceRegistry } from "../support/tosacceptanceregistry";
+import { getCommonSigners } from "../support/utils";
 
 describe("ToSAcceptanceRegistry", () => {
   const TOS_URL = "https://example.xyz/tos";
 
   async function deployFixture() {
-    const [operator, otherAccount] = await ethers.getSigners();
+    const { operator, deployer, otherAccount } = await getCommonSigners();
 
     const { serviceConfiguration } = await deployServiceConfiguration();
     const { tosAcceptanceRegistry } = await deployToSAcceptanceRegistry(
@@ -18,6 +19,7 @@ describe("ToSAcceptanceRegistry", () => {
     return {
       tosAcceptanceRegistry,
       operator,
+      deployer,
       otherAccount,
       serviceConfiguration
     };
@@ -102,6 +104,28 @@ describe("ToSAcceptanceRegistry", () => {
       // Acceptance should be recorded
       expect(await tosAcceptanceRegistry.hasAccepted(otherAccount.address)).to
         .be.true;
+    });
+  });
+
+  describe("Upgrades", () => {
+    it("can be upgraded", async () => {
+      const { tosAcceptanceRegistry, deployer } = await loadFixture(
+        deployFixture
+      );
+
+      const V2 = await ethers.getContractFactory(
+        "ToSAcceptanceRegistryMockV2",
+        deployer
+      );
+      await upgrades.upgradeProxy(tosAcceptanceRegistry.address, V2, {
+        kind: "uups"
+      });
+
+      const v2 = await ethers.getContractAt(
+        "ToSAcceptanceRegistryMockV2",
+        tosAcceptanceRegistry.address
+      );
+      expect(await v2.foo()).to.be.true;
     });
   });
 });
