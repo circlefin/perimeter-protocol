@@ -124,14 +124,14 @@ contract Loan is ILoan, BeaconImplementation {
     }
 
     function initialize(
-        address serviceConfiguration,
+        address serviceConfiguration_,
         address factory_,
         address borrower_,
         address pool_,
         address liquidityAsset_,
         ILoanSettings memory settings_
     ) public virtual initializer {
-        _serviceConfiguration = IServiceConfiguration(serviceConfiguration);
+        _serviceConfiguration = IServiceConfiguration(serviceConfiguration_);
         _factory = factory_;
         _borrower = borrower_;
         _pool = pool_;

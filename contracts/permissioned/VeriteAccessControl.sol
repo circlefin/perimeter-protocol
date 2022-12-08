@@ -13,7 +13,10 @@ import "@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgra
  * access control logic.
  */
 
-contract VeriteAccessControl is IVeriteAccessControl, EIP712Upgradeable {
+abstract contract VeriteAccessControl is
+    IVeriteAccessControl,
+    EIP712Upgradeable
+{
     /**
      * @dev A mapping of allowed verifiers
      */
