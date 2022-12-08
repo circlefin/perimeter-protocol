@@ -36,6 +36,9 @@ const config: HardhatUserConfig | ExtendedHardhatUserConfig = {
       url: "",
       usdcAddress: "0x07865c6e87b9f70255377e024ace6630c1eaa37f"
     }
+  },
+  docgen: {
+    pages: "files"
   }
 };
 
