@@ -5,11 +5,9 @@ import { deployPool, depositToPool, activatePool } from "../../support/pool";
 
 describe("Withdraw Requests", () => {
   async function loadPoolFixture() {
-    const [operator, poolAdmin, aliceLender, bobLender] =
-      await ethers.getSigners();
+    const [poolAdmin, aliceLender, bobLender] = await ethers.getSigners();
     const { pool, liquidityAsset, poolController, withdrawController } =
       await deployPool({
-        operator,
         poolAdmin: poolAdmin
       });
 

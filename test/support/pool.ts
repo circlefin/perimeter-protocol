@@ -284,7 +284,7 @@ export async function activatePool(
  *
  */
 export async function depositToPool(
-  pool: Pool,
+  pool: Pool | PermissionedPool,
   depositorAccount: any,
   asset: MockERC20,
   amount: any
@@ -307,6 +307,8 @@ type WithdrawState = {
   latestRequestPeriod: number;
   redeemableShares: number;
   withdrawableAssets: number;
+  latestCrankPeriod: number;
+  crankOffsetPeriod: number;
 };
 
 /**

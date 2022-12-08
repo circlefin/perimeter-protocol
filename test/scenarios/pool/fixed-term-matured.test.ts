@@ -21,7 +21,7 @@ describe("Fixed Term Matured Loan Scenario", () => {
   };
 
   async function loadFixtures() {
-    const [operator, poolAdmin, lender, borrower] = await ethers.getSigners();
+    const [poolAdmin, lender, borrower] = await ethers.getSigners();
 
     const poolSettings = {
       ...DEFAULT_POOL_SETTINGS,
@@ -29,7 +29,6 @@ describe("Fixed Term Matured Loan Scenario", () => {
     };
     const { mockERC20 } = await deployMockERC20();
     const { pool, serviceConfiguration, poolController } = await deployPool({
-      operator,
       poolAdmin: poolAdmin,
       settings: poolSettings,
       liquidityAsset: mockERC20

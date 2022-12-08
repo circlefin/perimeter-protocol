@@ -40,8 +40,7 @@ describe("Permissioned Business Scenario 3", () => {
   }
 
   async function fixtures() {
-    const [operator, poolAdmin, lenderA, lenderB, borrower] =
-      await ethers.getSigners();
+    const [poolAdmin, lenderA, lenderB, borrower] = await ethers.getSigners();
     const endTime = (await time.latest()) + 5_184_000; // 60 days.
     const poolSettings = {
       endDate: endTime, // Jan 1, 2050
@@ -59,7 +58,6 @@ describe("Permissioned Business Scenario 3", () => {
       poolAccessControl,
       tosAcceptanceRegistry
     } = await deployPermissionedPool({
-      operator,
       poolAdmin: poolAdmin,
       settings: poolSettings,
       liquidityAsset: mockUSDC

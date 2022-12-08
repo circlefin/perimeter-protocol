@@ -51,7 +51,7 @@ describe("Business Scenario 1", () => {
   }
 
   async function loadFixtures() {
-    const [operator, poolAdmin, lenderA, lenderB, borrowerOne, borrowerTwo] =
+    const [poolAdmin, lenderA, lenderB, borrowerOne, borrowerTwo] =
       await ethers.getSigners();
 
     const startTime = await time.latest();
@@ -66,7 +66,6 @@ describe("Business Scenario 1", () => {
       6
     );
     const { pool, serviceConfiguration, poolController } = await deployPool({
-      operator,
       poolAdmin: poolAdmin,
       settings: poolSettings,
       liquidityAsset: mockUSDC
