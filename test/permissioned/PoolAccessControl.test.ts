@@ -7,7 +7,7 @@ import { getSignedVerificationResult } from "../support/verite";
 
 describe("PoolAccessControl", () => {
   async function deployFixture() {
-    const { operator, poolAdmin, deployer, otherAccounts } =
+    const { operator, deployer, poolAdmin, otherAccounts, pauser } =
       await getCommonSigners();
 
     const verifier = otherAccounts[0];
@@ -17,7 +17,8 @@ describe("PoolAccessControl", () => {
       pool,
       tosAcceptanceRegistry,
       poolAccessControlFactory,
-      poolAccessControlImpl
+      poolAccessControlImpl,
+      serviceConfiguration
     } = await deployPermissionedPool({
       poolAdmin
     });
@@ -33,6 +34,7 @@ describe("PoolAccessControl", () => {
 
     return {
       deployer,
+      pauser,
       poolAdmin,
       verifier,
       poolParticipant,
@@ -40,7 +42,8 @@ describe("PoolAccessControl", () => {
       poolAccessControl,
       tosAcceptanceRegistry,
       poolAccessControlFactory,
-      poolAccessControlImpl
+      poolAccessControlImpl,
+      serviceConfiguration
     };
   }
 
@@ -166,6 +169,25 @@ describe("PoolAccessControl", () => {
   });
 
   describe("allowParticipant()", () => {
+    it("reverts if the protocol is paused", async () => {
+      const {
+        poolAccessControl,
+        poolAdmin,
+        poolParticipant,
+        serviceConfiguration,
+        pauser
+      } = await loadFixture(deployFixture);
+
+      // Pause Protocol
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      await expect(
+        poolAccessControl
+          .connect(poolAdmin)
+          .allowParticipant(poolParticipant.address)
+      ).to.be.revertedWith("PoolAccessControl: Protocol paused");
+    });
+
     it("requires the participant agreed to the ToS", async () => {
       const { poolAccessControl, poolAdmin, poolParticipant } =
         await loadFixture(deployFixture);
@@ -200,6 +222,25 @@ describe("PoolAccessControl", () => {
   });
 
   describe("removeParticipant()", () => {
+    it("reverts if the protocol is paused", async () => {
+      const {
+        poolAccessControl,
+        poolAdmin,
+        poolParticipant,
+        serviceConfiguration,
+        pauser
+      } = await loadFixture(deployFixture);
+
+      // Pause Protocol
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      await expect(
+        poolAccessControl
+          .connect(poolAdmin)
+          .removeParticipant(poolParticipant.address)
+      ).to.be.revertedWith("PoolAccessControl: Protocol paused");
+    });
+
     it("removes a participant", async () => {
       const { poolAccessControl, poolAdmin, poolParticipant } =
         await loadFixture(deployFixture);
@@ -215,6 +256,25 @@ describe("PoolAccessControl", () => {
   });
 
   describe("addTrustedVerifier()", () => {
+    it("reverts if the protocol is paused", async () => {
+      const {
+        poolAccessControl,
+        poolAdmin,
+        verifier,
+        serviceConfiguration,
+        pauser
+      } = await loadFixture(deployFixture);
+
+      // Pause Protocol
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      await expect(
+        poolAccessControl
+          .connect(poolAdmin)
+          .addTrustedVerifier(verifier.address)
+      ).to.be.revertedWith("PoolAccessControl: Protocol paused");
+    });
+
     it("adds a new verifier", async () => {
       const { poolAccessControl, poolAdmin, verifier } = await loadFixture(
         deployFixture
@@ -231,6 +291,24 @@ describe("PoolAccessControl", () => {
   });
 
   describe("removeTrustedVerifier()", () => {
+    it("reverts if protocol is paused", async () => {
+      const {
+        poolAccessControl,
+        poolAdmin,
+        verifier,
+        serviceConfiguration,
+        pauser
+      } = await loadFixture(deployFixture);
+
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      await expect(
+        poolAccessControl
+          .connect(poolAdmin)
+          .removeTrustedVerifier(verifier.address)
+      ).to.be.revertedWith("PoolAccessControl: Protocol paused");
+    });
+
     it("removes a verifier", async () => {
       const { poolAccessControl, poolAdmin, verifier } = await loadFixture(
         deployFixture
@@ -247,6 +325,17 @@ describe("PoolAccessControl", () => {
   });
 
   describe("addCredentialSchema()", () => {
+    it("reverts if the protocol is paused", async () => {
+      const { poolAccessControl, poolAdmin, serviceConfiguration, pauser } =
+        await loadFixture(deployFixture);
+
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      await expect(
+        poolAccessControl.connect(poolAdmin).addCredentialSchema("schema://kyc")
+      ).to.be.revertedWith("PoolAccessControl: Protocol paused");
+    });
+
     it("adds a new verifier", async () => {
       const { poolAccessControl, poolAdmin } = await loadFixture(deployFixture);
 
@@ -259,6 +348,19 @@ describe("PoolAccessControl", () => {
   });
 
   describe("removeCredentialSchema()", () => {
+    it("reverts if the protocol is paused", async () => {
+      const { poolAccessControl, poolAdmin, serviceConfiguration, pauser } =
+        await loadFixture(deployFixture);
+
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      await expect(
+        poolAccessControl
+          .connect(poolAdmin)
+          .removeCredentialSchema("schema://kyc")
+      ).to.be.revertedWith("PoolAccessControl: Protocol paused");
+    });
+
     it("removes a verifier", async () => {
       const { poolAccessControl, poolAdmin } = await loadFixture(deployFixture);
 
@@ -273,6 +375,48 @@ describe("PoolAccessControl", () => {
   });
 
   describe("verify()", () => {
+    it("reverts if the protocol is paused", async () => {
+      const {
+        poolAccessControl,
+        poolParticipant,
+        verifier,
+        tosAcceptanceRegistry,
+        poolAdmin,
+        serviceConfiguration,
+        pauser
+      } = await loadFixture(deployFixture);
+
+      await tosAcceptanceRegistry
+        .connect(poolParticipant)
+        .acceptTermsOfService();
+
+      // Register the verifier
+      await poolAccessControl
+        .connect(poolAdmin)
+        .addTrustedVerifier(verifier.address);
+
+      // Get a signed verification result
+      const { verificationResult, signature } =
+        await getSignedVerificationResult(
+          poolAccessControl.address,
+          poolParticipant.address,
+          verifier
+        );
+
+      // Register the schema
+      await poolAccessControl
+        .connect(poolAdmin)
+        .addCredentialSchema(verificationResult.schema);
+
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      // Verify the verification result
+      await expect(
+        poolAccessControl
+          .connect(poolParticipant)
+          .verify(verificationResult, signature)
+      ).to.be.revertedWith("PoolAccessControl: Protocol paused");
+    });
     it("reverts if the subject has not accepted ToS", async () => {
       const { poolAccessControl, poolParticipant, verifier, poolAdmin } =
         await loadFixture(deployFixture);

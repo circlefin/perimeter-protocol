@@ -59,7 +59,7 @@ abstract contract VeriteAccessControl is
     /**
      * @inheritdoc IVeriteAccessControl
      */
-    function addTrustedVerifier(address addr) external onlyVeriteAdmin {
+    function addTrustedVerifier(address addr) public virtual onlyVeriteAdmin {
         _trustedVerifiers[addr] = true;
 
         emit TrustedVerifierAdded(addr);
@@ -68,7 +68,9 @@ abstract contract VeriteAccessControl is
     /**
      * @inheritdoc IVeriteAccessControl
      */
-    function removeTrustedVerifier(address addr) external onlyVeriteAdmin {
+    function removeTrustedVerifier(
+        address addr
+    ) public virtual onlyVeriteAdmin {
         delete _trustedVerifiers[addr];
 
         emit TrustedVerifierRemoved(addr);
@@ -77,10 +79,9 @@ abstract contract VeriteAccessControl is
     /**
      * @inheritdoc IVeriteAccessControl
      */
-    function addCredentialSchema(string calldata schema)
-        external
-        onlyVeriteAdmin
-    {
+    function addCredentialSchema(
+        string calldata schema
+    ) public virtual onlyVeriteAdmin {
         _supportedCredentialSchemas[schema] = true;
 
         emit CredentialSchemaAdded(schema);
@@ -89,10 +90,9 @@ abstract contract VeriteAccessControl is
     /**
      * @inheritdoc IVeriteAccessControl
      */
-    function removeCredentialSchema(string calldata schema)
-        external
-        onlyVeriteAdmin
-    {
+    function removeCredentialSchema(
+        string calldata schema
+    ) public virtual onlyVeriteAdmin {
         delete _supportedCredentialSchemas[schema];
 
         emit CredentialSchemaRemoved(schema);
@@ -119,7 +119,7 @@ abstract contract VeriteAccessControl is
     function verify(
         VerificationResult memory verificationResult,
         bytes memory signature
-    ) external onlyVeriteEligible {
+    ) public virtual onlyVeriteEligible {
         require(verificationResult.subject == msg.sender, "SUBJECT_MISMATCH");
 
         // Ensure the result has a supported schema
