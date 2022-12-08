@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 import { time } from "@nomicfoundation/hardhat-network-helpers";
-import { MockERC20, Pool } from "../../typechain-types";
+import { MockERC20, PermissionedPool, Pool } from "../../typechain-types";
 import { deployMockERC20 } from "./erc20";
 import {
   deployPermissionedServiceConfiguration,
@@ -257,7 +257,7 @@ export async function deployPermissionedPool({
  * Deploy an "Active" Pool
  */
 export async function activatePool(
-  pool: Pool,
+  pool: Pool | PermissionedPool,
   poolAdmin: any,
   liquidityAsset: MockERC20
 ) {
