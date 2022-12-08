@@ -61,9 +61,7 @@ describe("Withdraw Requests", () => {
       .to.emit(pool, "WithdrawRequested")
       .withArgs(bobLender.address, 10, 10);
 
-    // Ensure a fee was paid
-    // (10% of 50 = 5 tokens) for Alice
-    // (10% of 10 = 1 token) for Bob
+    // Ensure a fee was paid (10% of 60 = 6 tokens)
     expect(await pool.totalSupply()).to.equal(164);
     expect(await pool.totalAssets()).to.equal(170); // unchanged
     expect(await pool.balanceOf(aliceLender.address)).to.equal(95);
@@ -101,7 +99,7 @@ describe("Withdraw Requests", () => {
         (100 /* initial balance */ -
           50 /* requested */ -
           5) /* previous request fee */ *
-          0.9 /* sub the request fee */
+        0.9 /* sub the request fee */
       )
     );
     expect(await pool.maxWithdrawRequest(aliceLender.address)).to.equal(41);
@@ -112,7 +110,7 @@ describe("Withdraw Requests", () => {
         (70 /* initial balance */ -
           10 /* requested */ -
           1) /* previous request fee */ *
-          0.9 /* sub the request fee */
+        0.9 /* sub the request fee */
       )
     );
     expect(await pool.maxWithdrawRequest(bobLender.address)).to.equal(54);
