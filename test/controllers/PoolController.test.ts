@@ -313,14 +313,13 @@ describe("PoolController", () => {
     });
 
     it("if the pool is closed, the withdraw window won't increase if it's already less than 1 day", async () => {
-      const { operator, poolAdmin } = await loadFixture(loadPoolFixture);
+      const { poolAdmin } = await loadFixture(loadPoolFixture);
 
       const overriddenPoolSettings = {
         withdrawRequestPeriodDuration: 86399
       };
 
       const { poolController: newPoolController } = await deployPool({
-        operator,
         poolAdmin: poolAdmin,
         settings: overriddenPoolSettings
       });
@@ -506,8 +505,8 @@ describe("PoolController", () => {
         .approve(poolController.address, firstLossAmount);
 
       // Contribute first loss
-      expect(
-        await poolController
+      await expect(
+        poolController
           .connect(poolAdmin)
           .depositFirstLoss(firstLossAmount, poolAdmin.address)
       ).to.emit(poolController, "FirstLossDeposited");
@@ -907,7 +906,7 @@ describe("PoolController", () => {
       expect((await pool.accountings()).totalDefaults).to.equal(0);
       expect((await pool.accountings()).totalFirstLossApplied).to.equal(0);
 
-      poolController.connect(poolAdmin).defaultLoan(loan.address);
+      await poolController.connect(poolAdmin).defaultLoan(loan.address);
       expect((await pool.accountings()).totalDefaults).to.equal(
         await loan.principal()
       );
