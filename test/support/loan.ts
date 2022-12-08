@@ -23,9 +23,9 @@ export const DEFAULT_LOAN_SETTINGS = {
  * Deploy a loan
  */
 export async function deployLoan(
-  pool: any,
-  borrower: any,
-  liquidityAsset: any,
+  poolAddress: string,
+  borrowerAddress: string,
+  liquidityAssetAddress: string,
   existingServiceConfiguration: any = null,
   overriddenLoanTerms?: Partial<typeof DEFAULT_LOAN_SETTINGS>
 ) {
@@ -39,7 +39,7 @@ export async function deployLoan(
 
   await serviceConfiguration
     .connect(operator)
-    .setLiquidityAsset(liquidityAsset, true);
+    .setLiquidityAsset(liquidityAssetAddress, true);
 
   const loanSettings = {
     ...DEFAULT_LOAN_SETTINGS,
@@ -66,16 +66,21 @@ export async function deployLoan(
 
   await loanFactory.connect(deployer).setImplementation(loanImpl.address);
 
-  const txn = await loanFactory.createLoan(borrower, pool, liquidityAsset, {
-    loanType: loanSettings.loanType,
-    principal: loanSettings.principal,
-    apr: loanSettings.apr,
-    duration: loanSettings.duration,
-    paymentPeriod: loanSettings.paymentPeriod,
-    dropDeadTimestamp: loanSettings.dropDeadTimestamp,
-    latePayment: loanSettings.latePayment,
-    originationBps: loanSettings.originationBps
-  });
+  const txn = await loanFactory.createLoan(
+    borrowerAddress,
+    poolAddress,
+    liquidityAssetAddress,
+    {
+      loanType: loanSettings.loanType,
+      principal: loanSettings.principal,
+      apr: loanSettings.apr,
+      duration: loanSettings.duration,
+      paymentPeriod: loanSettings.paymentPeriod,
+      dropDeadTimestamp: loanSettings.dropDeadTimestamp,
+      latePayment: loanSettings.latePayment,
+      originationBps: loanSettings.originationBps
+    }
+  );
 
   const txnReceipt = await txn.wait();
 
@@ -180,8 +185,8 @@ export async function collateralizeLoanNFT(loan: any, borrower: any, nft: any) {
   return { loan, borrower, nft, tokenId };
 }
 
-export async function fundLoan(loan: any, poolController: any, pm: any) {
-  await poolController.connect(pm).fundLoan(loan.address);
+export async function fundLoan(loan: any, poolController: any, poolAdmin: any) {
+  await poolController.connect(poolAdmin).fundLoan(loan.address);
 }
 
 export async function matureLoan(

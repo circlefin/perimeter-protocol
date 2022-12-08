@@ -39,8 +39,7 @@ describe("Business Scenario 2", () => {
   }
 
   async function fixtures() {
-    const [operator, poolAdmin, lenderA, lenderB, borrower] =
-      await ethers.getSigners();
+    const [poolAdmin, lenderA, lenderB, borrower] = await ethers.getSigners();
     const endTime = (await time.latest()) + 5_184_000; // 60 days.
     const poolSettings = {
       endDate: endTime, // Jan 1, 2050
@@ -53,7 +52,6 @@ describe("Business Scenario 2", () => {
     );
     const { pool, serviceConfiguration, withdrawController, poolController } =
       await deployPool({
-        operator,
         poolAdmin: poolAdmin,
         settings: poolSettings,
         liquidityAsset: mockUSDC
