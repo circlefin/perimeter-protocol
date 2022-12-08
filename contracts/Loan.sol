@@ -17,7 +17,6 @@ import "./upgrades/BeaconImplementation.sol";
  */
 contract Loan is ILoan, BeaconImplementation {
     using SafeMath for uint256;
-    uint256 constant RAY = 10**27;
 
     IServiceConfiguration private _serviceConfiguration;
     address private _factory;
@@ -153,10 +152,12 @@ contract Loan is ILoan, BeaconImplementation {
         uint256 paymentsTotal = settings
             .principal
             .mul(settings.apr)
-            .mul(settings.duration.mul(RAY).div(360))
-            .div(RAY)
+            .mul(settings.duration.mul(LoanLib.RAY).div(360))
+            .div(LoanLib.RAY)
             .div(10000);
-        payment = paymentsTotal.mul(RAY).div(paymentsRemaining).div(RAY);
+        payment = paymentsTotal.mul(LoanLib.RAY).div(paymentsRemaining).div(
+            LoanLib.RAY
+        );
     }
 
     /**
@@ -249,7 +250,10 @@ contract Loan is ILoan, BeaconImplementation {
     /**
      * @dev Post ERC20 tokens as collateral
      */
-    function postFungibleCollateral(address asset, uint256 amount)
+    function postFungibleCollateral(
+        address asset,
+        uint256 amount
+    )
         external
         virtual
         onlyNotPaused
@@ -276,7 +280,10 @@ contract Loan is ILoan, BeaconImplementation {
     /**
      * @dev Post ERC721 tokens as collateral
      */
-    function postNonFungibleCollateral(address asset, uint256 tokenId)
+    function postNonFungibleCollateral(
+        address asset,
+        uint256 tokenId
+    )
         external
         virtual
         onlyNotPaused
@@ -336,7 +343,9 @@ contract Loan is ILoan, BeaconImplementation {
     /**
      * @dev Drawdown the Loan
      */
-    function drawdown(uint256 amount)
+    function drawdown(
+        uint256 amount
+    )
         external
         virtual
         onlyNotPaused
@@ -361,12 +370,9 @@ contract Loan is ILoan, BeaconImplementation {
      * @dev Prepay principal.
      * @dev Only callable by open term loans
      */
-    function paydownPrincipal(uint256 amount)
-        external
-        onlyNotPaused
-        onlyPermittedBorrower
-        onlyBorrower
-    {
+    function paydownPrincipal(
+        uint256 amount
+    ) external onlyNotPaused onlyPermittedBorrower onlyBorrower {
         require(outstandingPrincipal >= amount, "Loan: amount too high");
         require(settings.loanType == ILoanType.Open, "Loan: invalid loan type");
         LoanLib.paydownPrincipal(liquidityAsset, amount, fundingVault);
@@ -393,7 +399,7 @@ contract Loan is ILoan, BeaconImplementation {
             IPool(_pool).serviceFeeBps(),
             block.timestamp,
             paymentDueDate,
-            RAY
+            LoanLib.RAY
         );
 
         LoanLib.payFees(
@@ -417,11 +423,9 @@ contract Loan is ILoan, BeaconImplementation {
      * @dev Preview fees for a given interest payment amount.
      * @param amount allows previewing the fee for a full or prorated payment.
      */
-    function previewFees(uint256 amount)
-        public
-        view
-        returns (ILoanFees memory)
-    {
+    function previewFees(
+        uint256 amount
+    ) public view returns (ILoanFees memory) {
         return
             LoanLib.previewFees(
                 settings,
@@ -430,7 +434,7 @@ contract Loan is ILoan, BeaconImplementation {
                 IPool(_pool).serviceFeeBps(),
                 block.timestamp,
                 paymentDueDate,
-                RAY
+                LoanLib.RAY
             );
     }
 
@@ -445,23 +449,23 @@ contract Loan is ILoan, BeaconImplementation {
         atState(ILoanLifeCycleState.Active)
         returns (uint256)
     {
-        uint256 scalingValue = RAY;
+        uint256 scalingValue = LoanLib.RAY;
 
         if (settings.loanType == ILoanType.Open) {
             // If an open term loan payment is not overdue, we will prorate the
             // payment
             if (paymentDueDate > block.timestamp) {
                 // Calculate the scaling value
-                // RAY - ((paymentDueDate - blocktimestamp) * RAY / paymentPeriod (seconds))
-                scalingValue = RAY.sub(
-                    (paymentDueDate - block.timestamp).mul(RAY).div(
+                // LoanLib.RAY - ((paymentDueDate - blocktimestamp) * LoanLib.RAY / paymentPeriod (seconds))
+                scalingValue = LoanLib.RAY.sub(
+                    (paymentDueDate - block.timestamp).mul(LoanLib.RAY).div(
                         settings.paymentPeriod * 1 days
                     )
                 );
             }
         } else {
             // Fixed term loans must pay all outstanding interest payments and fees.
-            scalingValue = RAY.mul(paymentsRemaining);
+            scalingValue = LoanLib.RAY.mul(paymentsRemaining);
         }
 
         ILoanFees memory _fees = LoanLib.previewFees(

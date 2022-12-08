@@ -9,9 +9,9 @@ import "./PermissionedLoan.sol";
  * @title PermissionedLoanFactory
  */
 contract PermissionedLoanFactory is LoanFactory {
-    constructor(address serviceConfiguration)
-        LoanFactory(serviceConfiguration)
-    {}
+    constructor(
+        address serviceConfiguration
+    ) LoanFactory(serviceConfiguration) {}
 
     /**
      * @inheritdoc LoanFactory
