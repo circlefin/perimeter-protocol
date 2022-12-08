@@ -713,7 +713,7 @@ describe("Pool", () => {
         expect(await pool.balanceOf(otherAccount.address)).to.equal(97);
       });
 
-      it("emits a RedeemRequested event if the lender requests a valid amount", async () => {
+      it("emits a WithdrawRequested event if the lender requests to redeem a valid amount", async () => {
         const { pool, poolAdmin, liquidityAsset, otherAccount } =
           await loadFixture(loadPoolFixture);
         await activatePool(pool, poolAdmin, liquidityAsset);
@@ -722,8 +722,8 @@ describe("Pool", () => {
         const max = await pool.maxRedeemRequest(otherAccount.address);
 
         expect(await pool.connect(otherAccount).requestRedeem(max))
-          .to.emit(pool.address, "RedeemRequested")
-          .withArgs(otherAccount.address, max);
+          .to.emit(pool.address, "WithdrawRequested")
+          .withArgs(otherAccount.address, max, max);
       });
     });
 

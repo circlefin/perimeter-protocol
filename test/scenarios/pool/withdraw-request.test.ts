@@ -53,16 +53,17 @@ describe("Withdraw Requests", () => {
     expect(await pool.maxWithdrawRequest(bobLender.address)).to.equal(63);
 
     // Request a withdraw from Alice for Period n + 1 (in this case, 1)
-    expect(await pool.connect(aliceLender).requestWithdraw(50))
-      .to.emit(pool.address, "WithdrawRequested")
-      .withArgs(aliceLender.address, 50);
+    await expect(pool.connect(aliceLender).requestWithdraw(50))
+      .to.emit(pool, "WithdrawRequested")
+      .withArgs(aliceLender.address, 50, 50);
 
-    // Request a Redeem from Bob for Period n + 1 (in this case, 1)
-    expect(await pool.connect(bobLender).requestRedeem(10))
-      .to.emit(pool.address, "RedeemRequested")
-      .withArgs(bobLender.address, 10);
+    await expect(pool.connect(bobLender).requestRedeem(10))
+      .to.emit(pool, "WithdrawRequested")
+      .withArgs(bobLender.address, 10, 10);
 
-    // Ensure a fee was paid (10% of 60 = 6 tokens)
+    // Ensure a fee was paid
+    // (10% of 50 = 5 tokens) for Alice
+    // (10% of 10 = 1 token) for Bob
     expect(await pool.totalSupply()).to.equal(164);
     expect(await pool.totalAssets()).to.equal(170); // unchanged
     expect(await pool.balanceOf(aliceLender.address)).to.equal(95);
@@ -78,7 +79,7 @@ describe("Withdraw Requests", () => {
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(0);
     expect(await pool.maxWithdraw(aliceLender.address)).to.equal(0);
 
-    // Verify Bob's withdrawal state is updated
+    // Verify Bob's withdrawal state is still 0
     expect(
       await withdrawController.requestedBalanceOf(bobLender.address)
     ).to.equal(10);
@@ -89,12 +90,14 @@ describe("Withdraw Requests", () => {
     expect(await pool.maxWithdraw(bobLender.address)).to.equal(0);
 
     // Verify the Global withdrawal state is updated
+    // Only Alice's 50 withdrawal is registered
     expect(await withdrawController.totalRequestedBalance()).to.equal(60);
     expect(await withdrawController.totalEligibleBalance()).to.equal(0);
     expect(await withdrawController.totalRedeemableShares()).to.equal(0);
     expect(await withdrawController.totalWithdrawableAssets()).to.equal(0);
 
     // Expect Alice's maxWithdrawRequest amounts have decreased
+    // Alice has 45 tokens not earmarked, so she can maximally request 40 tokens
     expect(await pool.maxRedeemRequest(aliceLender.address)).to.equal(
       Math.floor(
         (100 /* initial balance */ -
@@ -109,9 +112,9 @@ describe("Withdraw Requests", () => {
     expect(await pool.maxRedeemRequest(bobLender.address)).to.equal(
       Math.floor(
         (70 /* initial balance */ -
-          10 /* requested */ -
-          1) /* previous request fee */ *
-          0.9 /* sub the request fee */
+          10 /* 10 previously requested */ -
+          1) /* 1 fee paid previously */ *
+          0.9 /* less the fee */
       )
     );
     expect(await pool.maxWithdrawRequest(bobLender.address)).to.equal(54);
@@ -135,9 +138,7 @@ describe("Withdraw Requests", () => {
 
     // verify the global state is updated
     expect(await withdrawController.totalRequestedBalance()).to.equal(0);
-    expect(await withdrawController.totalEligibleBalance()).to.equal(
-      20
-    ); /* 60 - 40 */
+    expect(await withdrawController.totalEligibleBalance()).to.equal(20);
 
     // verify Alice's state is updated
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(
@@ -146,9 +147,7 @@ describe("Withdraw Requests", () => {
     expect(await pool.maxWithdraw(aliceLender.address)).to.equal(34);
 
     // verify Bob's state is updated
-    expect(await pool.maxRedeem(bobLender.address)).to.equal(
-      6
-    ); /* 10 * (41/60) */
+    expect(await pool.maxRedeem(bobLender.address)).to.equal(6);
     expect(await pool.maxWithdraw(bobLender.address)).to.equal(6);
 
     // Cancel a request
@@ -157,7 +156,7 @@ describe("Withdraw Requests", () => {
 
     // Cancel Bob's request
     const bobBalance = await pool.balanceOf(bobLender.address);
-    expect(await pool.connect(bobLender).cancelRedeemRequest(3));
+    await pool.connect(bobLender).cancelRedeemRequest(3);
 
     // Expect a fee to be paid
     expect(await pool.balanceOf(bobLender.address)).to.equal(bobBalance.sub(1));
