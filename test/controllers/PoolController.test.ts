@@ -21,6 +21,7 @@ describe("PoolController", () => {
     const {
       operator,
       deployer,
+      pauser,
       poolAdmin,
       borrower,
       otherAccount,
@@ -66,11 +67,13 @@ describe("PoolController", () => {
 
     return {
       operator,
+      pauser,
       deployer,
       poolAdmin,
       borrower,
       otherAccount,
       otherAccounts,
+      serviceConfiguration,
       pool,
       poolLib,
       poolControllerFactory,
@@ -86,12 +89,12 @@ describe("PoolController", () => {
   }
 
   async function loadPoolFixtureWithFees() {
-    const [operator, poolAdmin, otherAccount] = await ethers.getSigners();
+    const { poolAdmin, pauser, otherAccount } = await getCommonSigners();
     const { pool, poolController, liquidityAsset, serviceConfiguration } =
       await deployPool({
-        operator,
         poolAdmin,
-        settings: { fixedFee: 100, fixedFeeInterval: 30 }
+        settings: { fixedFee: 100, fixedFeeInterval: 30 },
+        pauser
       });
 
     const { loan } = await deployLoan(
@@ -107,7 +110,9 @@ describe("PoolController", () => {
       liquidityAsset,
       poolAdmin,
       otherAccount,
-      loan
+      loan,
+      serviceConfiguration,
+      pauser
     };
   }
 
@@ -122,6 +127,17 @@ describe("PoolController", () => {
 
       const settings = await poolController.settings();
       expect(settings.requestFeeBps).to.equal(1000);
+    });
+
+    it("reverts if the protocol is paused", async () => {
+      const { poolController, poolAdmin, serviceConfiguration, pauser } =
+        await loadFixture(loadPoolFixture);
+
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      await expect(
+        poolController.connect(poolAdmin).setRequestFee(10_001)
+      ).to.be.revertedWith("Pool: Protocol paused");
     });
 
     it("prevents setting a value that's too large", async () => {
@@ -183,6 +199,17 @@ describe("PoolController", () => {
       expect(settings.requestCancellationFeeBps).to.equal(1000);
     });
 
+    it("reverts if the protocol is paused", async () => {
+      const { poolController, poolAdmin, serviceConfiguration, pauser } =
+        await loadFixture(loadPoolFixture);
+
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      await expect(
+        poolController.connect(poolAdmin).setRequestCancellationFee(100)
+      ).to.be.revertedWith("Pool: Protocol paused");
+    });
+
     it("does not let anyone except the admin to set the fee", async () => {
       const { poolController, otherAccount } = await loadFixture(
         loadPoolFixture
@@ -242,6 +269,17 @@ describe("PoolController", () => {
 
       const settings = await poolController.settings();
       expect(settings.withdrawGateBps).to.equal(10);
+    });
+
+    it("reverts if the protocol is paused", async () => {
+      const { poolController, poolAdmin, serviceConfiguration, pauser } =
+        await loadFixture(loadPoolFixture);
+
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      await expect(
+        poolController.connect(poolAdmin).setWithdrawGate(100)
+      ).to.be.revertedWith("Pool: Protocol paused");
     });
 
     it("does not let anyone except the admin to set the withdraw gate", async () => {
@@ -359,6 +397,17 @@ describe("PoolController", () => {
       expect((await poolController.settings()).maxCapacity).to.equal(101);
     });
 
+    it("reverts if the protocol is paused", async () => {
+      const { poolController, poolAdmin, serviceConfiguration, pauser } =
+        await loadFixture(loadPoolFixture);
+
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      await expect(
+        poolController.connect(poolAdmin).setPoolCapacity(101)
+      ).to.be.revertedWith("Pool: Protocol paused");
+    });
+
     it("reverts if not called by Pool Admin", async () => {
       const { poolController, otherAccount } = await loadFixture(
         loadPoolFixture
@@ -389,6 +438,18 @@ describe("PoolController", () => {
       await expect(
         poolController.connect(poolAdmin).setPoolEndDate(now)
       ).to.be.revertedWith("Pool: can't move end date into the past");
+    });
+
+    it("reverts if the protocol is paused", async () => {
+      const { poolController, poolAdmin, serviceConfiguration, pauser } =
+        await loadFixture(loadPoolFixture);
+
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      const newEndDate = (await poolController.settings()).endDate.sub(1);
+      await expect(
+        poolController.connect(poolAdmin).setPoolEndDate(newEndDate)
+      ).to.be.revertedWith("Pool: Protocol paused");
     });
 
     it("allows moving up the pool end date", async () => {
@@ -518,6 +579,33 @@ describe("PoolController", () => {
       expect(await poolController.state()).to.equal(1); // Enum values are treated as ints
     });
 
+    it("reverts if the protocol is paused", async () => {
+      const {
+        poolController,
+        poolAdmin,
+        liquidityAsset,
+        serviceConfiguration,
+        pauser
+      } = await loadFixture(loadPoolFixture);
+
+      const { firstLossInitialMinimum: firstLossAmount } =
+        await poolController.settings();
+
+      // Grant allowance
+      await liquidityAsset
+        .connect(poolAdmin)
+        .approve(poolController.address, firstLossAmount);
+
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      // Contribute first loss
+      await expect(
+        poolController
+          .connect(poolAdmin)
+          .depositFirstLoss(firstLossAmount, poolAdmin.address)
+      ).to.be.revertedWith("Pool: Protocol paused");
+    });
+
     it("reverts if not called by Pool Admin", async () => {
       const { poolController, otherAccount } = await loadFixture(
         loadPoolFixture
@@ -532,6 +620,55 @@ describe("PoolController", () => {
   });
 
   describe("withdrawFirstLoss()", async () => {
+    it("reverts if protocol is paused", async () => {
+      const {
+        pool,
+        poolController,
+        poolAdmin,
+        borrower,
+        loan,
+        otherAccount,
+        liquidityAsset,
+        serviceConfiguration,
+        pauser
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        await loan.principal()
+      );
+      await collateralizeLoan(loan, borrower, liquidityAsset);
+      await fundLoan(loan, poolController, poolAdmin);
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      // Pay down loan
+      // Give borrower arbitrary amount to fully paydown loan
+      const borrowerExcessAmount = (await loan.principal()).mul(2);
+      await liquidityAsset.mint(borrower.address, borrowerExcessAmount);
+      await liquidityAsset
+        .connect(borrower)
+        .approve(loan.address, borrowerExcessAmount);
+      await loan.connect(borrower).completeFullPayment();
+
+      // Fast forward to pool enddate
+      await time.increaseTo(await (await pool.settings()).endDate);
+
+      // First loss available
+      const firstLossAmt = await poolController.firstLossBalance();
+
+      // Pause protocol
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      const tx = poolController
+        .connect(poolAdmin)
+        .withdrawFirstLoss(firstLossAmt, poolAdmin.address);
+
+      await expect(tx).to.be.revertedWith("Pool: Protocol paused");
+    });
+
     it("reverts if pool is not closed", async () => {
       const { poolController, poolAdmin } = await loadFixture(loadPoolFixture);
 
@@ -707,6 +844,36 @@ describe("PoolController", () => {
       );
     });
 
+    it("reverts if the protocol is paused", async () => {
+      const {
+        pool,
+        poolController,
+        liquidityAsset,
+        otherAccount,
+        borrower,
+        poolAdmin,
+        loan,
+        serviceConfiguration,
+        pauser
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        DEFAULT_LOAN_SETTINGS.principal
+      );
+      await collateralizeLoan(loan, borrower, liquidityAsset);
+
+      // Pause protocol
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      const tx = poolController.connect(poolAdmin).fundLoan(loan.address);
+
+      await expect(tx).to.be.revertedWith("Pool: Protocol paused");
+    });
+
     it("reverts if trying to fund loan with withdrawal-earmarked funds", async () => {
       const {
         pool,
@@ -821,6 +988,39 @@ describe("PoolController", () => {
       await expect(
         poolController.connect(poolAdmin).defaultLoan(loan.address)
       ).to.be.revertedWith("Pool: not active loan");
+    });
+
+    it("reverts if the protocol is paused", async () => {
+      const {
+        collateralAsset,
+        pool,
+        poolAdmin,
+        liquidityAsset,
+        loan,
+        borrower,
+        otherAccount,
+        poolController,
+        serviceConfiguration,
+        pauser
+      } = await loadFixture(loadPoolFixture);
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      // Collateralize loan
+      await collateralizeLoan(loan, borrower, collateralAsset);
+
+      // Deposit to pool and fund loan
+      const loanPrincipal = await loan.principal();
+      await depositToPool(pool, otherAccount, liquidityAsset, loanPrincipal);
+      await fundLoan(loan, poolController, poolAdmin);
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      // Pause protocol
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      // Trigger default
+      await expect(
+        poolController.connect(poolAdmin).defaultLoan(loan.address)
+      ).to.be.revertedWith("Pool: Protocol paused");
     });
 
     it("defaults loan if loan is active, and pool is active", async () => {
@@ -1019,6 +1219,28 @@ describe("PoolController", () => {
       ).to.be.revertedWith("Pool: caller is not admin");
     });
 
+    it("reverts if the protocol is paused", async () => {
+      const {
+        poolController,
+        pool,
+        poolAdmin,
+        liquidityAsset,
+        serviceConfiguration,
+        pauser
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      const { withdrawRequestPeriodDuration } = await pool.settings();
+      await time.increase(withdrawRequestPeriodDuration);
+
+      // Pause protocol
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      await expect(
+        poolController.connect(poolAdmin).crank()
+      ).to.be.revertedWith("Pool: Protocol paused");
+    });
+
     it("cranks the pool", async () => {
       const { poolController, pool, poolAdmin, liquidityAsset } =
         await loadFixture(loadPoolFixture);
@@ -1041,6 +1263,16 @@ describe("PoolController", () => {
 
       const tx = poolController.connect(otherAccount).claimFixedFee();
       await expect(tx).to.be.revertedWith("Pool: caller is not admin");
+    });
+
+    it("reverts if the protocol is paused", async () => {
+      const { poolController, poolAdmin, serviceConfiguration, pauser } =
+        await loadFixture(loadPoolFixtureWithFees);
+
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      const tx = poolController.connect(poolAdmin).claimFixedFee();
+      await expect(tx).to.be.revertedWith("Pool: Protocol paused");
     });
 
     it("cannot claim fees until they're due", async () => {

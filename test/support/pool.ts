@@ -26,6 +26,7 @@ type DeployPoolProps = {
   poolAdmin: any;
   settings?: Partial<typeof DEFAULT_POOL_SETTINGS>;
   liquidityAsset?: MockERC20;
+  pauser?: any;
 };
 
 /**

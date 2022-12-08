@@ -21,6 +21,11 @@ contract ServiceConfiguration is
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
     /**
+     * @dev The Pauser Role
+     */
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+
+    /**
      * @dev The Operator Role
      */
     bytes32 public constant DEPLOYER_ROLE = keccak256("DEPLOYER_ROLE");
@@ -92,6 +97,17 @@ contract ServiceConfiguration is
     }
 
     /**
+     * @dev Require the caller be the pauser
+     */
+    modifier onlyPauser() {
+        require(
+            hasRole(PAUSER_ROLE, msg.sender),
+            "ServiceConfiguration: caller is not a pauser"
+        );
+        _;
+    }
+
+    /**
      * @dev Constructor for the contract, which sets up the default roles and
      * owners.
      */
@@ -120,7 +136,7 @@ contract ServiceConfiguration is
     /**
      * @dev Pause/unpause the protocol.
      */
-    function setPaused(bool paused_) public onlyOperator {
+    function setPaused(bool paused_) public onlyPauser {
         paused = paused_;
         emit ProtocolPaused(paused);
     }

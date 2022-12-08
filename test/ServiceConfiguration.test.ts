@@ -7,7 +7,7 @@ import { getCommonSigners } from "./support/utils";
 
 describe("ServiceConfiguration", () => {
   async function deployFixture() {
-    const { admin, operator, deployer, otherAccount } =
+    const { admin, operator, deployer, pauser, otherAccount } =
       await getCommonSigners();
 
     const { serviceConfiguration } = await deployServiceConfiguration();
@@ -25,6 +25,7 @@ describe("ServiceConfiguration", () => {
     return {
       admin,
       operator,
+      pauser,
       deployer,
       otherAccount,
       serviceConfiguration
@@ -43,18 +44,19 @@ describe("ServiceConfiguration", () => {
   });
 
   describe("setPaused", () => {
-    it("can only be called by the operator", async () => {
-      const { serviceConfiguration, operator, otherAccount } =
-        await loadFixture(deployFixture);
+    it("can only be called by the pauser", async () => {
+      const { serviceConfiguration, pauser, otherAccount } = await loadFixture(
+        deployFixture
+      );
 
       expect(await serviceConfiguration.paused()).to.equal(false);
-      const tx = serviceConfiguration.connect(operator).setPaused(true);
+      const tx = serviceConfiguration.connect(pauser).setPaused(true);
       await expect(tx).not.to.be.reverted;
       expect(await serviceConfiguration.paused()).to.equal(true);
 
       const tx2 = serviceConfiguration.connect(otherAccount).setPaused(true);
       await expect(tx2).to.be.revertedWith(
-        "ServiceConfiguration: caller is not an operator"
+        "ServiceConfiguration: caller is not a pauser"
       );
     });
   });

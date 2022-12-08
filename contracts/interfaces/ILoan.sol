@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.16;
 
+import "./IServiceConfiguration.sol";
 import "../FundingVault.sol";
 
 /**
@@ -172,4 +173,9 @@ interface ILoan {
     function markCallback() external;
 
     function liquidityAsset() external view returns (address);
+
+    function serviceConfiguration()
+        external
+        view
+        returns (IServiceConfiguration);
 }

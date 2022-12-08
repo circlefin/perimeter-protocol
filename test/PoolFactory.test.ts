@@ -13,7 +13,7 @@ import { getCommonSigners } from "./support/utils";
 describe("PoolFactory", () => {
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
-    const { operator, deployer } = await getCommonSigners();
+    const { operator, deployer, pauser } = await getCommonSigners();
 
     // Deploy the liquidity asset
     const { mockERC20: liquidityAsset } = await deployMockERC20();
@@ -62,7 +62,8 @@ describe("PoolFactory", () => {
       deployer,
       poolFactory,
       liquidityAsset,
-      serviceConfiguration
+      serviceConfiguration,
+      pauser
     };
   }
 
@@ -176,6 +177,20 @@ describe("PoolFactory", () => {
     await expect(
       poolFactory.createPool(otherAsset.address, DEFAULT_POOL_SETTINGS)
     ).to.be.revertedWith("PoolFactory: invalid asset");
+  });
+
+  it("reverts if the protocol is paused", async () => {
+    const { poolFactory, liquidityAsset, serviceConfiguration, pauser } =
+      await loadFixture(deployFixture);
+
+    // Pause the protocol
+    await serviceConfiguration.connect(pauser).setPaused(true);
+
+    const tx = poolFactory.createPool(
+      liquidityAsset.address,
+      DEFAULT_POOL_SETTINGS
+    );
+    await expect(tx).to.be.revertedWith("PoolFactory: Protocol paused");
   });
 
   it("emits PoolCreated", async () => {

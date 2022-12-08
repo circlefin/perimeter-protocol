@@ -8,13 +8,9 @@ describe("FeeVault", () => {
   const VAULT_BALANCE = ethers.BigNumber.from(100);
 
   async function deployFixture() {
-    const { operator, admin, poolAdmin, otherAccount } =
-      await getCommonSigners();
+    const { pauser, poolAdmin, otherAccount } = await getCommonSigners();
 
-    const { pool } = await deployPool({
-      operator: operator,
-      poolAdmin: poolAdmin
-    });
+    const { pool } = await deployPool({ poolAdmin });
 
     const FeeVault = await ethers.getContractFactory("FeeVault");
     const feeVault = await FeeVault.deploy(pool.address);
@@ -30,6 +26,7 @@ describe("FeeVault", () => {
       feeVault,
       pool,
       poolAdmin,
+      pauser,
       otherAccount
     };
   }
@@ -66,6 +63,26 @@ describe("FeeVault", () => {
       await expect(
         feeVault.connect(otherAccount).withdraw(asset.address, 50)
       ).to.be.revertedWith("FeeVault: caller not pool admin");
+    });
+
+    it("cannot withdraw when protocol is paused", async () => {
+      const { feeVault, asset, pool, poolAdmin, pauser } = await loadFixture(
+        deployFixture
+      );
+
+      // Pause the protocol
+      const serviceConfiguration = await pool.serviceConfiguration();
+      const ServiceConfiguration = await ethers.getContractFactory(
+        "ServiceConfiguration"
+      );
+      await ServiceConfiguration.attach(serviceConfiguration)
+        .connect(pauser)
+        .setPaused(true);
+
+      // Pull funds from locker
+      const tx = feeVault.connect(poolAdmin).withdraw(asset.address, 50);
+
+      await expect(tx).to.be.revertedWith("FeeVault: Protocol paused");
     });
   });
 });

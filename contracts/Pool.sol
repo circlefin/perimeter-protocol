@@ -27,6 +27,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
     using SafeMath for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
 
+    IServiceConfiguration private _serviceConfiguration;
     IERC20Upgradeable private _liquidityAsset;
     FeeVault private _feeVault;
     IPoolAccountings private _accountings;
@@ -79,6 +80,14 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
     }
 
     /**
+     * @dev Modifier to check that the protocol is not paused
+     */
+    modifier onlyNotPaused() {
+        require(!_serviceConfiguration.paused(), "Pool: Protocol paused");
+        _;
+    }
+
+    /**
      * @dev Modifier that checks that the pool is Initialized or Active
      */
     modifier atState(IPoolLifeCycleState state_) {
@@ -126,6 +135,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
         string memory tokenSymbol
     ) public initializer {
         __ERC20_init(tokenName, tokenSymbol);
+        _serviceConfiguration = IServiceConfiguration(serviceConfiguration);
         _liquidityAsset = IERC20Upgradeable(liquidityAsset);
         _feeVault = new FeeVault(address(this));
 
@@ -148,6 +158,14 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
 
         // Allow the contract to move infinite amount of vault liquidity assets
         _liquidityAsset.safeApprove(address(this), type(uint256).max);
+    }
+
+    function serviceConfiguration()
+        public
+        view
+        returns (IServiceConfiguration)
+    {
+        return _serviceConfiguration;
     }
 
     /**
@@ -229,6 +247,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
      */
     function fundLoan(address addr)
         external
+        onlyNotPaused
         onlyPoolController
         onlyCrankedPool
     {
@@ -361,7 +380,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
         address recipient,
         uint256 fixedFee,
         uint256 fixedFeeInterval
-    ) external onlyPoolController onlyCrankedPool {
+    ) external onlyNotPaused onlyPoolController onlyCrankedPool {
         require(
             _accountings.fixedFeeDueDate < block.timestamp,
             "Pool: fixed fee not due"
@@ -440,6 +459,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
      */
     function requestRedeem(uint256 shares)
         external
+        onlyNotPaused
         onlyActivatedPool
         onlyPermittedLender
         onlyLender
@@ -455,6 +475,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
      */
     function requestWithdraw(uint256 assets)
         external
+        onlyNotPaused
         onlyActivatedPool
         onlyPermittedLender
         onlyLender
@@ -509,6 +530,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
      */
     function cancelRedeemRequest(uint256 shares)
         external
+        onlyNotPaused
         onlyActivatedPool
         onlyPermittedLender
         onlyLender
@@ -528,6 +550,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
      */
     function cancelWithdrawRequest(uint256 assets)
         external
+        onlyNotPaused
         onlyActivatedPool
         onlyPermittedLender
         onlyLender
@@ -565,7 +588,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
     /**
      * @inheritdoc IPool
      */
-    function crank() public virtual {
+    function crank() public virtual onlyNotPaused {
         _crank();
     }
 
@@ -691,6 +714,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
         public
         virtual
         override
+        onlyNotPaused
         atState(IPoolLifeCycleState.Active)
         onlyPermittedLender
         onlyCrankedPool
@@ -750,6 +774,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
         public
         virtual
         override
+        onlyNotPaused
         atState(IPoolLifeCycleState.Active)
         onlyPermittedLender
         onlyCrankedPool
@@ -806,6 +831,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
     )
         public
         virtual
+        onlyNotPaused
         onlyPermittedLender
         onlyCrankedPool
         returns (uint256 shares)
@@ -860,6 +886,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
     )
         public
         virtual
+        onlyNotPaused
         onlyPermittedLender
         onlyCrankedPool
         returns (uint256 assets)

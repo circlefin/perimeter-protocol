@@ -26,6 +26,10 @@ contract FeeVault {
      * @dev Allows withdrawal of fees held by vault.
      */
     function withdraw(address asset, uint256 amount) external onlyPoolAdmin {
+        require(
+            IPool(pool).serviceConfiguration().paused() == false,
+            "FeeVault: Protocol paused"
+        );
         IERC20(asset).safeTransfer(msg.sender, amount);
     }
 }

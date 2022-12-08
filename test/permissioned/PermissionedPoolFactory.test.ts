@@ -15,23 +15,23 @@ import { performVeriteVerification } from "../support/verite";
 describe("PermissionedPoolFactory", () => {
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
-    const { operator, deployer, poolAdmin, otherAccount } =
+    const { operator, deployer, pauser, poolAdmin, otherAccount } =
       await getCommonSigners();
 
     // Deploy the liquidity asset
     const { mockERC20: liquidityAsset } = await deployMockERC20();
 
     // Deploy the Service Configuration contract
-    const { serviceConfiguration: permissionedServiceConfiguration } =
+    const { serviceConfiguration } =
       await deployPermissionedServiceConfiguration();
 
     // Deploy ToS Registry
     const { tosAcceptanceRegistry } = await deployToSAcceptanceRegistry(
-      permissionedServiceConfiguration
+      serviceConfiguration
     );
 
     // Configure ToS
-    await permissionedServiceConfiguration
+    await serviceConfiguration
       .connect(operator)
       .setToSAcceptanceRegistry(tosAcceptanceRegistry.address);
     await tosAcceptanceRegistry
@@ -39,7 +39,7 @@ describe("PermissionedPoolFactory", () => {
       .updateTermsOfService("https://terms.example");
 
     // Add liquidity asset
-    await permissionedServiceConfiguration
+    await serviceConfiguration
       .connect(operator)
       .setLiquidityAsset(liquidityAsset.address, true);
 
@@ -48,7 +48,7 @@ describe("PermissionedPoolFactory", () => {
       "PoolAdminAccessControl"
     );
     const poolAdminAccessControl = await PoolAdminAccessControl.deploy(
-      permissionedServiceConfiguration.address
+      serviceConfiguration.address
     );
     await poolAdminAccessControl.deployed();
 
@@ -61,17 +61,17 @@ describe("PermissionedPoolFactory", () => {
       "PoolAccessControlFactory"
     );
     const poolAccessControlFactory = await PoolAccessControlFactory.deploy(
-      permissionedServiceConfiguration.address
+      serviceConfiguration.address
     );
 
     const withdrawControllerFactory = await deployWithdrawControllerFactory(
       poolLib.address,
-      permissionedServiceConfiguration.address
+      serviceConfiguration.address
     );
 
     const poolControllerFactory = await deployPoolControllerFactory(
       poolLib.address,
-      permissionedServiceConfiguration.address
+      serviceConfiguration.address
     );
 
     // Deploy the PermissionedPoolFactory
@@ -79,7 +79,7 @@ describe("PermissionedPoolFactory", () => {
       "PermissionedPoolFactory"
     );
     const poolFactory = await PoolFactory.deploy(
-      permissionedServiceConfiguration.address,
+      serviceConfiguration.address,
       withdrawControllerFactory.address,
       poolControllerFactory.address,
       poolAccessControlFactory.address
@@ -102,7 +102,7 @@ describe("PermissionedPoolFactory", () => {
       .setImplementation(permissionedPoolImpl.address);
 
     // Initialize ServiceConfiguration
-    const tx = await permissionedServiceConfiguration
+    const tx = await serviceConfiguration
       .connect(operator)
       .setPoolAdminAccessControl(poolAdminAccessControl.address);
     await tx.wait();
@@ -111,9 +111,11 @@ describe("PermissionedPoolFactory", () => {
       poolFactory,
       poolAdminAccessControl,
       operator,
+      pauser,
       poolAdmin,
       otherAccount,
       liquidityAsset,
+      serviceConfiguration,
       tosAcceptanceRegistry
     };
   }
@@ -167,6 +169,34 @@ describe("PermissionedPoolFactory", () => {
         .connect(otherAccount)
         .createPool(liquidityAsset.address, DEFAULT_POOL_SETTINGS)
     ).to.be.revertedWith("CALLER_NOT_ADMIN");
+  });
+
+  it("reverts if the protocol is paused", async () => {
+    const {
+      operator,
+      poolFactory,
+      poolAdminAccessControl,
+      poolAdmin,
+      liquidityAsset,
+      tosAcceptanceRegistry,
+      serviceConfiguration,
+      pauser
+    } = await loadFixture(deployFixture);
+
+    await tosAcceptanceRegistry.connect(poolAdmin).acceptTermsOfService();
+    await performVeriteVerification(
+      poolAdminAccessControl,
+      operator,
+      poolAdmin
+    );
+
+    // Pause the protocol
+    await serviceConfiguration.connect(pauser).setPaused(true);
+
+    const tx = poolFactory
+      .connect(poolAdmin)
+      .createPool(liquidityAsset.address, DEFAULT_POOL_SETTINGS);
+    await expect(tx).to.be.revertedWith("PoolFactory: Protocol paused");
   });
 
   it("access control reverts if PM hasn't accepted ToS", async () => {

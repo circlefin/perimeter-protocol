@@ -2,6 +2,7 @@
 pragma solidity ^0.8.16;
 
 import "./IERC4626.sol";
+import "./IServiceConfiguration.sol";
 import "../controllers/interfaces/IPoolController.sol";
 import "../controllers/interfaces/IWithdrawController.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -73,6 +74,14 @@ interface IPool is IERC4626 {
      * @dev The WithdrawController contract
      */
     function withdrawController() external view returns (IWithdrawController);
+
+    /**
+     * @dev The ServiceConfiguration.
+     */
+    function serviceConfiguration()
+        external
+        view
+        returns (IServiceConfiguration);
 
     /**
      * @dev The current configurable pool settings.

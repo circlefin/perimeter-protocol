@@ -19,11 +19,22 @@ contract PoolController is IPoolController, IBeaconImplementation {
 
     IPool public pool;
     address public admin;
-    address private _serviceConfiguration;
+    address public serviceConfiguration;
     IPoolConfigurableSettings private _settings;
     IPoolLifeCycleState private _state;
     FirstLossVault private _firstLossVault;
     IERC20 private _liquidityAsset;
+
+    /**
+     * @dev Modifier that checks that the protocol is not paused.
+     */
+    modifier onlyNotPaused() {
+        require(
+            IServiceConfiguration(serviceConfiguration).paused() == false,
+            "Pool: Protocol paused"
+        );
+        _;
+    }
 
     /**
      * @dev Modifier that checks that the caller is the pool's admin.
@@ -78,7 +89,7 @@ contract PoolController is IPoolController, IBeaconImplementation {
      */
     modifier isPoolLoan(address loan) {
         require(
-            PoolLib.isPoolLoan(loan, _serviceConfiguration, address(pool)),
+            PoolLib.isPoolLoan(loan, serviceConfiguration, address(pool)),
             "Pool: invalid loan"
         );
         _;
@@ -99,7 +110,7 @@ contract PoolController is IPoolController, IBeaconImplementation {
         address liquidityAsset_,
         IPoolConfigurableSettings memory poolSettings_
     ) public initializer {
-        _serviceConfiguration = serviceConfiguration_;
+        serviceConfiguration = serviceConfiguration_;
         pool = IPool(pool_);
 
         admin = admin_;
@@ -132,6 +143,7 @@ contract PoolController is IPoolController, IBeaconImplementation {
      */
     function setRequestFee(uint256 feeBps)
         external
+        onlyNotPaused
         onlyAdmin
         atState(IPoolLifeCycleState.Initialized)
     {
@@ -158,6 +170,7 @@ contract PoolController is IPoolController, IBeaconImplementation {
      */
     function setRequestCancellationFee(uint256 feeBps)
         external
+        onlyNotPaused
         onlyAdmin
         atState(IPoolLifeCycleState.Initialized)
     {
@@ -184,6 +197,7 @@ contract PoolController is IPoolController, IBeaconImplementation {
      */
     function setWithdrawGate(uint256 _withdrawGateBps)
         external
+        onlyNotPaused
         onlyAdmin
         atInitializedOrActiveState
     {
@@ -218,7 +232,11 @@ contract PoolController is IPoolController, IBeaconImplementation {
     /**
      * @inheritdoc IPoolController
      */
-    function setPoolCapacity(uint256 newCapacity) external onlyAdmin {
+    function setPoolCapacity(uint256 newCapacity)
+        external
+        onlyNotPaused
+        onlyAdmin
+    {
         require(newCapacity >= pool.totalAssets(), "Pool: invalid capacity");
         _settings.maxCapacity = newCapacity;
         emit PoolSettingsUpdated();
@@ -227,7 +245,7 @@ contract PoolController is IPoolController, IBeaconImplementation {
     /**
      * @inheritdoc IPoolController
      */
-    function setPoolEndDate(uint256 endDate) external onlyAdmin {
+    function setPoolEndDate(uint256 endDate) external onlyNotPaused onlyAdmin {
         require(_settings.endDate > endDate, "Pool: can't move end date up");
         require(
             endDate > block.timestamp,
@@ -254,7 +272,11 @@ contract PoolController is IPoolController, IBeaconImplementation {
     /**
      * @inheritdoc IPoolController
      */
-    function setServiceFeeBps(uint256 serviceFeeBps) external onlyAdmin {
+    function setServiceFeeBps(uint256 serviceFeeBps)
+        external
+        onlyNotPaused
+        onlyAdmin
+    {
         require(serviceFeeBps <= 10000, "Pool: invalid service fee");
         _settings.serviceFeeBps = serviceFeeBps;
         emit PoolSettingsUpdated();
@@ -263,7 +285,11 @@ contract PoolController is IPoolController, IBeaconImplementation {
     /**
      * @inheritdoc IPoolController
      */
-    function setFixedFee(uint256 amount, uint256 interval) external onlyAdmin {
+    function setFixedFee(uint256 amount, uint256 interval)
+        external
+        onlyNotPaused
+        onlyAdmin
+    {
         if (amount > 0) {
             require(interval > 0, "Pool: invalid fixed fee");
         }
@@ -336,6 +362,7 @@ contract PoolController is IPoolController, IBeaconImplementation {
      */
     function depositFirstLoss(uint256 amount, address spender)
         external
+        onlyNotPaused
         onlyAdmin
         atInitializedOrActiveState
     {
@@ -365,6 +392,7 @@ contract PoolController is IPoolController, IBeaconImplementation {
      */
     function withdrawFirstLoss(uint256 amount, address receiver)
         external
+        onlyNotPaused
         onlyAdmin
         atState(IPoolLifeCycleState.Closed)
         returns (uint256)
@@ -392,6 +420,7 @@ contract PoolController is IPoolController, IBeaconImplementation {
      */
     function fundLoan(address addr)
         external
+        onlyNotPaused
         onlyAdmin
         atState(IPoolLifeCycleState.Active)
         isPoolLoan(addr)
@@ -404,6 +433,7 @@ contract PoolController is IPoolController, IBeaconImplementation {
      */
     function defaultLoan(address loan)
         external
+        onlyNotPaused
         onlyAdmin
         atActiveOrClosedState
         onlyCrankedPool
@@ -423,7 +453,7 @@ contract PoolController is IPoolController, IBeaconImplementation {
                 Fees
     //////////////////////////////////////////////////////////////*/
 
-    function claimFixedFee() external onlyAdmin {
+    function claimFixedFee() external onlyNotPaused onlyAdmin {
         pool.claimFixedFee(
             msg.sender,
             _settings.fixedFee,
@@ -435,7 +465,7 @@ contract PoolController is IPoolController, IBeaconImplementation {
                 Crank
     //////////////////////////////////////////////////////////////*/
 
-    function crank() external override onlyAdmin {
+    function crank() external override onlyNotPaused onlyAdmin {
         pool.crank();
     }
 }

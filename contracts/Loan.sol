@@ -40,6 +40,17 @@ contract Loan is ILoan, IBeaconImplementation {
     event FundsReclaimed(uint256 amount, address pool);
 
     /**
+     * @dev Modifier that requires the protocol not be paused.
+     */
+    modifier onlyNotPaused() {
+        require(
+            IServiceConfiguration(_serviceConfiguration).paused() == false,
+            "Loan: Protocol paused"
+        );
+        _;
+    }
+
+    /**
      * @dev Modifier that requires the Loan be in the given `state_`
      */
     modifier atState(ILoanLifeCycleState state_) {
@@ -153,6 +164,7 @@ contract Loan is ILoan, IBeaconImplementation {
      */
     function cancelRequested()
         external
+        onlyNotPaused
         onlyBorrower
         atState(ILoanLifeCycleState.Requested)
         returns (ILoanLifeCycleState)
@@ -166,6 +178,7 @@ contract Loan is ILoan, IBeaconImplementation {
      */
     function cancelCollateralized()
         external
+        onlyNotPaused
         onlyPermittedBorrower
         onlyBorrower
         atState(ILoanLifeCycleState.Collateralized)
@@ -186,6 +199,7 @@ contract Loan is ILoan, IBeaconImplementation {
     function cancelFunded()
         external
         override
+        onlyNotPaused
         atState(ILoanLifeCycleState.Funded)
         returns (ILoanLifeCycleState)
     {
@@ -214,7 +228,7 @@ contract Loan is ILoan, IBeaconImplementation {
     function claimCollateral(
         address[] memory assets,
         ILoanNonFungibleCollateral[] memory nonFungibleAssets
-    ) external override {
+    ) external override onlyNotPaused {
         require(
             (_state == ILoanLifeCycleState.Canceled &&
                 msg.sender == _borrower) ||
@@ -238,6 +252,7 @@ contract Loan is ILoan, IBeaconImplementation {
     function postFungibleCollateral(address asset, uint256 amount)
         external
         virtual
+        onlyNotPaused
         onlyPermittedBorrower
         onlyBorrower
         onlyNonTerminalState
@@ -264,6 +279,7 @@ contract Loan is ILoan, IBeaconImplementation {
     function postNonFungibleCollateral(address asset, uint256 tokenId)
         external
         virtual
+        onlyNotPaused
         onlyPermittedBorrower
         onlyBorrower
         onlyNonTerminalState
@@ -308,7 +324,7 @@ contract Loan is ILoan, IBeaconImplementation {
     /**
      * @dev Pool administrators can reclaim funds in open term loans.
      */
-    function reclaimFunds(uint256 amount) external onlyPoolAdmin {
+    function reclaimFunds(uint256 amount) external onlyNotPaused onlyPoolAdmin {
         require(settings.loanType == ILoanType.Open);
 
         fundingVault.withdraw(amount, _pool);
@@ -323,6 +339,7 @@ contract Loan is ILoan, IBeaconImplementation {
     function drawdown(uint256 amount)
         external
         virtual
+        onlyNotPaused
         onlyPermittedBorrower
         onlyBorrower
         returns (uint256)
@@ -346,6 +363,7 @@ contract Loan is ILoan, IBeaconImplementation {
      */
     function paydownPrincipal(uint256 amount)
         external
+        onlyNotPaused
         onlyPermittedBorrower
         onlyBorrower
     {
@@ -360,6 +378,7 @@ contract Loan is ILoan, IBeaconImplementation {
      */
     function completeNextPayment()
         external
+        onlyNotPaused
         onlyPermittedBorrower
         onlyBorrower
         atState(ILoanLifeCycleState.Active)
@@ -420,6 +439,7 @@ contract Loan is ILoan, IBeaconImplementation {
      */
     function completeFullPayment()
         external
+        onlyNotPaused
         onlyPermittedBorrower
         onlyBorrower
         atState(ILoanLifeCycleState.Active)
@@ -496,7 +516,7 @@ contract Loan is ILoan, IBeaconImplementation {
     /**
      * @inheritdoc ILoan
      */
-    function markCallback() external override onlyPoolAdmin {
+    function markCallback() external override onlyNotPaused onlyPoolAdmin {
         callbackTimestamp = block.timestamp;
     }
 
@@ -538,5 +558,13 @@ contract Loan is ILoan, IBeaconImplementation {
 
     function loanType() external view returns (ILoanType) {
         return settings.loanType;
+    }
+
+    function serviceConfiguration()
+        external
+        view
+        returns (IServiceConfiguration)
+    {
+        return _serviceConfiguration;
     }
 }
