@@ -3,15 +3,13 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { deployMockERC20 } from "../support/erc20";
 import { deployPermissionedPool, DEFAULT_POOL_SETTINGS } from "../support/pool";
-import { DEFAULT_LOAN_SETTINGS, deployPermissionedLoan } from "../support/loan";
-import { deployPermissionedServiceConfiguration } from "../support/serviceconfiguration";
-import { deployToSAcceptanceRegistry } from "../support/tosacceptanceregistry";
+import { DEFAULT_LOAN_SETTINGS } from "../support/loan";
 import { findEventByName, getCommonSigners } from "../support/utils";
 
 describe("PermissionedLoanFactory", () => {
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
-    const { operator, poolAdmin, borrower, otherAccounts, deployer } =
+    const { operator, poolAdmin, borrower, deployer } =
       await getCommonSigners();
 
     // Deploy the liquidity asset

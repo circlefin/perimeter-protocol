@@ -21,7 +21,7 @@ describe("Open Term Defaulted Loan Scenario", () => {
   };
 
   async function loadFixtures() {
-    const [operator, poolAdmin, lender, borrower] = await ethers.getSigners();
+    const [poolAdmin, lender, borrower] = await ethers.getSigners();
 
     const poolSettings = {
       ...DEFAULT_POOL_SETTINGS,
@@ -29,7 +29,6 @@ describe("Open Term Defaulted Loan Scenario", () => {
     };
     const { mockERC20 } = await deployMockERC20();
     const { pool, serviceConfiguration, poolController } = await deployPool({
-      operator,
       poolAdmin: poolAdmin,
       settings: poolSettings,
       liquidityAsset: mockERC20
@@ -74,15 +73,8 @@ describe("Open Term Defaulted Loan Scenario", () => {
   }
 
   it("Calculates outstanding loan principal", async () => {
-    const {
-      pool,
-      poolController,
-      lender,
-      mockERC20,
-      poolAdmin,
-      borrower,
-      loan
-    } = await loadFixture(loadFixtures);
+    const { pool, poolController, lender, poolAdmin, borrower, loan } =
+      await loadFixture(loadFixtures);
 
     await pool.connect(lender).deposit(INPUTS.lenderDeposit, lender.address);
 
@@ -94,9 +86,7 @@ describe("Open Term Defaulted Loan Scenario", () => {
 
     // default loan
     await loan.connect(borrower).drawdown((await loan.principal()).div(2)); // drawdown half
-    const txn = await poolController
-      .connect(poolAdmin)
-      .defaultLoan(loan.address);
+    await poolController.connect(poolAdmin).defaultLoan(loan.address);
 
     // check that outstanding principal goes down to 500k
     expect((await pool.accountings()).outstandingLoanPrincipals).to.equal(

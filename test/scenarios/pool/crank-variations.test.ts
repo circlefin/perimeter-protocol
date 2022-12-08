@@ -264,10 +264,8 @@ describe("Crank Variations", () => {
     const {
       pool,
       aliceLender,
-      bobLender,
       liquidityAsset,
       poolAdmin,
-      withdrawRequestPeriodDuration,
       withdrawController,
       poolController
     } = await loadFixture(loadPoolFixture);
