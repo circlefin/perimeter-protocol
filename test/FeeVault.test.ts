@@ -10,7 +10,7 @@ describe("FeeVault", () => {
   async function deployFixture() {
     const { pauser, poolAdmin, otherAccount } = await getCommonSigners();
 
-    const { pool } = await deployPool({ poolAdmin });
+    const { pool, serviceConfiguration } = await deployPool({ poolAdmin });
 
     const FeeVault = await ethers.getContractFactory("FeeVault");
     const feeVault = await FeeVault.deploy(pool.address);
@@ -27,7 +27,8 @@ describe("FeeVault", () => {
       pool,
       poolAdmin,
       pauser,
-      otherAccount
+      otherAccount,
+      serviceConfiguration
     };
   }
 
@@ -41,9 +42,7 @@ describe("FeeVault", () => {
 
   describe("withdraw()", async () => {
     it("pool admin can withdraw amounts", async () => {
-      const { feeVault, asset, pool, poolAdmin } = await loadFixture(
-        deployFixture
-      );
+      const { feeVault, asset, poolAdmin } = await loadFixture(deployFixture);
 
       const amount = 50;
 
@@ -66,18 +65,11 @@ describe("FeeVault", () => {
     });
 
     it("cannot withdraw when protocol is paused", async () => {
-      const { feeVault, asset, pool, poolAdmin, pauser } = await loadFixture(
-        deployFixture
-      );
+      const { feeVault, asset, poolAdmin, pauser, serviceConfiguration } =
+        await loadFixture(deployFixture);
 
       // Pause the protocol
-      const serviceConfiguration = await pool.serviceConfiguration();
-      const ServiceConfiguration = await ethers.getContractFactory(
-        "ServiceConfiguration"
-      );
-      await ServiceConfiguration.attach(serviceConfiguration)
-        .connect(pauser)
-        .setPaused(true);
+      await serviceConfiguration.connect(pauser).setPaused(true);
 
       // Pull funds from locker
       const tx = feeVault.connect(poolAdmin).withdraw(asset.address, 50);
