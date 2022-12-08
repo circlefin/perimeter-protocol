@@ -84,6 +84,7 @@ contract PoolAccessControl is
 
         _pool = IPool(pool);
         _tosRegistry = IToSAcceptanceRegistry(tosAcceptanceRegistry);
+        __EIP712_init("VerificationRegistry", "1.0");
     }
 
     /**

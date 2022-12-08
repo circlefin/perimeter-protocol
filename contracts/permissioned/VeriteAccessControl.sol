@@ -2,8 +2,8 @@
 pragma solidity ^0.8.16;
 
 import "./interfaces/IVeriteAccessControl.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
+import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol";
 
 /**
  * @title The VeriteAccessControl contract
@@ -12,10 +12,8 @@ import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
  * Other contracts should inherit this contract to add Verite-specific
  * access control logic.
  */
-abstract contract VeriteAccessControl is
-    IVeriteAccessControl,
-    EIP712("VerificationRegistry", "1.0")
-{
+
+contract VeriteAccessControl is IVeriteAccessControl, EIP712Upgradeable {
     /**
      * @dev A mapping of allowed verifiers
      */
@@ -76,10 +74,9 @@ abstract contract VeriteAccessControl is
     /**
      * @inheritdoc IVeriteAccessControl
      */
-    function addCredentialSchema(string calldata schema)
-        external
-        onlyVeriteAdmin
-    {
+    function addCredentialSchema(
+        string calldata schema
+    ) external onlyVeriteAdmin {
         _supportedCredentialSchemas[schema] = true;
 
         emit CredentialSchemaAdded(schema);
@@ -88,10 +85,9 @@ abstract contract VeriteAccessControl is
     /**
      * @inheritdoc IVeriteAccessControl
      */
-    function removeCredentialSchema(string calldata schema)
-        external
-        onlyVeriteAdmin
-    {
+    function removeCredentialSchema(
+        string calldata schema
+    ) external onlyVeriteAdmin {
         delete _supportedCredentialSchemas[schema];
 
         emit CredentialSchemaRemoved(schema);
@@ -146,7 +142,7 @@ abstract contract VeriteAccessControl is
         );
 
         // recover the public address corresponding to the signature and regenerated hash
-        address signerAddress = ECDSA.recover(digest, signature);
+        address signerAddress = ECDSAUpgradeable.recover(digest, signature);
 
         // ensure the verifier is registered
         require(_trustedVerifiers[signerAddress], "INVALID_SIGNER");
