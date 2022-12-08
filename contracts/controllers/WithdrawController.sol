@@ -242,10 +242,11 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
         view
         returns (uint256 assets)
     {
-        assets = PoolLib.calculateConversion(
+        IPoolWithdrawState memory withdrawState = _currentWithdrawState(owner);
+        assets = PoolLib.calculateAssetsFromShares(
             shares,
-            _currentWithdrawState(owner).withdrawableAssets,
-            _currentWithdrawState(owner).redeemableShares,
+            withdrawState.withdrawableAssets,
+            withdrawState.redeemableShares,
             false
         );
     }
@@ -259,7 +260,7 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
         returns (uint256 shares)
     {
         IPoolWithdrawState memory withdrawState = _currentWithdrawState(owner);
-        shares = PoolLib.calculateConversion(
+        shares = PoolLib.calculateSharesFromAssets(
             assets,
             withdrawState.redeemableShares,
             withdrawState.withdrawableAssets,
@@ -517,7 +518,7 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
         IPoolWithdrawState memory state = crankLender(owner);
 
         // Calculate how many assets should be transferred
-        assets = PoolLib.calculateConversion(
+        assets = PoolLib.calculateAssetsFromShares(
             shares,
             state.withdrawableAssets,
             state.redeemableShares,
@@ -538,7 +539,7 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
         IPoolWithdrawState memory state = crankLender(owner);
 
         // Calculate how many shares should be burned
-        shares = PoolLib.calculateConversion(
+        shares = PoolLib.calculateSharesFromAssets(
             assets,
             state.redeemableShares,
             state.withdrawableAssets,

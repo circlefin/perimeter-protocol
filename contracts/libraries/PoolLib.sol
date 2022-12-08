@@ -225,7 +225,7 @@ library PoolLib {
         uint256 numerator,
         uint256 denominator,
         bool roundUp
-    ) external pure returns (uint256 output) {
+    ) public pure returns (uint256 output) {
         if (numerator == 0 || denominator == 0) {
             return input;
         }
@@ -236,6 +236,49 @@ library PoolLib {
         } else {
             return rate.mul(input).div(RAY);
         }
+    }
+
+    /**
+     * @dev Calculates the exchange rate for converting assets to shares
+     */
+    function calculateSharesFromAssets(
+        uint256 assets,
+        uint256 totalShares,
+        uint256 totalAssets,
+        bool roundUp
+    ) external pure returns (uint256) {
+        require(isSolvent(totalAssets, totalShares), "POOL_INSOLVENT");
+
+        return calculateConversion(assets, totalShares, totalAssets, roundUp);
+    }
+
+    /**
+     * @dev Calculates the exchange rate for converting shares to assets
+     */
+    function calculateAssetsFromShares(
+        uint256 shares,
+        uint256 totalAssets,
+        uint256 totalShares,
+        bool roundUp
+    ) external pure returns (uint256) {
+        require(isSolvent(totalAssets, totalShares), "POOL_INSOLVENT");
+
+        return calculateConversion(shares, totalAssets, totalShares, roundUp);
+    }
+
+    /**
+     * @dev Private method to determine if a pool is solvent given
+     * the parameters.
+     *
+     * If the pool has assets, it is solvent. If no assets are available,
+     * but no shares have been issued, it is solvent. Otherwise, it is insolvent.
+     */
+    function isSolvent(uint256 totalAssets, uint256 totalShares)
+        private
+        pure
+        returns (bool)
+    {
+        return totalAssets > 0 || totalShares == 0;
     }
 
     /**

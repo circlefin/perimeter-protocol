@@ -638,15 +638,14 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         public
         view
         override
-        returns (uint256)
+        returns (uint256 shares)
     {
-        return
-            PoolLib.calculateConversion(
-                assets,
-                totalAvailableSupply(),
-                totalAvailableAssets(),
-                false
-            );
+        shares = PoolLib.calculateSharesFromAssets(
+            assets,
+            totalAvailableSupply(),
+            totalAvailableAssets(),
+            false
+        );
     }
 
     /**
@@ -657,15 +656,14 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         public
         view
         override
-        returns (uint256)
+        returns (uint256 assets)
     {
-        return
-            PoolLib.calculateConversion(
-                shares,
-                totalAvailableAssets(),
-                totalAvailableSupply(),
-                false
-            );
+        assets = PoolLib.calculateAssetsFromShares(
+            shares,
+            totalAvailableAssets(),
+            totalAvailableSupply(),
+            false
+        );
     }
 
     /**
@@ -694,16 +692,15 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         public
         view
         override
-        returns (uint256)
+        returns (uint256 shares)
     {
-        return
-            PoolLib.calculateConversion(
-                assets,
-                totalAvailableSupply(),
-                totalAvailableAssets() +
-                    PoolLib.calculateExpectedInterest(_activeLoans),
-                false
-            );
+        shares = PoolLib.calculateSharesFromAssets(
+            assets,
+            totalAvailableSupply(),
+            totalAvailableAssets() +
+                PoolLib.calculateExpectedInterest(_activeLoans),
+            false
+        );
     }
 
     /**
@@ -756,14 +753,13 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         override
         returns (uint256 assets)
     {
-        return
-            PoolLib.calculateConversion(
-                shares,
-                totalAvailableAssets() +
-                    PoolLib.calculateExpectedInterest(_activeLoans),
-                totalAvailableSupply(),
-                true
-            );
+        assets = PoolLib.calculateAssetsFromShares(
+            shares,
+            totalAvailableAssets() +
+                PoolLib.calculateExpectedInterest(_activeLoans),
+            totalAvailableSupply(),
+            true
+        );
     }
 
     /**
