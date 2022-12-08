@@ -71,7 +71,18 @@ contract PoolAccessControl is
     }
 
     /**
-     * @dev The initializer for the PoolAccessControl contract
+     * @dev Modifier that requires the protocol not be paused.
+     */
+    modifier onlyNotPaused() {
+        require(
+            !_pool.serviceConfiguration().paused(),
+            "PoolAccessControl: Protocol paused"
+        );
+        _;
+    }
+
+    /**
+     * @dev The constructor for the PoolAccessControl contract
      */
     function initialize(address pool, address tosAcceptanceRegistry)
         public
@@ -99,7 +110,11 @@ contract PoolAccessControl is
      *
      * Emits an {AllowedParticipantListUpdated} event.
      */
-    function allowParticipant(address addr) external onlyPoolAdmin {
+    function allowParticipant(address addr)
+        external
+        onlyNotPaused
+        onlyPoolAdmin
+    {
         require(
             _tosRegistry.hasAccepted(addr),
             "Pool: participant not accepted ToS"
@@ -113,8 +128,43 @@ contract PoolAccessControl is
      *
      * Emits an {AllowedParticipantListUpdated} event.
      */
-    function removeParticipant(address addr) external onlyPoolAdmin {
+    function removeParticipant(address addr)
+        external
+        onlyNotPaused
+        onlyPoolAdmin
+    {
         delete _allowedParticipants[addr];
         emit ParticipantRemoved(addr);
+    }
+
+    function addTrustedVerifier(address addr) public override onlyNotPaused {
+        super.addTrustedVerifier(addr);
+    }
+
+    function removeTrustedVerifier(address addr) public override onlyNotPaused {
+        super.removeTrustedVerifier(addr);
+    }
+
+    function addCredentialSchema(string calldata schema)
+        public
+        override
+        onlyNotPaused
+    {
+        super.addCredentialSchema(schema);
+    }
+
+    function removeCredentialSchema(string calldata schema)
+        public
+        override
+        onlyNotPaused
+    {
+        super.removeCredentialSchema(schema);
+    }
+
+    function verify(
+        VerificationResult memory verificationResult,
+        bytes memory signature
+    ) public override onlyNotPaused {
+        super.verify(verificationResult, signature);
     }
 }
