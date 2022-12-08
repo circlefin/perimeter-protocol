@@ -3,8 +3,12 @@ pragma solidity ^0.8.16;
 
 import "./interfaces/IToSAcceptanceRegistry.sol";
 import "../interfaces/IServiceConfiguration.sol";
+import "../upgrades/DeployerUUPSUpgradeable.sol";
 
-contract ToSAcceptanceRegistry is IToSAcceptanceRegistry {
+contract ToSAcceptanceRegistry is
+    IToSAcceptanceRegistry,
+    DeployerUUPSUpgradeable
+{
     /**
      * @inheritdoc IToSAcceptanceRegistry
      */
@@ -21,20 +25,21 @@ contract ToSAcceptanceRegistry is IToSAcceptanceRegistry {
     bool private _termsSet;
 
     /**
-     * @dev ServiceConfiguration
-     */
-    IServiceConfiguration private _serviceConfig;
-
-    /**
      * @dev Restricts caller to ServiceOperator
      */
     modifier onlyOperator() {
-        require(_serviceConfig.isOperator(msg.sender), "ToS: not operator");
+        require(
+            _serviceConfiguration.isOperator(msg.sender),
+            "ToS: not operator"
+        );
         _;
     }
 
-    constructor(address serviceConfiguration) {
-        _serviceConfig = IServiceConfiguration(serviceConfiguration);
+    /**
+     * @dev Initializer for the ToSAcceptanceRegistry
+     */
+    function initialize(address serviceConfiguration) public initializer {
+        _serviceConfiguration = IServiceConfiguration(serviceConfiguration);
     }
 
     /**
