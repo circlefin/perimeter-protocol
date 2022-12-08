@@ -7,15 +7,11 @@ import "../../upgrades/BeaconImplementation.sol";
  * @dev Simulated new Loan implementation
  */
 contract MockBeaconImplementation is BeaconImplementation {
-    event InitializedCalled();
-
     function foo() external pure virtual returns (string memory) {
         return "bar";
     }
 
-    function initialize() public initializer {
-        emit InitializedCalled();
-    }
+    function initialize() public initializer {}
 }
 
 contract MockBeaconImplementationV2 is MockBeaconImplementation {

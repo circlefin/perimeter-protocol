@@ -9,6 +9,6 @@ contract MockVeriteAccessControl is
     DeployerUUPSUpgradeable
 {
     function initialize() public initializer {
-        __EIP712_init("VerificationRegistry", "1.0");
+        __VeriteAccessControl__init();
     }
 }

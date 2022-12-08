@@ -57,7 +57,7 @@ contract PoolAdminAccessControl is
 
         require(address(_tosRegistry) != address(0), "INVALID_TOS_REGISTRY");
 
-        __EIP712_init("VerificationRegistry", "1.0");
+        __VeriteAccessControl__init();
     }
 
     /**

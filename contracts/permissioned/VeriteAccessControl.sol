@@ -102,6 +102,10 @@ abstract contract VeriteAccessControl is
                 Verification
     //////////////////////////////////////////////////////////////*/
 
+    function __VeriteAccessControl__init() internal onlyInitializing {
+        __EIP712_init("VerificationRegistry", "1.0");
+    }
+
     /**
      * @dev Check if an address is verified
      */
