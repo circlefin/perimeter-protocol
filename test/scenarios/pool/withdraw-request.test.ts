@@ -99,7 +99,7 @@ describe("Withdraw Requests", () => {
         (100 /* initial balance */ -
           50 /* requested */ -
           5) /* previous request fee */ *
-        0.9 /* sub the request fee */
+          0.9 /* sub the request fee */
       )
     );
     expect(await pool.maxWithdrawRequest(aliceLender.address)).to.equal(41);
@@ -110,7 +110,7 @@ describe("Withdraw Requests", () => {
         (70 /* initial balance */ -
           10 /* requested */ -
           1) /* previous request fee */ *
-        0.9 /* sub the request fee */
+          0.9 /* sub the request fee */
       )
     );
     expect(await pool.maxWithdrawRequest(bobLender.address)).to.equal(54);
