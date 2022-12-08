@@ -79,7 +79,7 @@ describe("Withdraw Requests", () => {
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(0);
     expect(await pool.maxWithdraw(aliceLender.address)).to.equal(0);
 
-    // Verify Bob's withdrawal state is still 0
+    // Verify Bob's withdrawal state is updated
     expect(
       await withdrawController.requestedBalanceOf(bobLender.address)
     ).to.equal(10);
@@ -90,14 +90,12 @@ describe("Withdraw Requests", () => {
     expect(await pool.maxWithdraw(bobLender.address)).to.equal(0);
 
     // Verify the Global withdrawal state is updated
-    // Only Alice's 50 withdrawal is registered
     expect(await withdrawController.totalRequestedBalance()).to.equal(60);
     expect(await withdrawController.totalEligibleBalance()).to.equal(0);
     expect(await withdrawController.totalRedeemableShares()).to.equal(0);
     expect(await withdrawController.totalWithdrawableAssets()).to.equal(0);
 
     // Expect Alice's maxWithdrawRequest amounts have decreased
-    // Alice has 45 tokens not earmarked, so she can maximally request 40 tokens
     expect(await pool.maxRedeemRequest(aliceLender.address)).to.equal(
       Math.floor(
         (100 /* initial balance */ -
@@ -112,9 +110,9 @@ describe("Withdraw Requests", () => {
     expect(await pool.maxRedeemRequest(bobLender.address)).to.equal(
       Math.floor(
         (70 /* initial balance */ -
-          10 /* 10 previously requested */ -
-          1) /* 1 fee paid previously */ *
-          0.9 /* less the fee */
+          10 /* requested */ -
+          1) /* previous request fee */ *
+          0.9 /* sub the request fee */
       )
     );
     expect(await pool.maxWithdrawRequest(bobLender.address)).to.equal(54);
@@ -138,7 +136,9 @@ describe("Withdraw Requests", () => {
 
     // verify the global state is updated
     expect(await withdrawController.totalRequestedBalance()).to.equal(0);
-    expect(await withdrawController.totalEligibleBalance()).to.equal(20);
+    expect(await withdrawController.totalEligibleBalance()).to.equal(
+      20
+    ); /* 60 - 40 */
 
     // verify Alice's state is updated
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(
@@ -147,7 +147,9 @@ describe("Withdraw Requests", () => {
     expect(await pool.maxWithdraw(aliceLender.address)).to.equal(34);
 
     // verify Bob's state is updated
-    expect(await pool.maxRedeem(bobLender.address)).to.equal(6);
+    expect(await pool.maxRedeem(bobLender.address)).to.equal(
+      6
+    ); /* 10 * (41/60) */
     expect(await pool.maxWithdraw(bobLender.address)).to.equal(6);
 
     // Cancel a request
