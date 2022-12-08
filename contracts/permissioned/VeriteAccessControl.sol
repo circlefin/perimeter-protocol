@@ -68,9 +68,11 @@ abstract contract VeriteAccessControl is
     /**
      * @inheritdoc IVeriteAccessControl
      */
-    function removeTrustedVerifier(
-        address addr
-    ) public virtual onlyVeriteAdmin {
+    function removeTrustedVerifier(address addr)
+        public
+        virtual
+        onlyVeriteAdmin
+    {
         delete _trustedVerifiers[addr];
 
         emit TrustedVerifierRemoved(addr);
@@ -79,9 +81,11 @@ abstract contract VeriteAccessControl is
     /**
      * @inheritdoc IVeriteAccessControl
      */
-    function addCredentialSchema(
-        string calldata schema
-    ) public virtual onlyVeriteAdmin {
+    function addCredentialSchema(string calldata schema)
+        public
+        virtual
+        onlyVeriteAdmin
+    {
         _supportedCredentialSchemas[schema] = true;
 
         emit CredentialSchemaAdded(schema);
@@ -90,9 +94,11 @@ abstract contract VeriteAccessControl is
     /**
      * @inheritdoc IVeriteAccessControl
      */
-    function removeCredentialSchema(
-        string calldata schema
-    ) public virtual onlyVeriteAdmin {
+    function removeCredentialSchema(string calldata schema)
+        public
+        virtual
+        onlyVeriteAdmin
+    {
         delete _supportedCredentialSchemas[schema];
 
         emit CredentialSchemaRemoved(schema);
