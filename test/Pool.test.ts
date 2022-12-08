@@ -721,8 +721,8 @@ describe("Pool", () => {
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
         const max = await pool.maxRedeemRequest(otherAccount.address);
 
-        expect(await pool.connect(otherAccount).requestRedeem(max))
-          .to.emit(pool.address, "WithdrawRequested")
+        await expect(pool.connect(otherAccount).requestRedeem(max))
+          .to.emit(pool, "WithdrawRequested")
           .withArgs(otherAccount.address, max, max);
       });
     });
