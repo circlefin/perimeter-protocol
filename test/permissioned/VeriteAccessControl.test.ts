@@ -1,4 +1,4 @@
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import { getSignedVerificationResult } from "../support/verite";
 import { expect } from "chai";
 
@@ -9,7 +9,10 @@ describe("VeriteAccessControl", () => {
     const VeriteAccessControl = await ethers.getContractFactory(
       "MockVeriteAccessControl"
     );
-    const veriteAccessControl = await VeriteAccessControl.deploy();
+    const veriteAccessControl = await upgrades.deployProxy(
+      VeriteAccessControl,
+      { kind: "uups" }
+    );
     await veriteAccessControl.deployed();
 
     return {

@@ -76,8 +76,10 @@ export async function deployPermissionedServiceConfiguration() {
   const PoolAdminAccessControl = await ethers.getContractFactory(
     "PoolAdminAccessControl"
   );
-  const poolAdminAccessControl = await PoolAdminAccessControl.deploy(
-    serviceConfiguration.address
+  const poolAdminAccessControl = await upgrades.deployProxy(
+    PoolAdminAccessControl,
+    [serviceConfiguration.address],
+    { kind: "uups" }
   );
   await poolAdminAccessControl.deployed();
 

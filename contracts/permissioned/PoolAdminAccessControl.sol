@@ -5,6 +5,7 @@ import "./interfaces/IPoolAdminAccessControl.sol";
 import "./interfaces/IPermissionedServiceConfiguration.sol";
 import "./interfaces/IToSAcceptanceRegistry.sol";
 import "./VeriteAccessControl.sol";
+import "../upgrades/DeployerUUPSUpgradeable.sol";
 
 /**
  * @title The PoolAdminAccessControl contract
@@ -15,13 +16,9 @@ import "./VeriteAccessControl.sol";
  */
 contract PoolAdminAccessControl is
     IPoolAdminAccessControl,
+    DeployerUUPSUpgradeable,
     VeriteAccessControl
 {
-    /**
-     * @dev Reference to the PermissionedServiceConfiguration contract
-     */
-    IPermissionedServiceConfiguration private _serviceConfiguration;
-
     /**
      * @dev Reference to the ToS Acceptance Registry
      */
@@ -48,9 +45,9 @@ contract PoolAdminAccessControl is
     }
 
     /**
-     * @dev Constructor for the contract, which sets the ServiceConfiguration.
+     * @dev Initializer for the contract, which sets the ServiceConfiguration.
      */
-    constructor(address serviceConfiguration) {
+    function initialize(address serviceConfiguration) public initializer {
         _serviceConfiguration = IPermissionedServiceConfiguration(
             serviceConfiguration
         );
@@ -59,6 +56,8 @@ contract PoolAdminAccessControl is
         );
 
         require(address(_tosRegistry) != address(0), "INVALID_TOS_REGISTRY");
+
+        __VeriteAccessControl__init();
     }
 
     /**

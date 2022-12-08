@@ -1,6 +1,6 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import { deployServiceConfiguration } from "../support/serviceconfiguration";
 import { deployToSAcceptanceRegistry } from "../support/tosacceptanceregistry";
 import { getCommonSigners } from "../support/utils";
@@ -12,7 +12,7 @@ describe("PoolAdminAccessControl", () => {
   // and reset Hardhat Network to that snapshot in every test.
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
-    const { operator, otherAccount } = await getCommonSigners();
+    const { operator, otherAccount, deployer } = await getCommonSigners();
 
     // Deploy the Service Configuration contract
     const { serviceConfiguration } = await deployServiceConfiguration();
@@ -31,13 +31,16 @@ describe("PoolAdminAccessControl", () => {
     const PoolAdminAccessControl = await ethers.getContractFactory(
       "PoolAdminAccessControl"
     );
-    const poolAdminAccessControl = await PoolAdminAccessControl.deploy(
-      serviceConfiguration.address
+    const poolAdminAccessControl = await upgrades.deployProxy(
+      PoolAdminAccessControl,
+      [serviceConfiguration.address],
+      { kind: "uups" }
     );
     await poolAdminAccessControl.deployed();
 
     return {
       operator,
+      deployer,
       poolAdminAccessControl,
       otherAccount,
       tosAcceptanceRegistry
@@ -157,6 +160,33 @@ describe("PoolAdminAccessControl", () => {
           .to.emit(poolAdminAccessControl, "VerificationResultConfirmed")
           .withArgs(otherAccount.address, true);
       });
+    });
+  });
+
+  describe("Upgrades", () => {
+    it("Can be upgraded", async () => {
+      const { deployer, poolAdminAccessControl } = await loadFixture(
+        deployFixture
+      );
+
+      // New implementation
+      const PoolAdminAccessControl = await ethers.getContractFactory(
+        "PoolAdminAccessControlMockV2",
+        deployer
+      );
+
+      // Upgrade
+      await upgrades.upgradeProxy(
+        poolAdminAccessControl.address,
+        PoolAdminAccessControl,
+        { kind: "uups" }
+      );
+      const v2 = await ethers.getContractAt(
+        "PoolAdminAccessControlMockV2",
+        poolAdminAccessControl.address
+      );
+
+      expect(await v2.foo()).to.be.true;
     });
   });
 });

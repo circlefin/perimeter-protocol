@@ -1,6 +1,6 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import { deployMockERC20 } from "../support/erc20";
 import {
   DEFAULT_POOL_SETTINGS,
@@ -47,8 +47,11 @@ describe("PermissionedPoolFactory", () => {
     const PoolAdminAccessControl = await ethers.getContractFactory(
       "PoolAdminAccessControl"
     );
-    const poolAdminAccessControl = await PoolAdminAccessControl.deploy(
-      serviceConfiguration.address
+
+    const poolAdminAccessControl = await upgrades.deployProxy(
+      PoolAdminAccessControl,
+      [serviceConfiguration.address],
+      { kind: "uups" }
     );
     await poolAdminAccessControl.deployed();
 
@@ -63,6 +66,15 @@ describe("PermissionedPoolFactory", () => {
     const poolAccessControlFactory = await PoolAccessControlFactory.deploy(
       serviceConfiguration.address
     );
+
+    // Deploy and attach implementation
+    const PoolAccessControl = await ethers.getContractFactory(
+      "PoolAccessControl"
+    );
+    const poolAccessControlImpl = await PoolAccessControl.deploy();
+    await poolAccessControlFactory
+      .connect(deployer)
+      .setImplementation(poolAccessControlImpl.address);
 
     const withdrawControllerFactory = await deployWithdrawControllerFactory(
       poolLib.address,

@@ -2,8 +2,8 @@
 pragma solidity ^0.8.16;
 
 import "./interfaces/IVeriteAccessControl.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
+import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol";
 
 /**
  * @title The VeriteAccessControl contract
@@ -12,9 +12,10 @@ import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
  * Other contracts should inherit this contract to add Verite-specific
  * access control logic.
  */
+
 abstract contract VeriteAccessControl is
     IVeriteAccessControl,
-    EIP712("VerificationRegistry", "1.0")
+    EIP712Upgradeable
 {
     /**
      * @dev A mapping of allowed verifiers
@@ -101,6 +102,10 @@ abstract contract VeriteAccessControl is
                 Verification
     //////////////////////////////////////////////////////////////*/
 
+    function __VeriteAccessControl__init() internal onlyInitializing {
+        __EIP712_init("VerificationRegistry", "1.0");
+    }
+
     /**
      * @dev Check if an address is verified
      */
@@ -146,7 +151,7 @@ abstract contract VeriteAccessControl is
         );
 
         // recover the public address corresponding to the signature and regenerated hash
-        address signerAddress = ECDSA.recover(digest, signature);
+        address signerAddress = ECDSAUpgradeable.recover(digest, signature);
 
         // ensure the verifier is registered
         require(_trustedVerifiers[signerAddress], "INVALID_SIGNER");

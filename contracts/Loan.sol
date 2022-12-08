@@ -8,14 +8,14 @@ import "./interfaces/IServiceConfiguration.sol";
 import "./libraries/LoanLib.sol";
 import "./CollateralVault.sol";
 import "./FundingVault.sol";
-import "./upgrades/interfaces/IBeaconImplementation.sol";
+import "./upgrades/BeaconImplementation.sol";
 
 /**
  * @title Loan
  *
  * Empty Loan contract.
  */
-contract Loan is ILoan, IBeaconImplementation {
+contract Loan is ILoan, BeaconImplementation {
     using SafeMath for uint256;
     uint256 constant RAY = 10**27;
 
@@ -124,14 +124,14 @@ contract Loan is ILoan, IBeaconImplementation {
     }
 
     function initialize(
-        address serviceConfiguration,
+        address serviceConfiguration_,
         address factory_,
         address borrower_,
         address pool_,
         address liquidityAsset_,
         ILoanSettings memory settings_
     ) public virtual initializer {
-        _serviceConfiguration = IServiceConfiguration(serviceConfiguration);
+        _serviceConfiguration = IServiceConfiguration(serviceConfiguration_);
         _factory = factory_;
         _borrower = borrower_;
         _pool = pool_;

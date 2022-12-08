@@ -17,12 +17,12 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "./libraries/PoolLib.sol";
 import "./FeeVault.sol";
 import "./FirstLossVault.sol";
-import "./upgrades/interfaces/IBeaconImplementation.sol";
+import "./upgrades/BeaconImplementation.sol";
 
 /**
  * @title Pool
  */
-contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
+contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using SafeMath for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -118,7 +118,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
      * @dev Initializer for Pool
      * @param liquidityAsset asset held by the poo
      * @param poolAdmin admin of the pool
-     * @param serviceConfiguration address of global service configuration
+     * @param serviceConfiguration_ address of global service configuration
      * @param withdrawControllerFactory factory address of the withdraw controller
      * @param poolSettings configurable settings for the pool
      * @param tokenName Name used for issued pool tokens
@@ -127,7 +127,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
     function initialize(
         address liquidityAsset,
         address poolAdmin,
-        address serviceConfiguration,
+        address serviceConfiguration_,
         address withdrawControllerFactory,
         address poolControllerFactory,
         IPoolConfigurableSettings memory poolSettings,
@@ -135,7 +135,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
         string memory tokenSymbol
     ) public initializer {
         __ERC20_init(tokenName, tokenSymbol);
-        _serviceConfiguration = IServiceConfiguration(serviceConfiguration);
+        _serviceConfiguration = IServiceConfiguration(serviceConfiguration_);
         _liquidityAsset = IERC20Upgradeable(liquidityAsset);
         _feeVault = new FeeVault(address(this));
 
@@ -149,7 +149,7 @@ contract Pool is IPool, ERC20Upgradeable, IBeaconImplementation {
         poolController = IPoolController(
             IPoolControllerFactory(poolControllerFactory).createController(
                 address(this),
-                serviceConfiguration,
+                serviceConfiguration_,
                 poolAdmin,
                 liquidityAsset,
                 poolSettings
