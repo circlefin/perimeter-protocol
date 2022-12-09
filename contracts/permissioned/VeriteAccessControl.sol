@@ -129,7 +129,7 @@ abstract contract VeriteAccessControl is
         // Ensure the result has a supported schema
         require(
             _supportedCredentialSchemas[verificationResult.schema],
-            "INVALID_CREDENTIAL_SCHEMA"
+            "INVALID_SCHEMA"
         );
 
         // ensure that the result has not expired

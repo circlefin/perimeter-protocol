@@ -103,7 +103,7 @@ describe("VeriteAccessControl", () => {
         veriteAccessControl
           .connect(subject)
           .verify(verificationResult, signature)
-      ).to.be.revertedWith("INVALID_CREDENTIAL_SCHEMA");
+      ).to.be.revertedWith("INVALID_SCHEMA");
     });
 
     it("reverts if the result is expired", async () => {

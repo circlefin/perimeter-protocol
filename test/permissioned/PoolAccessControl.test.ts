@@ -478,7 +478,7 @@ describe("PoolAccessControl", () => {
         poolAccessControl
           .connect(poolParticipant)
           .verify(verificationResult, signature)
-      ).to.be.revertedWith("INVALID_CREDENTIAL_SCHEMA");
+      ).to.be.revertedWith("INVALID_SCHEMA");
     });
 
     it("reverts if the expiration is in the past", async () => {
