@@ -2,9 +2,10 @@
 pragma solidity ^0.8.16;
 
 import "../interfaces/IPool.sol";
+import "../interfaces/IVault.sol";
 import "./interfaces/IPoolController.sol";
 import "../libraries/PoolLib.sol";
-import "../FirstLossVault.sol";
+import "../factories/interfaces/IVaultFactory.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -22,7 +23,7 @@ contract PoolController is IPoolController, BeaconImplementation {
     address public serviceConfiguration;
     IPoolConfigurableSettings private _settings;
     IPoolLifeCycleState private _state;
-    FirstLossVault private _firstLossVault;
+    IVault private _firstLossVault;
     IERC20 private _liquidityAsset;
 
     /**
@@ -108,6 +109,7 @@ contract PoolController is IPoolController, BeaconImplementation {
         address serviceConfiguration_,
         address admin_,
         address liquidityAsset_,
+        address vaultFactory,
         IPoolConfigurableSettings memory poolSettings_
     ) public initializer {
         serviceConfiguration = serviceConfiguration_;
@@ -119,7 +121,9 @@ contract PoolController is IPoolController, BeaconImplementation {
         _liquidityAsset = IERC20(liquidityAsset_);
         _liquidityAsset.safeApprove(address(this), type(uint256).max);
 
-        _firstLossVault = new FirstLossVault(address(this), liquidityAsset_);
+        _firstLossVault = IVault(
+            IVaultFactory(vaultFactory).createVault(address(this))
+        );
         _setState(IPoolLifeCycleState.Initialized);
     }
 
@@ -401,7 +405,11 @@ contract PoolController is IPoolController, BeaconImplementation {
         require(address(_firstLossVault) != address(0), "Pool: 0 address");
         require(receiver != address(0), "Pool: 0 address");
 
-        _firstLossVault.withdraw(amount, receiver);
+        _firstLossVault.withdrawERC20(
+            address(_liquidityAsset),
+            amount,
+            receiver
+        );
 
         return
             PoolLib.executeFirstLossWithdraw(

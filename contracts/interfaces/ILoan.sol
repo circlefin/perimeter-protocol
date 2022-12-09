@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 import "./IServiceConfiguration.sol";
-import "../FundingVault.sol";
+import "../interfaces/IVault.sol";
 
 /**
  * @title The protocol Loan
@@ -166,7 +166,7 @@ interface ILoan {
 
     function outstandingPrincipal() external view returns (uint256);
 
-    function fundingVault() external returns (FundingVault);
+    function fundingVault() external returns (IVault);
 
     function markDefaulted() external returns (ILoanLifeCycleState);
 

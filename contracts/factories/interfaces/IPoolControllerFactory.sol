@@ -17,10 +17,11 @@ interface IPoolControllerFactory {
      * @dev Emits `PoolControllerCreated` event.
      */
     function createController(
-        address,
-        address,
-        address,
-        address,
-        IPoolConfigurableSettings memory
+        address pool,
+        address serviceConfiguration,
+        address admin,
+        address liquidityAsset,
+        address vaultFactory,
+        IPoolConfigurableSettings memory poolSettings
     ) external returns (address);
 }

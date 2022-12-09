@@ -32,6 +32,7 @@ contract PermissionedLoan is Loan {
         address borrower_,
         address pool_,
         address liquidityAsset_,
+        address vaultFactory,
         ILoanSettings memory settings_
     ) public override {
         super.initialize(
@@ -40,6 +41,7 @@ contract PermissionedLoan is Loan {
             borrower_,
             pool_,
             liquidityAsset_,
+            vaultFactory,
             settings_
         );
         poolAccessControl = PermissionedPool(pool_).poolAccessControl();

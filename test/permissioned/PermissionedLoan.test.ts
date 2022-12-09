@@ -34,7 +34,8 @@ describe("PermissionedLoan", () => {
       pool,
       tosAcceptanceRegistry,
       serviceConfiguration,
-      poolController
+      poolController,
+      vaultFactory
     } = await deployPermissionedPool({
       poolAdmin: poolAdmin,
       settings: DEFAULT_POOL_SETTINGS,
@@ -45,7 +46,8 @@ describe("PermissionedLoan", () => {
       pool.address,
       borrower.address,
       liquidityAsset.address,
-      serviceConfiguration
+      serviceConfiguration,
+      vaultFactory
     );
 
     // Mint ERC20 for lender

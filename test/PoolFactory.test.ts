@@ -5,7 +5,8 @@ import { deployMockERC20 } from "./support/erc20";
 import {
   DEFAULT_POOL_SETTINGS,
   deployPoolControllerFactory,
-  deployWithdrawControllerFactory
+  deployWithdrawControllerFactory,
+  deployVaultFactory
 } from "./support/pool";
 import { deployServiceConfiguration } from "./support/serviceconfiguration";
 import { getCommonSigners } from "./support/utils";
@@ -39,11 +40,14 @@ describe("PoolFactory", () => {
       serviceConfiguration.address
     );
 
+    const vaultFactory = await deployVaultFactory(serviceConfiguration.address);
+
     const PoolFactory = await ethers.getContractFactory("PoolFactory");
     const poolFactory = await PoolFactory.deploy(
       serviceConfiguration.address,
       withdrawControllerFactory.address,
-      poolControllerFactory.address
+      poolControllerFactory.address,
+      vaultFactory.address
     );
 
     await poolFactory.deployed();

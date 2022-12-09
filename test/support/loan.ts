@@ -1,4 +1,5 @@
 import { ethers } from "hardhat";
+import { deployVaultFactory } from "./pool";
 import {
   deployServiceConfiguration,
   deployPermissionedServiceConfiguration
@@ -56,8 +57,13 @@ export async function deployLoan(
   });
   const loanImpl = await LoanImpl.deploy();
 
+  const vaultFactory = await deployVaultFactory(serviceConfiguration.address);
+
   const LoanFactory = await ethers.getContractFactory("LoanFactory");
-  const loanFactory = await LoanFactory.deploy(serviceConfiguration.address);
+  const loanFactory = await LoanFactory.deploy(
+    serviceConfiguration.address,
+    vaultFactory.address
+  );
   await loanFactory.deployed();
 
   await serviceConfiguration
@@ -90,7 +96,7 @@ export async function deployLoan(
   const loanAddress = loanCreatedEvent?.args?.[0];
   const loan = await ethers.getContractAt("Loan", loanAddress);
 
-  return { loan, loanFactory, serviceConfiguration };
+  return { loan, loanFactory, serviceConfiguration, vaultFactory };
 }
 
 export async function deployPermissionedLoan(
@@ -106,6 +112,8 @@ export async function deployPermissionedLoan(
     : {
         serviceConfiguration: existingServiceConfiguration
       });
+
+  const vaultFactory = await deployVaultFactory(serviceConfiguration.address);
 
   await serviceConfiguration
     .connect(operator)
@@ -131,7 +139,8 @@ export async function deployPermissionedLoan(
   );
 
   const loanFactory = await PermissionedLoanFactory.deploy(
-    serviceConfiguration.address
+    serviceConfiguration.address,
+    vaultFactory.address
   );
   await loanFactory.deployed();
 

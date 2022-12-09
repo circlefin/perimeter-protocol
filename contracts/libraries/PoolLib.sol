@@ -10,7 +10,7 @@ import "../interfaces/ILoan.sol";
 import "../interfaces/IPool.sol";
 import "../interfaces/ILoan.sol";
 import "../interfaces/IServiceConfiguration.sol";
-import "../FirstLossVault.sol";
+import "../interfaces/IVault.sol";
 import "../LoanFactory.sol";
 
 /**
@@ -404,7 +404,7 @@ library PoolLib {
             ? outstandingLoanDebt
             : firstLossBalance;
 
-        FirstLossVault(firstLossVault).withdraw(firstLossRequired, pool);
+        IVault(firstLossVault).withdrawERC20(asset, firstLossRequired, pool);
         IPool(pool).onLoanDefaulted(loan, firstLossRequired);
 
         emit LoanDefaulted(loan);

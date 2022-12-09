@@ -9,8 +9,8 @@ import "./PermissionedLoan.sol";
  * @title PermissionedLoanFactory
  */
 contract PermissionedLoanFactory is LoanFactory {
-    constructor(address serviceConfiguration)
-        LoanFactory(serviceConfiguration)
+    constructor(address serviceConfiguration, address vaultFactory)
+        LoanFactory(serviceConfiguration, vaultFactory)
     {}
 
     /**
@@ -32,6 +32,7 @@ contract PermissionedLoanFactory is LoanFactory {
                 borrower,
                 pool,
                 liquidityAsset,
+                _vaultFactory,
                 settings
             )
         );

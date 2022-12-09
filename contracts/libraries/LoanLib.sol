@@ -8,8 +8,7 @@ import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import "../interfaces/ILoan.sol";
 import "../interfaces/IServiceConfiguration.sol";
-import "../CollateralVault.sol";
-import "../FundingVault.sol";
+import "../interfaces/IVault.sol";
 
 library LoanLib {
     using SafeERC20 for IERC20;
@@ -153,7 +152,7 @@ library LoanLib {
      * @dev Withdraw ERC20 collateral
      */
     function withdrawFungibleCollateral(
-        CollateralVault collateralVault,
+        IVault collateralVault,
         address[] memory collateralToWithdraw
     ) external {
         for (uint256 i = 0; i < collateralToWithdraw.length; i++) {
@@ -161,7 +160,7 @@ library LoanLib {
 
             // Perform transfer
             uint256 amount = IERC20(asset).balanceOf(address(collateralVault));
-            collateralVault.withdraw(asset, amount, msg.sender);
+            collateralVault.withdrawERC20(asset, amount, msg.sender);
             emit WithdrewCollateral(asset, amount);
         }
     }
@@ -170,7 +169,7 @@ library LoanLib {
      * @dev Withdraw ERC721 collateral
      */
     function withdrawNonFungibleCollateral(
-        CollateralVault collateralVault,
+        IVault collateralVault,
         ILoanNonFungibleCollateral[] memory collateralToWithdraw
     ) external {
         for (uint256 i = 0; i < collateralToWithdraw.length; i++) {
@@ -188,7 +187,7 @@ library LoanLib {
      */
     function fundLoan(
         address liquidityAsset,
-        FundingVault fundingVault,
+        IVault fundingVault,
         uint256 amount
     ) public returns (ILoanLifeCycleState) {
         IERC20(liquidityAsset).safeTransferFrom(
@@ -205,7 +204,8 @@ library LoanLib {
      */
     function drawdown(
         uint256 amount,
-        FundingVault fundingVault,
+        address asset,
+        IVault fundingVault,
         address receiver,
         uint256 paymentDueDate,
         ILoanSettings storage settings,
@@ -217,8 +217,6 @@ library LoanLib {
                 block.timestamp +
                 (settings.paymentPeriod * 1 days);
         }
-
-        IERC20 asset = fundingVault.asset();
 
         // Fixed term loans require the borrower to drawdown the full amount
         if (settings.loanType == ILoanType.Fixed) {
@@ -238,7 +236,7 @@ library LoanLib {
                 "LoanLib: invalid state"
             );
         }
-        fundingVault.withdraw(amount, receiver);
+        fundingVault.withdrawERC20(asset, amount, receiver);
         emit LoanDrawnDown(address(asset), amount);
         return (ILoanLifeCycleState.Active, paymentDueDate);
     }
@@ -249,7 +247,7 @@ library LoanLib {
     function paydownPrincipal(
         address asset,
         uint256 amount,
-        FundingVault fundingVault
+        IVault fundingVault
     ) external {
         IERC20(asset).safeTransferFrom(
             msg.sender,
@@ -275,11 +273,12 @@ library LoanLib {
      * Make a payment
      */
     function returnCanceledLoanPrincipal(
-        FundingVault fundingVault,
+        IVault fundingVault,
+        address asset,
         address pool,
         uint256 amount
     ) public {
-        fundingVault.withdraw(amount, pool);
+        fundingVault.withdrawERC20(asset, amount, pool);
         emit CanceledLoanPrincipalReturned(pool, amount);
     }
 

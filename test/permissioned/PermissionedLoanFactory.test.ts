@@ -19,7 +19,8 @@ describe("PermissionedLoanFactory", () => {
     const {
       pool,
       tosAcceptanceRegistry,
-      serviceConfiguration: permissionedServiceConfiguration
+      serviceConfiguration: permissionedServiceConfiguration,
+      vaultFactory
     } = await deployPermissionedPool({
       poolAdmin: poolAdmin,
       settings: DEFAULT_POOL_SETTINGS,
@@ -48,7 +49,8 @@ describe("PermissionedLoanFactory", () => {
       "PermissionedLoanFactory"
     );
     const loanFactory = await LoanFactory.deploy(
-      permissionedServiceConfiguration.address
+      permissionedServiceConfiguration.address,
+      vaultFactory.address
     );
     await loanFactory.deployed();
 

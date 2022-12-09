@@ -4,6 +4,7 @@ import { ethers } from "hardhat";
 import { deployLoan } from "../support/loan";
 import { deployMockERC20 } from "../support/erc20";
 import { buildWithdrawState } from "../support/pool";
+import { findEventByName } from "../support/utils";
 
 describe("PoolLib", () => {
   const FIRST_LOSS_AMOUNT = 100;
@@ -34,18 +35,18 @@ describe("PoolLib", () => {
       .connect(caller)
       .approve(poolLibWrapper.address, FIRST_LOSS_AMOUNT);
 
-    const FirstLossVault = await ethers.getContractFactory("FirstLossVault");
-    const firstLossVault = await FirstLossVault.deploy(
-      poolLibWrapper.address,
-      liquidityAsset.address
-    );
-    await firstLossVault.deployed();
+    const { loan, loanFactory, serviceConfiguration, vaultFactory } =
+      await deployLoan(
+        poolLibWrapper.address,
+        otherAccount.address,
+        liquidityAsset.address
+      );
 
-    const { loan, loanFactory, serviceConfiguration } = await deployLoan(
-      poolLibWrapper.address,
-      otherAccount.address,
-      liquidityAsset.address
-    );
+    const txn = await vaultFactory.createVault(poolLibWrapper.address);
+    const receipt = await txn.wait();
+    const vaultAddress = findEventByName(receipt, "VaultCreated")?.args?.[0];
+    const Vault = await ethers.getContractFactory("Vault");
+    const firstLossVault = Vault.attach(vaultAddress);
 
     const MockILoan = await ethers.getContractFactory("MockILoan");
     const mockILoanOne = await MockILoan.deploy();

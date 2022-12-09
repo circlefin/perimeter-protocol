@@ -5,6 +5,7 @@ import { deployMockERC20 } from "../support/erc20";
 import {
   DEFAULT_POOL_SETTINGS,
   deployPoolControllerFactory,
+  deployVaultFactory,
   deployWithdrawControllerFactory
 } from "../support/pool";
 import { deployPermissionedServiceConfiguration } from "../support/serviceconfiguration";
@@ -86,6 +87,8 @@ describe("PermissionedPoolFactory", () => {
       serviceConfiguration.address
     );
 
+    const vaultFactory = await deployVaultFactory(serviceConfiguration.address);
+
     // Deploy the PermissionedPoolFactory
     const PoolFactory = await ethers.getContractFactory(
       "PermissionedPoolFactory"
@@ -94,6 +97,7 @@ describe("PermissionedPoolFactory", () => {
       serviceConfiguration.address,
       withdrawControllerFactory.address,
       poolControllerFactory.address,
+      vaultFactory.address,
       poolAccessControlFactory.address
     );
     await poolFactory.deployed();

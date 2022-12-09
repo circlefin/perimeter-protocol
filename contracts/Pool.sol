@@ -3,11 +3,13 @@ pragma solidity ^0.8.16;
 
 import "./interfaces/ILoan.sol";
 import "./interfaces/IPool.sol";
+import "./interfaces/IVault.sol";
 import "./interfaces/IServiceConfiguration.sol";
 import "./controllers/interfaces/IWithdrawController.sol";
 import "./controllers/interfaces/IPoolController.sol";
 import "./factories/interfaces/IWithdrawControllerFactory.sol";
 import "./factories/interfaces/IPoolControllerFactory.sol";
+import "./factories/interfaces/IVaultFactory.sol";
 import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -15,8 +17,6 @@ import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ER
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import "./libraries/PoolLib.sol";
-import "./FeeVault.sol";
-import "./FirstLossVault.sol";
 import "./upgrades/BeaconImplementation.sol";
 
 /**
@@ -29,7 +29,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
 
     IServiceConfiguration private _serviceConfiguration;
     IERC20Upgradeable private _liquidityAsset;
-    FeeVault private _feeVault;
+    IVault private _feeVault;
     IPoolAccountings private _accountings;
 
     IWithdrawController public withdrawController;
@@ -120,6 +120,8 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
      * @param poolAdmin admin of the pool
      * @param serviceConfiguration_ address of global service configuration
      * @param withdrawControllerFactory factory address of the withdraw controller
+     * @param poolControllerFactory factory address for emitting pool controllers
+     * @param vaultFactory factory address of the Vault
      * @param poolSettings configurable settings for the pool
      * @param tokenName Name used for issued pool tokens
      * @param tokenSymbol Symbol used for issued pool tokens
@@ -130,6 +132,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         address serviceConfiguration_,
         address withdrawControllerFactory,
         address poolControllerFactory,
+        address vaultFactory,
         IPoolConfigurableSettings memory poolSettings,
         string memory tokenName,
         string memory tokenSymbol
@@ -137,7 +140,9 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         __ERC20_init(tokenName, tokenSymbol);
         _serviceConfiguration = IServiceConfiguration(serviceConfiguration_);
         _liquidityAsset = IERC20Upgradeable(liquidityAsset);
-        _feeVault = new FeeVault(address(this));
+        _feeVault = IVault(
+            IVaultFactory(vaultFactory).createVault(address(this))
+        );
 
         // Build the withdraw controller
         withdrawController = IWithdrawController(
@@ -152,6 +157,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
                 serviceConfiguration_,
                 poolAdmin,
                 liquidityAsset,
+                vaultFactory,
                 poolSettings
             )
         );
