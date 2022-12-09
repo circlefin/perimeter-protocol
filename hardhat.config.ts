@@ -36,14 +36,14 @@ const config: HardhatUserConfig | ExtendedHardhatUserConfig = {
     },
     goerli: {
       chainId: 5,
-      url: process.env.GOERLI_URL,
+      url: process.env.GOERLI_URL ?? "",
       usdcAddress: "0x07865c6e87b9f70255377e024ace6630c1eaa37f",
       accounts: [
-        process.env.GOERLI_ADMIN || "",
-        process.env.GOERLI_OPERATOR || "",
-        process.env.GOERLI_DEPLOYER || "",
-        process.env.GOERLI_PAUSER || ""
-      ]
+        process.env.GOERLI_ADMIN!,
+        process.env.GOERLI_OPERATOR!,
+        process.env.GOERLI_DEPLOYER!,
+        process.env.GOERLI_PAUSER!
+      ].filter((x) => x)
     }
   },
   docgen: {
