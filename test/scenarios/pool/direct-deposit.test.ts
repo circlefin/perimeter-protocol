@@ -1,6 +1,5 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-import { ethers } from "hardhat";
 import { deployLoan, fundLoan } from "../../support/loan";
 import { activatePool, deployPool } from "../../support/pool";
 import { getCommonSigners } from "../../support/utils";

@@ -1,9 +1,15 @@
 import { ethers } from "hardhat";
 import hre from "hardhat";
 
+type ExtendedHreNetworkConfig = typeof hre.network.config & {
+  usdcAddress: string | undefined;
+};
+
 async function main() {
   // The token we use for the liquidity asset must exist. If it is not defined, we'll deploy a mock token.
-  let usdcAddress = hre.network.config.usdcAddress;
+  let usdcAddress = (hre.network.config as ExtendedHreNetworkConfig)
+    .usdcAddress;
+
   if (!usdcAddress) {
     const Usdc = await ethers.getContractFactory("MockERC20");
     const usdc = await Usdc.deploy("USD Coin", "USDC", 6);
@@ -31,6 +37,8 @@ async function main() {
     "ToSAcceptanceRegistry"
   );
   const toSAcceptanceRegistry = await ToSAcceptanceRegistry.deploy(
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     serviceConfiguration.address
   );
   await toSAcceptanceRegistry.deployed();
@@ -60,6 +68,8 @@ async function main() {
     "PoolAdminAccessControl"
   );
   const poolAdminAccessControl = await PoolAdminAccessControl.deploy(
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     serviceConfiguration.address
   );
   await poolAdminAccessControl.deployed();

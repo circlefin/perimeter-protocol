@@ -11,14 +11,8 @@ import {
 
 describe("PermissionedPool", () => {
   async function loadPoolFixture() {
-    const [
-      operator,
-      protocolAdmin,
-      poolAdmin,
-      otherAccount,
-      thirdAccount,
-      allowedLender
-    ] = await ethers.getSigners();
+    const [poolAdmin, otherAccount, thirdAccount, allowedLender] =
+      await ethers.getSigners();
     const {
       pool,
       liquidityAsset,
@@ -26,9 +20,7 @@ describe("PermissionedPool", () => {
       tosAcceptanceRegistry,
       poolController
     } = await deployPermissionedPool({
-      operator,
-      poolAdmin: poolAdmin,
-      protocolAdmin: protocolAdmin
+      poolAdmin: poolAdmin
     });
 
     // allow allowedLender

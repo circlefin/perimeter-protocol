@@ -54,7 +54,7 @@ describe("Permissioned Business Scenario 1", () => {
   }
 
   async function loadFixtures() {
-    const [operator, poolAdmin, lenderA, lenderB, borrowerOne, borrowerTwo] =
+    const [poolAdmin, lenderA, lenderB, borrowerOne, borrowerTwo] =
       await ethers.getSigners();
 
     const startTime = await time.latest();
@@ -75,7 +75,6 @@ describe("Permissioned Business Scenario 1", () => {
       poolAccessControl,
       tosAcceptanceRegistry
     } = await deployPermissionedPool({
-      operator,
       poolAdmin: poolAdmin,
       settings: poolSettings,
       liquidityAsset: mockUSDC

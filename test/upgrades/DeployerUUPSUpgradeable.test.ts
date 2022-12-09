@@ -1,4 +1,4 @@
-import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
 import { deployServiceConfiguration } from "../support/serviceconfiguration";
@@ -50,8 +50,9 @@ describe("DeployerUUPSUpgradeable", () => {
 
   describe("Permissions", () => {
     it("only deployer can upgrade", async () => {
-      const { deployerUUPSUpgradeableMock, deployer, other } =
-        await loadFixture(deployFixture);
+      const { deployerUUPSUpgradeableMock, other } = await loadFixture(
+        deployFixture
+      );
 
       const V2 = await ethers.getContractFactory(
         "DeployerUUPSUpgradeableMockV2",

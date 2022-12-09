@@ -7,12 +7,10 @@ describe("Crank Variations", () => {
   const DEPOSIT_AMOUNT = 1_000_000;
 
   async function loadPoolFixture() {
-    const [operator, poolAdmin, aliceLender, bobLender] =
-      await ethers.getSigners();
+    const [poolAdmin, aliceLender, bobLender] = await ethers.getSigners();
 
     const { pool, liquidityAsset, withdrawController, poolController } =
       await deployPool({
-        operator,
         poolAdmin: poolAdmin
       });
 
@@ -264,10 +262,8 @@ describe("Crank Variations", () => {
     const {
       pool,
       aliceLender,
-      bobLender,
       liquidityAsset,
       poolAdmin,
-      withdrawRequestPeriodDuration,
       withdrawController,
       poolController
     } = await loadFixture(loadPoolFixture);

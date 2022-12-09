@@ -19,7 +19,7 @@ import { getCommonSigners } from "../support/utils";
 
 describe("PermissionedLoan", () => {
   async function loadLoanFixture() {
-    const { operator, poolAdmin, borrower, lender } = await getCommonSigners();
+    const { poolAdmin, borrower, lender } = await getCommonSigners();
 
     const { mockERC20: liquidityAsset } = await deployMockERC20();
     const NftAsset = await ethers.getContractFactory("MockERC721");
