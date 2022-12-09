@@ -8,6 +8,12 @@ This repository contains the contracts for the Perimeter protocol.
 npm install
 ```
 
+Copy .env.example and update with appropriate values
+
+```sh
+cp .env.example .env
+```
+
 ## Running a node
 
 ```sh
