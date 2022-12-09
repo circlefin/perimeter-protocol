@@ -106,36 +106,6 @@ describe("VeriteAccessControl", () => {
       ).to.be.revertedWith("INVALID_CREDENTIAL_SCHEMA");
     });
 
-    it("reverts if the subject does not match the sender", async () => {
-      const { veriteAccessControl, verifier, admin, subject, otherSubject } =
-        await deployFixture();
-
-      // Register the verifier
-      await veriteAccessControl
-        .connect(admin)
-        .addTrustedVerifier(verifier.address);
-
-      // Get a signed verification result
-      const { verificationResult, signature } =
-        await getSignedVerificationResult(
-          veriteAccessControl.address,
-          subject.address,
-          verifier
-        );
-
-      // Register the schema
-      await veriteAccessControl
-        .connect(admin)
-        .addCredentialSchema(verificationResult.schema);
-
-      // Verify the verification result
-      await expect(
-        veriteAccessControl
-          .connect(otherSubject)
-          .verify(verificationResult, signature)
-      ).to.be.revertedWith("SUBJECT_MISMATCH");
-    });
-
     it("reverts if the result is expired", async () => {
       const { veriteAccessControl, verifier, admin, subject } =
         await deployFixture();
