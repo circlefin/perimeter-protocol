@@ -251,6 +251,8 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         onlyPoolController
         onlyCrankedPool
     {
+        require(!_fundedLoans[addr], "Pool: already funded");
+        _fundedLoans[addr] = true;
         ILoan loan = ILoan(addr);
         uint256 principal = loan.principal();
 
@@ -260,7 +262,6 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         loan.fund();
 
         _accountings.outstandingLoanPrincipals += principal;
-        _fundedLoans[addr] = true;
 
         emit LoanFunded(addr, principal);
     }
