@@ -126,12 +126,10 @@ abstract contract VeriteAccessControl is
         VerificationResult memory verificationResult,
         bytes memory signature
     ) public virtual onlyVeriteEligible {
-        require(verificationResult.subject == msg.sender, "SUBJECT_MISMATCH");
-
         // Ensure the result has a supported schema
         require(
             _supportedCredentialSchemas[verificationResult.schema],
-            "INVALID_CREDENTIAL_SCHEMA"
+            "INVALID_SCHEMA"
         );
 
         // ensure that the result has not expired
