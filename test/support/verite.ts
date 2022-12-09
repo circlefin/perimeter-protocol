@@ -103,7 +103,11 @@ export async function performVeriteVerification(
   await contract.connect(admin).addCredentialSchema(verificationResult.schema);
 
   // Verify the verification result
-  await expect(contract.connect(subject).verify(verificationResult, signature))
+  const txn = await contract
+    .connect(subject)
+    .verify(verificationResult, signature);
+  await expect(txn)
     .to.emit(contract, "VerificationResultConfirmed")
     .withArgs(subject.address);
+  return txn;
 }

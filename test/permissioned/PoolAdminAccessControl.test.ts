@@ -150,15 +150,14 @@ describe("PoolAdminAccessControl", () => {
           .connect(otherAccount)
           .acceptTermsOfService();
 
-        expect(
-          await performVeriteVerification(
-            poolAdminAccessControl,
-            operator,
-            otherAccount
-          )
-        )
+        const txn = await performVeriteVerification(
+          poolAdminAccessControl,
+          operator,
+          otherAccount
+        );
+        await expect(txn)
           .to.emit(poolAdminAccessControl, "VerificationResultConfirmed")
-          .withArgs(otherAccount.address, true);
+          .withArgs(otherAccount.address);
       });
     });
   });

@@ -425,7 +425,7 @@ describe("Loan", () => {
       await collateralizeLoan(loan, borrower, liquidityAsset);
       await fundLoan(loan, poolController, poolAdmin);
       await time.increaseTo(await loan.dropDeadTimestamp());
-      expect(await loan.connect(borrower).cancelFunded());
+      await loan.connect(borrower).cancelFunded();
 
       expect(await loan.state()).to.equal(2);
     });

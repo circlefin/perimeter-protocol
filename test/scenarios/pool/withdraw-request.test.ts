@@ -53,14 +53,13 @@ describe("Withdraw Requests", () => {
     expect(await pool.maxWithdrawRequest(bobLender.address)).to.equal(63);
 
     // Request a withdraw from Alice for Period n + 1 (in this case, 1)
-    expect(await pool.connect(aliceLender).requestWithdraw(50))
-      .to.emit(pool.address, "WithdrawRequested")
-      .withArgs(aliceLender.address, 50);
+    await expect(pool.connect(aliceLender).requestWithdraw(50))
+      .to.emit(pool, "WithdrawRequested")
+      .withArgs(aliceLender.address, 50, 50);
 
-    // Request a Redeem from Bob for Period n + 1 (in this case, 1)
-    expect(await pool.connect(bobLender).requestRedeem(10))
-      .to.emit(pool.address, "RedeemRequested")
-      .withArgs(bobLender.address, 10);
+    await expect(pool.connect(bobLender).requestRedeem(10))
+      .to.emit(pool, "WithdrawRequested")
+      .withArgs(bobLender.address, 10, 10);
 
     // Ensure a fee was paid (10% of 60 = 6 tokens)
     expect(await pool.totalSupply()).to.equal(164);
@@ -157,7 +156,7 @@ describe("Withdraw Requests", () => {
 
     // Cancel Bob's request
     const bobBalance = await pool.balanceOf(bobLender.address);
-    expect(await pool.connect(bobLender).cancelRedeemRequest(3));
+    await pool.connect(bobLender).cancelRedeemRequest(3);
 
     // Expect a fee to be paid
     expect(await pool.balanceOf(bobLender.address)).to.equal(bobBalance.sub(1));
