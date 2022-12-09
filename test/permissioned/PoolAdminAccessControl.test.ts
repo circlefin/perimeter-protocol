@@ -139,6 +139,25 @@ describe("PoolAdminAccessControl", () => {
     });
 
     describe("events", () => {
+      it.only("sup", async () => {
+        const privKey = ethers.Wallet.createRandom();
+        console.log(privKey);
+        console.log("Private key: ", privKey.privateKey);
+        console.log("Public key: ", privKey.publicKey);
+
+        const signer = new ethers.Wallet(privKey, ethers.provider);
+        console.log("Address ", signer.address);
+
+        const {
+          operator,
+          poolAdminAccessControl,
+          otherAccount,
+          tosAcceptanceRegistry
+        } = await loadFixture(deployFixture);
+
+        await tosAcceptanceRegistry.connect(signer).acceptTermsOfService();
+      });
+
       it("emits an VerificationResultConfirmed event upon verifying an address", async () => {
         const {
           operator,

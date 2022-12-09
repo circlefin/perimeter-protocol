@@ -5,6 +5,7 @@ import "@openzeppelin/hardhat-upgrades";
 import "hardhat-contract-sizer";
 import "./tasks/serviceConfiguration";
 import "./tasks/tosAcceptanceRegistry";
+import "./tasks/poolFactory";
 import "solidity-docgen";
 import * as dotenv from "dotenv";
 dotenv.config();
