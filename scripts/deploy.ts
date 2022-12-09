@@ -57,7 +57,8 @@ async function main() {
 
   // Deploy ToSAcceptanceRegistry
   const ToSAcceptanceRegistry = await ethers.getContractFactory(
-    "ToSAcceptanceRegistry"
+    "ToSAcceptanceRegistry",
+    admin
   );
   const toSAcceptanceRegistry = await upgrades.deployProxy(
     ToSAcceptanceRegistry,
@@ -71,18 +72,18 @@ async function main() {
 
   // Set ToSAcceptanceRegsitry URL
   const TOS_ACCEPTANCE_REGISTRY_URL = "http://example.com"; // TODO update with real URL
-  const setTosUrlTx = await toSAcceptanceRegistry.updateTermsOfService(
-    TOS_ACCEPTANCE_REGISTRY_URL
-  );
+  const setTosUrlTx = await toSAcceptanceRegistry
+    .connect(operator)
+    .updateTermsOfService(TOS_ACCEPTANCE_REGISTRY_URL);
   await setTosUrlTx.wait();
   console.log(
     `ToSAcceptanceRegistry URL set to ${TOS_ACCEPTANCE_REGISTRY_URL}`
   );
 
   // Update ServiceConfiguration with the ToSAcceptanceRegistry
-  const setTosRegistryTx = await serviceConfiguration.setToSAcceptanceRegistry(
-    toSAcceptanceRegistry.address
-  );
+  const setTosRegistryTx = await serviceConfiguration
+    .connect(operator)
+    .setToSAcceptanceRegistry(toSAcceptanceRegistry.address);
   await setTosRegistryTx.wait();
   console.log(`ServiceConfiguration updated with new ToSAcceptanceRegistry`);
 
@@ -102,9 +103,9 @@ async function main() {
   );
 
   // Update ServiceConfigurtation with the PoolAdminAccessControl
-  await serviceConfiguration.setPoolAdminAccessControl(
-    poolAdminAccessControl.address
-  );
+  await serviceConfiguration
+    .connect(operator)
+    .setPoolAdminAccessControl(poolAdminAccessControl.address);
   console.log("ServiceConfiguration updated with new PoolAdminAccessControl");
 
   // Deploy PoolLib
@@ -219,7 +220,9 @@ async function main() {
   console.log(`Pool set as imlementation for its factory`);
 
   // Deploy LoanFactory
-  const LoanFactory = await ethers.getContractFactory("PermissionLoanFactory");
+  const LoanFactory = await ethers.getContractFactory(
+    "PermissionedLoanFactory"
+  );
   const loanFactory = await LoanFactory.deploy(serviceConfiguration.address);
   await loanFactory.deployed();
   console.log(`LoanFactory deployed to ${loanFactory.address}`);
