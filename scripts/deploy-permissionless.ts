@@ -1,6 +1,5 @@
 import { ethers, upgrades } from "hardhat";
 import hre from "hardhat";
-import { getCommonSigners } from "../test/support/utils";
 
 async function main() {
   // The token we use for the liquidity asset must exist. If it is not defined, we'll deploy a mock token.
@@ -13,7 +12,7 @@ async function main() {
     usdcAddress = usdc.address;
   }
 
-  const { admin, operator, deployer, pauser } = await getCommonSigners();
+  const [admin, operator, deployer, pauser] = await ethers.getSigners();
 
   // Deploy ServiceConfiguration
   const ServiceConfiguration = await ethers.getContractFactory(
@@ -30,21 +29,24 @@ async function main() {
   );
 
   // Grant operator role
-  await serviceConfiguration
+  let tx = await serviceConfiguration
     .connect(admin)
     .grantRole(serviceConfiguration.OPERATOR_ROLE(), operator.address);
+  await tx.wait();
   console.log(`Granted operator role to ${operator.address}`);
 
   // Grant pauser role
-  await serviceConfiguration
+  tx = await serviceConfiguration
     .connect(admin)
     .grantRole(serviceConfiguration.PAUSER_ROLE(), pauser.address);
+  await tx.wait();
   console.log(`Granted pauser role to ${pauser.address}`);
 
   // Grant deployer role
-  await serviceConfiguration
+  tx = await serviceConfiguration
     .connect(admin)
     .grantRole(serviceConfiguration.DEPLOYER_ROLE(), deployer.address);
+  await tx.wait();
   console.log(`Granted deployer role to ${deployer.address}`);
 
   // Deploy PoolLib
@@ -105,9 +107,10 @@ async function main() {
   const poolController = await PoolController.deploy();
   await poolController.deployed();
   console.log(`PoolController deployed to ${poolController.address}`);
-  await poolControllerFactory
+  tx = await poolControllerFactory
     .connect(deployer)
     .setImplementation(poolController.address);
+  await tx.wait();
   console.log(`PoolController set as implementation for its factory`);
 
   // Deploy PoolFactory
@@ -127,7 +130,8 @@ async function main() {
   const pool = await Pool.deploy();
   await pool.deployed();
   console.log(`Pool deployed to ${pool.address}`);
-  await poolFactory.connect(deployer).setImplementation(pool.address);
+  tx = await poolFactory.connect(deployer).setImplementation(pool.address);
+  await tx.wait();
   console.log(`Pool set as imlementation for its factory`);
 
   // Deploy LoanFactory
@@ -148,18 +152,23 @@ async function main() {
   console.log(`Loan set as implementation for its Factory`);
 
   // Setup LoanFactory
-  const tx1 = await serviceConfiguration
+  tx = await serviceConfiguration
     .connect(operator)
     .setLoanFactory(loanFactory.address, true);
-  await tx1.wait();
+  await tx.wait();
   console.log(`ServiceConfiguration: set LoanFactory as valid`);
 
   // Set USDC as a liquidity asset for the protocol
-  const tx2 = await serviceConfiguration
+  tx = await serviceConfiguration
     .connect(operator)
     .setLiquidityAsset(usdcAddress, true);
-  await tx2.wait();
+  await tx.wait();
   console.log(`ServiceConfiguration: set USDC as a liquidity asset`);
+
+  // Set first loss minimum to $10,000
+  tx = await serviceConfiguration
+    .connect(operator)
+    .setFirstLossMinimum(usdcAddress, 10_000_000000);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

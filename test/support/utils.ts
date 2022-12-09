@@ -8,9 +8,11 @@ export function findEventByName(receipt: any, name: string) {
  * Get commonly-used signers.
  */
 export async function getCommonSigners() {
+  // To maintain compatability across networks, order should match what is
+  // defined in the hardhat config
   const [
-    operator,
     admin,
+    operator,
     deployer,
     pauser,
     poolAdmin,
