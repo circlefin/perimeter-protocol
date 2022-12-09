@@ -169,6 +169,7 @@ async function main() {
   tx = await serviceConfiguration
     .connect(operator)
     .setFirstLossMinimum(usdcAddress, 10_000_000000);
+  console.log(`ServiceConfiguration: set USDC first loss minimum to $10,000`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
