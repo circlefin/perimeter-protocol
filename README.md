@@ -85,3 +85,23 @@ Here is an example command to pause a hypothetical contract:
 ```sh
 npx hardhat setPaused --address 0x5FbDB2315678afecb367f032d93F642f64180aa3 --paused true
 ```
+
+### Etherscan Verification
+
+Contract source can be uploaded and verified to Etherscan. Update `.env` to include your etherscan API key.
+
+For each deployed contract, run the following:
+
+```
+npx hardhat verify --network goerli CONTRACT_ADDRESS
+```
+
+There are three contracts that require constructor arguments:
+
+- WithdrawControllerFactory
+- PoolControllerFactory
+- PoolFactory
+
+```
+npx hardhat verify --network goerli CONTRACT_ADDRESS arg1 arg2 arg3
+```

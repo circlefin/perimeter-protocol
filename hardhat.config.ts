@@ -1,5 +1,6 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
+import "@nomiclabs/hardhat-etherscan";
 import "@openzeppelin/hardhat-upgrades";
 import "hardhat-contract-sizer";
 import "./tasks/serviceConfiguration";
@@ -48,6 +49,11 @@ const config: HardhatUserConfig | ExtendedHardhatUserConfig = {
   },
   docgen: {
     pages: "files"
+  },
+  etherscan: {
+    // Your API key for Etherscan
+    // Obtain one at https://etherscan.io/
+    apiKey: process.env.ETHERSCAN_API_KEY
   }
 };
 
