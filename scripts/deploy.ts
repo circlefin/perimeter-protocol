@@ -59,10 +59,10 @@ async function main() {
   const ToSAcceptanceRegistry = await ethers.getContractFactory(
     "ToSAcceptanceRegistry"
   );
-  const toSAcceptanceRegistry = await ToSAcceptanceRegistry.deploy(
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    serviceConfiguration.address
+  const toSAcceptanceRegistry = await upgrades.deployProxy(
+    ToSAcceptanceRegistry,
+    [serviceConfiguration.address],
+    { kind: "uups" }
   );
   await toSAcceptanceRegistry.deployed();
   console.log(
@@ -93,6 +93,7 @@ async function main() {
   );
   const poolAdminAccessControl = await upgrades.deployProxy(
     PoolAdminAccessControl,
+    [serviceConfiguration.address],
     { kind: "uups" }
   );
   await poolAdminAccessControl.deployed();
