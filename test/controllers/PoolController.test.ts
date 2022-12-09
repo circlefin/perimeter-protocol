@@ -970,7 +970,7 @@ describe("PoolController", () => {
       ).to.be.revertedWith("Pool: caller is not admin");
     });
 
-    it.only("reverts if trying to fund the same loan again", async () => {
+    it("reverts if trying to fund the same loan again", async () => {
       const {
         pool,
         liquidityAsset,
