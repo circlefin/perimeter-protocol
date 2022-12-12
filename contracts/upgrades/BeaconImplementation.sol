@@ -2,7 +2,6 @@
 pragma solidity ^0.8.16;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "hardhat/console.sol";
 
 /**
  * @title BeaconImplementation

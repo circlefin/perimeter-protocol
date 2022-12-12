@@ -4,7 +4,6 @@ pragma solidity ^0.8.16;
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "./interfaces/IServiceConfiguration.sol";
 import "./upgrades/DeployerUUPSUpgradeable.sol";
-import "hardhat/console.sol";
 
 /**
  * @title The ServiceConfiguration contract
