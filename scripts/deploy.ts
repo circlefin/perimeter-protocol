@@ -237,7 +237,9 @@ async function main() {
   const LoanFactory = await ethers.getContractFactory(
     "PermissionedLoanFactory"
   );
-  const loanFactory = await LoanFactory.deploy(serviceConfiguration.address, vaultFactory.address
+  const loanFactory = await LoanFactory.deploy(
+    serviceConfiguration.address,
+    vaultFactory.address
   );
   await loanFactory.deployed();
   console.log(`LoanFactory deployed to ${loanFactory.address}`);
