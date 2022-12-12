@@ -698,13 +698,13 @@ modifier atState(enum IPoolLifeCycleState state_)
 
 _Modifier that checks that the pool is Initialized or Active_
 
-### onlyCrankedPool
+### onlySnapshottedPool
 
 ```solidity
-modifier onlyCrankedPool()
+modifier onlySnapshottedPool()
 ```
 
-_Modifier to ensure the Pool is cranked._
+_Modifier to ensure the Pool is snapshotted._
 
 ### onlyPermittedLender
 
@@ -1024,21 +1024,21 @@ function _performRequestCancellation(address owner, uint256 shares, uint256 asse
 _Cancels a withdraw request for the owner, including paying any fees.
 A cancellation can only occur before the_
 
-### crank
+### snapshot
 
 ```solidity
-function crank() public virtual
+function snapshot() public virtual
 ```
 
-_Cranks the pool's withdrawals_
+_Snapshots the pool's withdrawals_
 
-### _crank
+### _performSnapshot
 
 ```solidity
-function _crank() internal
+function _performSnapshot() internal
 ```
 
-_Internal crank function run lazily._
+_Internal snapshot function run lazily._
 
 ### asset
 
@@ -1251,6 +1251,614 @@ function initializePool(address liquidityAsset, struct IPoolConfigurableSettings
 ```
 
 _Creates the new Pool contract._
+
+## PoolController
+
+### pool
+
+```solidity
+contract IPool pool
+```
+
+### admin
+
+```solidity
+address admin
+```
+
+### serviceConfiguration
+
+```solidity
+address serviceConfiguration
+```
+
+### _settings
+
+```solidity
+struct IPoolConfigurableSettings _settings
+```
+
+### _state
+
+```solidity
+enum IPoolLifeCycleState _state
+```
+
+### _firstLossVault
+
+```solidity
+contract FirstLossVault _firstLossVault
+```
+
+### _liquidityAsset
+
+```solidity
+contract IERC20 _liquidityAsset
+```
+
+### onlyNotPaused
+
+```solidity
+modifier onlyNotPaused()
+```
+
+_Modifier that checks that the protocol is not paused._
+
+### onlyAdmin
+
+```solidity
+modifier onlyAdmin()
+```
+
+_Modifier that checks that the caller is the pool's admin._
+
+### atState
+
+```solidity
+modifier atState(enum IPoolLifeCycleState state_)
+```
+
+_Modifier that checks that the pool is Initialized or Active_
+
+### atInitializedOrActiveState
+
+```solidity
+modifier atInitializedOrActiveState()
+```
+
+_Modifier that checks that the pool is Initialized or Active_
+
+### atActiveOrClosedState
+
+```solidity
+modifier atActiveOrClosedState()
+```
+
+_Modifier that checks that the pool is Initialized or Active_
+
+### isPoolLoan
+
+```solidity
+modifier isPoolLoan(address loan)
+```
+
+_Modifier to check that an addres is a Perimeter loan associated
+with this pool._
+
+### onlySnapshottedPool
+
+```solidity
+modifier onlySnapshottedPool()
+```
+
+_Modifier to ensure that the Pool is snapshotted._
+
+### initialize
+
+```solidity
+function initialize(address pool_, address serviceConfiguration_, address admin_, address liquidityAsset_, struct IPoolConfigurableSettings poolSettings_) public
+```
+
+### settings
+
+```solidity
+function settings() external view returns (struct IPoolConfigurableSettings)
+```
+
+_The current configurable pool settings._
+
+### setRequestFee
+
+```solidity
+function setRequestFee(uint256 feeBps) external
+```
+
+_Allow the current pool admin to update the pool fees
+before the pool has been activated._
+
+### requestFee
+
+```solidity
+function requestFee(uint256 sharesOrAssets) public view returns (uint256 feeShares)
+```
+
+_Returns the redeem fee for a given withdrawal amount at the current block.
+The fee is the number of shares that will be charged._
+
+### setRequestCancellationFee
+
+```solidity
+function setRequestCancellationFee(uint256 feeBps) external
+```
+
+_Allow the current pool admin to update the pool cancellation fees
+before the pool has been activated._
+
+### requestCancellationFee
+
+```solidity
+function requestCancellationFee(uint256 sharesOrAssets) public view returns (uint256 feeShares)
+```
+
+_Returns the cancellation fee for a given withdrawal request at the
+current block. The fee is the number of shares that will be charged._
+
+### setWithdrawGate
+
+```solidity
+function setWithdrawGate(uint256 _withdrawGateBps) external
+```
+
+_Allow the current pool admin to update the withdraw gate at any
+time if the pool is Initialized or Active_
+
+### withdrawGate
+
+```solidity
+function withdrawGate() public view returns (uint256)
+```
+
+_Returns the current withdraw gate in bps. If the pool is closed,
+this is set to 10_000 (100%)_
+
+### withdrawRequestPeriodDuration
+
+```solidity
+function withdrawRequestPeriodDuration() public view returns (uint256)
+```
+
+_Returns the current withdraw request period duration in seconds. If the pool is closed,
+this is lowered (if needed) to 1 day._
+
+### setPoolCapacity
+
+```solidity
+function setPoolCapacity(uint256 newCapacity) external
+```
+
+@dev
+
+### setPoolEndDate
+
+```solidity
+function setPoolEndDate(uint256 endDate) external
+```
+
+@dev
+
+### firstLossVault
+
+```solidity
+function firstLossVault() external view returns (address)
+```
+
+_The current amount of first loss available to the pool_
+
+### firstLossBalance
+
+```solidity
+function firstLossBalance() external view returns (uint256)
+```
+
+_The current amount of first loss available to the pool_
+
+### setServiceFeeBps
+
+```solidity
+function setServiceFeeBps(uint256 serviceFeeBps) external
+```
+
+_Allow the current pool admin to update the service fee._
+
+### setFixedFee
+
+```solidity
+function setFixedFee(uint256 amount, uint256 interval) external
+```
+
+_Allow the current pool admin to update the fixed fee._
+
+### state
+
+```solidity
+function state() public view returns (enum IPoolLifeCycleState)
+```
+
+_Returns the current pool lifecycle state._
+
+### isInitializedOrActive
+
+```solidity
+function isInitializedOrActive() external view returns (bool)
+```
+
+_Returns true if the pool is in an active or initialized state_
+
+### isActiveOrClosed
+
+```solidity
+function isActiveOrClosed() external view returns (bool)
+```
+
+_Returns true if the pool is in an active or closed state_
+
+### _setState
+
+```solidity
+function _setState(enum IPoolLifeCycleState newState) internal
+```
+
+_Set the pool lifecycle state. If the state changes, this method
+will also update the activatedAt variable_
+
+### depositFirstLoss
+
+```solidity
+function depositFirstLoss(uint256 amount, address spender) external
+```
+
+_Deposits first-loss to the pool. Can only be called by the Pool Admin._
+
+### withdrawFirstLoss
+
+```solidity
+function withdrawFirstLoss(uint256 amount, address receiver) external returns (uint256)
+```
+
+_Withdraws first-loss from the pool. Can only be called by the Pool Admin._
+
+### fundLoan
+
+```solidity
+function fundLoan(address addr) external
+```
+
+_Called by the pool admin, this transfers liquidity from the pool to a given loan._
+
+### defaultLoan
+
+```solidity
+function defaultLoan(address loan) external
+```
+
+_Called by the pool admin, this marks a loan as in default, triggering liquiditation
+proceedings and updating pool accounting._
+
+### claimFixedFee
+
+```solidity
+function claimFixedFee() external
+```
+
+_Called by the pool admin, this claims a fixed fee from the pool. Fee can only be
+claimed once every interval, as set on the pool._
+
+### snapshot
+
+```solidity
+function snapshot() external
+```
+
+_Snapshots the Pool._
+
+## WithdrawController
+
+### _pool
+
+```solidity
+contract IPool _pool
+```
+
+_A reference to the pool for this withdraw state_
+
+### _withdrawState
+
+```solidity
+mapping(address => struct IPoolWithdrawState) _withdrawState
+```
+
+_Per-lender withdraw request information_
+
+### _globalWithdrawState
+
+```solidity
+struct IPoolWithdrawState _globalWithdrawState
+```
+
+_Aggregate withdraw request information_
+
+### _snapshots
+
+```solidity
+mapping(uint256 => struct IPoolSnapshotState) _snapshots
+```
+
+_Mapping of withdrawPeriod to snapshot_
+
+### onlyPool
+
+```solidity
+modifier onlyPool()
+```
+
+_Modifier that checks that the caller is a pool lender_
+
+### initialize
+
+```solidity
+function initialize(address pool) public
+```
+
+_Initializer for a Pool's withdraw state_
+
+### withdrawPeriod
+
+```solidity
+function withdrawPeriod() public view returns (uint256 period)
+```
+
+_The current withdraw period. Funds marked with this period (or
+earlier), are eligible to be considered for redemption/widrawal.
+
+TODO: This can be internal_
+
+### _currentWithdrawState
+
+```solidity
+function _currentWithdrawState(address owner) internal view returns (struct IPoolWithdrawState state)
+```
+
+_Returns the current withdraw state of an owner._
+
+### _currentGlobalWithdrawState
+
+```solidity
+function _currentGlobalWithdrawState() internal view returns (struct IPoolWithdrawState state)
+```
+
+_Returns the current global withdraw state._
+
+### interestBearingBalanceOf
+
+```solidity
+function interestBearingBalanceOf(address owner) external view returns (uint256 shares)
+```
+
+_Returns the amount of shares that should be considered interest
+bearing for a given owner.  This number is their balance, minus their
+"redeemable" shares._
+
+### requestedBalanceOf
+
+```solidity
+function requestedBalanceOf(address owner) external view returns (uint256 shares)
+```
+
+_Returns the number of shares that have been requested to be redeemed
+by the owner as of the current block._
+
+### totalRequestedBalance
+
+```solidity
+function totalRequestedBalance() external view returns (uint256 shares)
+```
+
+_Returns the number of shares that are available to be redeemed by
+the owner in the current block._
+
+### eligibleBalanceOf
+
+```solidity
+function eligibleBalanceOf(address owner) external view returns (uint256 shares)
+```
+
+_Returns the number of shares owned by an address that are "vested"
+enough to be considered for redeeming during the next withdraw period._
+
+### totalEligibleBalance
+
+```solidity
+function totalEligibleBalance() external view returns (uint256 shares)
+```
+
+_Returns the number of shares overall that are "vested" enough to be
+considered for redeeming during the next withdraw period._
+
+### totalRedeemableShares
+
+```solidity
+function totalRedeemableShares() external view returns (uint256 shares)
+```
+
+_Returns the number of shares that are available to be redeemed
+overall in the current block._
+
+### totalWithdrawableAssets
+
+```solidity
+function totalWithdrawableAssets() external view returns (uint256 assets)
+```
+
+_Returns the number of `assets` that are available to be withdrawn
+overall in the current block._
+
+### maxRedeemRequest
+
+```solidity
+function maxRedeemRequest(address owner) external view returns (uint256 maxShares)
+```
+
+_Returns the maximum number of `shares` that can be
+requested to be redeemed from the owner balance with a single
+`requestRedeem` call in the current block.
+
+Note: This is equivalent of EIP-4626 `maxRedeem`_
+
+### maxRedeem
+
+```solidity
+function maxRedeem(address owner) public view returns (uint256 maxShares)
+```
+
+_The maximum amount of shares that can be redeemed from the owner
+balance through a redeem call._
+
+### maxWithdraw
+
+```solidity
+function maxWithdraw(address owner) external view returns (uint256 assets)
+```
+
+_Returns the maximum amount of underlying assets that can be
+withdrawn from the owner balance with a single withdraw call._
+
+### previewRedeemRequest
+
+```solidity
+function previewRedeemRequest(uint256 shares) external view returns (uint256 assets)
+```
+
+_Simulate the effects of a redeem request at the current block.
+Returns the amount of underlying assets that would be requested if this
+entire redeem request were to be processed at the current block.
+
+Note: This is equivalent of EIP-4626 `previewRedeem`_
+
+### previewWithdrawRequest
+
+```solidity
+function previewWithdrawRequest(uint256 assets) external view returns (uint256 shares)
+```
+
+_Simulate the effects of a withdrawal request at the current block.
+Returns the amount of `shares` that would be burned if this entire
+withdrawal request were to be processed at the current block.
+
+Note: This is equivalent of EIP-4626 `previewWithdraw`_
+
+### previewRedeem
+
+```solidity
+function previewRedeem(address owner, uint256 shares) external view returns (uint256 assets)
+```
+
+_Simulates the effects of their redeemption at the current block.
+Per EIP4626, should round DOWN._
+
+### previewWithdraw
+
+```solidity
+function previewWithdraw(address owner, uint256 assets) external view returns (uint256 shares)
+```
+
+_Simulate the effects of their withdrawal at the current block.
+Per EIP4626, should round UP on the number of shares required for assets._
+
+### performRequest
+
+```solidity
+function performRequest(address owner, uint256 shares) external
+```
+
+_Requests redeeming a specific number of `shares` and `assets` from
+the pool.
+
+NOTE: The pool is responsible for handling any fees, and for providing
+the proper shares/assets ratio._
+
+### maxRequestCancellation
+
+```solidity
+function maxRequestCancellation(address owner) public view returns (uint256 maxShares)
+```
+
+_Returns the maximum number of `shares` that can be
+cancelled from being requested for a redemption.
+
+Note: This is equivalent of EIP-4626 `maxRedeem`_
+
+### performRequestCancellation
+
+```solidity
+function performRequestCancellation(address owner, uint256 shares) external
+```
+
+_Cancels a withdraw request for the owner,
+
+NOTE This method does not charge fees, as this should be handled outside
+of the WithdrawController._
+
+### snapshot
+
+```solidity
+function snapshot(uint256 withdrawGate) external returns (uint256 period, uint256 redeemableShares, uint256 withdrawableAssets, bool periodSnapshotted)
+```
+
+_Snapshot the protocol. Performs accounting for withdrawals_
+
+### simulateSnapshot
+
+```solidity
+function simulateSnapshot(struct IPoolWithdrawState withdrawState) internal view returns (struct IPoolWithdrawState)
+```
+
+_Simulates the effects of multiple snapshots against a lenders
+requested withdrawal._
+
+### snapshotLender
+
+```solidity
+function snapshotLender(address addr) internal returns (struct IPoolWithdrawState state)
+```
+
+_Snapshots a lender_
+
+### redeem
+
+```solidity
+function redeem(address owner, uint256 shares) external returns (uint256 assets)
+```
+
+_Redeems a specific number of shares from owner and send assets of underlying token from the vault to receiver.
+
+Per EIP4626, should round DOWN._
+
+### withdraw
+
+```solidity
+function withdraw(address owner, uint256 assets) external returns (uint256 shares)
+```
+
+_Burns shares from owner and send exactly assets token from the vault to receiver.
+Should round UP for EIP4626._
+
+### _performWithdraw
+
+```solidity
+function _performWithdraw(address owner, struct IPoolWithdrawState currentState, uint256 shares, uint256 assets) internal
+```
+
+_Perform the state update for a withdraw_
 
 ## IPoolLifeCycleState
 
@@ -1513,13 +2121,13 @@ function claimFixedFee() external
 _Called by the pool admin, this claims a fixed fee from the pool. Fee can only be
 claimed once every interval, as set on the pool._
 
-### crank
+### snapshot
 
 ```solidity
-function crank() external
+function snapshot() external
 ```
 
-_Cranks the Pool._
+_Snapshots the Pool._
 
 ## IPoolWithdrawState
 
@@ -1530,8 +2138,8 @@ struct IPoolWithdrawState {
   uint256 latestRequestPeriod;
   uint256 redeemableShares;
   uint256 withdrawableAssets;
-  uint256 latestCrankPeriod;
-  uint256 crankOffsetPeriod;
+  uint256 latestSnapshotPeriod;
+  uint256 snapshotOffsetPeriod;
 }
 ```
 
@@ -1723,13 +2331,13 @@ _Cancels a withdraw request for the owner,
 NOTE This method does not charge fees, as this should be handled outside
 of the WithdrawController._
 
-### crank
+### snapshot
 
 ```solidity
-function crank(uint256 withdrawGate) external returns (uint256 period, uint256 shares, uint256 assets, bool periodCranked)
+function snapshot(uint256 withdrawGate) external returns (uint256 period, uint256 shares, uint256 assets, bool periodSnapshotted)
 ```
 
-_Crank the protocol. Performs accounting for withdrawals_
+_Snapshot the protocol. Performs accounting for withdrawals_
 
 ### redeem
 
@@ -1749,6 +2357,40 @@ function withdraw(address, uint256) external returns (uint256)
 
 _Burns shares from owner and send exactly assets token from the vault to receiver.
 Should round UP for EIP4626._
+
+## PoolControllerFactory
+
+### constructor
+
+```solidity
+constructor(address serviceConfiguration) public
+```
+
+### createController
+
+```solidity
+function createController(address pool, address serviceConfiguration, address admin, address liquidityAsset, struct IPoolConfigurableSettings poolSettings) public virtual returns (address addr)
+```
+
+_Creates a pool's PoolAdmin controller
+Emits `PoolControllerCreated` event._
+
+## WithdrawControllerFactory
+
+### constructor
+
+```solidity
+constructor(address serviceConfiguration) public
+```
+
+### createController
+
+```solidity
+function createController(address pool) public virtual returns (address addr)
+```
+
+_Creates a pool's withdraw controller
+Emits `WithdrawControllerCreated` event._
 
 ## IPoolControllerFactory
 
@@ -2330,13 +2972,13 @@ event WithdrawRequestCancelled(address lender, uint256 assets, uint256 shares)
 
 _Emitted when a withdrawal is requested._
 
-### PoolCranked
+### PoolSnapshotted
 
 ```solidity
-event PoolCranked(uint256 withDrawPeriod, uint256 redeemableShares, uint256 withdrawableAssets)
+event PoolSnapshotted(uint256 withDrawPeriod, uint256 redeemableShares, uint256 withdrawableAssets)
 ```
 
-_Emitted when the pool is cranked for a given withdraw period._
+_Emitted when the pool is snapshotted for a given withdraw period._
 
 ### poolController
 
@@ -2459,13 +3101,13 @@ function onActivated() external
 
 _Callback from the pool controller when the pool is activated_
 
-### crank
+### snapshot
 
 ```solidity
-function crank() external
+function snapshot() external
 ```
 
-_Cranks the pool's withdrawals_
+_Snapshots the pool's withdrawals_
 
 ### activeLoans
 
@@ -3322,13 +3964,169 @@ function updateWithdrawStateForWithdraw(struct IPoolWithdrawState state, uint256
 
 @dev
 
-## MockVeriteAccessControl
+## PoolLibTestWrapper
 
-### initialize
+_Wrapper around PoolLib to facilitate testing._
+
+### _activeLoans
 
 ```solidity
-function initialize() public
+struct EnumerableSet.AddressSet _activeLoans
 ```
+
+### _accountings
+
+```solidity
+struct IPoolAccountings _accountings
+```
+
+### LifeCycleStateTransition
+
+```solidity
+event LifeCycleStateTransition(enum IPoolLifeCycleState state)
+```
+
+### FirstLossDeposited
+
+```solidity
+event FirstLossDeposited(address caller, address supplier, uint256 amount)
+```
+
+### FirstLossWithdrawn
+
+```solidity
+event FirstLossWithdrawn(address caller, address receiver, uint256 amount)
+```
+
+### Deposit
+
+```solidity
+event Deposit(address caller, address owner, uint256 assets, uint256 shares)
+```
+
+### executeFirstLossDeposit
+
+```solidity
+function executeFirstLossDeposit(address liquidityAsset, address spender, uint256 amount, address firstLossVault, enum IPoolLifeCycleState currentState, uint256 minFirstLossRequired) external
+```
+
+### executeFirstLossWithdraw
+
+```solidity
+function executeFirstLossWithdraw(uint256 amount, address withdrawReceiver, address firstLossVault) external returns (uint256)
+```
+
+### calculateConversion
+
+```solidity
+function calculateConversion(uint256 input, uint256 numerator, uint256 denominator, bool roundUp) public pure returns (uint256)
+```
+
+### calculateSharesFromAssets
+
+```solidity
+function calculateSharesFromAssets(uint256 assets, uint256 totalShares, uint256 totalAssets, bool roundUp) external pure returns (uint256)
+```
+
+### calculateAssetsFromShares
+
+```solidity
+function calculateAssetsFromShares(uint256 shares, uint256 totalAssets, uint256 totalShares, bool roundUp) external pure returns (uint256)
+```
+
+### calculateTotalAssets
+
+```solidity
+function calculateTotalAssets(address asset, address vault, uint256 outstandingLoanPrincipals) external view returns (uint256)
+```
+
+### calculateTotalAvailableAssets
+
+```solidity
+function calculateTotalAvailableAssets(address asset, address vault, uint256 outstandingLoanPrincipals, uint256 withdrawableAssets) external view returns (uint256)
+```
+
+### calculateTotalAvailableShares
+
+```solidity
+function calculateTotalAvailableShares(address vault, uint256 redeemableShares) external view returns (uint256)
+```
+
+### calculateMaxDeposit
+
+```solidity
+function calculateMaxDeposit(enum IPoolLifeCycleState poolLifeCycleState, uint256 poolMaxCapacity, uint256 totalAvailableAssets) external pure returns (uint256)
+```
+
+### setMockActiveLoans
+
+```solidity
+function setMockActiveLoans(address[] loans) public
+```
+
+### calculateExpectedInterestFromMocks
+
+```solidity
+function calculateExpectedInterestFromMocks() public view returns (uint256 expectedInterest)
+```
+
+### executeDeposit
+
+```solidity
+function executeDeposit(address asset, address vault, address sharesReceiver, uint256 assets, uint256 shares, uint256 maxDeposit) external returns (uint256)
+```
+
+### isPoolLoan
+
+```solidity
+function isPoolLoan(address loan, address serviceConfiguration, address pool) public view returns (bool)
+```
+
+### calculateCurrentWithdrawPeriod
+
+```solidity
+function calculateCurrentWithdrawPeriod(uint256 currentTimestamp, uint256 activatedAt, uint256 withdrawalWindowDuration) public pure returns (uint256)
+```
+
+### calculateWithdrawStateForRequest
+
+```solidity
+function calculateWithdrawStateForRequest(struct IPoolWithdrawState state, uint256 currentPeriod, uint256 requestedShares) public pure returns (struct IPoolWithdrawState)
+```
+
+### calculateWithdrawStateForCancellation
+
+```solidity
+function calculateWithdrawStateForCancellation(struct IPoolWithdrawState state, uint256 currentPeriod, uint256 cancelledShares) public pure returns (struct IPoolWithdrawState)
+```
+
+### calculateRequestFee
+
+```solidity
+function calculateRequestFee(uint256 shares, uint256 requestFeeBps) external pure returns (uint256)
+```
+
+### calculateCancellationFee
+
+```solidity
+function calculateCancellationFee(uint256 shares, uint256 requestCancellationFeeBps) external pure returns (uint256)
+```
+
+### calculateMaxRedeemRequest
+
+```solidity
+function calculateMaxRedeemRequest(struct IPoolWithdrawState state, uint256 shareBalance, uint256 requestFeeBps) public pure returns (uint256)
+```
+
+### calculateMaxCancellation
+
+```solidity
+function calculateMaxCancellation(struct IPoolWithdrawState state, uint256 requestCancellationFeeBps) public pure returns (uint256)
+```
+
+## LoanMockV2
+
+_Simulated new Loan implementation_
 
 ## MockUpgrade
 
@@ -3340,7 +4138,17 @@ function foo() external pure returns (bool)
 
 ## PoolAccessControlMockV2
 
-## PoolAdminAccessControlMockV2
+## PoolControllerMockV2
+
+_Simulated new ServiceConfiguration implementation_
+
+## PoolMockV2
+
+_Simulated new Pool implementation_
+
+## WithdrawControllerMockV2
+
+_Simulated new ServiceConfiguration implementation_
 
 ## PermissionedLoan
 
@@ -3410,13 +4218,13 @@ _The initialize function for the PermissionedPool contract. It calls the
 constructor of the Pool contract and then creates a new instance of the
 PoolAccessControl contract._
 
-### crank
+### snapshot
 
 ```solidity
-function crank() public
+function snapshot() public
 ```
 
-_Cranks the pool's withdrawals_
+_Snapshots the pool's withdrawals_
 
 ### maxDeposit
 
@@ -3680,65 +4488,6 @@ function create(address pool) external virtual returns (address)
 ```
 
 _Creates a new PoolAccessControl._
-
-## PoolAdminAccessControl
-
-_Implementation of the {IPoolAdminAccessControl} interface.
-
-This implementation implements a basic Allow-List of addresses, which can
-be managed only by the contract owner._
-
-### _tosRegistry
-
-```solidity
-contract IToSAcceptanceRegistry _tosRegistry
-```
-
-_Reference to the ToS Acceptance Registry_
-
-### onlyVeriteAdmin
-
-```solidity
-modifier onlyVeriteAdmin()
-```
-
-_Modifier to restrict the Verite Access Control logic to pool admins_
-
-### onlyVeriteEligible
-
-```solidity
-modifier onlyVeriteEligible()
-```
-
-_Modifier to restrict verification to users who have accepted the ToS_
-
-### initialize
-
-```solidity
-function initialize(address serviceConfiguration) public
-```
-
-_Initializer for the contract, which sets the ServiceConfiguration._
-
-### isAllowed
-
-```solidity
-function isAllowed(address addr) external view returns (bool)
-```
-
-_Checks against an allowList to see if the given address is allowed._
-
-#### Parameters
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| addr | address | The address to verify |
-
-#### Return Values
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bool | whether the address is allowed as a Pool Admin |
 
 ## VeriteAccessControl
 
@@ -4140,6 +4889,103 @@ function setImplementation(address newImplementation) external
 
 _Updates the implementation._
 
+## IBeacon
+
+_Interface of Beacon contracts._
+
+### ImplementationSet
+
+```solidity
+event ImplementationSet(address implementation)
+```
+
+_Emitted when a new implementation is set._
+
+### implementation
+
+```solidity
+function implementation() external view returns (address)
+```
+
+_Returns an address used by BeaconProxy contracts for delegated calls._
+
+### setImplementation
+
+```solidity
+function setImplementation(address implementation) external
+```
+
+_Updates the implementation._
+
+## MockVeriteAccessControl
+
+### initialize
+
+```solidity
+function initialize() public
+```
+
+## PoolAdminAccessControlMockV2
+
+## PoolAdminAccessControl
+
+_Implementation of the {IPoolAdminAccessControl} interface.
+
+This implementation implements a basic Allow-List of addresses, which can
+be managed only by the contract owner._
+
+### _tosRegistry
+
+```solidity
+contract IToSAcceptanceRegistry _tosRegistry
+```
+
+_Reference to the ToS Acceptance Registry_
+
+### onlyVeriteAdmin
+
+```solidity
+modifier onlyVeriteAdmin()
+```
+
+_Modifier to restrict the Verite Access Control logic to pool admins_
+
+### onlyVeriteEligible
+
+```solidity
+modifier onlyVeriteEligible()
+```
+
+_Modifier to restrict verification to users who have accepted the ToS_
+
+### initialize
+
+```solidity
+function initialize(address serviceConfiguration) public
+```
+
+_Initializer for the contract, which sets the ServiceConfiguration._
+
+### isAllowed
+
+```solidity
+function isAllowed(address addr) external view returns (bool)
+```
+
+_Checks against an allowList to see if the given address is allowed._
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| addr | address | The address to verify |
+
+#### Return Values
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | bool | whether the address is allowed as a Pool Admin |
+
 ## DeployerUUPSUpgradeable
 
 _Base upgradeable contract that ensures only the protocol Deployer can deploy
@@ -4181,34 +5027,6 @@ Normally, this function will use an xref:access.adoc[access control] modifier su
 ```solidity
 function _authorizeUpgrade(address) internal override onlyOwner {}
 ```_
-
-## IBeacon
-
-_Interface of Beacon contracts._
-
-### ImplementationSet
-
-```solidity
-event ImplementationSet(address implementation)
-```
-
-_Emitted when a new implementation is set._
-
-### implementation
-
-```solidity
-function implementation() external view returns (address)
-```
-
-_Returns an address used by BeaconProxy contracts for delegated calls._
-
-### setImplementation
-
-```solidity
-function setImplementation(address implementation) external
-```
-
-_Updates the implementation._
 
 ## ServiceConfiguration
 
@@ -4455,648 +5273,6 @@ _Sets the first loss fee for the protocol_
 | ---- | ---- | ----------- |
 | value | uint256 | amount of each payment that is allocated to the first loss vault. Value is in basis points, e.g. 500 equals 5%. |
 
-## PoolController
-
-### pool
-
-```solidity
-contract IPool pool
-```
-
-### admin
-
-```solidity
-address admin
-```
-
-### serviceConfiguration
-
-```solidity
-address serviceConfiguration
-```
-
-### _settings
-
-```solidity
-struct IPoolConfigurableSettings _settings
-```
-
-### _state
-
-```solidity
-enum IPoolLifeCycleState _state
-```
-
-### _firstLossVault
-
-```solidity
-contract FirstLossVault _firstLossVault
-```
-
-### _liquidityAsset
-
-```solidity
-contract IERC20 _liquidityAsset
-```
-
-### onlyNotPaused
-
-```solidity
-modifier onlyNotPaused()
-```
-
-_Modifier that checks that the protocol is not paused._
-
-### onlyAdmin
-
-```solidity
-modifier onlyAdmin()
-```
-
-_Modifier that checks that the caller is the pool's admin._
-
-### atState
-
-```solidity
-modifier atState(enum IPoolLifeCycleState state_)
-```
-
-_Modifier that checks that the pool is Initialized or Active_
-
-### atInitializedOrActiveState
-
-```solidity
-modifier atInitializedOrActiveState()
-```
-
-_Modifier that checks that the pool is Initialized or Active_
-
-### atActiveOrClosedState
-
-```solidity
-modifier atActiveOrClosedState()
-```
-
-_Modifier that checks that the pool is Initialized or Active_
-
-### isPoolLoan
-
-```solidity
-modifier isPoolLoan(address loan)
-```
-
-_Modifier to check that an addres is a Perimeter loan associated
-with this pool._
-
-### onlyCrankedPool
-
-```solidity
-modifier onlyCrankedPool()
-```
-
-_Modifier to ensure that the Pool is cranked._
-
-### initialize
-
-```solidity
-function initialize(address pool_, address serviceConfiguration_, address admin_, address liquidityAsset_, struct IPoolConfigurableSettings poolSettings_) public
-```
-
-### settings
-
-```solidity
-function settings() external view returns (struct IPoolConfigurableSettings)
-```
-
-_The current configurable pool settings._
-
-### setRequestFee
-
-```solidity
-function setRequestFee(uint256 feeBps) external
-```
-
-_Allow the current pool admin to update the pool fees
-before the pool has been activated._
-
-### requestFee
-
-```solidity
-function requestFee(uint256 sharesOrAssets) public view returns (uint256 feeShares)
-```
-
-_Returns the redeem fee for a given withdrawal amount at the current block.
-The fee is the number of shares that will be charged._
-
-### setRequestCancellationFee
-
-```solidity
-function setRequestCancellationFee(uint256 feeBps) external
-```
-
-_Allow the current pool admin to update the pool cancellation fees
-before the pool has been activated._
-
-### requestCancellationFee
-
-```solidity
-function requestCancellationFee(uint256 sharesOrAssets) public view returns (uint256 feeShares)
-```
-
-_Returns the cancellation fee for a given withdrawal request at the
-current block. The fee is the number of shares that will be charged._
-
-### setWithdrawGate
-
-```solidity
-function setWithdrawGate(uint256 _withdrawGateBps) external
-```
-
-_Allow the current pool admin to update the withdraw gate at any
-time if the pool is Initialized or Active_
-
-### withdrawGate
-
-```solidity
-function withdrawGate() public view returns (uint256)
-```
-
-_Returns the current withdraw gate in bps. If the pool is closed,
-this is set to 10_000 (100%)_
-
-### withdrawRequestPeriodDuration
-
-```solidity
-function withdrawRequestPeriodDuration() public view returns (uint256)
-```
-
-_Returns the current withdraw request period duration in seconds. If the pool is closed,
-this is lowered (if needed) to 1 day._
-
-### setPoolCapacity
-
-```solidity
-function setPoolCapacity(uint256 newCapacity) external
-```
-
-@dev
-
-### setPoolEndDate
-
-```solidity
-function setPoolEndDate(uint256 endDate) external
-```
-
-@dev
-
-### firstLossVault
-
-```solidity
-function firstLossVault() external view returns (address)
-```
-
-_The current amount of first loss available to the pool_
-
-### firstLossBalance
-
-```solidity
-function firstLossBalance() external view returns (uint256)
-```
-
-_The current amount of first loss available to the pool_
-
-### setServiceFeeBps
-
-```solidity
-function setServiceFeeBps(uint256 serviceFeeBps) external
-```
-
-_Allow the current pool admin to update the service fee._
-
-### setFixedFee
-
-```solidity
-function setFixedFee(uint256 amount, uint256 interval) external
-```
-
-_Allow the current pool admin to update the fixed fee._
-
-### state
-
-```solidity
-function state() public view returns (enum IPoolLifeCycleState)
-```
-
-_Returns the current pool lifecycle state._
-
-### isInitializedOrActive
-
-```solidity
-function isInitializedOrActive() external view returns (bool)
-```
-
-_Returns true if the pool is in an active or initialized state_
-
-### isActiveOrClosed
-
-```solidity
-function isActiveOrClosed() external view returns (bool)
-```
-
-_Returns true if the pool is in an active or closed state_
-
-### _setState
-
-```solidity
-function _setState(enum IPoolLifeCycleState newState) internal
-```
-
-_Set the pool lifecycle state. If the state changes, this method
-will also update the activatedAt variable_
-
-### depositFirstLoss
-
-```solidity
-function depositFirstLoss(uint256 amount, address spender) external
-```
-
-_Deposits first-loss to the pool. Can only be called by the Pool Admin._
-
-### withdrawFirstLoss
-
-```solidity
-function withdrawFirstLoss(uint256 amount, address receiver) external returns (uint256)
-```
-
-_Withdraws first-loss from the pool. Can only be called by the Pool Admin._
-
-### fundLoan
-
-```solidity
-function fundLoan(address addr) external
-```
-
-_Called by the pool admin, this transfers liquidity from the pool to a given loan._
-
-### defaultLoan
-
-```solidity
-function defaultLoan(address loan) external
-```
-
-_Called by the pool admin, this marks a loan as in default, triggering liquiditation
-proceedings and updating pool accounting._
-
-### claimFixedFee
-
-```solidity
-function claimFixedFee() external
-```
-
-_Called by the pool admin, this claims a fixed fee from the pool. Fee can only be
-claimed once every interval, as set on the pool._
-
-### crank
-
-```solidity
-function crank() external
-```
-
-_Cranks the Pool._
-
-## WithdrawController
-
-### _pool
-
-```solidity
-contract IPool _pool
-```
-
-_A reference to the pool for this withdraw state_
-
-### _withdrawState
-
-```solidity
-mapping(address => struct IPoolWithdrawState) _withdrawState
-```
-
-_Per-lender withdraw request information_
-
-### _globalWithdrawState
-
-```solidity
-struct IPoolWithdrawState _globalWithdrawState
-```
-
-_Aggregate withdraw request information_
-
-### _snapshots
-
-```solidity
-mapping(uint256 => struct IPoolSnapshotState) _snapshots
-```
-
-_Mapping of withdrawPeriod to snapshot_
-
-### onlyPool
-
-```solidity
-modifier onlyPool()
-```
-
-_Modifier that checks that the caller is a pool lender_
-
-### initialize
-
-```solidity
-function initialize(address pool) public
-```
-
-_Initializer for a Pool's withdraw state_
-
-### withdrawPeriod
-
-```solidity
-function withdrawPeriod() public view returns (uint256 period)
-```
-
-_The current withdraw period. Funds marked with this period (or
-earlier), are eligible to be considered for redemption/widrawal.
-
-TODO: This can be internal_
-
-### _currentWithdrawState
-
-```solidity
-function _currentWithdrawState(address owner) internal view returns (struct IPoolWithdrawState state)
-```
-
-_Returns the current withdraw state of an owner._
-
-### _currentGlobalWithdrawState
-
-```solidity
-function _currentGlobalWithdrawState() internal view returns (struct IPoolWithdrawState state)
-```
-
-_Returns the current global withdraw state._
-
-### interestBearingBalanceOf
-
-```solidity
-function interestBearingBalanceOf(address owner) external view returns (uint256 shares)
-```
-
-_Returns the amount of shares that should be considered interest
-bearing for a given owner.  This number is their balance, minus their
-"redeemable" shares._
-
-### requestedBalanceOf
-
-```solidity
-function requestedBalanceOf(address owner) external view returns (uint256 shares)
-```
-
-_Returns the number of shares that have been requested to be redeemed
-by the owner as of the current block._
-
-### totalRequestedBalance
-
-```solidity
-function totalRequestedBalance() external view returns (uint256 shares)
-```
-
-_Returns the number of shares that are available to be redeemed by
-the owner in the current block._
-
-### eligibleBalanceOf
-
-```solidity
-function eligibleBalanceOf(address owner) external view returns (uint256 shares)
-```
-
-_Returns the number of shares owned by an address that are "vested"
-enough to be considered for redeeming during the next withdraw period._
-
-### totalEligibleBalance
-
-```solidity
-function totalEligibleBalance() external view returns (uint256 shares)
-```
-
-_Returns the number of shares overall that are "vested" enough to be
-considered for redeeming during the next withdraw period._
-
-### totalRedeemableShares
-
-```solidity
-function totalRedeemableShares() external view returns (uint256 shares)
-```
-
-_Returns the number of shares that are available to be redeemed
-overall in the current block._
-
-### totalWithdrawableAssets
-
-```solidity
-function totalWithdrawableAssets() external view returns (uint256 assets)
-```
-
-_Returns the number of `assets` that are available to be withdrawn
-overall in the current block._
-
-### maxRedeemRequest
-
-```solidity
-function maxRedeemRequest(address owner) external view returns (uint256 maxShares)
-```
-
-_Returns the maximum number of `shares` that can be
-requested to be redeemed from the owner balance with a single
-`requestRedeem` call in the current block.
-
-Note: This is equivalent of EIP-4626 `maxRedeem`_
-
-### maxRedeem
-
-```solidity
-function maxRedeem(address owner) public view returns (uint256 maxShares)
-```
-
-_The maximum amount of shares that can be redeemed from the owner
-balance through a redeem call._
-
-### maxWithdraw
-
-```solidity
-function maxWithdraw(address owner) external view returns (uint256 assets)
-```
-
-_Returns the maximum amount of underlying assets that can be
-withdrawn from the owner balance with a single withdraw call._
-
-### previewRedeemRequest
-
-```solidity
-function previewRedeemRequest(uint256 shares) external view returns (uint256 assets)
-```
-
-_Simulate the effects of a redeem request at the current block.
-Returns the amount of underlying assets that would be requested if this
-entire redeem request were to be processed at the current block.
-
-Note: This is equivalent of EIP-4626 `previewRedeem`_
-
-### previewWithdrawRequest
-
-```solidity
-function previewWithdrawRequest(uint256 assets) external view returns (uint256 shares)
-```
-
-_Simulate the effects of a withdrawal request at the current block.
-Returns the amount of `shares` that would be burned if this entire
-withdrawal request were to be processed at the current block.
-
-Note: This is equivalent of EIP-4626 `previewWithdraw`_
-
-### previewRedeem
-
-```solidity
-function previewRedeem(address owner, uint256 shares) external view returns (uint256 assets)
-```
-
-_Simulates the effects of their redeemption at the current block.
-Per EIP4626, should round DOWN._
-
-### previewWithdraw
-
-```solidity
-function previewWithdraw(address owner, uint256 assets) external view returns (uint256 shares)
-```
-
-_Simulate the effects of their withdrawal at the current block.
-Per EIP4626, should round UP on the number of shares required for assets._
-
-### performRequest
-
-```solidity
-function performRequest(address owner, uint256 shares) external
-```
-
-_Requests redeeming a specific number of `shares` and `assets` from
-the pool.
-
-NOTE: The pool is responsible for handling any fees, and for providing
-the proper shares/assets ratio._
-
-### maxRequestCancellation
-
-```solidity
-function maxRequestCancellation(address owner) public view returns (uint256 maxShares)
-```
-
-_Returns the maximum number of `shares` that can be
-cancelled from being requested for a redemption.
-
-Note: This is equivalent of EIP-4626 `maxRedeem`_
-
-### performRequestCancellation
-
-```solidity
-function performRequestCancellation(address owner, uint256 shares) external
-```
-
-_Cancels a withdraw request for the owner,
-
-NOTE This method does not charge fees, as this should be handled outside
-of the WithdrawController._
-
-### crank
-
-```solidity
-function crank(uint256 withdrawGate) external returns (uint256 period, uint256 redeemableShares, uint256 withdrawableAssets, bool periodCranked)
-```
-
-_Crank the protocol. Performs accounting for withdrawals_
-
-### simulateCrank
-
-```solidity
-function simulateCrank(struct IPoolWithdrawState withdrawState) internal view returns (struct IPoolWithdrawState)
-```
-
-_Simulates the effects of multiple snapshots against a lenders
-requested withdrawal._
-
-### crankLender
-
-```solidity
-function crankLender(address addr) internal returns (struct IPoolWithdrawState state)
-```
-
-_Cranks a lender_
-
-### redeem
-
-```solidity
-function redeem(address owner, uint256 shares) external returns (uint256 assets)
-```
-
-_Redeems a specific number of shares from owner and send assets of underlying token from the vault to receiver.
-
-Per EIP4626, should round DOWN._
-
-### withdraw
-
-```solidity
-function withdraw(address owner, uint256 assets) external returns (uint256 shares)
-```
-
-_Burns shares from owner and send exactly assets token from the vault to receiver.
-Should round UP for EIP4626._
-
-### _performWithdraw
-
-```solidity
-function _performWithdraw(address owner, struct IPoolWithdrawState currentState, uint256 shares, uint256 assets) internal
-```
-
-_Perform the state update for a withdraw_
-
-## PoolControllerFactory
-
-### constructor
-
-```solidity
-constructor(address serviceConfiguration) public
-```
-
-### createController
-
-```solidity
-function createController(address pool, address serviceConfiguration, address admin, address liquidityAsset, struct IPoolConfigurableSettings poolSettings) public virtual returns (address addr)
-```
-
-_Creates a pool's PoolAdmin controller
-Emits `PoolControllerCreated` event._
-
-## WithdrawControllerFactory
-
-### constructor
-
-```solidity
-constructor(address serviceConfiguration) public
-```
-
-### createController
-
-```solidity
-function createController(address pool) public virtual returns (address addr)
-```
-
-_Creates a pool's withdraw controller
-Emits `WithdrawControllerCreated` event._
-
 ## IServiceConfigurable
 
 _Interface indicating that the contract is controlled by the protocol service configuration._
@@ -5225,170 +5401,6 @@ function setPaymentsRemaining(uint256 paymentsRemaining_) external
 function setState(enum ILoanLifeCycleState state_) external
 ```
 
-## PoolLibTestWrapper
-
-_Wrapper around PoolLib to facilitate testing._
-
-### _activeLoans
-
-```solidity
-struct EnumerableSet.AddressSet _activeLoans
-```
-
-### _accountings
-
-```solidity
-struct IPoolAccountings _accountings
-```
-
-### LifeCycleStateTransition
-
-```solidity
-event LifeCycleStateTransition(enum IPoolLifeCycleState state)
-```
-
-### FirstLossDeposited
-
-```solidity
-event FirstLossDeposited(address caller, address supplier, uint256 amount)
-```
-
-### FirstLossWithdrawn
-
-```solidity
-event FirstLossWithdrawn(address caller, address receiver, uint256 amount)
-```
-
-### Deposit
-
-```solidity
-event Deposit(address caller, address owner, uint256 assets, uint256 shares)
-```
-
-### executeFirstLossDeposit
-
-```solidity
-function executeFirstLossDeposit(address liquidityAsset, address spender, uint256 amount, address firstLossVault, enum IPoolLifeCycleState currentState, uint256 minFirstLossRequired) external
-```
-
-### executeFirstLossWithdraw
-
-```solidity
-function executeFirstLossWithdraw(uint256 amount, address withdrawReceiver, address firstLossVault) external returns (uint256)
-```
-
-### calculateConversion
-
-```solidity
-function calculateConversion(uint256 input, uint256 numerator, uint256 denominator, bool roundUp) public pure returns (uint256)
-```
-
-### calculateSharesFromAssets
-
-```solidity
-function calculateSharesFromAssets(uint256 assets, uint256 totalShares, uint256 totalAssets, bool roundUp) external pure returns (uint256)
-```
-
-### calculateAssetsFromShares
-
-```solidity
-function calculateAssetsFromShares(uint256 shares, uint256 totalAssets, uint256 totalShares, bool roundUp) external pure returns (uint256)
-```
-
-### calculateTotalAssets
-
-```solidity
-function calculateTotalAssets(address asset, address vault, uint256 outstandingLoanPrincipals) external view returns (uint256)
-```
-
-### calculateTotalAvailableAssets
-
-```solidity
-function calculateTotalAvailableAssets(address asset, address vault, uint256 outstandingLoanPrincipals, uint256 withdrawableAssets) external view returns (uint256)
-```
-
-### calculateTotalAvailableShares
-
-```solidity
-function calculateTotalAvailableShares(address vault, uint256 redeemableShares) external view returns (uint256)
-```
-
-### calculateMaxDeposit
-
-```solidity
-function calculateMaxDeposit(enum IPoolLifeCycleState poolLifeCycleState, uint256 poolMaxCapacity, uint256 totalAvailableAssets) external pure returns (uint256)
-```
-
-### setMockActiveLoans
-
-```solidity
-function setMockActiveLoans(address[] loans) public
-```
-
-### calculateExpectedInterestFromMocks
-
-```solidity
-function calculateExpectedInterestFromMocks() public view returns (uint256 expectedInterest)
-```
-
-### executeDeposit
-
-```solidity
-function executeDeposit(address asset, address vault, address sharesReceiver, uint256 assets, uint256 shares, uint256 maxDeposit) external returns (uint256)
-```
-
-### isPoolLoan
-
-```solidity
-function isPoolLoan(address loan, address serviceConfiguration, address pool) public view returns (bool)
-```
-
-### calculateCurrentWithdrawPeriod
-
-```solidity
-function calculateCurrentWithdrawPeriod(uint256 currentTimestamp, uint256 activatedAt, uint256 withdrawalWindowDuration) public pure returns (uint256)
-```
-
-### calculateWithdrawStateForRequest
-
-```solidity
-function calculateWithdrawStateForRequest(struct IPoolWithdrawState state, uint256 currentPeriod, uint256 requestedShares) public pure returns (struct IPoolWithdrawState)
-```
-
-### calculateWithdrawStateForCancellation
-
-```solidity
-function calculateWithdrawStateForCancellation(struct IPoolWithdrawState state, uint256 currentPeriod, uint256 cancelledShares) public pure returns (struct IPoolWithdrawState)
-```
-
-### calculateRequestFee
-
-```solidity
-function calculateRequestFee(uint256 shares, uint256 requestFeeBps) external pure returns (uint256)
-```
-
-### calculateCancellationFee
-
-```solidity
-function calculateCancellationFee(uint256 shares, uint256 requestCancellationFeeBps) external pure returns (uint256)
-```
-
-### calculateMaxRedeemRequest
-
-```solidity
-function calculateMaxRedeemRequest(struct IPoolWithdrawState state, uint256 shareBalance, uint256 requestFeeBps) public pure returns (uint256)
-```
-
-### calculateMaxCancellation
-
-```solidity
-function calculateMaxCancellation(struct IPoolWithdrawState state, uint256 requestCancellationFeeBps) public pure returns (uint256)
-```
-
-## LoanMockV2
-
-_Simulated new Loan implementation_
-
 ## MockBeaconImplementation
 
 ### foo
@@ -5453,14 +5465,6 @@ function initialize(address serviceConfiguration) public
 function foo() external pure returns (string)
 ```
 
-## PoolControllerMockV2
-
-_Simulated new ServiceConfiguration implementation_
-
-## PoolMockV2
-
-_Simulated new Pool implementation_
-
 ## ServiceConfigurationMockV2
 
 _Simulated new ServiceConfiguration implementation_
@@ -5468,10 +5472,6 @@ _Simulated new ServiceConfiguration implementation_
 ## ToSAcceptanceRegistryMockV2
 
 _Simulated new ToSAcceptanceRegistry implementation_
-
-## WithdrawControllerMockV2
-
-_Simulated new ServiceConfiguration implementation_
 
 ## PermissionedServiceConfiguration
 

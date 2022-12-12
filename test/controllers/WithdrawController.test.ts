@@ -88,7 +88,7 @@ describe("WithdrawController", () => {
       const { withdrawRequestPeriodDuration } = await pool.settings();
       await time.increase(withdrawRequestPeriodDuration);
 
-      await pool.connect(poolAdmin).crank();
+      await pool.connect(poolAdmin).snapshot();
 
       const balance = await pool.balanceOf(otherAccount.address);
       const redeemable = await pool.maxRedeem(otherAccount.address);
@@ -219,7 +219,7 @@ describe("WithdrawController", () => {
       await pool.connect(bob).requestRedeem(30);
 
       await time.increase(withdrawRequestPeriodDuration);
-      await pool.connect(poolAdmin).crank();
+      await pool.connect(poolAdmin).snapshot();
 
       expect(await withdrawController.totalWithdrawableAssets()).to.equal(39);
 
@@ -253,11 +253,11 @@ describe("WithdrawController", () => {
       await depositToPool(pool, bob, liquidityAsset, 100);
       await pool.connect(bob).requestRedeem(30);
 
-      // before the crank, check that redeemableShares is zero
+      // before the snapshot, check that redeemableShares is zero
       expect(await withdrawController.totalRedeemableShares()).to.equal(0);
 
       await time.increase(withdrawRequestPeriodDuration);
-      await pool.connect(poolAdmin).crank();
+      await pool.connect(poolAdmin).snapshot();
 
       expect(await withdrawController.totalRedeemableShares()).to.equal(39); // 30 + 10 - snapshot dust
 

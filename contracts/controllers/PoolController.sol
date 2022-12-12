@@ -96,10 +96,10 @@ contract PoolController is IPoolController, BeaconImplementation {
     }
 
     /**
-     * @dev Modifier to ensure that the Pool is cranked.
+     * @dev Modifier to ensure that the Pool is snapshotted.
      */
-    modifier onlyCrankedPool() {
-        pool.crank();
+    modifier onlySnapshottedPool() {
+        pool.snapshot();
         _;
     }
 
@@ -436,7 +436,7 @@ contract PoolController is IPoolController, BeaconImplementation {
         onlyNotPaused
         onlyAdmin
         atActiveOrClosedState
-        onlyCrankedPool
+        onlySnapshottedPool
     {
         require(loan != address(0), "Pool: 0 address");
         require(pool.isActiveLoan(loan), "Pool: not active loan");
@@ -462,10 +462,10 @@ contract PoolController is IPoolController, BeaconImplementation {
     }
 
     /*//////////////////////////////////////////////////////////////
-                Crank
+                Snapshot
     //////////////////////////////////////////////////////////////*/
 
-    function crank() external override onlyNotPaused onlyAdmin {
-        pool.crank();
+    function snapshot() external override onlyNotPaused onlyAdmin {
+        pool.snapshot();
     }
 }

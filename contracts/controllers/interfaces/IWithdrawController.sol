@@ -6,12 +6,12 @@ pragma solidity ^0.8.16;
  */
 struct IPoolWithdrawState {
     uint256 requestedShares; // Number of shares requested in the `latestPeriod`
-    uint256 eligibleShares; // Number of shares that are eligibble to be CONSIDERED for withdraw by the crank
+    uint256 eligibleShares; // Number of shares that are eligibble to be CONSIDERED for withdraw by the snapshot
     uint256 latestRequestPeriod; // Period where this was last updated
     uint256 redeemableShares; // The shares that are currently withdrawable
     uint256 withdrawableAssets; // The assets that are currently withdrawable
-    uint256 latestCrankPeriod; // window last cranked in
-    uint256 crankOffsetPeriod; // At the time of request, this is set to the last successful crank.
+    uint256 latestSnapshotPeriod; // window last snapshotted in
+    uint256 snapshotOffsetPeriod; // At the time of request, this is set to the last successful snapshot.
 }
 
 /**
@@ -169,19 +169,19 @@ interface IWithdrawController {
     function performRequestCancellation(address, uint256) external;
 
     /*//////////////////////////////////////////////////////////////
-                            Crank
+                            Snapshot
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Crank the protocol. Performs accounting for withdrawals
+     * @dev Snapshot the protocol. Performs accounting for withdrawals
      */
-    function crank(uint256 withdrawGate)
+    function snapshot(uint256 withdrawGate)
         external
         returns (
             uint256 period,
             uint256 shares,
             uint256 assets,
-            bool periodCranked
+            bool periodSnapshotted
         );
 
     /*//////////////////////////////////////////////////////////////

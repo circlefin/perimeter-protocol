@@ -99,10 +99,10 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev Modifier to ensure the Pool is cranked.
+     * @dev Modifier to ensure the Pool is snapshotted.
      */
-    modifier onlyCrankedPool() {
-        _crank();
+    modifier onlySnapshottedPool() {
+        _performSnapshot();
         _;
     }
 
@@ -249,7 +249,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         external
         onlyNotPaused
         onlyPoolController
-        onlyCrankedPool
+        onlySnapshottedPool
     {
         require(!_fundedLoans[addr], "Pool: already funded");
         _fundedLoans[addr] = true;
@@ -381,7 +381,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         address recipient,
         uint256 fixedFee,
         uint256 fixedFeeInterval
-    ) external onlyNotPaused onlyPoolController onlyCrankedPool {
+    ) external onlyNotPaused onlyPoolController onlySnapshottedPool {
         require(
             _accountings.fixedFeeDueDate < block.timestamp,
             "Pool: fixed fee not due"
@@ -464,7 +464,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         onlyActivatedPool
         onlyPermittedLender
         onlyLender
-        onlyCrankedPool
+        onlySnapshottedPool
         returns (uint256 assets)
     {
         assets = convertToAssets(shares);
@@ -480,7 +480,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         onlyActivatedPool
         onlyPermittedLender
         onlyLender
-        onlyCrankedPool
+        onlySnapshottedPool
         returns (uint256 shares)
     {
         shares = convertToShares(assets);
@@ -535,7 +535,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         onlyActivatedPool
         onlyPermittedLender
         onlyLender
-        onlyCrankedPool
+        onlySnapshottedPool
         returns (uint256 assets)
     {
         assets = convertToAssets(shares);
@@ -555,7 +555,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         onlyActivatedPool
         onlyPermittedLender
         onlyLender
-        onlyCrankedPool
+        onlySnapshottedPool
         returns (uint256 shares)
     {
         shares = convertToShares(assets);
@@ -583,28 +583,28 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /*//////////////////////////////////////////////////////////////
-                            Crank
+                            Snapshot
     //////////////////////////////////////////////////////////////*/
 
     /**
      * @inheritdoc IPool
      */
-    function crank() public virtual onlyNotPaused {
-        _crank();
+    function snapshot() public virtual onlyNotPaused {
+        _performSnapshot();
     }
 
     /**
-     * @dev Internal crank function run lazily.
+     * @dev Internal snapshot function run lazily.
      */
-    function _crank() internal {
+    function _performSnapshot() internal {
         (
             uint256 period,
             uint256 redeemableShares,
             uint256 withdrawableAssets,
-            bool periodCranked
-        ) = withdrawController.crank(poolController.withdrawGate());
-        if (periodCranked) {
-            emit PoolCranked(period, redeemableShares, withdrawableAssets);
+            bool periodSnapshotted
+        ) = withdrawController.snapshot(poolController.withdrawGate());
+        if (periodSnapshotted) {
+            emit PoolSnapshotted(period, redeemableShares, withdrawableAssets);
         }
     }
 
@@ -715,7 +715,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         onlyNotPaused
         atState(IPoolLifeCycleState.Active)
         onlyPermittedLender
-        onlyCrankedPool
+        onlySnapshottedPool
         returns (uint256 shares)
     {
         require(msg.sender == receiver, "Pool: invalid receiver");
@@ -774,7 +774,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         onlyNotPaused
         atState(IPoolLifeCycleState.Active)
         onlyPermittedLender
-        onlyCrankedPool
+        onlySnapshottedPool
         returns (uint256 assets)
     {
         require(msg.sender == receiver, "Pool: invalid receiver");
@@ -830,7 +830,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         virtual
         onlyNotPaused
         onlyPermittedLender
-        onlyCrankedPool
+        onlySnapshottedPool
         returns (uint256 shares)
     {
         require(receiver == owner, "Pool: Withdrawal to unrelated address");
@@ -885,7 +885,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         virtual
         onlyNotPaused
         onlyPermittedLender
-        onlyCrankedPool
+        onlySnapshottedPool
         returns (uint256 assets)
     {
         require(receiver == owner, "Pool: Withdrawal to unrelated address");

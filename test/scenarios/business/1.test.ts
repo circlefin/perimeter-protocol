@@ -212,7 +212,7 @@ describe("Business Scenario 1", () => {
 
     // Request window is 14 days, so fast forward to +28 days to claim in next window
     await advanceToDay(startTime, 28);
-    await pool.crank();
+    await pool.snapshot();
     await pool
       .connect(lenderA)
       .redeem(

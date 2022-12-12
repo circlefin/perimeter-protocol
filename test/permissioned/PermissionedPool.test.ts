@@ -207,16 +207,16 @@ describe("PermissionedPool", () => {
     });
   });
 
-  describe("crank()", () => {
+  describe("snapshot()", () => {
     it("reverts if not allowed lender or admin", async () => {
       const { pool, otherAccount } = await loadFixture(loadPoolFixture);
 
-      await expect(pool.connect(otherAccount).crank()).to.be.revertedWith(
+      await expect(pool.connect(otherAccount).snapshot()).to.be.revertedWith(
         "Pool: not allowed"
       );
     });
 
-    it("cranks the pool if allowed lender", async () => {
+    it("snapshots the pool if allowed lender", async () => {
       const { pool, poolAdmin, allowedLender, liquidityAsset } =
         await loadFixture(loadPoolFixture);
 
@@ -225,13 +225,13 @@ describe("PermissionedPool", () => {
       const { withdrawRequestPeriodDuration } = await pool.settings();
       await time.increase(withdrawRequestPeriodDuration);
 
-      await expect(pool.connect(allowedLender).crank()).to.emit(
+      await expect(pool.connect(allowedLender).snapshot()).to.emit(
         pool,
-        "PoolCranked"
+        "PoolSnapshotted"
       );
     });
 
-    it("cranks the pool if PA via poolController", async () => {
+    it("snapshots the pool if PA via poolController", async () => {
       const { pool, poolAdmin, poolController, liquidityAsset } =
         await loadFixture(loadPoolFixture);
 
@@ -240,9 +240,9 @@ describe("PermissionedPool", () => {
       const { withdrawRequestPeriodDuration } = await pool.settings();
       await time.increase(withdrawRequestPeriodDuration);
 
-      await expect(poolController.connect(poolAdmin).crank()).to.emit(
+      await expect(poolController.connect(poolAdmin).snapshot()).to.emit(
         pool,
-        "PoolCranked"
+        "PoolSnapshotted"
       );
     });
   });

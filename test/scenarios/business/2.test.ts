@@ -154,7 +154,7 @@ describe("Business Scenario 2", () => {
 
     // +7 days, lenderA requests 200k PT redemption
     await advanceToDay(startTime, 7);
-    await pool.crank(); // crank runs, but is meaningless
+    await pool.snapshot(); // snapshot runs, but is meaningless
     await pool.connect(lenderA).requestRedeem(200_000_000_000);
     // check balances
     expect(
@@ -177,9 +177,9 @@ describe("Business Scenario 2", () => {
     await mockUSDC.connect(borrower).approve(loan.address, INPUTS.loanPayment);
     await loan.connect(borrower).completeNextPayment();
 
-    // +14 days, run the crank
+    // +14 days, run the snapshot
     await advanceToDay(startTime, 14);
-    await pool.crank();
+    await pool.snapshot();
     // check balances
     expect(await pool.maxRedeem(lenderA.address)).to.equal(283960890);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(425941335);
@@ -193,9 +193,9 @@ describe("Business Scenario 2", () => {
       .approve(loan.address, INPUTS.loanPayment + INPUTS.loan.principal);
     await loan.connect(borrower).completeFullPayment();
 
-    // +21 days, run the crank
+    // +21 days, run the snapshot
     await advanceToDay(startTime, 21);
-    await pool.crank();
+    await pool.snapshot();
     // check balances
     expect(await pool.maxRedeem(lenderA.address)).to.equal(195141980444);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(292712970667);
@@ -208,9 +208,9 @@ describe("Business Scenario 2", () => {
       .connect(lenderA)
       .requestRedeem(await pool.maxRedeemRequest(lenderA.address));
 
-    // +28 days, run the crank
+    // +28 days, run the snapshot
     await advanceToDay(startTime, 28);
-    await pool.crank();
+    await pool.snapshot();
     // check balances
     expect(await pool.maxRedeem(lenderA.address)).to.equal(425828499681);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(298694213967);
@@ -223,18 +223,18 @@ describe("Business Scenario 2", () => {
       .connect(lenderB)
       .requestRedeem(await pool.maxRedeemRequest(lenderB.address));
 
-    // +35 days, run the crank
+    // +35 days, run the snapshot
     await advanceToDay(startTime, 35);
-    await pool.crank();
+    await pool.snapshot();
     // check balances
     expect(await pool.maxRedeem(lenderA.address)).to.equal(451009487935);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(387442345077);
     expect(await pool.maxWithdraw(lenderA.address)).to.equal(472632381854);
     expect(await pool.maxWithdraw(lenderB.address)).to.equal(405010847310);
 
-    // + to close, crank, inspect results
+    // + to close, snapshot, inspect results
     await time.increaseTo((await pool.settings()).endDate);
-    await pool.crank();
+    await pool.snapshot();
 
     // check balances
     // Lender A and B can redeem the same # of shares, but their assets differ

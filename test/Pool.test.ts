@@ -221,14 +221,14 @@ describe("Pool", () => {
       await pool.connect(lenderA).requestRedeem(50);
       const { withdrawRequestPeriodDuration } = await pool.settings();
       await time.increase(withdrawRequestPeriodDuration);
-      await pool.crank();
+      await pool.snapshot();
 
       // lender B deposits
       await liquidityAsset.mint(lenderB.address, 100);
       await depositToPool(pool, lenderB, liquidityAsset, 100);
 
       // There's a 5% request fee, which burned 3 tokens when Lender A requested to redeem.
-      // That left 97 tokens in the Pool at the time of the crank, 49 of which were earmarked for withdrawal,
+      // That left 97 tokens in the Pool at the time of the snapshot, 49 of which were earmarked for withdrawal,
       // along with 50 assets (since the exchange rate was 100/97 * 50 = 50.5 rounded down).
 
       // So, at the time of deposit, there were 97 - 49 = 48 tokens, along with 50 assets.
@@ -881,7 +881,7 @@ describe("Pool", () => {
         await pool.connect(otherAccount).requestRedeem(10);
 
         await time.increase(withdrawRequestPeriodDuration);
-        await pool.connect(poolAdmin).crank();
+        await pool.connect(poolAdmin).snapshot();
 
         expect(await pool.maxRedeem(otherAccount.address)).to.equal(9); // 10 - snapshot dust
       });
@@ -898,7 +898,7 @@ describe("Pool", () => {
         await pool.connect(otherAccount).requestRedeem(10);
 
         await time.increase(withdrawRequestPeriodDuration);
-        await pool.connect(poolAdmin).crank();
+        await pool.connect(poolAdmin).snapshot();
 
         expect(await pool.maxWithdraw(otherAccount.address)).to.equal(9);
       });
@@ -929,7 +929,7 @@ describe("Pool", () => {
       await pool.connect(bob).requestRedeem(30);
 
       await time.increase(withdrawRequestPeriodDuration);
-      await pool.connect(poolAdmin).crank();
+      await pool.connect(poolAdmin).snapshot();
 
       const startingShares = await pool.balanceOf(otherAccount.address);
       const startingAssets = await liquidityAsset.balanceOf(
@@ -963,7 +963,7 @@ describe("Pool", () => {
       await pool.connect(bob).requestRedeem(30);
 
       await time.increase(withdrawRequestPeriodDuration);
-      await pool.connect(poolAdmin).crank();
+      await pool.connect(poolAdmin).snapshot();
 
       expect((await pool.accountings()).totalAssetsWithdrawn).to.equal(0);
 
@@ -991,7 +991,7 @@ describe("Pool", () => {
       await pool.connect(bob).requestRedeem(30);
 
       await time.increase(withdrawRequestPeriodDuration);
-      await pool.connect(poolAdmin).crank();
+      await pool.connect(poolAdmin).snapshot();
 
       const max = await pool.maxRedeem(otherAccount.address);
 
@@ -1046,10 +1046,10 @@ describe("Pool", () => {
         .connect(otherAccount)
         .requestRedeem(await pool.maxRedeemRequest(otherAccount.address));
 
-      // Crank it
+      // Snapshot it
       const { withdrawRequestPeriodDuration } = await pool.settings();
       await time.increase(withdrawRequestPeriodDuration);
-      await pool.crank();
+      await pool.snapshot();
 
       // Redeem full amount
       const maxRedeem = await pool.maxRedeem(otherAccount.address);
@@ -1079,7 +1079,7 @@ describe("Pool", () => {
       await pool.connect(bob).requestRedeem(30);
 
       await time.increase(withdrawRequestPeriodDuration);
-      await pool.connect(poolAdmin).crank();
+      await pool.connect(poolAdmin).snapshot();
 
       const startingShares = await pool.balanceOf(otherAccount.address);
       const startingAssets = await liquidityAsset.balanceOf(
@@ -1113,7 +1113,7 @@ describe("Pool", () => {
       await pool.connect(bob).requestRedeem(30);
 
       await time.increase(withdrawRequestPeriodDuration);
-      await pool.connect(poolAdmin).crank();
+      await pool.connect(poolAdmin).snapshot();
 
       expect((await pool.accountings()).totalAssetsWithdrawn).to.equal(0);
 
@@ -1141,7 +1141,7 @@ describe("Pool", () => {
       await pool.connect(bob).requestRedeem(30);
 
       await time.increase(withdrawRequestPeriodDuration);
-      await pool.connect(poolAdmin).crank();
+      await pool.connect(poolAdmin).snapshot();
 
       const max = await pool.maxWithdraw(otherAccount.address);
 
@@ -1179,7 +1179,7 @@ describe("Pool", () => {
     });
   });
 
-  describe("Pool is cranked lazily", async () => {
+  describe("Pool is snapshotted lazily", async () => {
     it("deposit()", async () => {
       const { pool, poolAdmin, liquidityAsset, otherAccount } =
         await loadFixture(loadPoolFixture);
@@ -1189,7 +1189,7 @@ describe("Pool", () => {
       await time.increase(withdrawRequestPeriodDuration);
       await expect(
         depositToPool(pool, otherAccount, liquidityAsset, 1_000_000)
-      ).to.emit(pool, "PoolCranked");
+      ).to.emit(pool, "PoolSnapshotted");
     });
 
     it("mint()", async () => {
@@ -1208,7 +1208,7 @@ describe("Pool", () => {
 
       await expect(
         pool.connect(otherAccount).mint(1_000_000, otherAccount.address)
-      ).to.emit(pool, "PoolCranked");
+      ).to.emit(pool, "PoolSnapshotted");
     });
 
     it("requestRedeem()", async () => {
@@ -1223,7 +1223,7 @@ describe("Pool", () => {
 
       await expect(pool.connect(otherAccount).requestRedeem(1)).to.emit(
         pool,
-        "PoolCranked"
+        "PoolSnapshotted"
       );
     });
 
@@ -1239,7 +1239,7 @@ describe("Pool", () => {
 
       await expect(pool.connect(otherAccount).requestWithdraw(1)).to.emit(
         pool,
-        "PoolCranked"
+        "PoolSnapshotted"
       );
     });
 
@@ -1256,7 +1256,7 @@ describe("Pool", () => {
 
       await expect(pool.connect(otherAccount).cancelRedeemRequest(0)).to.emit(
         pool,
-        "PoolCranked"
+        "PoolSnapshotted"
       );
     });
 
@@ -1273,7 +1273,7 @@ describe("Pool", () => {
 
       await expect(pool.connect(otherAccount).cancelWithdrawRequest(0)).to.emit(
         pool,
-        "PoolCranked"
+        "PoolSnapshotted"
       );
     });
 
@@ -1292,7 +1292,7 @@ describe("Pool", () => {
         pool
           .connect(otherAccount)
           .redeem(1, otherAccount.address, otherAccount.address)
-      ).to.emit(pool, "PoolCranked");
+      ).to.emit(pool, "PoolSnapshotted");
     });
 
     it("withdraw()", async () => {
@@ -1310,7 +1310,7 @@ describe("Pool", () => {
         pool
           .connect(otherAccount)
           .withdraw(1, otherAccount.address, otherAccount.address)
-      ).to.emit(pool, "PoolCranked");
+      ).to.emit(pool, "PoolSnapshotted");
     });
 
     it("fundLoan()", async () => {
@@ -1331,7 +1331,7 @@ describe("Pool", () => {
 
       await expect(
         poolController.connect(poolAdmin).fundLoan(loan.address)
-      ).to.emit(pool, "PoolCranked");
+      ).to.emit(pool, "PoolSnapshotted");
     });
 
     it("defaultLoan()", async () => {
@@ -1360,7 +1360,7 @@ describe("Pool", () => {
 
       await expect(
         poolController.connect(poolAdmin).defaultLoan(loan.address)
-      ).to.emit(pool, "PoolCranked");
+      ).to.emit(pool, "PoolSnapshotted");
     });
 
     it("claimFixedFee()", async () => {
@@ -1379,7 +1379,7 @@ describe("Pool", () => {
 
       // Claim the fixed fee
       const tx = poolController.connect(poolAdmin).claimFixedFee();
-      await expect(tx).to.emit(pool, "PoolCranked");
+      await expect(tx).to.emit(pool, "PoolSnapshotted");
       await expect(tx).to.changeTokenBalance(
         liquidityAsset,
         poolAdmin.address,
@@ -1394,7 +1394,7 @@ describe("Pool", () => {
 
       //
       const tx2 = poolController.connect(poolAdmin).claimFixedFee();
-      await expect(tx2).to.emit(pool, "PoolCranked");
+      await expect(tx2).to.emit(pool, "PoolSnapshotted");
       await expect(tx2).to.changeTokenBalance(
         liquidityAsset,
         poolAdmin.address,
