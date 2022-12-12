@@ -250,7 +250,7 @@ describe("Permissioned Business Scenario 1", () => {
     // Request window is 14 days, so fast forward to +28 days to claim in next window
     await advanceToDay(startTime, 28);
     await performVeriteVerification(poolAccessControl, poolAdmin, lenderA);
-    await pool.connect(lenderA).crank();
+    await pool.connect(lenderA).snapshot();
     await pool
       .connect(lenderA)
       .redeem(

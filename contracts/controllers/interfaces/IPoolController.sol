@@ -209,11 +209,11 @@ interface IPoolController {
     function claimFixedFee() external;
 
     /*//////////////////////////////////////////////////////////////
-                Crank
+                Snapshot
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Cranks the Pool.
+     * @dev Snapshots the Pool.
      */
-    function crank() external;
+    function snapshot() external;
 }

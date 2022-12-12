@@ -3,7 +3,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { deployPool, depositToPool, activatePool } from "../../support/pool";
 
-describe("Crank Variations", () => {
+describe("Snapshot Variations", () => {
   const DEPOSIT_AMOUNT = 1_000_000;
 
   async function loadPoolFixture() {
@@ -57,7 +57,7 @@ describe("Crank Variations", () => {
 
     // Fast forward 1st period
     await time.increase(withdrawRequestPeriodDuration);
-    await pool.crank();
+    await pool.snapshot();
     expect(await withdrawController.withdrawPeriod()).to.equal(1);
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(
       DEPOSIT_AMOUNT / 2
@@ -65,7 +65,7 @@ describe("Crank Variations", () => {
 
     // Fast forward to 2nd period
     await time.increase(withdrawRequestPeriodDuration);
-    await pool.crank();
+    await pool.snapshot();
     expect(await withdrawController.withdrawPeriod()).to.equal(2);
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(
       (3 * DEPOSIT_AMOUNT) / 4
@@ -73,20 +73,20 @@ describe("Crank Variations", () => {
 
     // Fast forward to 3rd period
     await time.increase(withdrawRequestPeriodDuration);
-    await pool.crank();
+    await pool.snapshot();
     expect(await withdrawController.withdrawPeriod()).to.equal(3);
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(875_000); // 750k + (remainder = 250k) / 2 = 875k
 
     // Fast forward to 4th period
     await time.increase(withdrawRequestPeriodDuration);
-    await pool.crank();
+    await pool.snapshot();
     expect(await withdrawController.withdrawPeriod()).to.equal(4);
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(937_500); // 875k + (remainder = 125k) / 2 = 875k
 
     // Fast forward to pool close date
     const { endDate } = await pool.settings();
     await time.increaseTo(endDate);
-    await pool.crank();
+    await pool.snapshot();
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(
       DEPOSIT_AMOUNT - 1
     );
@@ -120,25 +120,25 @@ describe("Crank Variations", () => {
     expect(await withdrawController.withdrawPeriod()).to.equal(0);
     await pool.connect(aliceLender).requestRedeem(DEPOSIT_AMOUNT);
 
-    // Fast forward to 1st period. Pool is cranked, earmarking a full 1M for Alice.
+    // Fast forward to 1st period. Pool is snapshotted, earmarking a full 1M for Alice.
     await time.increase(withdrawRequestPeriodDuration);
     expect(await withdrawController.withdrawPeriod()).to.equal(1);
-    await pool.crank(); // 1M should be earmarked
+    await pool.snapshot(); // 1M should be earmarked
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(
       DEPOSIT_AMOUNT - 1
     );
 
-    // Fast forward to 2nd period. Pool is cranked, and then Bob requests their full amount.
+    // Fast forward to 2nd period. Pool is snapshotted, and then Bob requests their full amount.
     await time.increase(withdrawRequestPeriodDuration);
     expect(await withdrawController.withdrawPeriod()).to.equal(2);
-    await pool.crank();
+    await pool.snapshot();
     await pool.connect(bobLender).requestRedeem(DEPOSIT_AMOUNT);
     expect(await pool.maxRedeem(bobLender.address)).to.equal(0);
 
-    // Fast forward to 3rd period. Pool is cranked,
+    // Fast forward to 3rd period. Pool is snapshotted,
     await time.increase(withdrawRequestPeriodDuration);
     expect(await pool.maxRedeem(bobLender.address)).to.equal(0);
-    await pool.crank(); // Bob should now be able to withdraw 1M / 2 = 500k
+    await pool.snapshot(); // Bob should now be able to withdraw 1M / 2 = 500k
     expect(await withdrawController.withdrawPeriod()).to.equal(3);
     expect(await pool.maxRedeem(bobLender.address)).to.equal(
       DEPOSIT_AMOUNT / 2 - 1
@@ -150,7 +150,7 @@ describe("Crank Variations", () => {
 
     // Fast forward to 4th period
     await time.increase(withdrawRequestPeriodDuration);
-    await pool.crank();
+    await pool.snapshot();
     expect(await withdrawController.withdrawPeriod()).to.equal(4);
     expect(await pool.maxRedeem(bobLender.address)).to.equal(
       (3 * DEPOSIT_AMOUNT) / 4 - 1
@@ -162,7 +162,7 @@ describe("Crank Variations", () => {
     // Fast forward to pool close date
     const { endDate } = await pool.settings();
     await time.increaseTo(endDate);
-    await pool.crank();
+    await pool.snapshot();
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(
       DEPOSIT_AMOUNT - 1
     );
@@ -210,18 +210,18 @@ describe("Crank Variations", () => {
     expect(await withdrawController.withdrawPeriod()).to.equal(0);
     await pool.connect(aliceLender).requestRedeem(DEPOSIT_AMOUNT);
 
-    // Fast forward to 1st period. Pool is cranked, earmarking a full 1M for Alice.
+    // Fast forward to 1st period. Pool is snapshotted, earmarking a full 1M for Alice.
     await time.increase(withdrawRequestPeriodDuration);
     expect(await withdrawController.withdrawPeriod()).to.equal(1);
-    await pool.crank(); // 1M should be earmarked
+    await pool.snapshot(); // 1M should be earmarked
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(
       DEPOSIT_AMOUNT / 2
     );
 
-    // Fast forward to 2nd period. Pool is cranked, and then Bob requests their full amount.
+    // Fast forward to 2nd period. Pool is snapshotted, and then Bob requests their full amount.
     await time.increase(withdrawRequestPeriodDuration);
     expect(await withdrawController.withdrawPeriod()).to.equal(2);
-    await pool.crank();
+    await pool.snapshot();
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(
       (DEPOSIT_AMOUNT * 3) / 4
     );
@@ -230,15 +230,15 @@ describe("Crank Variations", () => {
     await depositToPool(pool, bobLender, liquidityAsset, DEPOSIT_AMOUNT);
     await time.increase(withdrawRequestPeriodDuration);
     expect(await withdrawController.withdrawPeriod()).to.equal(3);
-    await pool.crank();
+    await pool.snapshot();
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(
       DEPOSIT_AMOUNT - 1
     );
 
-    // Ensure that subsequent cranks dont over allocate
+    // Ensure that subsequent snapshots dont over allocate
     await time.increase(withdrawRequestPeriodDuration);
     expect(await withdrawController.withdrawPeriod()).to.equal(4);
-    await pool.crank();
+    await pool.snapshot();
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(
       DEPOSIT_AMOUNT - 1
     );
@@ -247,7 +247,7 @@ describe("Crank Variations", () => {
     await pool.connect(bobLender).requestRedeem(DEPOSIT_AMOUNT);
     await time.increase(withdrawRequestPeriodDuration);
     expect(await withdrawController.withdrawPeriod()).to.equal(5);
-    await pool.crank();
+    await pool.snapshot();
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(
       DEPOSIT_AMOUNT - 1
     );
@@ -296,7 +296,7 @@ describe("Crank Variations", () => {
     // Fast forward 1 day...previously the window was 30 days
     await time.increase(86400);
 
-    await pool.crank();
+    await pool.snapshot();
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(
       DEPOSIT_AMOUNT - 1
     ); // withdrawal dust

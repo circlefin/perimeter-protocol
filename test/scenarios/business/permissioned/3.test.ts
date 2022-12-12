@@ -174,7 +174,7 @@ describe("Permissioned Business Scenario 3", () => {
     // +7 days, lenderA requests 200k PT redemption
     await advanceToDay(startTime, 7);
     await performVeriteVerification(poolAccessControl, poolAdmin, lenderA);
-    await pool.connect(lenderA).crank(); // crank runs, but is meaningless
+    await pool.connect(lenderA).snapshot(); // snapshot runs, but is meaningless
     await pool.connect(lenderA).requestRedeem(200_000_000_000);
 
     // +8 days, lenderB requests 300k PT redemption
@@ -187,10 +187,10 @@ describe("Permissioned Business Scenario 3", () => {
     await mockUSDC.connect(borrower).approve(loan.address, INPUTS.loanPayment);
     await loan.connect(borrower).completeNextPayment();
 
-    // +14 days, run the crank
+    // +14 days, run the snapshot
     await advanceToDay(startTime, 14);
     await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
-    await pool.connect(lenderB).crank();
+    await pool.connect(lenderB).snapshot();
 
     // +18 days, complete payment made
     await advanceToDay(startTime, 18);
@@ -199,7 +199,7 @@ describe("Permissioned Business Scenario 3", () => {
       .approve(loan.address, INPUTS.loanPayment + INPUTS.loan.principal);
     await loan.connect(borrower).completeFullPayment();
 
-    // +21 days, run the crank
+    // +21 days, run the snapshot
     await advanceToDay(startTime, 21);
     // check balances before
     expect(await pool.maxRedeem(lenderA.address)).to.equal(283960890);
@@ -208,7 +208,7 @@ describe("Permissioned Business Scenario 3", () => {
     expect(await pool.maxWithdraw(lenderB.address)).to.equal(437499999);
 
     await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
-    await pool.connect(lenderB).crank();
+    await pool.connect(lenderB).snapshot();
 
     // check balances after
     expect(await pool.maxRedeem(lenderA.address)).to.equal(195141980444);
@@ -230,7 +230,7 @@ describe("Permissioned Business Scenario 3", () => {
       .connect(lenderA)
       .redeem(190_000_000_000, lenderA.address, lenderA.address);
 
-    // +28 days, run the crank
+    // +28 days, run the snapshot
     await advanceToDay(startTime, 28);
     // check balances before
     expect(await pool.maxRedeem(lenderA.address)).to.equal(5141980444);
@@ -239,7 +239,7 @@ describe("Permissioned Business Scenario 3", () => {
     expect(await pool.maxWithdraw(lenderB.address)).to.equal(301093749998);
 
     await performVeriteVerification(poolAccessControl, poolAdmin, lenderA);
-    await pool.connect(lenderA).crank();
+    await pool.connect(lenderA).snapshot();
     // check balances after
     expect(await pool.maxRedeem(lenderA.address)).to.equal(235828499681);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(298694213967);
@@ -260,7 +260,7 @@ describe("Permissioned Business Scenario 3", () => {
       .connect(lenderB)
       .redeem(295_000_000_000, lenderB.address, lenderB.address);
 
-    // +35 days, run the crank
+    // +35 days, run the snapshot
     await advanceToDay(startTime, 35);
     // check balances before
     expect(await pool.maxRedeem(lenderA.address)).to.equal(235828499681);
@@ -269,7 +269,7 @@ describe("Permissioned Business Scenario 3", () => {
     expect(await pool.maxWithdraw(lenderB.address)).to.equal(3802204631);
 
     await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
-    await pool.connect(lenderB).crank();
+    await pool.connect(lenderB).snapshot();
     // check balances after
     expect(await pool.maxRedeem(lenderA.address)).to.equal(261009487935);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(92442345077);

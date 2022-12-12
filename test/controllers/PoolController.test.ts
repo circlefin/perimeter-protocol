@@ -898,10 +898,10 @@ describe("PoolController", () => {
       const redeemAmount = await pool.maxRedeemRequest(otherAccount.address);
       await pool.connect(otherAccount).requestRedeem(redeemAmount);
 
-      // fast forward and crank
+      // fast forward and snapshot
       const { withdrawRequestPeriodDuration } = await pool.settings();
       await time.increase(withdrawRequestPeriodDuration);
-      await pool.crank();
+      await pool.snapshot();
 
       // double check that the funds are now available for withdraw
       expect(await pool.maxRedeem(otherAccount.address)).to.equal(
@@ -1237,14 +1237,14 @@ describe("PoolController", () => {
     });
   });
 
-  describe("crank()", () => {
+  describe("snapshot()", () => {
     it("reverts if not called by Pool Admin", async () => {
       const { poolController, otherAccount } = await loadFixture(
         loadPoolFixture
       );
 
       await expect(
-        poolController.connect(otherAccount).crank()
+        poolController.connect(otherAccount).snapshot()
       ).to.be.revertedWith("Pool: caller is not admin");
     });
 
@@ -1266,20 +1266,20 @@ describe("PoolController", () => {
       await serviceConfiguration.connect(pauser).setPaused(true);
 
       await expect(
-        poolController.connect(poolAdmin).crank()
+        poolController.connect(poolAdmin).snapshot()
       ).to.be.revertedWith("Pool: Protocol paused");
     });
 
-    it("cranks the pool", async () => {
+    it("snapshots the pool", async () => {
       const { poolController, pool, poolAdmin, liquidityAsset } =
         await loadFixture(loadPoolFixture);
 
       await activatePool(pool, poolAdmin, liquidityAsset);
       const { withdrawRequestPeriodDuration } = await pool.settings();
       await time.increase(withdrawRequestPeriodDuration);
-      await expect(poolController.connect(poolAdmin).crank()).to.emit(
+      await expect(poolController.connect(poolAdmin).snapshot()).to.emit(
         pool,
-        "PoolCranked"
+        "PoolSnapshotted"
       );
     });
   });

@@ -119,12 +119,12 @@ describe("Withdraw Requests", () => {
     // expect the request and withdraw periods to have advanced
     expect(await withdrawController.withdrawPeriod()).to.equal(1);
 
-    // nothing changes until we crank
+    // nothing changes until we snapshot
     expect(await pool.maxWithdraw(aliceLender.address)).to.equal(0);
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(0);
 
-    // crank it
-    await pool.crank();
+    // snapshot it
+    await pool.snapshot();
 
     // 170 assets = 160 shares. 25% withdraw gate = 40
     expect(await withdrawController.totalRedeemableShares()).to.equal(40);

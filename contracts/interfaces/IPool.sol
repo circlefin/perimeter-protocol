@@ -57,9 +57,9 @@ interface IPool is IERC4626 {
     );
 
     /**
-     * @dev Emitted when the pool is cranked for a given withdraw period.
+     * @dev Emitted when the pool is snapshotted for a given withdraw period.
      */
-    event PoolCranked(
+    event PoolSnapshotted(
         uint256 withDrawPeriod,
         uint256 redeemableShares,
         uint256 withdrawableAssets
@@ -148,9 +148,9 @@ interface IPool is IERC4626 {
     function onActivated() external;
 
     /**
-     * @dev Cranks the pool's withdrawals
+     * @dev Snapshots the pool's withdrawals
      */
-    function crank() external;
+    function snapshot() external;
 
     /**
      * @dev Returns the set of currently Active loans.

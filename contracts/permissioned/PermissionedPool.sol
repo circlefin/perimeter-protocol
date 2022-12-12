@@ -61,13 +61,13 @@ contract PermissionedPool is Pool {
     /**
      * @inheritdoc Pool
      */
-    function crank() public override {
+    function snapshot() public override {
         require(
             msg.sender == address(poolController) ||
                 poolAccessControl.isAllowed(msg.sender),
             "Pool: not allowed"
         );
-        super.crank();
+        super.snapshot();
     }
 
     /**
