@@ -32,12 +32,14 @@ contract PermissionedPoolFactory is PoolFactory {
         address serviceConfiguration,
         address withdrawControllerFactory,
         address poolControllerFactory,
+        address vaultFactory,
         address poolAccessControlFactory
     )
         PoolFactory(
             serviceConfiguration,
             withdrawControllerFactory,
-            poolControllerFactory
+            poolControllerFactory,
+            vaultFactory
         )
     {
         _poolAccessControlFactory = poolAccessControlFactory;
@@ -72,6 +74,7 @@ contract PermissionedPoolFactory is PoolFactory {
                 _serviceConfiguration,
                 _withdrawControllerFactory,
                 _poolControllerFactory,
+                _vaultFactory,
                 _poolAccessControlFactory,
                 settings,
                 "PerimeterPoolToken",

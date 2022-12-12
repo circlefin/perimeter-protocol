@@ -194,6 +194,19 @@ async function main() {
   await tx.wait();
   console.log(`PoolController set as implementation for its factory`);
 
+  // Deploy VaultFactory
+  const VaultFactory = await ethers.getContractFactory("VaultFactory");
+  const vaultFactory = await VaultFactory.deploy(serviceConfiguration.address);
+  await vaultFactory.deployed();
+  console.log(`VaultFactory deployed to ${vaultFactory.address}`);
+  const Vault = await ethers.getContractFactory("Vault");
+  const vault = await Vault.deploy();
+  await vault.deployed();
+  console.log(`Vault deployed to ${vault.address}`);
+  tx = await vaultFactory.connect(deployer).setImplementation(vault.address);
+  await tx.wait();
+  console.log(`Vault set as implementation for its factory`);
+
   // Deploy PoolFactory
   const PoolFactory = await ethers.getContractFactory(
     "PermissionedPoolFactory",
@@ -203,6 +216,7 @@ async function main() {
     serviceConfiguration.address,
     withdrawControllerFactory.address,
     poolControllerFactory.address,
+    vaultFactory.address,
     poolAccessControlFactory.address
   );
   await poolFactory.deployed();
@@ -223,7 +237,10 @@ async function main() {
   const LoanFactory = await ethers.getContractFactory(
     "PermissionedLoanFactory"
   );
-  const loanFactory = await LoanFactory.deploy(serviceConfiguration.address);
+  const loanFactory = await LoanFactory.deploy(
+    serviceConfiguration.address,
+    vaultFactory.address
+  );
   await loanFactory.deployed();
   console.log(`LoanFactory deployed to ${loanFactory.address}`);
 

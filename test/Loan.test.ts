@@ -4,7 +4,8 @@ import { ethers } from "hardhat";
 import {
   activatePool,
   DEFAULT_POOL_SETTINGS,
-  deployPool
+  deployPool,
+  deployVaultFactory
 } from "./support/pool";
 import {
   collateralizeLoan,
@@ -40,8 +41,13 @@ describe("Loan", () => {
     const LoanLib = await ethers.getContractFactory("LoanLib");
     const loanLib = await LoanLib.deploy();
 
+    const vaultFactory = await deployVaultFactory(serviceConfiguration.address);
+
     const LoanFactory = await ethers.getContractFactory("LoanFactory");
-    const loanFactory = await LoanFactory.deploy(serviceConfiguration.address);
+    const loanFactory = await LoanFactory.deploy(
+      serviceConfiguration.address,
+      vaultFactory.address
+    );
     await loanFactory.deployed();
 
     await serviceConfiguration
@@ -229,7 +235,7 @@ describe("Loan", () => {
       );
       await expect(tx).to.changeTokenBalance(
         collateralAsset,
-        await loan._collateralVault(),
+        await loan.collateralVault(),
         +100
       );
       expect(await loan.state()).to.equal(1);
@@ -672,7 +678,7 @@ describe("Loan", () => {
       );
       await expect(txn1).to.changeTokenBalance(
         collateralAsset,
-        await loan._collateralVault(),
+        await loan.collateralVault(),
         -fungibleAmount
       );
       await expect(txn1)
@@ -752,7 +758,7 @@ describe("Loan", () => {
       expect(c.length).to.equal(1);
 
       // Collateral will be in the vault
-      const collateralVault = await loan._collateralVault();
+      const collateralVault = await loan.collateralVault();
       expect(await collateralAsset.balanceOf(collateralVault)).to.equal(100);
 
       // Post collateral again
@@ -838,7 +844,7 @@ describe("Loan", () => {
       await nftAsset.connect(borrower).approve(loan.address, tokenId);
 
       // Collateral vault will start with no asset
-      let balanceOf = await nftAsset.balanceOf(await loan._collateralVault());
+      let balanceOf = await nftAsset.balanceOf(await loan.collateralVault());
       expect(balanceOf).to.equal(0);
 
       // Post collateral
@@ -850,7 +856,7 @@ describe("Loan", () => {
       expect(c[0][0]).to.equal(nftAsset.address);
       expect(c[0][1]).to.equal(tokenId);
 
-      balanceOf = await nftAsset.balanceOf(await loan._collateralVault());
+      balanceOf = await nftAsset.balanceOf(await loan.collateralVault());
       expect(balanceOf).to.equal(1);
     });
 

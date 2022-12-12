@@ -5,9 +5,9 @@ import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./interfaces/ILoan.sol";
 import "./interfaces/IPool.sol";
 import "./interfaces/IServiceConfiguration.sol";
+import "./interfaces/IVault.sol";
+import "./factories/interfaces/IVaultFactory.sol";
 import "./libraries/LoanLib.sol";
-import "./CollateralVault.sol";
-import "./FundingVault.sol";
 import "./upgrades/BeaconImplementation.sol";
 
 /**
@@ -23,8 +23,8 @@ contract Loan is ILoan, BeaconImplementation {
     ILoanLifeCycleState private _state = ILoanLifeCycleState.Requested;
     address private _borrower;
     address private _pool;
-    CollateralVault public _collateralVault;
-    FundingVault public fundingVault;
+    IVault public collateralVault;
+    IVault public fundingVault;
     address[] private _fungibleCollateral;
     ILoanNonFungibleCollateral[] private _nonFungibleCollateral;
     uint256 public createdAt;
@@ -128,14 +128,20 @@ contract Loan is ILoan, BeaconImplementation {
         address borrower_,
         address pool_,
         address liquidityAsset_,
+        address vaultFactory,
         ILoanSettings memory settings_
     ) public virtual initializer {
         _serviceConfiguration = IServiceConfiguration(serviceConfiguration_);
         _factory = factory_;
         _borrower = borrower_;
         _pool = pool_;
-        _collateralVault = new CollateralVault(address(this));
-        fundingVault = new FundingVault(address(this), liquidityAsset_);
+
+        collateralVault = IVault(
+            IVaultFactory(vaultFactory).createVault(address(this))
+        );
+        fundingVault = IVault(
+            IVaultFactory(vaultFactory).createVault(address(this))
+        );
         createdAt = block.timestamp;
         liquidityAsset = liquidityAsset_;
         settings = settings_;
@@ -215,6 +221,7 @@ contract Loan is ILoan, BeaconImplementation {
 
         LoanLib.returnCanceledLoanPrincipal(
             fundingVault,
+            liquidityAsset,
             _pool,
             settings.principal
         );
@@ -240,9 +247,9 @@ contract Loan is ILoan, BeaconImplementation {
             "Loan: unable to claim collateral"
         );
 
-        LoanLib.withdrawFungibleCollateral(_collateralVault, assets);
+        LoanLib.withdrawFungibleCollateral(collateralVault, assets);
         LoanLib.withdrawNonFungibleCollateral(
-            _collateralVault,
+            collateralVault,
             nonFungibleAssets
         );
     }
@@ -261,7 +268,7 @@ contract Loan is ILoan, BeaconImplementation {
     {
         require(amount > 0, "Loan: posting 0 collateral");
         _state = LoanLib.postFungibleCollateral(
-            address(_collateralVault),
+            address(collateralVault),
             asset,
             amount,
             _state,
@@ -287,7 +294,7 @@ contract Loan is ILoan, BeaconImplementation {
         returns (ILoanLifeCycleState)
     {
         _state = LoanLib.postNonFungibleCollateral(
-            address(_collateralVault),
+            address(collateralVault),
             asset,
             tokenId,
             _state,
@@ -328,7 +335,7 @@ contract Loan is ILoan, BeaconImplementation {
     function reclaimFunds(uint256 amount) external onlyNotPaused onlyPoolAdmin {
         require(settings.loanType == ILoanType.Open);
 
-        fundingVault.withdraw(amount, _pool);
+        fundingVault.withdrawERC20(liquidityAsset, amount, _pool);
         IPool(_pool).onLoanPrincipalReturned(amount);
 
         emit FundsReclaimed(amount, _pool);
@@ -347,6 +354,7 @@ contract Loan is ILoan, BeaconImplementation {
     {
         (_state, paymentDueDate) = LoanLib.drawdown(
             amount,
+            liquidityAsset,
             fundingVault,
             msg.sender,
             paymentDueDate,

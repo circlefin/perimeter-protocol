@@ -21,14 +21,21 @@ contract PoolFactory is IPoolFactory, BeaconProxyFactory {
      */
     address internal _poolControllerFactory;
 
+    /**
+     * @dev Reference to the VaultFactory contract
+     */
+    address internal _vaultFactory;
+
     constructor(
         address serviceConfiguration,
         address withdrawControllerFactory,
-        address poolControllerFactory
+        address poolControllerFactory,
+        address vaultFactory
     ) {
         _serviceConfiguration = IServiceConfiguration(serviceConfiguration);
         _withdrawControllerFactory = withdrawControllerFactory;
         _poolControllerFactory = poolControllerFactory;
+        _vaultFactory = vaultFactory;
     }
 
     /**
@@ -102,6 +109,7 @@ contract PoolFactory is IPoolFactory, BeaconProxyFactory {
                 _serviceConfiguration,
                 _withdrawControllerFactory,
                 _poolControllerFactory,
+                _vaultFactory,
                 settings,
                 "PerimeterPoolToken",
                 "PPT"

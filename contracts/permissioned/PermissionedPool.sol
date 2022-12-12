@@ -34,6 +34,7 @@ contract PermissionedPool is Pool {
         address serviceConfiguration,
         address withdrawControllerFactory,
         address poolControllerFactory,
+        address vaultFactory,
         address poolAccessControlFactory,
         IPoolConfigurableSettings memory poolSettings,
         string memory tokenName,
@@ -45,6 +46,7 @@ contract PermissionedPool is Pool {
             serviceConfiguration,
             withdrawControllerFactory,
             poolControllerFactory,
+            vaultFactory,
             poolSettings,
             tokenName,
             tokenSymbol

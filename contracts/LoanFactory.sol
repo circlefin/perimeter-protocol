@@ -16,8 +16,11 @@ contract LoanFactory is ILoanFactory, BeaconProxyFactory {
      */
     mapping(address => bool) internal _isLoan;
 
-    constructor(address serviceConfiguration) {
+    address internal _vaultFactory;
+
+    constructor(address serviceConfiguration, address vaultFactory) {
         _serviceConfiguration = IServiceConfiguration(serviceConfiguration);
+        _vaultFactory = vaultFactory;
     }
 
     /**
@@ -59,6 +62,7 @@ contract LoanFactory is ILoanFactory, BeaconProxyFactory {
                 borrower,
                 pool,
                 liquidityAsset,
+                _vaultFactory,
                 settings
             )
         );

@@ -62,13 +62,16 @@ export async function deployPool({
     serviceConfiguration.address
   );
 
+  const vaultFactory = await deployVaultFactory(serviceConfiguration.address);
+
   const PoolFactory = await ethers.getContractFactory("PoolFactory", {
     signer: poolAdmin
   });
   const poolFactory = await PoolFactory.deploy(
     serviceConfiguration.address,
     withdrawControllerFactory.address,
-    poolControllerFactory.address
+    poolControllerFactory.address,
+    vaultFactory.address
   );
   await poolFactory.deployed();
 
@@ -177,6 +180,8 @@ export async function deployPermissionedPool({
     serviceConfiguration.address
   );
 
+  const vaultFactory = await deployVaultFactory(serviceConfiguration.address);
+
   const PoolFactory = await ethers.getContractFactory(
     "PermissionedPoolFactory",
     {
@@ -187,6 +192,7 @@ export async function deployPermissionedPool({
     serviceConfiguration.address,
     withdrawControllerFactory.address,
     poolControllerFactory.address,
+    vaultFactory.address,
     poolAccessControlFactory.address
   );
   await poolFactory.deployed();
@@ -249,7 +255,8 @@ export async function deployPermissionedPool({
     poolAdminAccessControl,
     poolAccessControl,
     poolAccessControlFactory,
-    poolAccessControlImpl
+    poolAccessControlImpl,
+    vaultFactory
   };
 }
 
@@ -366,6 +373,19 @@ export async function deployPoolControllerFactory(
       PoolLib: poolLibAddress
     }
   });
+  const impl = await Impl.deploy();
+  factory.connect(deployer).setImplementation(impl.address);
+
+  return factory.deployed();
+}
+
+export async function deployVaultFactory(serviceConfigAddress: string) {
+  const { deployer } = await getCommonSigners();
+  const Factory = await ethers.getContractFactory("VaultFactory");
+  const factory = await Factory.deploy(serviceConfigAddress);
+
+  // Attach Vault implementation
+  const Impl = await ethers.getContractFactory("Vault");
   const impl = await Impl.deploy();
   factory.connect(deployer).setImplementation(impl.address);
 

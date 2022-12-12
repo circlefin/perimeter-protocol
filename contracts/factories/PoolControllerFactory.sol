@@ -23,6 +23,7 @@ contract PoolControllerFactory is IPoolControllerFactory, BeaconProxyFactory {
         address serviceConfiguration,
         address admin,
         address liquidityAsset,
+        address vaultFactory,
         IPoolConfigurableSettings memory poolSettings
     ) public virtual returns (address addr) {
         require(
@@ -39,6 +40,7 @@ contract PoolControllerFactory is IPoolControllerFactory, BeaconProxyFactory {
                 serviceConfiguration,
                 admin,
                 liquidityAsset,
+                vaultFactory,
                 poolSettings
             )
         );
