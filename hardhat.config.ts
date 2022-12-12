@@ -47,9 +47,6 @@ const config: HardhatUserConfig | ExtendedHardhatUserConfig = {
       ].filter((x) => x)
     }
   },
-  docgen: {
-    pages: "files"
-  },
   etherscan: {
     // Your API key for Etherscan
     // Obtain one at https://etherscan.io/
