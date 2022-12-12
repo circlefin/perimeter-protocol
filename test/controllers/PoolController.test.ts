@@ -969,6 +969,35 @@ describe("PoolController", () => {
         poolController.connect(otherAccount).fundLoan(otherAccount.address)
       ).to.be.revertedWith("Pool: caller is not admin");
     });
+
+    it("reverts if trying to fund the same loan again", async () => {
+      const {
+        pool,
+        liquidityAsset,
+        otherAccount,
+        borrower,
+        poolAdmin,
+        loan,
+        poolController
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await collateralizeLoan(loan, borrower, liquidityAsset);
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        DEFAULT_LOAN_SETTINGS.principal * 3
+      );
+
+      // fund loan 1 time
+      await fundLoan(loan, poolController, poolAdmin);
+
+      // Try again, even though there's technically enough money to cover the loan
+      await expect(
+        poolController.connect(poolAdmin).fundLoan(loan.address)
+      ).to.be.revertedWith("Pool: already funded");
+    });
   });
 
   describe("defaultLoan()", () => {
