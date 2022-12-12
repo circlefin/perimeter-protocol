@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 /**
- * @title The interface for controlling access to Pools
+ * @title IVaultFactory
  */
 interface IVaultFactory {
     /**

@@ -8,7 +8,7 @@ import "../Vault.sol";
 import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 
 /**
- * @title WithdrawController Factory
+ * @title VaultFactory Factory
  */
 contract VaultFactory is IVaultFactory, BeaconProxyFactory {
     constructor(address serviceConfiguration) {

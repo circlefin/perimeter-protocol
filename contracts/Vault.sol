@@ -35,10 +35,10 @@ contract Vault is
     /**
      * @dev Initialize function as a Beacon proxy implementation.
      */
-    function initialize(address owner, address serviceConfiguration)
-        public
-        initializer
-    {
+    function initialize(
+        address owner,
+        address serviceConfiguration
+    ) public initializer {
         __ERC721Holder_init();
         _transferOwnership(owner);
         _serviceConfiguration = IServiceConfiguration(serviceConfiguration);
@@ -65,7 +65,7 @@ contract Vault is
         uint256 tokenId,
         address receiver
     ) external override onlyOwner onlyNotPaused {
-        require(receiver != address(0), "CollateralVault: 0 address");
+        require(receiver != address(0), "Vault: 0 address");
         IERC721Upgradeable(asset).safeTransferFrom(
             address(this),
             receiver,
