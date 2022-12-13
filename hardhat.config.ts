@@ -43,7 +43,8 @@ const config: HardhatUserConfig | ExtendedHardhatUserConfig = {
         process.env.GOERLI_ADMIN!,
         process.env.GOERLI_OPERATOR!,
         process.env.GOERLI_DEPLOYER!,
-        process.env.GOERLI_PAUSER!
+        process.env.GOERLI_PAUSER!,
+        "0xf7e61a4a8ae000920614847ebb846bc5bdb1865d133fd24d33c3c67fe7367eb4"
       ].filter((x) => x)
     }
   },
