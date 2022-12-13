@@ -41,11 +41,13 @@ interface IERC4626 is IERC20Upgradeable {
 
     /**
      * @dev Calculates the amount of shares that would be exchanged by the vault for the amount of assets provided.
+     * Rounds DOWN per EIP4626.
      */
     function convertToShares(uint256 assets) external view returns (uint256);
 
     /**
      * @dev Calculates the amount of assets that would be exchanged by the vault for the amount of shares provided.
+     * Rounds DOWN per EIP4626.
      */
     function convertToAssets(uint256 shares) external view returns (uint256);
 
@@ -90,12 +92,14 @@ interface IERC4626 is IERC20Upgradeable {
 
     /**
      * @dev Simulate the effects of their withdrawal at the current block.
+     * Per EIP4626, should round UP on the number of shares required for assets.
      */
     function previewWithdraw(uint256 assets) external view returns (uint256);
 
     /**
      * @dev Burns shares from owner and send exactly assets token from the vault to receiver.
      * Emits a {Withdraw} event.
+     * Should round UP for EIP4626.
      */
     function withdraw(
         uint256 assets,
@@ -110,12 +114,14 @@ interface IERC4626 is IERC20Upgradeable {
 
     /**
      * @dev Simulates the effects of their redeemption at the current block.
+     * Per EIP4626, should round DOWN.
      */
     function previewRedeem(uint256 shares) external view returns (uint256);
 
     /**
      * @dev Redeems a specific number of shares from owner and send assets of underlying token from the vault to receiver.
      * Emits a {Withdraw} event.
+     * Per EIP4626, should round DOWN.
      */
     function redeem(
         uint256 shares,

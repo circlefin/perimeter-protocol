@@ -2,8 +2,8 @@
 pragma solidity ^0.8.16;
 
 /**
- * @title IBeacon
- * @dev Interface of Beacon contracts.
+ * @title Interface for Beacon contracts.
+ * @dev Holds a reference to the implementation, and allows setting new ones.
  */
 interface IBeacon {
     /**

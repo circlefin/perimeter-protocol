@@ -2,11 +2,11 @@
 pragma solidity ^0.8.16;
 
 /**
- * @title The interface for controlling access to Pools
+ * @title Interface for the WithdrawController factory.
  */
 interface IWithdrawControllerFactory {
     /**
-     * @dev Emitted when a pool is created.
+     * @dev Emitted when a pool WithdrawController is created.
      */
     event WithdrawControllerCreated(address indexed addr);
 
