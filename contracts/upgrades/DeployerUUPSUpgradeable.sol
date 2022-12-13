@@ -6,9 +6,8 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "../interfaces/IServiceConfiguration.sol";
 
 /**
- * @title DeployerUUPSUpgradeable
- * @dev Base upgradeable contract that ensures only the protocol Deployer can deploy
- * upgrades.
+ * @title Base contract for UUPS upgradeable contracts.
+ * @dev Ensures only the protocol upgrader can perform the upgrade.
  */
 abstract contract DeployerUUPSUpgradeable is Initializable, UUPSUpgradeable {
     /**

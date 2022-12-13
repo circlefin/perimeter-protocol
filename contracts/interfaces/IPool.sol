@@ -3,6 +3,7 @@ pragma solidity ^0.8.16;
 
 import "./IERC4626.sol";
 import "./IServiceConfiguration.sol";
+import "./IRequestWithdrawable.sol";
 import "../controllers/interfaces/IPoolController.sol";
 import "../controllers/interfaces/IWithdrawController.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -22,7 +23,7 @@ struct IPoolAccountings {
 /**
  * @title The interface for liquidity pools.
  */
-interface IPool is IERC4626 {
+interface IPool is IERC4626, IRequestWithdrawable {
     /**
      * @dev Emitted when a loan is funded from the pool.
      */
@@ -125,16 +126,6 @@ interface IPool is IERC4626 {
      * @dev The pool fee, in bps, taken from each interest payment
      */
     function serviceFeeBps() external view returns (uint256);
-
-    /**
-     * @dev Submits a withdrawal request, incurring a fee.
-     */
-    function requestRedeem(uint256) external returns (uint256);
-
-    /**
-     * @dev Submits a withdrawal request, incurring a fee.
-     */
-    function requestWithdraw(uint256) external returns (uint256);
 
     /**
      * @dev The sum of all assets available in the liquidity pool, excluding

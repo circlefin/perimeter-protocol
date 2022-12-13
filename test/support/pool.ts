@@ -315,7 +315,6 @@ type WithdrawState = {
   redeemableShares: number;
   withdrawableAssets: number;
   latestSnapshotPeriod: number;
-  snapshotOffsetPeriod: number;
 };
 
 /**
@@ -332,8 +331,7 @@ export const buildWithdrawState = (
       latestRequestPeriod: 0,
       redeemableShares: 0,
       withdrawableAssets: 0,
-      latestSnapshotPeriod: 0,
-      snapshotOffsetPeriod: 0
+      latestSnapshotPeriod: 0
     },
     overrides
   );

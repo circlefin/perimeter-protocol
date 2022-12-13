@@ -8,12 +8,18 @@ import "../upgrades/BeaconProxyFactory.sol";
 import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 
 /**
- * @title WithdrawController Factory
+ * @title Factory that emits WithdrawControllers.
+ * @dev Acts as a beacon contract, emitting beacon proxies and holding a reference
+ * to their implementation contract.
  */
 contract WithdrawControllerFactory is
     IWithdrawControllerFactory,
     BeaconProxyFactory
 {
+    /**
+     * @dev Constructor
+     * @param serviceConfiguration Reference to the global service configuration.
+     */
     constructor(address serviceConfiguration) {
         _serviceConfiguration = IServiceConfiguration(serviceConfiguration);
     }

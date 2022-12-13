@@ -25,64 +25,44 @@ contract ServiceConfiguration is
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     /**
-     * @dev The Operator Role
+     * @dev The Deployer Role
      */
     bytes32 public constant DEPLOYER_ROLE = keccak256("DEPLOYER_ROLE");
 
     /**
-     * @dev Whether the protocol is paused.
+     * @inheritdoc IServiceConfiguration
      */
     bool public paused;
 
+    /**
+     * @inheritdoc IServiceConfiguration
+     */
     mapping(address => bool) public isLiquidityAsset;
 
+    /**
+     * @inheritdoc IServiceConfiguration
+     */
     mapping(address => uint256) public firstLossMinimum;
 
+    /**
+     * @inheritdoc IServiceConfiguration
+     */
     uint256 public firstLossFeeBps;
 
+    /**
+     * @inheritdoc IServiceConfiguration
+     */
     address public tosAcceptanceRegistry;
 
+    /**
+     * @inheritdoc IServiceConfiguration
+     */
     uint256 public protocolFeeBps;
 
     /**
-     * @dev Holds a reference to valid LoanFactories
+     * @inheritdoc IServiceConfiguration
      */
     mapping(address => bool) public isLoanFactory;
-
-    /**
-     * @dev Emitted when an address is changed.
-     */
-    event AddressSet(bytes32 which, address addr);
-
-    /**
-     * @dev Emitted when a liquidity asset is set.
-     */
-    event LiquidityAssetSet(address addr, bool value);
-
-    /**
-     * @dev Emitted when first loss minimum is set for an asset.
-     */
-    event FirstLossMinimumSet(address addr, uint256 value);
-
-    /**
-     * @dev Emitted when a parameter is set.
-     */
-    event ParameterSet(bytes32, uint256 value);
-
-    /**
-     * @dev Emitted when the protocol is paused.
-     */
-    event ProtocolPaused(bool paused);
-
-    /**
-     * @dev Emitted when a loan factory is set
-     */
-    event LoanFactorySet(address indexed factory, bool isValid);
-
-    /**
-     * @dev Emitted when the TermsOfServiceRegistry is set
-     */
-    event TermsOfServiceRegistrySet(address indexed registry);
 
     /**
      * @dev Modifier that checks that the caller account has the Operator role.
@@ -141,7 +121,7 @@ contract ServiceConfiguration is
     }
 
     /**
-     * @dev Check that `msg.sender` is an Operator.
+     * @inheritdoc IServiceConfiguration
      */
     function isOperator(address addr) external view returns (bool) {
         return hasRole(OPERATOR_ROLE, addr);

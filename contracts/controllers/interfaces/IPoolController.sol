@@ -31,6 +31,8 @@ struct IPoolConfigurableSettings {
 
 /**
  * @title A Pool's Admin controller
+ * @dev Pool Admin's interact with the pool via the controller, including funding loans and adjusting
+ * settings.
  */
 interface IPoolController {
     /**
@@ -58,10 +60,22 @@ interface IPoolController {
     );
 
     /**
+     * @dev Emitted when first loss is withdrawn from the pool.
+     */
+    event FirstLossWithdrawn(
+        address indexed caller,
+        address indexed receiver,
+        uint256 amount
+    );
+
+    /**
      * @dev Emitted when first loss capital is used to cover loan defaults
      */
     event FirstLossApplied(address indexed loan, uint256 amount);
 
+    /**
+     * @dev The Pool's admin
+     */
     function admin() external view returns (address);
 
     /*//////////////////////////////////////////////////////////////
@@ -129,12 +143,15 @@ interface IPoolController {
     function withdrawRequestPeriodDuration() external view returns (uint256);
 
     /**
-     * @dev
+     * @dev Allow the current pool admin to update the pool capacity at any
+     * time.
      */
     function setPoolCapacity(uint256) external;
 
     /**
-     * @dev
+     * @dev Allow the current pool admin to update the pool's end date. The end date can
+     * only be moved earlier (but not in the past, as measured by the current block's timestamp).
+     * Once the end date is reached, the Pool is closed.
      */
     function setPoolEndDate(uint256) external;
 
@@ -213,7 +230,7 @@ interface IPoolController {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Snapshots the Pool.
+     * @dev Snapshots the Pool, earmarking percentages of liquidity reserve for withdrawal.
      */
     function snapshot() external;
 }

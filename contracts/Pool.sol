@@ -20,19 +20,42 @@ import "./libraries/PoolLib.sol";
 import "./upgrades/BeaconImplementation.sol";
 
 /**
- * @title Pool
+ * @title Liquidity pool for Perimeter.
+ * @dev Used through a beacon proxy.
  */
 contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using SafeMath for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
 
+    /**
+     * @dev Reference to the global service configuration.
+     */
     IServiceConfiguration private _serviceConfiguration;
+
+    /**
+     * @dev Reference to the underlying liquidity asset for the pool.
+     */
     IERC20Upgradeable private _liquidityAsset;
+
+    /**
+     * @dev A vault holding pool admin fees collected from borrower payments.
+     */
     IVault private _feeVault;
+
+    /**
+     * @dev Various accounting statistics updated throughout the pool lifetime.
+     */
     IPoolAccountings private _accountings;
 
+    /**
+     * @dev Reference to the withdraw controller for the pool.
+     */
     IWithdrawController public withdrawController;
+
+    /**
+     * @dev Reference to the admin's controller for the pool.
+     */
     IPoolController public poolController;
 
     /**
@@ -99,7 +122,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev Modifier to ensure the Pool is snapshotted.
+     * @dev Modifier to ensure the Pool is snapshotted before proceeding..
      */
     modifier onlySnapshottedPool() {
         _performSnapshot();
@@ -166,6 +189,9 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         _liquidityAsset.safeApprove(address(this), type(uint256).max);
     }
 
+    /**
+     * @inheritdoc IPool
+     */
     function serviceConfiguration()
         public
         view
@@ -175,7 +201,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev The current configurable pool settings.
+     * @inheritdoc IPool
      */
     function settings()
         public
@@ -193,14 +219,14 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev The admin of the pool
+     * @inheritdoc IPool
      */
     function admin() external view override returns (address) {
         return poolController.admin();
     }
 
     /**
-     * @dev The address of the fee vault.
+     * @inheritdoc IPool
      */
     function feeVault() external view override returns (address) {
         return address(_feeVault);
@@ -214,7 +240,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev The pool accounting variables;
+     * @inheritdoc IPool
      */
     function accountings()
         external
@@ -226,7 +252,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev The fee
+     * @inheritdoc IPool
      */
     function serviceFeeBps() external view returns (uint256) {
         return settings().serviceFeeBps;
@@ -383,6 +409,9 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         );
     }
 
+    /**
+     * @inheritdoc IPool
+     */
     function claimFixedFee(
         address recipient,
         uint256 fixedFee,
@@ -402,11 +431,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Returns the maximum number of `shares` that can be
-     * requested to be redeemed from the owner balance with a single
-     * `requestRedeem` call in the current block.
-     *
-     * Note: This is equivalent of EIP-4626 `maxRedeem`
+     * @inheritdoc IRequestWithdrawable
      */
     function maxRedeemRequest(address owner)
         public
@@ -417,11 +442,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev Returns the maximum amount of underlying `assets` that can be
-     * requested to be withdrawn from the owner balance with a single
-     * `requestWithdraw` call in the current block.
-     *
-     * Note: This is equivalent of EIP-4626 `maxWithdraw`
+     * @inheritdoc IRequestWithdrawable
      */
     function maxWithdrawRequest(address owner)
         public
@@ -432,11 +453,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev Simulate the effects of a redeem request at the current block.
-     * Returns the amount of underlying assets that would be requested if this
-     * entire redeem request were to be processed at the current block.
-     *
-     * Note: This is equivalent of EIP-4626 `previewRedeem`
+     * @inheritdoc IRequestWithdrawable
      */
     function previewRedeemRequest(uint256 shares)
         external
@@ -447,11 +464,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev Simulate the effects of a withdrawal request at the current block.
-     * Returns the amount of `shares` that would be burned if this entire
-     * withdrawal request were to be processed at the current block.
-     *
-     * Note: This is equivalent of EIP-4626 `previewWithdraw`
+     * @inheritdoc IRequestWithdrawable
      */
     function previewWithdrawRequest(uint256 assets)
         external
@@ -462,7 +475,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev Request a redemption of a number of shares from the pool
+     * @inheritdoc IRequestWithdrawable
      */
     function requestRedeem(uint256 shares)
         external
@@ -478,7 +491,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev Request a Withdraw of a number of assets from the pool
+     * @inheritdoc IRequestWithdrawable
      */
     function requestWithdraw(uint256 assets)
         external
@@ -515,10 +528,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev Returns the maximum number of `shares` that can be
-     * cancelled from being requested for a redemption.
-     *
-     * Note: This is equivalent of EIP-4626 `maxRedeem`
+     * @inheritdoc IRequestWithdrawable
      */
     function maxRequestCancellation(address owner)
         public
@@ -529,11 +539,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev Cancels a redeem request for a specific number of `shares` from
-     * owner and returns an estimated amnount of underlying that equates to
-     * this number of shares.
-     *
-     * Emits a {WithdrawRequestCancelled} event.
+     * @inheritdoc IRequestWithdrawable
      */
     function cancelRedeemRequest(uint256 shares)
         external
@@ -549,11 +555,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev Cancels a withdraw request for a specific values of `assets` from
-     * owner and returns an estimated number of shares that equates to
-     * this number of assets.
-     *
-     * Emits a {WithdrawRequestCancelled} event.
+     * @inheritdoc IRequestWithdrawable
      */
     function cancelWithdrawRequest(uint256 assets)
         external
@@ -638,8 +640,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev Calculates the amount of shares that would be exchanged by the vault for the amount of assets provided.
-     * Rounds DOWN per EIP4626.
+     * @inheritdoc IERC4626
      */
     function convertToShares(uint256 assets)
         public
@@ -656,8 +657,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev Calculates the amount of assets that would be exchanged by the vault for the amount of shares provided.
-     * Rounds DOWN per EIP4626.
+     * @inheritdoc IERC4626
      */
     function convertToAssets(uint256 shares)
         public
@@ -674,7 +674,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev Calculates the maximum amount of underlying assets that can be deposited in a single deposit call by the receiver.
+     * @inheritdoc IERC4626
      */
     function maxDeposit(address)
         public
@@ -692,8 +692,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev Allows users to simulate the effects of their deposit at the current block.
-     * Rounds DOWN per EIP4626
+     * @inheritdoc IERC4626
      */
     function previewDeposit(uint256 assets)
         public
@@ -711,8 +710,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev Deposits assets of underlying tokens into the vault and grants ownership of shares to receiver.
-     * Emits a {Deposit} event.
+     * @inheritdoc IERC4626
      */
     function deposit(uint256 assets, address receiver)
         public
@@ -738,7 +736,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev Returns the maximum amount of shares that can be minted in a single mint call by the receiver.
+     * @inheritdoc IERC4626
      */
     function maxMint(address receiver)
         public
@@ -751,8 +749,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev Allows users to simulate the effects of their mint at the current block.
-     * Rounds UP per EIP4626, to determine the number of assets to be provided for shares.
+     * @inheritdoc IERC4626
      */
     function previewMint(uint256 shares)
         public
@@ -770,8 +767,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev Mints exactly shares vault shares to receiver by depositing assets of underlying tokens.
-     * Emits a {Deposit} event.
+     * @inheritdoc IERC4626
      */
     function mint(uint256 shares, address receiver)
         public
@@ -798,7 +794,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev Returns the maximum amount of underlying assets that can be withdrawn from the owner balance with a single withdraw call.
+     * @inheritdoc IERC4626
      */
     function maxWithdraw(address owner)
         public
@@ -810,8 +806,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev Simulate the effects of their withdrawal at the current block.
-     * Per EIP4626, should round UP on the number of shares required for assets.
+     * @inheritdoc IERC4626
      */
     function previewWithdraw(uint256 assets)
         external
@@ -823,9 +818,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev Burns shares from owner and send exactly assets token from the vault to receiver.
-     * Emits a {Withdraw} event.
-     * Should round UP for EIP4626.
+     * @inheritdoc IERC4626
      */
     function withdraw(
         uint256 assets,
@@ -852,8 +845,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev The maximum amount of shares that can be redeemed from the owner
-     * balance through a redeem call.
+     * @inheritdoc IERC4626
      */
     function maxRedeem(address owner)
         public
@@ -865,8 +857,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev Simulates the effects of their redeemption at the current block.
-     * Per EIP4626, should round DOWN.
+     * @inheritdoc IERC4626
      */
     function previewRedeem(uint256 shares)
         external
@@ -878,9 +869,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     }
 
     /**
-     * @dev Redeems a specific number of shares from owner and send assets of underlying token from the vault to receiver.
-     * Emits a {Withdraw} event.
-     * Per EIP4626, should round DOWN.
+     * @inheritdoc IERC4626
      */
     function redeem(
         uint256 shares,
@@ -931,6 +920,9 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
                             ERC-20 Overrides
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @dev Disables Perimeter Pool Token transfers.
+     */
     function _beforeTokenTransfer(
         address from,
         address to,

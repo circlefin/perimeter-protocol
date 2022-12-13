@@ -13,17 +13,46 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import "../upgrades/BeaconImplementation.sol";
 
 /**
- * @title WithdrawState
+ * @title Pool admin controller for the pool.
+ * @dev Deployed as a beacon proxy contract.
  */
 contract PoolController is IPoolController, BeaconImplementation {
     using SafeERC20 for IERC20;
 
+    /**
+     * @dev A reference to the pool for this controller.
+     */
     IPool public pool;
+
+    /**
+     * @inheritdoc IPoolController
+     */
     address public admin;
+
+    /**
+     * @dev A reference to the global service configuration.
+     */
     address public serviceConfiguration;
+
+    /**
+     * @dev Settings configurable by the PoolAdmin. Some are fixed at pool creation,
+     * and some are modifiable during certain Pool lifecycle states.
+     */
     IPoolConfigurableSettings private _settings;
+
+    /**
+     * @dev The current pool lifecycle state.
+     */
     IPoolLifeCycleState private _state;
+
+    /**
+     * @dev A reference to the vault holding first-loss capital.
+     */
     IVault private _firstLossVault;
+
+    /**
+     * @dev A reference to the ERC20 liquidity asset for the pool.
+     */
     IERC20 private _liquidityAsset;
 
     /**
@@ -85,7 +114,7 @@ contract PoolController is IPoolController, BeaconImplementation {
     }
 
     /**
-     * @dev Modifier to check that an addres is a Perimeter loan associated
+     * @dev Modifier to check that an address is a Perimeter loan associated
      * with this pool.
      */
     modifier isPoolLoan(address loan) {
@@ -104,6 +133,9 @@ contract PoolController is IPoolController, BeaconImplementation {
         _;
     }
 
+    /**
+     * @dev Pool initializer.
+     */
     function initialize(
         address pool_,
         address serviceConfiguration_,
@@ -128,7 +160,7 @@ contract PoolController is IPoolController, BeaconImplementation {
     }
 
     /*//////////////////////////////////////////////////////////////
-                Settings
+                                Settings
     //////////////////////////////////////////////////////////////*/
 
     /**
@@ -303,7 +335,7 @@ contract PoolController is IPoolController, BeaconImplementation {
     }
 
     /*//////////////////////////////////////////////////////////////
-                State
+                                State
     //////////////////////////////////////////////////////////////*/
 
     /**
@@ -357,9 +389,9 @@ contract PoolController is IPoolController, BeaconImplementation {
         }
     }
 
-    // /////////////////////////////////////////////////
-    // First Loss
-    // /////////////////////////////////////////////////
+    /*//////////////////////////////////////////////////////////////
+                                First Loss
+    //////////////////////////////////////////////////////////////*/
 
     /**
      * @inheritdoc IPoolController
@@ -420,7 +452,7 @@ contract PoolController is IPoolController, BeaconImplementation {
     }
 
     /*//////////////////////////////////////////////////////////////
-                Loans
+                                Loans
     //////////////////////////////////////////////////////////////*/
 
     /**
@@ -458,9 +490,12 @@ contract PoolController is IPoolController, BeaconImplementation {
     }
 
     /*//////////////////////////////////////////////////////////////
-                Fees
+                                Fees
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @inheritdoc IPoolController
+     */
     function claimFixedFee() external onlyNotPaused onlyAdmin {
         pool.claimFixedFee(
             msg.sender,
@@ -470,9 +505,12 @@ contract PoolController is IPoolController, BeaconImplementation {
     }
 
     /*//////////////////////////////////////////////////////////////
-                Snapshot
+                                Snapshot
     //////////////////////////////////////////////////////////////*/
 
+    /**
+     * @inheritdoc IPoolController
+     */
     function snapshot() external override onlyNotPaused onlyAdmin {
         pool.snapshot();
     }

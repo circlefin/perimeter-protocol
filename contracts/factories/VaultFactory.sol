@@ -8,9 +8,15 @@ import "../Vault.sol";
 import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 
 /**
- * @title VaultFactory Factory
+ * @title A factory that emits Vault contracts.
+ * @dev Acts as a beacon contract, emitting beacon proxies and holding a reference
+ * to their implementation contract.
  */
 contract VaultFactory is IVaultFactory, BeaconProxyFactory {
+    /**
+     * @dev Constructor
+     * @param serviceConfiguration Reference to the global service configuration.
+     */
     constructor(address serviceConfiguration) {
         _serviceConfiguration = IServiceConfiguration(serviceConfiguration);
     }

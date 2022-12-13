@@ -14,7 +14,7 @@ import "../interfaces/IVault.sol";
 import "../factories/LoanFactory.sol";
 
 /**
- * @title Collection of functions used by the Pool
+ * @title Collection of functions used by the Pool and PoolController.
  */
 library PoolLib {
     using SafeERC20 for IERC20;
@@ -23,7 +23,7 @@ library PoolLib {
 
     uint256 public constant RAY = 10**27;
     /**
-     * @dev Emitted when first loss is supplied to the pool.
+     * @dev See IPoolController
      */
     event FirstLossDeposited(
         address indexed caller,
@@ -32,7 +32,7 @@ library PoolLib {
     );
 
     /**
-     * @dev Emitted when first loss is withdrawn from the pool.
+     * @dev See IPoolController
      */
     event FirstLossWithdrawn(
         address indexed caller,
@@ -41,7 +41,12 @@ library PoolLib {
     );
 
     /**
-     * @dev See IERC4626 for event definition.
+     * @dev See IPoolController
+     */
+    event FirstLossApplied(address indexed loan, uint256 amount);
+
+    /**
+     * @dev See IERC4626
      */
     event Deposit(
         address indexed caller,
@@ -51,17 +56,12 @@ library PoolLib {
     );
 
     /**
-     * @dev See IPool
-     */
-    event FirstLossApplied(address indexed loan, uint256 amount);
-
-    /**
-     * @dev See IPool for event definition
+     * @dev See IPoolController
      */
     event LoanDefaulted(address indexed loan);
 
     /**
-     * @dev Emitted when pool settings are updated.
+     * @dev See IPoolController
      */
     event PoolSettingsUpdated();
 
@@ -430,11 +430,15 @@ library PoolLib {
         return (currentTimestamp - activatedAt) / withdrawalWindowDuration;
     }
 
+    /**
+     * @dev Updates a withdraw state based on the current period, moving
+     * requested shares to eligible if needed.
+     */
     function progressWithdrawState(
         IPoolWithdrawState memory state,
         uint256 currentPeriod
     ) public pure returns (IPoolWithdrawState memory) {
-        // If the latest withdrawlState has not been updated for this
+        // If the latest withdrawalState has not been updated for this
         // given request period, we need to move "requested" shares over
         // to be "eligible".
         if (state.latestRequestPeriod < currentPeriod) {
@@ -555,7 +559,7 @@ library PoolLib {
     }
 
     /**
-     * @dev
+     * @dev Updates a withdraw state according to assets withdrawn / shares redeemed.
      */
     function updateWithdrawStateForWithdraw(
         IPoolWithdrawState memory state,

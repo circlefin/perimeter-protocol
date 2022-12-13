@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 /**
- * @dev contains withdraw request information
+ * @dev Contains state related to withdraw requests, either globally or for a given lender.
  */
 struct IPoolWithdrawState {
     uint256 requestedShares; // Number of shares requested in the `latestPeriod`
@@ -11,7 +11,6 @@ struct IPoolWithdrawState {
     uint256 redeemableShares; // The shares that are currently withdrawable
     uint256 withdrawableAssets; // The assets that are currently withdrawable
     uint256 latestSnapshotPeriod; // window last snapshotted in
-    uint256 snapshotOffsetPeriod; // At the time of request, this is set to the last successful snapshot.
 }
 
 /**
@@ -25,6 +24,9 @@ struct IPoolSnapshotState {
 
 /**
  * @title A Pool's Withdraw controller
+ * @dev Holds state related to withdraw requests, and logic for snapshotting the
+ * pool's liquidity reserve at regular intervals, earmarking funds for lenders according
+ * to their withdrawal requests.
  */
 interface IWithdrawController {
     function withdrawPeriod() external view returns (uint256);
