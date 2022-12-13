@@ -1,15 +1,15 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { deployMockERC20 } from "./support/erc20";
+import { deployMockERC20 } from "../support/erc20";
 import {
   DEFAULT_POOL_SETTINGS,
   deployPoolControllerFactory,
   deployWithdrawControllerFactory,
   deployVaultFactory
-} from "./support/pool";
-import { deployServiceConfiguration } from "./support/serviceconfiguration";
-import { getCommonSigners } from "./support/utils";
+} from "../support/pool";
+import { deployServiceConfiguration } from "../support/serviceconfiguration";
+import { getCommonSigners } from "../support/utils";
 
 describe("PoolFactory", () => {
   async function deployFixture() {

@@ -1,17 +1,17 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
-import { deployMockERC20 } from "../support/erc20";
+import { deployMockERC20 } from "../../support/erc20";
 import {
   DEFAULT_POOL_SETTINGS,
   deployPoolControllerFactory,
   deployVaultFactory,
   deployWithdrawControllerFactory
-} from "../support/pool";
-import { deployPermissionedServiceConfiguration } from "../support/serviceconfiguration";
-import { deployToSAcceptanceRegistry } from "../support/tosacceptanceregistry";
-import { getCommonSigners } from "../support/utils";
-import { performVeriteVerification } from "../support/verite";
+} from "../../support/pool";
+import { deployPermissionedServiceConfiguration } from "../../support/serviceconfiguration";
+import { deployToSAcceptanceRegistry } from "../../support/tosacceptanceregistry";
+import { getCommonSigners } from "../../support/utils";
+import { performVeriteVerification } from "../../support/verite";
 
 describe("PermissionedPoolFactory", () => {
   async function deployFixture() {

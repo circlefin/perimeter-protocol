@@ -3,7 +3,7 @@ pragma solidity ^0.8.16;
 
 import "../Pool.sol";
 import "./interfaces/IPoolAccessControl.sol";
-import "./interfaces/IPoolAccessControlFactory.sol";
+import "./factories/interfaces/IPoolAccessControlFactory.sol";
 import "./PoolAccessControl.sol";
 
 /**
