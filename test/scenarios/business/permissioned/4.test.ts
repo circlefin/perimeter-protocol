@@ -5,6 +5,7 @@ import { deployPermissionedPool, activatePool } from "../../../support/pool";
 import { collateralizeLoan, deployLoan, fundLoan } from "../../../support/loan";
 import { deployMockERC20 } from "../../../support/erc20";
 import { performVeriteVerification } from "../../../support/verite";
+import { getCommonSigners } from "../../../support/utils";
 
 describe("Permissioned Business Scenario 4", () => {
   const INPUTS = {
@@ -40,7 +41,9 @@ describe("Permissioned Business Scenario 4", () => {
   }
 
   async function fixtures() {
-    const [poolAdmin, lenderA, lenderB, borrower] = await ethers.getSigners();
+    const { operator, poolAdmin, otherAccounts } = await getCommonSigners();
+    const [lenderA, lenderB, borrower] = otherAccounts.slice(0, 3);
+
     const endTime = (await time.latest()) + 5_184_000; // 60 days.
     const poolSettings = {
       endDate: endTime, // Jan 1, 2050
@@ -56,6 +59,7 @@ describe("Permissioned Business Scenario 4", () => {
       serviceConfiguration,
       poolController,
       poolAccessControl,
+      poolAdminAccessControl,
       tosAcceptanceRegistry
     } = await deployPermissionedPool({
       poolAdmin: poolAdmin,
@@ -98,6 +102,7 @@ describe("Permissioned Business Scenario 4", () => {
 
     return {
       startTime,
+      operator,
       pool,
       lenderA,
       lenderB,
@@ -105,6 +110,7 @@ describe("Permissioned Business Scenario 4", () => {
       poolAdmin,
       poolController,
       poolAccessControl,
+      poolAdminAccessControl,
       tosAcceptanceRegistry,
       borrower,
       loan
@@ -114,6 +120,7 @@ describe("Permissioned Business Scenario 4", () => {
   it("runs simulation", async () => {
     const {
       startTime,
+      operator,
       pool,
       lenderA,
       lenderB,
@@ -121,6 +128,7 @@ describe("Permissioned Business Scenario 4", () => {
       poolAdmin,
       poolController,
       poolAccessControl,
+      poolAdminAccessControl,
       tosAcceptanceRegistry,
       borrower,
       loan
@@ -154,6 +162,11 @@ describe("Permissioned Business Scenario 4", () => {
 
     // +4  days, loan is funded
     await advanceToDay(startTime, 4);
+    await performVeriteVerification(
+      poolAdminAccessControl,
+      operator,
+      poolAdmin
+    );
     await fundLoan(loan, poolController, poolAdmin);
     await loan.connect(borrower).drawdown(INPUTS.loan.principal);
 
@@ -212,6 +225,11 @@ describe("Permissioned Business Scenario 4", () => {
 
     // +24 days, PA marks loan in default
     await advanceToDay(startTime, 24);
+    await performVeriteVerification(
+      poolAdminAccessControl,
+      operator,
+      poolAdmin
+    );
     await poolController.connect(poolAdmin).defaultLoan(loan.address);
     expect(await pool.liquidityPoolAssets()).to.equal(101288194446);
 

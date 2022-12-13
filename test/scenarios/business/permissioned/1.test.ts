@@ -5,6 +5,7 @@ import { deployPermissionedPool, activatePool } from "../../../support/pool";
 import { deployLoan, fundLoan } from "../../../support/loan";
 import { deployMockERC20 } from "../../../support/erc20";
 import { performVeriteVerification } from "../../../support/verite";
+import { getCommonSigners } from "../../../support/utils";
 
 const ONE_DAY = 3600 * 24;
 
@@ -54,8 +55,11 @@ describe("Permissioned Business Scenario 1", () => {
   }
 
   async function loadFixtures() {
-    const [poolAdmin, lenderA, lenderB, borrowerOne, borrowerTwo] =
-      await ethers.getSigners();
+    const { operator, poolAdmin, otherAccounts } = await getCommonSigners();
+    const [lenderA, lenderB, borrowerOne, borrowerTwo] = otherAccounts.slice(
+      0,
+      4
+    );
 
     const startTime = await time.latest();
     const endTime = startTime + 5_184_000; // 60 days.
@@ -70,6 +74,7 @@ describe("Permissioned Business Scenario 1", () => {
     );
     const {
       pool,
+      poolAdminAccessControl,
       serviceConfiguration,
       poolController,
       poolAccessControl,
@@ -122,8 +127,10 @@ describe("Permissioned Business Scenario 1", () => {
 
     return {
       startTime,
+      operator,
       pool,
       poolController,
+      poolAdminAccessControl,
       poolAccessControl,
       tosAcceptanceRegistry,
       lenderA,
@@ -140,8 +147,10 @@ describe("Permissioned Business Scenario 1", () => {
   it("runs simulation", async () => {
     const {
       startTime,
+      operator,
       pool,
       poolController,
+      poolAdminAccessControl,
       poolAccessControl,
       tosAcceptanceRegistry,
       lenderA,
@@ -193,6 +202,11 @@ describe("Permissioned Business Scenario 1", () => {
 
     // +4 days, loanOne is funded
     await advanceToDay(startTime, 4);
+    await performVeriteVerification(
+      poolAdminAccessControl,
+      operator,
+      poolAdmin
+    );
     await fundLoan(loanOne, poolController, poolAdmin);
     await loanOne.connect(borrowerOne).drawdown(INPUTS.loanOne.principal);
 
@@ -206,12 +220,15 @@ describe("Permissioned Business Scenario 1", () => {
     // sanity-check lenderB is cleared out
     expect(await mockUSDC.balanceOf(lenderB.address)).to.equal(0);
     // check pool tokens minted
-    expect(await pool.balanceOf(lenderB.address)).to.equal(
-      199_667_222_259 - 28_84
-    ); // Gas for the verification
+    expect(await pool.balanceOf(lenderB.address)).to.equal(199_667_222_259);
 
     // +9 days, loanTwo funded
     await advanceToDay(startTime, 9);
+    await performVeriteVerification(
+      poolAdminAccessControl,
+      operator,
+      poolAdmin
+    );
     await fundLoan(loanTwo, poolController, poolAdmin);
     await loanTwo.connect(borrowerTwo).drawdown(INPUTS.loanTwo.principal);
 
@@ -286,7 +303,7 @@ describe("Permissioned Business Scenario 1", () => {
       .sub(INPUTS.lenderBDepositAmount);
 
     expect(totalEarnings).to.equal(1_754_861_106);
-    expect(lenderABalance).to.equal(501_491_881_908);
-    expect(lenderBBalance).to.equal(200_262_979_198);
+    expect(lenderABalance).to.equal(501_491_879_840);
+    expect(lenderBBalance).to.equal(200_262_981_266);
   });
 });

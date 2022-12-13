@@ -41,7 +41,7 @@ contract PoolController is IPoolController, BeaconImplementation {
      * @dev Modifier that can be overriden by derived classes to enforce
      * access control.
      */
-    modifier onlyPermittedAdmin() {
+    modifier onlyPermittedAdmin() virtual {
         _;
     }
 
