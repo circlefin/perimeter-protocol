@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import "../interfaces/ILoan.sol";
+import "../../interfaces/ILoan.sol";
 
 /**
  * @title ILoanFactory

@@ -1,10 +1,13 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { deployMockERC20 } from "../support/erc20";
-import { deployPermissionedPool, DEFAULT_POOL_SETTINGS } from "../support/pool";
-import { DEFAULT_LOAN_SETTINGS } from "../support/loan";
-import { findEventByName, getCommonSigners } from "../support/utils";
+import { deployMockERC20 } from "../../support/erc20";
+import {
+  deployPermissionedPool,
+  DEFAULT_POOL_SETTINGS
+} from "../../support/pool";
+import { DEFAULT_LOAN_SETTINGS } from "../../support/loan";
+import { findEventByName, getCommonSigners } from "../../support/utils";
 
 describe("PermissionedLoanFactory", () => {
   async function deployFixture() {

@@ -11,7 +11,7 @@ import "../interfaces/IPool.sol";
 import "../interfaces/ILoan.sol";
 import "../interfaces/IServiceConfiguration.sol";
 import "../interfaces/IVault.sol";
-import "../LoanFactory.sol";
+import "../factories/LoanFactory.sol";
 
 /**
  * @title Collection of functions used by the Pool

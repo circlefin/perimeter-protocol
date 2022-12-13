@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import "./interfaces/IPermissionedServiceConfiguration.sol";
-import "../LoanFactory.sol";
-import "./PermissionedLoan.sol";
+import "../interfaces/IPermissionedServiceConfiguration.sol";
+import "../../factories/LoanFactory.sol";
+import "../PermissionedLoan.sol";
 
 /**
  * @title PermissionedLoanFactory

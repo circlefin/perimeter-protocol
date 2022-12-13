@@ -2,10 +2,10 @@
 pragma solidity ^0.8.16;
 
 import "./interfaces/IPoolAccessControlFactory.sol";
-import "./interfaces/IPermissionedServiceConfiguration.sol";
-import "../LoanFactory.sol";
-import "./PoolAccessControl.sol";
-import "../upgrades/BeaconProxyFactory.sol";
+import "../interfaces/IPermissionedServiceConfiguration.sol";
+import "../../factories/LoanFactory.sol";
+import "../PoolAccessControl.sol";
+import "../../upgrades/BeaconProxyFactory.sol";
 import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 
 /**

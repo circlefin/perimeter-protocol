@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import "./interfaces/IServiceConfiguration.sol";
+import "../interfaces/IServiceConfiguration.sol";
 import "./interfaces/ILoanFactory.sol";
-import "./Loan.sol";
-import "./upgrades/BeaconProxyFactory.sol";
+import "../Loan.sol";
+import "../upgrades/BeaconProxyFactory.sol";
 import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 
 /**

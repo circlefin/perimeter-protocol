@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import "./interfaces/IPermissionedServiceConfiguration.sol";
-import "../PoolFactory.sol";
-import "./PermissionedPool.sol";
+import "../interfaces/IPermissionedServiceConfiguration.sol";
+import "../../factories/PoolFactory.sol";
+import "../PermissionedPool.sol";
 import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 
 /**
