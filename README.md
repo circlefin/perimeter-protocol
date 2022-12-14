@@ -86,6 +86,16 @@ Here is an example command to pause a hypothetical contract:
 npx hardhat setPaused --address 0x5FbDB2315678afecb367f032d93F642f64180aa3 --paused true
 ```
 
+### Getting a Circle Verite Verification Result
+
+Update the config in `scripts/verite-verify.ts` with the appropriate values, then run
+
+```sh
+npx hardhat run scripts/verite-verify.ts
+```
+
+This will print out a verification result that can be send to the `verify()` method on the given contract.
+
 ### Etherscan Verification
 
 Contract source can be uploaded and verified to Etherscan. Update `.env` to include your etherscan API key.
