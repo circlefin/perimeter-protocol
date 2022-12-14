@@ -40,11 +40,23 @@ const config: HardhatUserConfig | ExtendedHardhatUserConfig = {
       url: process.env.GOERLI_URL ?? "",
       usdcAddress: "0x07865c6e87b9f70255377e024ace6630c1eaa37f",
       accounts: [
-        process.env.GOERLI_ADMIN!,
-        process.env.GOERLI_OPERATOR!,
-        process.env.GOERLI_DEPLOYER!,
-        process.env.GOERLI_PAUSER!,
-        process.env.GOERLI_ACCOUNT!
+        process.env.ACCOUNT_ADMIN!,
+        process.env.ACCOUNT_OPERATOR!,
+        process.env.ACCOUNT_DEPLOYER!,
+        process.env.ACCOUNT_PAUSER!,
+        process.env.ACCOUNT_ACCOUNT!
+      ].filter((x) => x)
+    },
+    mumbai: {
+      chainId: 80001,
+      url: process.env.MUMBAI_URL ?? "",
+      usdcAddress: "0xE097d6B3100777DC31B34dC2c58fB524C2e76921",
+      accounts: [
+        process.env.ACCOUNT_ADMIN!,
+        process.env.ACCOUNT_OPERATOR!,
+        process.env.ACCOUNT_DEPLOYER!,
+        process.env.ACCOUNT_PAUSER!,
+        process.env.ACCOUNT_ACCOUNT!
       ].filter((x) => x)
     }
   },
