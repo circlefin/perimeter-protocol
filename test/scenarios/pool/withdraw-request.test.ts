@@ -42,7 +42,6 @@ describe("Withdraw Requests", () => {
     const { withdrawRequestPeriodDuration } = await pool.settings();
 
     // Expect Alice to be able to request her full balance, minus fees
-    // TODO: Update this to have a non 1:1 ratio!
     expect(await pool.maxRedeemRequest(aliceLender.address)).to.equal(90);
     expect(await pool.maxWithdrawRequest(aliceLender.address)).to.equal(90);
 

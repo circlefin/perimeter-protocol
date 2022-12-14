@@ -1,165 +1,5 @@
 # Solidity API
 
-## CollateralVault
-
-### _loan
-
-```solidity
-address _loan
-```
-
-### onlyLoan
-
-```solidity
-modifier onlyLoan()
-```
-
-### constructor
-
-```solidity
-constructor(address loan) public
-```
-
-### withdraw
-
-```solidity
-function withdraw(address asset, uint256 amount, address receiver) external
-```
-
-_Allows withdrawal of funds held by vault._
-
-### withdrawERC721
-
-```solidity
-function withdrawERC721(address asset, uint256 tokenId, address receiver) external
-```
-
-## FeeVault
-
-### pool
-
-```solidity
-address pool
-```
-
-### onlyPoolAdmin
-
-```solidity
-modifier onlyPoolAdmin()
-```
-
-### constructor
-
-```solidity
-constructor(address pool_) public
-```
-
-### withdraw
-
-```solidity
-function withdraw(address asset, uint256 amount) external
-```
-
-_Allows withdrawal of fees held by vault._
-
-## FirstLossVault
-
-### poolController
-
-```solidity
-address poolController
-```
-
-### _asset
-
-```solidity
-contract IERC20 _asset
-```
-
-### onlyPoolController
-
-```solidity
-modifier onlyPoolController()
-```
-
-_Modifier restricting access to pool_
-
-### constructor
-
-```solidity
-constructor(address _poolController, address firstLossAsset) public
-```
-
-_Constructor for the vault_
-
-#### Parameters
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _poolController | address | address of pool controller |
-| firstLossAsset | address | asset held by vault |
-
-### asset
-
-```solidity
-function asset() external view returns (address)
-```
-
-_Returns the asset held by the vault._
-
-### withdraw
-
-```solidity
-function withdraw(uint256 amount, address receiver) external
-```
-
-_Allows withdrawal of funds held by vault._
-
-## FundingVault
-
-### _loan
-
-```solidity
-address _loan
-```
-
-### asset
-
-```solidity
-contract IERC20 asset
-```
-
-### onlyLoan
-
-```solidity
-modifier onlyLoan()
-```
-
-_Modifier restricting access to pool_
-
-### constructor
-
-```solidity
-constructor(address loan, address asset_) public
-```
-
-_Constructor for the vault_
-
-#### Parameters
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| loan | address | address of loan |
-| asset_ | address | asset held by vault |
-
-### withdraw
-
-```solidity
-function withdraw(uint256 amount, address receiver) external
-```
-
-_Allows withdrawal of funds held by vault._
-
 ## Loan
 
 ### _serviceConfiguration
@@ -192,16 +32,16 @@ address _borrower
 address _pool
 ```
 
-### _collateralVault
+### collateralVault
 
 ```solidity
-contract CollateralVault _collateralVault
+contract IVault collateralVault
 ```
 
 ### fundingVault
 
 ```solidity
-contract FundingVault fundingVault
+contract IVault fundingVault
 ```
 
 ### _fungibleCollateral
@@ -342,7 +182,7 @@ _Modifier that requires the loan not be in a terminal state._
 ### initialize
 
 ```solidity
-function initialize(address serviceConfiguration_, address factory_, address borrower_, address pool_, address liquidityAsset_, struct ILoanSettings settings_) public virtual
+function initialize(address serviceConfiguration_, address factory_, address borrower_, address pool_, address liquidityAsset_, address vaultFactory, struct ILoanSettings settings_) public virtual
 ```
 
 ### cancelRequested
@@ -550,48 +390,9 @@ function loanType() external view returns (enum ILoanType)
 function serviceConfiguration() external view returns (contract IServiceConfiguration)
 ```
 
-## LoanFactory
-
-### _isLoan
-
-```solidity
-mapping(address => bool) _isLoan
-```
-
-_Mapping of created loans_
-
-### constructor
-
-```solidity
-constructor(address serviceConfiguration) public
-```
-
-### createLoan
-
-```solidity
-function createLoan(address borrower, address pool, address liquidityAsset, struct ILoanSettings settings) public returns (address LoanAddress)
-```
-
-_Creates a Loan
-Emits `LoanCreated` event._
-
-### initializeLoan
-
-```solidity
-function initializeLoan(address borrower, address pool, address liquidityAsset, struct ILoanSettings settings) internal virtual returns (address)
-```
-
-_Internal initialization of Beacon proxy for Loans_
-
-### isLoan
-
-```solidity
-function isLoan(address loan) public view returns (bool)
-```
-
-_Checks whether the address corresponds to a created loan for this factory_
-
 ## Pool
+
+_Used through a beacon proxy._
 
 ### _serviceConfiguration
 
@@ -599,17 +400,23 @@ _Checks whether the address corresponds to a created loan for this factory_
 contract IServiceConfiguration _serviceConfiguration
 ```
 
+_Reference to the global service configuration._
+
 ### _liquidityAsset
 
 ```solidity
 contract IERC20Upgradeable _liquidityAsset
 ```
 
+_Reference to the underlying liquidity asset for the pool._
+
 ### _feeVault
 
 ```solidity
-contract FeeVault _feeVault
+contract IVault _feeVault
 ```
+
+_A vault holding pool admin fees collected from borrower payments._
 
 ### _accountings
 
@@ -617,13 +424,15 @@ contract FeeVault _feeVault
 struct IPoolAccountings _accountings
 ```
 
+_Various accounting statistics updated throughout the pool lifetime._
+
 ### withdrawController
 
 ```solidity
 contract IWithdrawController withdrawController
 ```
 
-_The WithdrawController contract_
+_Reference to the withdraw controller for the pool._
 
 ### poolController
 
@@ -631,7 +440,7 @@ _The WithdrawController contract_
 contract IPoolController poolController
 ```
 
-_The PoolController contract_
+_Reference to the admin's controller for the pool._
 
 ### _activeLoans
 
@@ -704,7 +513,7 @@ _Modifier that checks that the pool is Initialized or Active_
 modifier onlySnapshottedPool()
 ```
 
-_Modifier to ensure the Pool is snapshotted._
+_Modifier to ensure the Pool is snapshotted before proceeding.._
 
 ### onlyPermittedLender
 
@@ -718,7 +527,7 @@ access control._
 ### initialize
 
 ```solidity
-function initialize(address liquidityAsset, address poolAdmin, address serviceConfiguration_, address withdrawControllerFactory, address poolControllerFactory, struct IPoolConfigurableSettings poolSettings, string tokenName, string tokenSymbol) public
+function initialize(address liquidityAsset, address poolAdmin, address serviceConfiguration_, address withdrawControllerFactory, address poolControllerFactory, address vaultFactory, struct IPoolConfigurableSettings poolSettings, string tokenName, string tokenSymbol) public
 ```
 
 _Initializer for Pool_
@@ -731,7 +540,8 @@ _Initializer for Pool_
 | poolAdmin | address | admin of the pool |
 | serviceConfiguration_ | address | address of global service configuration |
 | withdrawControllerFactory | address | factory address of the withdraw controller |
-| poolControllerFactory | address |  |
+| poolControllerFactory | address | factory address for emitting pool controllers |
+| vaultFactory | address | factory address of the Vault |
 | poolSettings | struct IPoolConfigurableSettings | configurable settings for the pool |
 | tokenName | string | Name used for issued pool tokens |
 | tokenSymbol | string | Symbol used for issued pool tokens |
@@ -766,7 +576,7 @@ _The current pool state._
 function admin() external view returns (address)
 ```
 
-_The admin of the pool_
+_The admin for the pool._
 
 ### feeVault
 
@@ -798,7 +608,7 @@ _The pool accounting variables;_
 function serviceFeeBps() external view returns (uint256)
 ```
 
-_The fee_
+_The pool fee, in bps, taken from each interest payment_
 
 ### onActivated
 
@@ -906,6 +716,8 @@ any assets that are marked for withdrawal._
 function claimFixedFee(address recipient, uint256 fixedFee, uint256 fixedFeeInterval) external
 ```
 
+_Called by the Pool Controller, it transfers the fixed fee_
+
 ### maxRedeemRequest
 
 ```solidity
@@ -960,7 +772,7 @@ Note: This is equivalent of EIP-4626 `previewWithdraw`_
 function requestRedeem(uint256 shares) external returns (uint256 assets)
 ```
 
-_Request a redemption of a number of shares from the pool_
+_Submits a withdrawal request, incurring a fee._
 
 ### requestWithdraw
 
@@ -968,7 +780,7 @@ _Request a redemption of a number of shares from the pool_
 function requestWithdraw(uint256 assets) external returns (uint256 shares)
 ```
 
-_Request a Withdraw of a number of assets from the pool_
+_Submits a withdrawal request, incurring a fee._
 
 ### _performRedeemRequest
 
@@ -1089,8 +901,7 @@ _Calculates the maximum amount of underlying assets that can be deposited in a s
 function previewDeposit(uint256 assets) public view returns (uint256 shares)
 ```
 
-_Allows users to simulate the effects of their deposit at the current block.
-Rounds DOWN per EIP4626_
+_Allows users to simulate the effects of their deposit at the current block._
 
 ### deposit
 
@@ -1115,8 +926,7 @@ _Returns the maximum amount of shares that can be minted in a single mint call b
 function previewMint(uint256 shares) public view returns (uint256 assets)
 ```
 
-_Allows users to simulate the effects of their mint at the current block.
-Rounds UP per EIP4626, to determine the number of assets to be provided for shares._
+_Allows users to simulate the effects of their mint at the current block._
 
 ### mint
 
@@ -1160,8 +970,7 @@ Should round UP for EIP4626._
 function maxRedeem(address owner) public view returns (uint256 maxShares)
 ```
 
-_The maximum amount of shares that can be redeemed from the owner
-balance through a redeem call._
+_The maximum amount of shares that can be redeemed from the owner balance through a redeem call._
 
 ### previewRedeem
 
@@ -1198,61 +1007,264 @@ from `owner`._
 function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual
 ```
 
-_Hook that is called before any transfer of tokens. This includes
-minting and burning.
+_Disables Perimeter Pool Token transfers._
 
-Calling conditions:
+## ServiceConfiguration
 
-- when `from` and `to` are both non-zero, `amount` of ``from``'s tokens
-will be transferred to `to`.
-- when `from` is zero, `amount` tokens will be minted for `to`.
-- when `to` is zero, `amount` of ``from``'s tokens will be burned.
-- `from` and `to` are never both zero.
+_Implementation of the {IServiceConfiguration} interface._
 
-To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks]._
-
-## PoolFactory
-
-### _withdrawControllerFactory
+### OPERATOR_ROLE
 
 ```solidity
-address _withdrawControllerFactory
+bytes32 OPERATOR_ROLE
 ```
 
-_Reference to the WithdrawControllerFactory contract_
+_The Operator Role_
 
-### _poolControllerFactory
+### PAUSER_ROLE
 
 ```solidity
-address _poolControllerFactory
+bytes32 PAUSER_ROLE
 ```
 
-_Reference to the PoolControllerFactory contract_
+_The Pauser Role_
 
-### constructor
+### DEPLOYER_ROLE
 
 ```solidity
-constructor(address serviceConfiguration, address withdrawControllerFactory, address poolControllerFactory) public
+bytes32 DEPLOYER_ROLE
 ```
 
-### createPool
+_The Deployer Role_
+
+### paused
 
 ```solidity
-function createPool(address liquidityAsset, struct IPoolConfigurableSettings settings) public virtual returns (address poolAddress)
+bool paused
 ```
 
-_Creates a pool
-Emits `PoolCreated` event._
+_Whether the protocol is paused._
 
-### initializePool
+### isLiquidityAsset
 
 ```solidity
-function initializePool(address liquidityAsset, struct IPoolConfigurableSettings settings) internal virtual returns (address)
+mapping(address => bool) isLiquidityAsset
 ```
 
-_Creates the new Pool contract._
+_Whether an address is supported as a liquidity asset._
+
+### firstLossMinimum
+
+```solidity
+mapping(address => uint256) firstLossMinimum
+```
+
+_First loss minimum required per-currency to activate a pool._
+
+### firstLossFeeBps
+
+```solidity
+uint256 firstLossFeeBps
+```
+
+_Ongoing fee deducted from borrower interest payments to the first loss vault._
+
+### tosAcceptanceRegistry
+
+```solidity
+address tosAcceptanceRegistry
+```
+
+_Address of the Terms of Service acceptance registry._
+
+### protocolFeeBps
+
+```solidity
+uint256 protocolFeeBps
+```
+
+_Protocol fee. Set to zero._
+
+### isLoanFactory
+
+```solidity
+mapping(address => bool) isLoanFactory
+```
+
+_checks if an address is a valid loan factory_
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+
+#### Return Values
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+
+### onlyOperator
+
+```solidity
+modifier onlyOperator()
+```
+
+_Modifier that checks that the caller account has the Operator role._
+
+### onlyPauser
+
+```solidity
+modifier onlyPauser()
+```
+
+_Require the caller be the pauser_
+
+### initialize
+
+```solidity
+function initialize() public
+```
+
+_Constructor for the contract, which sets up the default roles and
+owners._
+
+### setLiquidityAsset
+
+```solidity
+function setLiquidityAsset(address addr, bool value) public
+```
+
+_Set a liquidity asset as valid or not._
+
+### setPaused
+
+```solidity
+function setPaused(bool paused_) public
+```
+
+_Pause/unpause the protocol._
+
+### isOperator
+
+```solidity
+function isOperator(address addr) external view returns (bool)
+```
+
+_checks if a given address has the Operator role_
+
+### isDeployer
+
+```solidity
+function isDeployer(address addr) external view returns (bool)
+```
+
+_checks if a given address has the Deployer role_
+
+### setLoanFactory
+
+```solidity
+function setLoanFactory(address addr, bool isValid) external
+```
+
+_Sets whether a loan factory is valid_
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| addr | address | Address of loan factory |
+| isValid | bool | Whether the loan factory is valid |
+
+### setToSAcceptanceRegistry
+
+```solidity
+function setToSAcceptanceRegistry(address addr) external
+```
+
+_Sets the ToSAcceptanceRegistry for the protocol_
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| addr | address | Address of registry |
+
+### setFirstLossMinimum
+
+```solidity
+function setFirstLossMinimum(address addr, uint256 value) external
+```
+
+_Sets the first loss minimum for the given asset_
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| addr | address | address of the liquidity asset |
+| value | uint256 | the minimum tokens required to be deposited by pool admins |
+
+### setFirstLossFeeBps
+
+```solidity
+function setFirstLossFeeBps(uint256 value) external
+```
+
+_Sets the first loss fee for the protocol_
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| value | uint256 | amount of each payment that is allocated to the first loss vault. Value is in basis points, e.g. 500 equals 5%. |
+
+## Vault
+
+_Vaults are deployed as beacon proxy contracts._
+
+### _serviceConfiguration
+
+```solidity
+contract IServiceConfiguration _serviceConfiguration
+```
+
+_Reference to the global service configuration_
+
+### onlyNotPaused
+
+```solidity
+modifier onlyNotPaused()
+```
+
+_Modifier to check that the protocol is not paused_
+
+### initialize
+
+```solidity
+function initialize(address owner, address serviceConfiguration) public
+```
+
+_Initialize function as a Beacon proxy implementation._
+
+### withdrawERC20
+
+```solidity
+function withdrawERC20(address asset, uint256 amount, address receiver) external
+```
+
+_Withdraws ERC20 of a given asset_
+
+### withdrawERC721
+
+```solidity
+function withdrawERC721(address asset, uint256 tokenId, address receiver) external
+```
+
+_Withdraws ERC721 with specified tokenId_
 
 ## PoolController
+
+_Deployed as a beacon proxy contract._
 
 ### pool
 
@@ -1260,11 +1272,15 @@ _Creates the new Pool contract._
 contract IPool pool
 ```
 
+_A reference to the pool for this controller._
+
 ### admin
 
 ```solidity
 address admin
 ```
+
+_The Pool's admin_
 
 ### serviceConfiguration
 
@@ -1272,11 +1288,16 @@ address admin
 address serviceConfiguration
 ```
 
+_A reference to the global service configuration._
+
 ### _settings
 
 ```solidity
 struct IPoolConfigurableSettings _settings
 ```
+
+_Settings configurable by the PoolAdmin. Some are fixed at pool creation,
+and some are modifiable during certain Pool lifecycle states._
 
 ### _state
 
@@ -1284,17 +1305,23 @@ struct IPoolConfigurableSettings _settings
 enum IPoolLifeCycleState _state
 ```
 
+_The current pool lifecycle state._
+
 ### _firstLossVault
 
 ```solidity
-contract FirstLossVault _firstLossVault
+contract IVault _firstLossVault
 ```
+
+_A reference to the vault holding first-loss capital._
 
 ### _liquidityAsset
 
 ```solidity
 contract IERC20 _liquidityAsset
 ```
+
+_A reference to the ERC20 liquidity asset for the pool._
 
 ### onlyNotPaused
 
@@ -1342,7 +1369,7 @@ _Modifier that checks that the pool is Initialized or Active_
 modifier isPoolLoan(address loan)
 ```
 
-_Modifier to check that an addres is a Perimeter loan associated
+_Modifier to check that an address is a Perimeter loan associated
 with this pool._
 
 ### onlySnapshottedPool
@@ -1356,8 +1383,10 @@ _Modifier to ensure that the Pool is snapshotted._
 ### initialize
 
 ```solidity
-function initialize(address pool_, address serviceConfiguration_, address admin_, address liquidityAsset_, struct IPoolConfigurableSettings poolSettings_) public
+function initialize(address pool_, address serviceConfiguration_, address admin_, address liquidityAsset_, address vaultFactory, struct IPoolConfigurableSettings poolSettings_) public
 ```
+
+_Pool initializer._
 
 ### settings
 
@@ -1436,7 +1465,8 @@ this is lowered (if needed) to 1 day._
 function setPoolCapacity(uint256 newCapacity) external
 ```
 
-@dev
+_Allow the current pool admin to update the pool capacity at any
+time._
 
 ### setPoolEndDate
 
@@ -1444,7 +1474,9 @@ function setPoolCapacity(uint256 newCapacity) external
 function setPoolEndDate(uint256 endDate) external
 ```
 
-@dev
+_Allow the current pool admin to update the pool's end date. The end date can
+only be moved earlier (but not in the past, as measured by the current block's timestamp).
+Once the end date is reached, the Pool is closed._
 
 ### firstLossVault
 
@@ -1559,9 +1591,11 @@ claimed once every interval, as set on the pool._
 function snapshot() external
 ```
 
-_Snapshots the Pool._
+_Snapshots the Pool, earmarking percentages of liquidity reserve for withdrawal._
 
 ## WithdrawController
+
+_Deployed as a beacon proxy contract._
 
 ### _pool
 
@@ -1618,9 +1652,7 @@ function withdrawPeriod() public view returns (uint256 period)
 ```
 
 _The current withdraw period. Funds marked with this period (or
-earlier), are eligible to be considered for redemption/widrawal.
-
-TODO: This can be internal_
+earlier), are eligible to be considered for redemption/widrawal._
 
 ### _currentWithdrawState
 
@@ -1831,7 +1863,7 @@ requested withdrawal._
 function snapshotLender(address addr) internal returns (struct IPoolWithdrawState state)
 ```
 
-_Snapshots a lender_
+_Snapshots a lender, catching them up to the current withdraw window._
 
 ### redeem
 
@@ -1890,6 +1922,9 @@ struct IPoolConfigurableSettings {
 
 ## IPoolController
 
+_Pool Admin's interact with the pool via the controller, including funding loans and adjusting
+settings._
+
 ### PoolSettingsUpdated
 
 ```solidity
@@ -1922,6 +1957,14 @@ event FirstLossDeposited(address caller, address spender, uint256 amount)
 
 _Emitted when first loss is supplied to the pool._
 
+### FirstLossWithdrawn
+
+```solidity
+event FirstLossWithdrawn(address caller, address receiver, uint256 amount)
+```
+
+_Emitted when first loss is withdrawn from the pool._
+
 ### FirstLossApplied
 
 ```solidity
@@ -1935,6 +1978,8 @@ _Emitted when first loss capital is used to cover loan defaults_
 ```solidity
 function admin() external view returns (address)
 ```
+
+_The Pool's admin_
 
 ### settings
 
@@ -2029,7 +2074,8 @@ this is lowered (if needed) to 1 day._
 function setPoolCapacity(uint256) external
 ```
 
-@dev
+_Allow the current pool admin to update the pool capacity at any
+time._
 
 ### setPoolEndDate
 
@@ -2037,7 +2083,9 @@ function setPoolCapacity(uint256) external
 function setPoolEndDate(uint256) external
 ```
 
-@dev
+_Allow the current pool admin to update the pool's end date. The end date can
+only be moved earlier (but not in the past, as measured by the current block's timestamp).
+Once the end date is reached, the Pool is closed._
 
 ### firstLossVault
 
@@ -2127,7 +2175,7 @@ claimed once every interval, as set on the pool._
 function snapshot() external
 ```
 
-_Snapshots the Pool._
+_Snapshots the Pool, earmarking percentages of liquidity reserve for withdrawal._
 
 ## IPoolWithdrawState
 
@@ -2139,7 +2187,6 @@ struct IPoolWithdrawState {
   uint256 redeemableShares;
   uint256 withdrawableAssets;
   uint256 latestSnapshotPeriod;
-  uint256 snapshotOffsetPeriod;
 }
 ```
 
@@ -2154,6 +2201,10 @@ struct IPoolSnapshotState {
 ```
 
 ## IWithdrawController
+
+_Holds state related to withdraw requests, and logic for snapshotting the
+pool's liquidity reserve at regular intervals, earmarking funds for lenders according
+to their withdrawal requests._
 
 ### withdrawPeriod
 
@@ -2358,7 +2409,63 @@ function withdraw(address, uint256) external returns (uint256)
 _Burns shares from owner and send exactly assets token from the vault to receiver.
 Should round UP for EIP4626._
 
+## LoanFactory
+
+_Acts as a beacon contract, emitting beacon proxies and holding a reference
+to their implementation contract._
+
+### isLoan
+
+```solidity
+mapping(address => bool) isLoan
+```
+
+_Checks whether a Loan address was created by the factory._
+
+### _vaultFactory
+
+```solidity
+address _vaultFactory
+```
+
+_A reference to the VaultFactory._
+
+### constructor
+
+```solidity
+constructor(address serviceConfiguration, address vaultFactory) public
+```
+
+_Constructor for the LoanFactory._
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| serviceConfiguration | address | Reference to the global service configuration. |
+| vaultFactory | address | Reference to a VaultFactory. |
+
+### createLoan
+
+```solidity
+function createLoan(address borrower, address pool, address liquidityAsset, struct ILoanSettings settings) public returns (address LoanAddress)
+```
+
+_Creates a Loan
+Emits `LoanCreated` event._
+
+### initializeLoan
+
+```solidity
+function initializeLoan(address borrower, address pool, address liquidityAsset, struct ILoanSettings settings) internal virtual returns (address)
+```
+
+_Internal initialization of Beacon proxy for Loans_
+
 ## PoolControllerFactory
+
+_Acts as a beacon contract, emitting beacon proxies and holding a reference
+to their implementation contract._
 
 ### constructor
 
@@ -2366,22 +2473,132 @@ Should round UP for EIP4626._
 constructor(address serviceConfiguration) public
 ```
 
+_Constructor_
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| serviceConfiguration | address | Reference to the global service configuration. |
+
 ### createController
 
 ```solidity
-function createController(address pool, address serviceConfiguration, address admin, address liquidityAsset, struct IPoolConfigurableSettings poolSettings) public virtual returns (address addr)
+function createController(address pool, address serviceConfiguration, address admin, address liquidityAsset, address vaultFactory, struct IPoolConfigurableSettings poolSettings) public virtual returns (address addr)
 ```
 
 _Creates a pool's PoolAdmin controller
 Emits `PoolControllerCreated` event._
 
-## WithdrawControllerFactory
+## PoolFactory
+
+_Acts as a beacon contract, emitting beacon proxies and holding a reference
+to their implementation contract._
+
+### _withdrawControllerFactory
+
+```solidity
+address _withdrawControllerFactory
+```
+
+_Reference to the WithdrawControllerFactory contract_
+
+### _poolControllerFactory
+
+```solidity
+address _poolControllerFactory
+```
+
+_Reference to the PoolControllerFactory contract_
+
+### _vaultFactory
+
+```solidity
+address _vaultFactory
+```
+
+_Reference to the VaultFactory contract_
+
+### constructor
+
+```solidity
+constructor(address serviceConfiguration, address withdrawControllerFactory, address poolControllerFactory, address vaultFactory) public
+```
+
+_Constructor_
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| serviceConfiguration | address | Reference to the global service configuration. |
+| withdrawControllerFactory | address | Reference to the withdraw controller factory. |
+| poolControllerFactory | address | Reference to the pool controller factory. |
+| vaultFactory | address | Reference to the Vault factory. |
+
+### createPool
+
+```solidity
+function createPool(address liquidityAsset, struct IPoolConfigurableSettings settings) public virtual returns (address poolAddress)
+```
+
+_Creates a Pool.
+Emits `PoolCreated` event._
+
+### initializePool
+
+```solidity
+function initializePool(address liquidityAsset, struct IPoolConfigurableSettings settings) internal virtual returns (address)
+```
+
+_Creates the new Pool contract._
+
+## VaultFactory
+
+_Acts as a beacon contract, emitting beacon proxies and holding a reference
+to their implementation contract._
 
 ### constructor
 
 ```solidity
 constructor(address serviceConfiguration) public
 ```
+
+_Constructor_
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| serviceConfiguration | address | Reference to the global service configuration. |
+
+### createVault
+
+```solidity
+function createVault(address owner) public returns (address addr)
+```
+
+_Creates a new vault.
+Emits a `VaultCreated` event._
+
+## WithdrawControllerFactory
+
+_Acts as a beacon contract, emitting beacon proxies and holding a reference
+to their implementation contract._
+
+### constructor
+
+```solidity
+constructor(address serviceConfiguration) public
+```
+
+_Constructor_
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| serviceConfiguration | address | Reference to the global service configuration. |
 
 ### createController
 
@@ -2391,6 +2608,33 @@ function createController(address pool) public virtual returns (address addr)
 
 _Creates a pool's withdraw controller
 Emits `WithdrawControllerCreated` event._
+
+## ILoanFactory
+
+### LoanCreated
+
+```solidity
+event LoanCreated(address addr)
+```
+
+_Emitted when a loan is created._
+
+### createLoan
+
+```solidity
+function createLoan(address borrower, address pool, address liquidityAsset, struct ILoanSettings settings) external returns (address)
+```
+
+_Creates a loan
+Emits `LoanCreated` event._
+
+### isLoan
+
+```solidity
+function isLoan(address loan) external view returns (bool)
+```
+
+_Checks whether a Loan address was created by the factory._
 
 ## IPoolControllerFactory
 
@@ -2405,11 +2649,49 @@ _Emitted when a pool is created._
 ### createController
 
 ```solidity
-function createController(address, address, address, address, struct IPoolConfigurableSettings) external returns (address)
+function createController(address pool, address serviceConfiguration, address admin, address liquidityAsset, address vaultFactory, struct IPoolConfigurableSettings poolSettings) external returns (address)
 ```
 
 _Creates a pool's PoolAdmin controller
 Emits `PoolControllerCreated` event._
+
+## IPoolFactory
+
+### PoolCreated
+
+```solidity
+event PoolCreated(address addr)
+```
+
+_Emitted when a pool is created._
+
+### createPool
+
+```solidity
+function createPool(address, struct IPoolConfigurableSettings) external returns (address)
+```
+
+_Creates a Pool.
+Emits `PoolCreated` event._
+
+## IVaultFactory
+
+### VaultCreated
+
+```solidity
+event VaultCreated(address owner)
+```
+
+_Emitted when a vault is created._
+
+### createVault
+
+```solidity
+function createVault(address owner) external returns (address)
+```
+
+_Creates a new vault.
+Emits a `VaultCreated` event._
 
 ## IWithdrawControllerFactory
 
@@ -2419,7 +2701,7 @@ Emits `PoolControllerCreated` event._
 event WithdrawControllerCreated(address addr)
 ```
 
-_Emitted when a pool is created._
+_Emitted when a pool WithdrawController is created._
 
 ### createController
 
@@ -2471,7 +2753,8 @@ NOTE: This method includes assets that are marked for withdrawal._
 function convertToShares(uint256 assets) external view returns (uint256)
 ```
 
-_Calculates the amount of shares that would be exchanged by the vault for the amount of assets provided._
+_Calculates the amount of shares that would be exchanged by the vault for the amount of assets provided.
+Rounds DOWN per EIP4626._
 
 ### convertToAssets
 
@@ -2479,7 +2762,8 @@ _Calculates the amount of shares that would be exchanged by the vault for the am
 function convertToAssets(uint256 shares) external view returns (uint256)
 ```
 
-_Calculates the amount of assets that would be exchanged by the vault for the amount of shares provided._
+_Calculates the amount of assets that would be exchanged by the vault for the amount of shares provided.
+Rounds DOWN per EIP4626._
 
 ### maxDeposit
 
@@ -2545,7 +2829,8 @@ _Returns the maximum amount of underlying assets that can be withdrawn from the 
 function previewWithdraw(uint256 assets) external view returns (uint256)
 ```
 
-_Simulate the effects of their withdrawal at the current block._
+_Simulate the effects of their withdrawal at the current block.
+Per EIP4626, should round UP on the number of shares required for assets._
 
 ### withdraw
 
@@ -2554,7 +2839,8 @@ function withdraw(uint256 assets, address receiver, address owner) external retu
 ```
 
 _Burns shares from owner and send exactly assets token from the vault to receiver.
-Emits a {Withdraw} event._
+Emits a {Withdraw} event.
+Should round UP for EIP4626._
 
 ### maxRedeem
 
@@ -2570,7 +2856,8 @@ _The maximum amount of shares that can be redeemed from the owner balance throug
 function previewRedeem(uint256 shares) external view returns (uint256)
 ```
 
-_Simulates the effects of their redeemption at the current block._
+_Simulates the effects of their redeemption at the current block.
+Per EIP4626, should round DOWN._
 
 ### redeem
 
@@ -2579,7 +2866,8 @@ function redeem(uint256 shares, address receiver, address owner) external return
 ```
 
 _Redeems a specific number of shares from owner and send assets of underlying token from the vault to receiver.
-Emits a {Withdraw} event._
+Emits a {Withdraw} event.
+Per EIP4626, should round DOWN._
 
 ## ILoanLifeCycleState
 
@@ -2871,7 +3159,7 @@ function outstandingPrincipal() external view returns (uint256)
 ### fundingVault
 
 ```solidity
-function fundingVault() external returns (contract FundingVault)
+function fundingVault() external returns (contract IVault)
 ```
 
 ### markDefaulted
@@ -2897,25 +3185,6 @@ function liquidityAsset() external view returns (address)
 ```solidity
 function serviceConfiguration() external view returns (contract IServiceConfiguration)
 ```
-
-## ILoanFactory
-
-### LoanCreated
-
-```solidity
-event LoanCreated(address addr)
-```
-
-_Emitted when a loan is created._
-
-### createLoan
-
-```solidity
-function createLoan(address borrower, address pool, address liquidityAsset, struct ILoanSettings settings) external returns (address)
-```
-
-_Creates a loan
-Emits `LoanCreated` event._
 
 ## IPoolAccountings
 
@@ -3068,22 +3337,6 @@ function serviceFeeBps() external view returns (uint256)
 
 _The pool fee, in bps, taken from each interest payment_
 
-### requestRedeem
-
-```solidity
-function requestRedeem(uint256) external returns (uint256)
-```
-
-_Submits a withdrawal request, incurring a fee._
-
-### requestWithdraw
-
-```solidity
-function requestWithdraw(uint256) external returns (uint256)
-```
-
-_Submits a withdrawal request, incurring a fee._
-
 ### liquidityPoolAssets
 
 ```solidity
@@ -3200,26 +3453,166 @@ function currentExpectedInterest() external view returns (uint256 interest)
 
 _The accrued interest at the current block._
 
-## IPoolFactory
+## IRequestWithdrawable
 
-### PoolCreated
+_Terminology and design informed to complement ERC4626._
 
-```solidity
-event PoolCreated(address addr)
-```
-
-_Emitted when a pool is created._
-
-### createPool
+### maxRedeemRequest
 
 ```solidity
-function createPool(address, struct IPoolConfigurableSettings) external returns (address)
+function maxRedeemRequest(address owner) external view returns (uint256 maxShares)
 ```
 
-_Creates a pool's PoolAdmin controller
-Emits `PoolControllerCreated` event._
+_Returns the maximum number of `shares` that can be
+requested to be redeemed from the owner balance with a single
+`requestRedeem` call in the current block.
+
+Note: This is equivalent of EIP-4626 `maxRedeem`_
+
+### maxWithdrawRequest
+
+```solidity
+function maxWithdrawRequest(address owner) external view returns (uint256 maxAssets)
+```
+
+_Returns the maximum amount of underlying `assets` that can be
+requested to be withdrawn from the owner balance with a single
+`requestWithdraw` call in the current block.
+
+Note: This is equivalent of EIP-4626 `maxWithdraw`_
+
+### previewRedeemRequest
+
+```solidity
+function previewRedeemRequest(uint256 shares) external view returns (uint256 assets)
+```
+
+_Simulate the effects of a redeem request at the current block.
+Returns the amount of underlying assets that would be requested if this
+entire redeem request were to be processed at the current block.
+
+Note: This is equivalent of EIP-4626 `previewRedeem`_
+
+### previewWithdrawRequest
+
+```solidity
+function previewWithdrawRequest(uint256 assets) external view returns (uint256 shares)
+```
+
+_Simulate the effects of a withdrawal request at the current block.
+Returns the amount of `shares` that would be burned if this entire
+withdrawal request were to be processed at the current block.
+
+Note: This is equivalent of EIP-4626 `previewWithdraw`_
+
+### requestRedeem
+
+```solidity
+function requestRedeem(uint256 shares) external returns (uint256 assets)
+```
+
+_Submits a withdrawal request, incurring a fee._
+
+### requestWithdraw
+
+```solidity
+function requestWithdraw(uint256 assets) external returns (uint256 shares)
+```
+
+_Submits a withdrawal request, incurring a fee._
+
+### maxRequestCancellation
+
+```solidity
+function maxRequestCancellation(address owner) external view returns (uint256 maxShares)
+```
+
+_Returns the maximum number of `shares` that can be
+cancelled from being requested for a redemption.
+
+Note: This is equivalent of EIP-4626 `maxRedeem`_
+
+### cancelRedeemRequest
+
+```solidity
+function cancelRedeemRequest(uint256 shares) external returns (uint256 assets)
+```
+
+_Cancels a redeem request for a specific number of `shares` from
+owner and returns an estimated amnount of underlying that equates to
+this number of shares.
+
+Emits a {WithdrawRequestCancelled} event._
+
+### cancelWithdrawRequest
+
+```solidity
+function cancelWithdrawRequest(uint256 assets) external returns (uint256 shares)
+```
+
+_Cancels a withdraw request for a specific values of `assets` from
+owner and returns an estimated number of shares that equates to
+this number of assets.
+
+Emits a {WithdrawRequestCancelled} event._
 
 ## IServiceConfiguration
+
+### AddressSet
+
+```solidity
+event AddressSet(bytes32 which, address addr)
+```
+
+_Emitted when an address is changed._
+
+### LiquidityAssetSet
+
+```solidity
+event LiquidityAssetSet(address addr, bool value)
+```
+
+_Emitted when a liquidity asset is set._
+
+### FirstLossMinimumSet
+
+```solidity
+event FirstLossMinimumSet(address addr, uint256 value)
+```
+
+_Emitted when first loss minimum is set for an asset._
+
+### ParameterSet
+
+```solidity
+event ParameterSet(bytes32, uint256 value)
+```
+
+_Emitted when a parameter is set._
+
+### ProtocolPaused
+
+```solidity
+event ProtocolPaused(bool paused)
+```
+
+_Emitted when the protocol is paused._
+
+### LoanFactorySet
+
+```solidity
+event LoanFactorySet(address factory, bool isValid)
+```
+
+_Emitted when a loan factory is set_
+
+### TermsOfServiceRegistrySet
+
+```solidity
+event TermsOfServiceRegistrySet(address registry)
+```
+
+_Emitted when the TermsOfServiceRegistry is set_
 
 ### isOperator
 
@@ -3243,11 +3636,15 @@ _checks if a given address has the Deployer role_
 function paused() external view returns (bool)
 ```
 
+_Whether the protocol is paused._
+
 ### firstLossMinimum
 
 ```solidity
 function firstLossMinimum(address addr) external view returns (uint256)
 ```
+
+_First loss minimum required per-currency to activate a pool._
 
 ### firstLossFeeBps
 
@@ -3255,17 +3652,31 @@ function firstLossMinimum(address addr) external view returns (uint256)
 function firstLossFeeBps() external view returns (uint256)
 ```
 
+_Ongoing fee deducted from borrower interest payments to the first loss vault._
+
+### protocolFeeBps
+
+```solidity
+function protocolFeeBps() external view returns (uint256)
+```
+
+_Protocol fee. Set to zero._
+
 ### isLiquidityAsset
 
 ```solidity
 function isLiquidityAsset(address addr) external view returns (bool)
 ```
 
+_Whether an address is supported as a liquidity asset._
+
 ### tosAcceptanceRegistry
 
 ```solidity
 function tosAcceptanceRegistry() external view returns (address)
 ```
+
+_Address of the Terms of Service acceptance registry._
 
 ### isLoanFactory
 
@@ -3359,6 +3770,42 @@ _Sets supported liquidity assets for the protocol. Callable by the operator._
 | ---- | ---- | ----------- |
 | addr | address | Address of liquidity asset |
 | value | bool | Whether supported or not |
+
+## IVault
+
+_Vaults simply hold a balance, and allow withdrawals by the Vault's owner._
+
+### WithdrewERC20
+
+```solidity
+event WithdrewERC20(address asset, uint256 amount, address receiver)
+```
+
+_Emitted on ERC20 withdrawals_
+
+### WithdrewERC721
+
+```solidity
+event WithdrewERC721(address asset, uint256 tokenId, address receiver)
+```
+
+_Emitted on ERC721 withdrawals_
+
+### withdrawERC20
+
+```solidity
+function withdrawERC20(address asset, uint256 amount, address receiver) external
+```
+
+_Withdraws ERC20 of a given asset_
+
+### withdrawERC721
+
+```solidity
+function withdrawERC721(address asset, uint256 tokenId, address receiver) external
+```
+
+_Withdraws ERC721 with specified tokenId_
 
 ## LoanLib
 
@@ -3467,7 +3914,7 @@ _Post ERC721 tokens as collateral_
 ### withdrawFungibleCollateral
 
 ```solidity
-function withdrawFungibleCollateral(contract CollateralVault collateralVault, address[] collateralToWithdraw) external
+function withdrawFungibleCollateral(contract IVault collateralVault, address[] collateralToWithdraw) external
 ```
 
 _Withdraw ERC20 collateral_
@@ -3475,7 +3922,7 @@ _Withdraw ERC20 collateral_
 ### withdrawNonFungibleCollateral
 
 ```solidity
-function withdrawNonFungibleCollateral(contract CollateralVault collateralVault, struct ILoanNonFungibleCollateral[] collateralToWithdraw) external
+function withdrawNonFungibleCollateral(contract IVault collateralVault, struct ILoanNonFungibleCollateral[] collateralToWithdraw) external
 ```
 
 _Withdraw ERC721 collateral_
@@ -3483,7 +3930,7 @@ _Withdraw ERC721 collateral_
 ### fundLoan
 
 ```solidity
-function fundLoan(address liquidityAsset, contract FundingVault fundingVault, uint256 amount) public returns (enum ILoanLifeCycleState)
+function fundLoan(address liquidityAsset, contract IVault fundingVault, uint256 amount) public returns (enum ILoanLifeCycleState)
 ```
 
 Fund a loan
@@ -3491,7 +3938,7 @@ Fund a loan
 ### drawdown
 
 ```solidity
-function drawdown(uint256 amount, contract FundingVault fundingVault, address receiver, uint256 paymentDueDate, struct ILoanSettings settings, enum ILoanLifeCycleState state) public returns (enum ILoanLifeCycleState, uint256)
+function drawdown(uint256 amount, address asset, contract IVault fundingVault, address receiver, uint256 paymentDueDate, struct ILoanSettings settings, enum ILoanLifeCycleState state) public returns (enum ILoanLifeCycleState, uint256)
 ```
 
 Drawdown a loan
@@ -3499,7 +3946,7 @@ Drawdown a loan
 ### paydownPrincipal
 
 ```solidity
-function paydownPrincipal(address asset, uint256 amount, contract FundingVault fundingVault) external
+function paydownPrincipal(address asset, uint256 amount, contract IVault fundingVault) external
 ```
 
 Paydown principal
@@ -3515,7 +3962,7 @@ Make a payment
 ### returnCanceledLoanPrincipal
 
 ```solidity
-function returnCanceledLoanPrincipal(contract FundingVault fundingVault, address pool, uint256 amount) public
+function returnCanceledLoanPrincipal(contract IVault fundingVault, address asset, address pool, uint256 amount) public
 ```
 
 Make a payment
@@ -3572,7 +4019,7 @@ uint256 RAY
 event FirstLossDeposited(address caller, address spender, uint256 amount)
 ```
 
-_Emitted when first loss is supplied to the pool._
+_See IPoolController_
 
 ### FirstLossWithdrawn
 
@@ -3580,15 +4027,7 @@ _Emitted when first loss is supplied to the pool._
 event FirstLossWithdrawn(address caller, address receiver, uint256 amount)
 ```
 
-_Emitted when first loss is withdrawn from the pool._
-
-### Deposit
-
-```solidity
-event Deposit(address caller, address owner, uint256 assets, uint256 shares)
-```
-
-_See IERC4626 for event definition._
+_See IPoolController_
 
 ### FirstLossApplied
 
@@ -3596,7 +4035,15 @@ _See IERC4626 for event definition._
 event FirstLossApplied(address loan, uint256 amount)
 ```
 
-_See IPool_
+_See IPoolController_
+
+### Deposit
+
+```solidity
+event Deposit(address caller, address owner, uint256 assets, uint256 shares)
+```
+
+_See IERC4626_
 
 ### LoanDefaulted
 
@@ -3604,7 +4051,7 @@ _See IPool_
 event LoanDefaulted(address loan)
 ```
 
-_See IPool for event definition_
+_See IPoolController_
 
 ### PoolSettingsUpdated
 
@@ -3612,7 +4059,7 @@ _See IPool for event definition_
 event PoolSettingsUpdated()
 ```
 
-_Emitted when pool settings are updated._
+_See IPoolController_
 
 ### isPoolLoan
 
@@ -3903,6 +4350,9 @@ window are eligible to be included in the withdrawal flows._
 function progressWithdrawState(struct IPoolWithdrawState state, uint256 currentPeriod) public pure returns (struct IPoolWithdrawState)
 ```
 
+_Updates a withdraw state based on the current period, moving
+requested shares to eligible if needed._
+
 ### calculateWithdrawStateForRequest
 
 ```solidity
@@ -3962,7 +4412,91 @@ from the current withdraw request._
 function updateWithdrawStateForWithdraw(struct IPoolWithdrawState state, uint256 assets, uint256 shares) public pure returns (struct IPoolWithdrawState)
 ```
 
-@dev
+_Updates a withdraw state according to assets withdrawn / shares redeemed._
+
+## MockILoan
+
+_Mock implementation of a Loan_
+
+### paymentsRemaining
+
+```solidity
+uint256 paymentsRemaining
+```
+
+### payment
+
+```solidity
+uint256 payment
+```
+
+### paymentDueDate
+
+```solidity
+uint256 paymentDueDate
+```
+
+### paymentPeriod
+
+```solidity
+uint256 paymentPeriod
+```
+
+### principal
+
+```solidity
+uint256 principal
+```
+
+### state
+
+```solidity
+enum ILoanLifeCycleState state
+```
+
+### setPrincipal
+
+```solidity
+function setPrincipal(uint256 principal_) external
+```
+
+### setPayment
+
+```solidity
+function setPayment(uint256 payment_) external
+```
+
+### setPaymentPeriod
+
+```solidity
+function setPaymentPeriod(uint256 paymentPeriod_) external
+```
+
+### setPaymentDueDate
+
+```solidity
+function setPaymentDueDate(uint256 paymentDueDate_) external
+```
+
+### setPaymentsRemaining
+
+```solidity
+function setPaymentsRemaining(uint256 paymentsRemaining_) external
+```
+
+### setState
+
+```solidity
+function setState(enum ILoanLifeCycleState state_) external
+```
+
+## MockVeriteAccessControl
+
+### initialize
+
+```solidity
+function initialize() public
+```
 
 ## PoolLibTestWrapper
 
@@ -4128,6 +4662,70 @@ function calculateMaxCancellation(struct IPoolWithdrawState state, uint256 reque
 
 _Simulated new Loan implementation_
 
+## MockBeaconImplementation
+
+### foo
+
+```solidity
+function foo() external pure virtual returns (string)
+```
+
+### initialize
+
+```solidity
+function initialize() public
+```
+
+## MockBeaconImplementationV2
+
+### foo
+
+```solidity
+function foo() external pure returns (string)
+```
+
+## MockBeaconProxyFactory
+
+### Created
+
+```solidity
+event Created(address proxy)
+```
+
+### constructor
+
+```solidity
+constructor(address serviceConfig) public
+```
+
+### create
+
+```solidity
+function create() external returns (address)
+```
+
+## DeployerUUPSUpgradeableMock
+
+### foo
+
+```solidity
+function foo() external pure virtual returns (string)
+```
+
+### initialize
+
+```solidity
+function initialize(address serviceConfiguration) public
+```
+
+## DeployerUUPSUpgradeableMockV2
+
+### foo
+
+```solidity
+function foo() external pure returns (string)
+```
+
 ## MockUpgrade
 
 ### foo
@@ -4138,6 +4736,8 @@ function foo() external pure returns (bool)
 
 ## PoolAccessControlMockV2
 
+## PoolAdminAccessControlMockV2
+
 ## PoolControllerMockV2
 
 _Simulated new ServiceConfiguration implementation_
@@ -4145,6 +4745,18 @@ _Simulated new ServiceConfiguration implementation_
 ## PoolMockV2
 
 _Simulated new Pool implementation_
+
+## ServiceConfigurationMockV2
+
+_Simulated new ServiceConfiguration implementation_
+
+## ToSAcceptanceRegistryMockV2
+
+_Simulated new ToSAcceptanceRegistry implementation_
+
+## VaultMockV2
+
+_Simulated new Vault implementation_
 
 ## WithdrawControllerMockV2
 
@@ -4171,24 +4783,8 @@ _a modifier to only allow valid borrowers to perform an action_
 ### initialize
 
 ```solidity
-function initialize(address serviceConfiguration, address factory_, address borrower_, address pool_, address liquidityAsset_, struct ILoanSettings settings_) public
+function initialize(address serviceConfiguration, address factory_, address borrower_, address pool_, address liquidityAsset_, address vaultFactory, struct ILoanSettings settings_) public
 ```
-
-## PermissionedLoanFactory
-
-### constructor
-
-```solidity
-constructor(address serviceConfiguration) public
-```
-
-### initializeLoan
-
-```solidity
-function initializeLoan(address borrower, address pool, address liquidityAsset, struct ILoanSettings settings) internal returns (address)
-```
-
-_Deploys BeaconProxy for PermissionedLoan_
 
 ## PermissionedPool
 
@@ -4211,7 +4807,7 @@ _a modifier to only allow valid lenders to perform an action_
 ### initialize
 
 ```solidity
-function initialize(address liquidityAsset, address poolAdmin, address serviceConfiguration, address withdrawControllerFactory, address poolControllerFactory, address poolAccessControlFactory, struct IPoolConfigurableSettings poolSettings, string tokenName, string tokenSymbol) public
+function initialize(address liquidityAsset, address poolAdmin, address serviceConfiguration, address withdrawControllerFactory, address poolControllerFactory, address vaultFactory, address poolAccessControlFactory, struct IPoolConfigurableSettings poolSettings, string tokenName, string tokenSymbol) public
 ```
 
 _The initialize function for the PermissionedPool contract. It calls the
@@ -4244,45 +4840,24 @@ function maxMint(address receiver) public view returns (uint256)
 _Since Pool does not enforce that msg.sender == receiver, we only
 check the receiver here._
 
-## PermissionedPoolFactory
+## PermissionedServiceConfiguration
 
-### _poolAccessControlFactory
-
-```solidity
-address _poolAccessControlFactory
-```
-
-_Reference to a PoolAccessControlFactory_
-
-### onlyVerifiedPoolAdmin
+### poolAdminAccessControl
 
 ```solidity
-modifier onlyVerifiedPoolAdmin()
+contract IPoolAdminAccessControl poolAdminAccessControl
 ```
 
-_Check that `msg.sender` is a PoolAdmin._
+_Access Control logic for the Pool Admin role_
 
-### constructor
+### setPoolAdminAccessControl
 
 ```solidity
-constructor(address serviceConfiguration, address withdrawControllerFactory, address poolControllerFactory, address poolAccessControlFactory) public
+function setPoolAdminAccessControl(contract IPoolAdminAccessControl _poolAdminAccessControl) public
 ```
 
-### createPool
-
-```solidity
-function createPool(address liquidityAsset, struct IPoolConfigurableSettings settings) public returns (address)
-```
-
-_Restricts callers to verified PoolAdmins_
-
-### initializePool
-
-```solidity
-function initializePool(address liquidityAsset, struct IPoolConfigurableSettings settings) internal returns (address)
-```
-
-_Injects access control into the PermissionedPool_
+_Set the PoolAdminAccessControl contract.
+Emits `AddressSet` event._
 
 ## PoolAccessControl
 
@@ -4473,21 +5048,130 @@ verification result on behalf of other subjects.
 
 Emits a {VerificationResultConfirmed} event._
 
-## PoolAccessControlFactory
+## PoolAdminAccessControl
 
-### constructor
+_Implementation of the {IPoolAdminAccessControl} interface.
+
+This implementation implements a basic Allow-List of addresses, which can
+be managed only by the contract owner._
+
+### _tosRegistry
 
 ```solidity
-constructor(address serviceConfiguration) public
+contract IToSAcceptanceRegistry _tosRegistry
 ```
 
-### create
+_Reference to the ToS Acceptance Registry_
+
+### onlyVeriteAdmin
 
 ```solidity
-function create(address pool) external virtual returns (address)
+modifier onlyVeriteAdmin()
 ```
 
-_Creates a new PoolAccessControl._
+_Modifier to restrict the Verite Access Control logic to pool admins_
+
+### onlyVeriteEligible
+
+```solidity
+modifier onlyVeriteEligible()
+```
+
+_Modifier to restrict verification to users who have accepted the ToS_
+
+### initialize
+
+```solidity
+function initialize(address serviceConfiguration) public
+```
+
+_Initializer for the contract, which sets the ServiceConfiguration._
+
+### isAllowed
+
+```solidity
+function isAllowed(address addr) external view returns (bool)
+```
+
+_Checks against an allowList to see if the given address is allowed._
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| addr | address | The address to verify |
+
+#### Return Values
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | bool | whether the address is allowed as a Pool Admin |
+
+## ToSAcceptanceRegistry
+
+### hasAccepted
+
+```solidity
+mapping(address => bool) hasAccepted
+```
+
+_Returns whether an address has accepted the TermsOfService._
+
+### _termsOfService
+
+```solidity
+string _termsOfService
+```
+
+_ToS URL._
+
+### _termsSet
+
+```solidity
+bool _termsSet
+```
+
+_Flag to track when the ToS are "initialized"_
+
+### onlyOperator
+
+```solidity
+modifier onlyOperator()
+```
+
+_Restricts caller to ServiceOperator_
+
+### initialize
+
+```solidity
+function initialize(address serviceConfiguration) public
+```
+
+_Initializer for the ToSAcceptanceRegistry_
+
+### acceptTermsOfService
+
+```solidity
+function acceptTermsOfService() external
+```
+
+_Records that msg.sender has accepted the TermsOfService._
+
+### updateTermsOfService
+
+```solidity
+function updateTermsOfService(string url) external
+```
+
+_Updates the TermsOfService._
+
+### termsOfService
+
+```solidity
+function termsOfService() external view returns (string)
+```
+
+_Returns the current TermsOfService URL_
 
 ## VeriteAccessControl
 
@@ -4614,6 +5298,88 @@ verification result on behalf of other subjects.
 
 Emits a {VerificationResultConfirmed} event._
 
+## PermissionedLoanFactory
+
+### constructor
+
+```solidity
+constructor(address serviceConfiguration, address vaultFactory) public
+```
+
+### initializeLoan
+
+```solidity
+function initializeLoan(address borrower, address pool, address liquidityAsset, struct ILoanSettings settings) internal returns (address)
+```
+
+_Deploys BeaconProxy for PermissionedLoan_
+
+## PermissionedPoolFactory
+
+### _poolAccessControlFactory
+
+```solidity
+address _poolAccessControlFactory
+```
+
+_Reference to a PoolAccessControlFactory_
+
+### onlyVerifiedPoolAdmin
+
+```solidity
+modifier onlyVerifiedPoolAdmin()
+```
+
+_Check that `msg.sender` is a PoolAdmin._
+
+### constructor
+
+```solidity
+constructor(address serviceConfiguration, address withdrawControllerFactory, address poolControllerFactory, address vaultFactory, address poolAccessControlFactory) public
+```
+
+### createPool
+
+```solidity
+function createPool(address liquidityAsset, struct IPoolConfigurableSettings settings) public returns (address)
+```
+
+_Restricts callers to verified PoolAdmins_
+
+### initializePool
+
+```solidity
+function initializePool(address liquidityAsset, struct IPoolConfigurableSettings settings) internal returns (address)
+```
+
+_Injects access control into the PermissionedPool_
+
+## PoolAccessControlFactory
+
+### constructor
+
+```solidity
+constructor(address serviceConfiguration) public
+```
+
+### create
+
+```solidity
+function create(address pool) external virtual returns (address)
+```
+
+_Creates a new PoolAccessControl._
+
+## IPoolAccessControlFactory
+
+### create
+
+```solidity
+function create(address pool) external returns (address)
+```
+
+_Creates a new PoolAccessControl._
+
 ## IPermissionedServiceConfiguration
 
 ### poolAdminAccessControl
@@ -4645,16 +5411,6 @@ _Check if an address is allowed as a participant in the pool_
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | [0] | bool | whether the address is allowed as a participant |
-
-## IPoolAccessControlFactory
-
-### create
-
-```solidity
-function create(address pool) external returns (address)
-```
-
-_Creates a new PoolAccessControl._
 
 ## IPoolAdminAccessControl
 
@@ -4845,7 +5601,7 @@ struct VerificationResult {
 
 ## BeaconImplementation
 
-_Base contract that_
+_Base contract that overrides the constructor to disable initialization._
 
 ### constructor
 
@@ -4855,7 +5611,8 @@ constructor() internal
 
 ## BeaconProxyFactory
 
-_Base contract for emitting new Beacon proxy contracts._
+_Base contract for emitting new Beacon proxy contracts. Allows setting new
+implementations by the global deployer._
 
 ### _serviceConfiguration
 
@@ -4889,107 +5646,9 @@ function setImplementation(address newImplementation) external
 
 _Updates the implementation._
 
-## IBeacon
-
-_Interface of Beacon contracts._
-
-### ImplementationSet
-
-```solidity
-event ImplementationSet(address implementation)
-```
-
-_Emitted when a new implementation is set._
-
-### implementation
-
-```solidity
-function implementation() external view returns (address)
-```
-
-_Returns an address used by BeaconProxy contracts for delegated calls._
-
-### setImplementation
-
-```solidity
-function setImplementation(address implementation) external
-```
-
-_Updates the implementation._
-
-## MockVeriteAccessControl
-
-### initialize
-
-```solidity
-function initialize() public
-```
-
-## PoolAdminAccessControlMockV2
-
-## PoolAdminAccessControl
-
-_Implementation of the {IPoolAdminAccessControl} interface.
-
-This implementation implements a basic Allow-List of addresses, which can
-be managed only by the contract owner._
-
-### _tosRegistry
-
-```solidity
-contract IToSAcceptanceRegistry _tosRegistry
-```
-
-_Reference to the ToS Acceptance Registry_
-
-### onlyVeriteAdmin
-
-```solidity
-modifier onlyVeriteAdmin()
-```
-
-_Modifier to restrict the Verite Access Control logic to pool admins_
-
-### onlyVeriteEligible
-
-```solidity
-modifier onlyVeriteEligible()
-```
-
-_Modifier to restrict verification to users who have accepted the ToS_
-
-### initialize
-
-```solidity
-function initialize(address serviceConfiguration) public
-```
-
-_Initializer for the contract, which sets the ServiceConfiguration._
-
-### isAllowed
-
-```solidity
-function isAllowed(address addr) external view returns (bool)
-```
-
-_Checks against an allowList to see if the given address is allowed._
-
-#### Parameters
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| addr | address | The address to verify |
-
-#### Return Values
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bool | whether the address is allowed as a Pool Admin |
-
 ## DeployerUUPSUpgradeable
 
-_Base upgradeable contract that ensures only the protocol Deployer can deploy
-upgrades._
+_Ensures only the protocol upgrader can perform the upgrade._
 
 ### _serviceConfiguration
 
@@ -5028,533 +5687,31 @@ Normally, this function will use an xref:access.adoc[access control] modifier su
 function _authorizeUpgrade(address) internal override onlyOwner {}
 ```_
 
-## ServiceConfiguration
+## IBeacon
 
-_Implementation of the {IServiceConfiguration} interface._
+_Holds a reference to the implementation, and allows setting new ones._
 
-### OPERATOR_ROLE
+### ImplementationSet
 
 ```solidity
-bytes32 OPERATOR_ROLE
+event ImplementationSet(address implementation)
 ```
 
-_The Operator Role_
+_Emitted when a new implementation is set._
 
-### PAUSER_ROLE
+### implementation
 
 ```solidity
-bytes32 PAUSER_ROLE
+function implementation() external view returns (address)
 ```
 
-_The Pauser Role_
+_Returns an address used by BeaconProxy contracts for delegated calls._
 
-### DEPLOYER_ROLE
+### setImplementation
 
 ```solidity
-bytes32 DEPLOYER_ROLE
+function setImplementation(address implementation) external
 ```
 
-_The Operator Role_
-
-### paused
-
-```solidity
-bool paused
-```
-
-_Whether the protocol is paused._
-
-### isLiquidityAsset
-
-```solidity
-mapping(address => bool) isLiquidityAsset
-```
-
-### firstLossMinimum
-
-```solidity
-mapping(address => uint256) firstLossMinimum
-```
-
-### firstLossFeeBps
-
-```solidity
-uint256 firstLossFeeBps
-```
-
-### tosAcceptanceRegistry
-
-```solidity
-address tosAcceptanceRegistry
-```
-
-### protocolFeeBps
-
-```solidity
-uint256 protocolFeeBps
-```
-
-### isLoanFactory
-
-```solidity
-mapping(address => bool) isLoanFactory
-```
-
-_Holds a reference to valid LoanFactories_
-
-### AddressSet
-
-```solidity
-event AddressSet(bytes32 which, address addr)
-```
-
-_Emitted when an address is changed._
-
-### LiquidityAssetSet
-
-```solidity
-event LiquidityAssetSet(address addr, bool value)
-```
-
-_Emitted when a liquidity asset is set._
-
-### FirstLossMinimumSet
-
-```solidity
-event FirstLossMinimumSet(address addr, uint256 value)
-```
-
-_Emitted when first loss minimum is set for an asset._
-
-### ParameterSet
-
-```solidity
-event ParameterSet(bytes32, uint256 value)
-```
-
-_Emitted when a parameter is set._
-
-### ProtocolPaused
-
-```solidity
-event ProtocolPaused(bool paused)
-```
-
-_Emitted when the protocol is paused._
-
-### LoanFactorySet
-
-```solidity
-event LoanFactorySet(address factory, bool isValid)
-```
-
-_Emitted when a loan factory is set_
-
-### TermsOfServiceRegistrySet
-
-```solidity
-event TermsOfServiceRegistrySet(address registry)
-```
-
-_Emitted when the TermsOfServiceRegistry is set_
-
-### onlyOperator
-
-```solidity
-modifier onlyOperator()
-```
-
-_Modifier that checks that the caller account has the Operator role._
-
-### onlyPauser
-
-```solidity
-modifier onlyPauser()
-```
-
-_Require the caller be the pauser_
-
-### initialize
-
-```solidity
-function initialize() public
-```
-
-_Constructor for the contract, which sets up the default roles and
-owners._
-
-### setLiquidityAsset
-
-```solidity
-function setLiquidityAsset(address addr, bool value) public
-```
-
-_Set a liquidity asset as valid or not._
-
-### setPaused
-
-```solidity
-function setPaused(bool paused_) public
-```
-
-_Pause/unpause the protocol._
-
-### isOperator
-
-```solidity
-function isOperator(address addr) external view returns (bool)
-```
-
-_Check that `msg.sender` is an Operator._
-
-### isDeployer
-
-```solidity
-function isDeployer(address addr) external view returns (bool)
-```
-
-_checks if a given address has the Deployer role_
-
-### setLoanFactory
-
-```solidity
-function setLoanFactory(address addr, bool isValid) external
-```
-
-_Sets whether a loan factory is valid_
-
-#### Parameters
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| addr | address | Address of loan factory |
-| isValid | bool | Whether the loan factory is valid |
-
-### setToSAcceptanceRegistry
-
-```solidity
-function setToSAcceptanceRegistry(address addr) external
-```
-
-_Sets the ToSAcceptanceRegistry for the protocol_
-
-#### Parameters
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| addr | address | Address of registry |
-
-### setFirstLossMinimum
-
-```solidity
-function setFirstLossMinimum(address addr, uint256 value) external
-```
-
-_Sets the first loss minimum for the given asset_
-
-#### Parameters
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| addr | address | address of the liquidity asset |
-| value | uint256 | the minimum tokens required to be deposited by pool admins |
-
-### setFirstLossFeeBps
-
-```solidity
-function setFirstLossFeeBps(uint256 value) external
-```
-
-_Sets the first loss fee for the protocol_
-
-#### Parameters
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| value | uint256 | amount of each payment that is allocated to the first loss vault. Value is in basis points, e.g. 500 equals 5%. |
-
-## IServiceConfigurable
-
-_Interface indicating that the contract is controlled by the protocol service configuration._
-
-### serviceConfiguration
-
-```solidity
-function serviceConfiguration() external view returns (address)
-```
-
-_Address of the protocol service configuration._
-
-## MockERC20
-
-### _decimals
-
-```solidity
-uint8 _decimals
-```
-
-### constructor
-
-```solidity
-constructor(string name, string symbol, uint8 decimals_) public
-```
-
-### decimals
-
-```solidity
-function decimals() public view returns (uint8)
-```
-
-_Returns the number of decimals used to get its user representation.
-For example, if `decimals` equals `2`, a balance of `505` tokens should
-be displayed to a user as `5.05` (`505 / 10 ** 2`).
-
-Tokens usually opt for a value of 18, imitating the relationship between
-Ether and Wei. This is the value {ERC20} uses, unless this function is
-overridden;
-
-NOTE: This information is only used for _display_ purposes: it in
-no way affects any of the arithmetic of the contract, including
-{IERC20-balanceOf} and {IERC20-transfer}._
-
-## MockERC721
-
-### constructor
-
-```solidity
-constructor(string name, string symbol, string baseTokenURI) public
-```
-
-## MockILoan
-
-_Mock implementation of a Loan_
-
-### paymentsRemaining
-
-```solidity
-uint256 paymentsRemaining
-```
-
-### payment
-
-```solidity
-uint256 payment
-```
-
-### paymentDueDate
-
-```solidity
-uint256 paymentDueDate
-```
-
-### paymentPeriod
-
-```solidity
-uint256 paymentPeriod
-```
-
-### principal
-
-```solidity
-uint256 principal
-```
-
-### state
-
-```solidity
-enum ILoanLifeCycleState state
-```
-
-### setPrincipal
-
-```solidity
-function setPrincipal(uint256 principal_) external
-```
-
-### setPayment
-
-```solidity
-function setPayment(uint256 payment_) external
-```
-
-### setPaymentPeriod
-
-```solidity
-function setPaymentPeriod(uint256 paymentPeriod_) external
-```
-
-### setPaymentDueDate
-
-```solidity
-function setPaymentDueDate(uint256 paymentDueDate_) external
-```
-
-### setPaymentsRemaining
-
-```solidity
-function setPaymentsRemaining(uint256 paymentsRemaining_) external
-```
-
-### setState
-
-```solidity
-function setState(enum ILoanLifeCycleState state_) external
-```
-
-## MockBeaconImplementation
-
-### foo
-
-```solidity
-function foo() external pure virtual returns (string)
-```
-
-### initialize
-
-```solidity
-function initialize() public
-```
-
-## MockBeaconImplementationV2
-
-### foo
-
-```solidity
-function foo() external pure returns (string)
-```
-
-## MockBeaconProxyFactory
-
-### Created
-
-```solidity
-event Created(address proxy)
-```
-
-### constructor
-
-```solidity
-constructor(address serviceConfig) public
-```
-
-### create
-
-```solidity
-function create() external returns (address)
-```
-
-## DeployerUUPSUpgradeableMock
-
-### foo
-
-```solidity
-function foo() external pure virtual returns (string)
-```
-
-### initialize
-
-```solidity
-function initialize(address serviceConfiguration) public
-```
-
-## DeployerUUPSUpgradeableMockV2
-
-### foo
-
-```solidity
-function foo() external pure returns (string)
-```
-
-## ServiceConfigurationMockV2
-
-_Simulated new ServiceConfiguration implementation_
-
-## ToSAcceptanceRegistryMockV2
-
-_Simulated new ToSAcceptanceRegistry implementation_
-
-## PermissionedServiceConfiguration
-
-### poolAdminAccessControl
-
-```solidity
-contract IPoolAdminAccessControl poolAdminAccessControl
-```
-
-_Access Control logic for the Pool Admin role_
-
-### setPoolAdminAccessControl
-
-```solidity
-function setPoolAdminAccessControl(contract IPoolAdminAccessControl _poolAdminAccessControl) public
-```
-
-_Set the PoolAdminAccessControl contract.
-Emits `AddressSet` event._
-
-## ToSAcceptanceRegistry
-
-### hasAccepted
-
-```solidity
-mapping(address => bool) hasAccepted
-```
-
-_Returns whether an address has accepted the TermsOfService._
-
-### _termsOfService
-
-```solidity
-string _termsOfService
-```
-
-_ToS URL._
-
-### _termsSet
-
-```solidity
-bool _termsSet
-```
-
-_Flag to track when the ToS are "initialized"_
-
-### onlyOperator
-
-```solidity
-modifier onlyOperator()
-```
-
-_Restricts caller to ServiceOperator_
-
-### initialize
-
-```solidity
-function initialize(address serviceConfiguration) public
-```
-
-_Initializer for the ToSAcceptanceRegistry_
-
-### acceptTermsOfService
-
-```solidity
-function acceptTermsOfService() external
-```
-
-_Records that msg.sender has accepted the TermsOfService._
-
-### updateTermsOfService
-
-```solidity
-function updateTermsOfService(string url) external
-```
-
-_Updates the TermsOfService._
-
-### termsOfService
-
-```solidity
-function termsOfService() external view returns (string)
-```
-
-_Returns the current TermsOfService URL_
+_Updates the implementation._
 
