@@ -144,13 +144,7 @@ abstract contract VeriteAccessControl is
                     keccak256(
                         "VerificationResult(string[] schema,address subject,uint256 expiration,string verifier_verification_id)"
                     ),
-                    keccak256(
-                        abi.encodePacked(
-                            keccak256(
-                                abi.encodePacked(verificationResult.schema[0])
-                            )
-                        )
-                    ),
+                    keccak256(bytes(concat(verificationResult.schema))),
                     verificationResult.subject,
                     verificationResult.expiration,
                     keccak256(
@@ -171,5 +165,30 @@ abstract contract VeriteAccessControl is
         ] = verificationResult.expiration;
 
         emit VerificationResultConfirmed(verificationResult.subject);
+    }
+
+    /**
+     * @dev EIP-712 states the encodedData for array values are encoded as the keccak256 hash of
+     * the concatenated encodeData of their contents (i.e. the encoding of SomeType[5] is identical
+     * to that of a struct containing five members of type SomeType). This function supports an
+     * arbitrary length array of strings and encodes them accordingly.
+     *
+     * The encoding specified in the EIP is very generic, and such a generic implementation in
+     * Solidity is not feasible, thus EIP712Upgradeable.sol contract does not implement the
+     * encoding itself. Protocols need to implement the type-specific encoding they need in their
+     * contracts using a combination of `abi.encode` and `keccak256`.
+     */
+    function concat(string[] memory words)
+        internal
+        pure
+        returns (string memory)
+    {
+        bytes memory output;
+
+        for (uint256 i = 0; i < words.length; i++) {
+            output = abi.encodePacked(output, keccak256(bytes(words[i])));
+        }
+
+        return string(output);
     }
 }
