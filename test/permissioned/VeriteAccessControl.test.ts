@@ -73,7 +73,6 @@ describe("VeriteAccessControl", () => {
       await veriteAccessControl
         .connect(admin)
         .addCredentialSchema(verificationResult.schema);
-
       await expect(
         veriteAccessControl
           .connect(subject)

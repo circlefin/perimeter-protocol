@@ -22,12 +22,12 @@ interface IVeriteAccessControl {
     /**
      * @dev Emitted when a new credential schema is added
      */
-    event CredentialSchemaAdded(string schema);
+    event CredentialSchemaAdded(string[] schema);
 
     /**
      * @dev Emitted when a credential schema is removed
      */
-    event CredentialSchemaRemoved(string schema);
+    event CredentialSchemaRemoved(string[] schema);
 
     /**
      * @dev Emitted when an address validate via Verite
@@ -57,14 +57,14 @@ interface IVeriteAccessControl {
      *
      * Emits a {CredentialSchemaAdded} event.
      */
-    function addCredentialSchema(string calldata) external;
+    function addCredentialSchema(string[] calldata) external;
 
     /**
      * @dev Remove a supported credential schema
      *
      * Emits a {CredentialSchemaRemoved} event.
      */
-    function removeCredentialSchema(string calldata) external;
+    function removeCredentialSchema(string[] calldata) external;
 
     /*//////////////////////////////////////////////////////////////
                 Verification
@@ -94,7 +94,7 @@ interface IVeriteAccessControl {
  * @dev Verite credentials will submit a verification result in this format.
  */
 struct VerificationResult {
-    string schema; // indicator of the type of verification result
+    string[] schema; // indicator of the type of verification result
     address subject; // address of the subject of the verification
     uint256 expiration; // expiration of verification (may or may not be expiration of the VC)
     string verifier_verification_id; // Unique ID from the verifier

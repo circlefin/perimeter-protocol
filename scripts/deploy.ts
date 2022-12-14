@@ -281,6 +281,23 @@ async function main() {
     .connect(operator)
     .setFirstLossMinimum(usdcAddress, 10_000_000000);
   console.log(`ServiceConfiguration: set USDC first loss minimum to $10,000`);
+
+  // Configure Verite
+  const credentialSchema = [
+    "https://verite.id/definitions/processes/kycaml/0.0.1/generic--usa-legal_person"
+  ];
+  const trustedVerifier = "0x76b5A39e3b33317073B0C2a6d1a2Fdaa8300C648"; // Sandbox
+
+  tx = await poolAdminAccessControl
+    .connect(operator)
+    .addCredentialSchema(credentialSchema);
+  console.log(`Added Verite credential schema: ${credentialSchema}`);
+  tx = await poolAdminAccessControl
+    .connect(operator)
+    .addTrustedVerifier(trustedVerifier);
+  console.log(`Added Verite trusted verifier: ${trustedVerifier}`);
+  process.exitCode = 0;
+  process.exit(0);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
