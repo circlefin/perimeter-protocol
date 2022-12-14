@@ -11,9 +11,7 @@ import "./libraries/LoanLib.sol";
 import "./upgrades/BeaconImplementation.sol";
 
 /**
- * @title Loan
- *
- * Empty Loan contract.
+ * @title Perimeter Loan contract.
  */
 contract Loan is ILoan, BeaconImplementation {
     using SafeMath for uint256;
@@ -34,7 +32,7 @@ contract Loan is ILoan, BeaconImplementation {
     uint256 public paymentsRemaining;
     uint256 public paymentDueDate;
     uint256 public callbackTimestamp;
-    ILoanSettings settings;
+    ILoanSettings public settings;
 
     event FundsReclaimed(uint256 amount, address pool);
 
@@ -255,7 +253,7 @@ contract Loan is ILoan, BeaconImplementation {
     }
 
     /**
-     * @dev Post ERC20 tokens as collateral
+     * @inheritdoc ILoan
      */
     function postFungibleCollateral(address asset, uint256 amount)
         external
@@ -277,12 +275,8 @@ contract Loan is ILoan, BeaconImplementation {
         return _state;
     }
 
-    function fungibleCollateral() external view returns (address[] memory) {
-        return _fungibleCollateral;
-    }
-
     /**
-     * @dev Post ERC721 tokens as collateral
+     * @inheritdoc ILoan
      */
     function postNonFungibleCollateral(address asset, uint256 tokenId)
         external
@@ -303,17 +297,8 @@ contract Loan is ILoan, BeaconImplementation {
         return _state;
     }
 
-    function nonFungibleCollateral()
-        external
-        view
-        returns (ILoanNonFungibleCollateral[] memory)
-    {
-        return _nonFungibleCollateral;
-    }
-
     /**
-     * @dev Fund the Loan
-     * @dev Can only be called by the pool
+     * @inheritdoc ILoan
      */
     function fund() external onlyPool returns (ILoanLifeCycleState) {
         require(
@@ -330,7 +315,7 @@ contract Loan is ILoan, BeaconImplementation {
     }
 
     /**
-     * @dev Pool administrators can reclaim funds in open term loans.
+     * @inheritdoc ILoan
      */
     function reclaimFunds(uint256 amount) external onlyNotPaused onlyPoolAdmin {
         require(settings.loanType == ILoanType.Open);
@@ -342,7 +327,7 @@ contract Loan is ILoan, BeaconImplementation {
     }
 
     /**
-     * @dev Drawdown the Loan
+     * @inheritdoc ILoan
      */
     function drawdown(uint256 amount)
         external
@@ -367,8 +352,7 @@ contract Loan is ILoan, BeaconImplementation {
     }
 
     /**
-     * @dev Prepay principal.
-     * @dev Only callable by open term loans
+     * @inheritdoc ILoan
      */
     function paydownPrincipal(uint256 amount)
         external
@@ -383,7 +367,7 @@ contract Loan is ILoan, BeaconImplementation {
     }
 
     /**
-     * @dev Complete the next payment according to loan schedule inclusive of all fees.
+     * @inheritdoc ILoan
      */
     function completeNextPayment()
         external
@@ -423,8 +407,7 @@ contract Loan is ILoan, BeaconImplementation {
     }
 
     /**
-     * @dev Preview fees for a given interest payment amount.
-     * @param amount allows previewing the fee for a full or prorated payment.
+     * @inheritdoc ILoan
      */
     function previewFees(uint256 amount)
         public
@@ -444,7 +427,7 @@ contract Loan is ILoan, BeaconImplementation {
     }
 
     /**
-     * @dev Complete the final payment of the loan.
+     * @inheritdoc ILoan
      */
     function completeFullPayment()
         external
@@ -529,46 +512,97 @@ contract Loan is ILoan, BeaconImplementation {
         callbackTimestamp = block.timestamp;
     }
 
+    /**
+     * @inheritdoc ILoan
+     */
+    function fungibleCollateral() external view returns (address[] memory) {
+        return _fungibleCollateral;
+    }
+
+    /**
+     * @inheritdoc ILoan
+     */
+    function nonFungibleCollateral()
+        external
+        view
+        returns (ILoanNonFungibleCollateral[] memory)
+    {
+        return _nonFungibleCollateral;
+    }
+
+    /**
+     * @inheritdoc ILoan
+     */
     function state() external view returns (ILoanLifeCycleState) {
         return _state;
     }
 
+    /**
+     * @inheritdoc ILoan
+     */
     function borrower() external view returns (address) {
         return _borrower;
     }
 
+    /**
+     * @inheritdoc ILoan
+     */
     function pool() external view returns (address) {
         return _pool;
     }
 
+    /**
+     * @inheritdoc ILoan
+     */
     function factory() external view returns (address) {
         return _factory;
     }
 
+    /**
+     * @inheritdoc ILoan
+     */
     function dropDeadTimestamp() external view returns (uint256) {
         return settings.dropDeadTimestamp;
     }
 
+    /**
+     * @inheritdoc ILoan
+     */
     function duration() external view returns (uint256) {
         return settings.duration;
     }
 
+    /**
+     * @inheritdoc ILoan
+     */
     function paymentPeriod() external view returns (uint256) {
         return settings.paymentPeriod;
     }
 
+    /**
+     * @inheritdoc ILoan
+     */
     function apr() external view returns (uint256) {
         return settings.apr;
     }
 
+    /**
+     * @inheritdoc ILoan
+     */
     function principal() external view returns (uint256) {
         return settings.principal;
     }
 
+    /**
+     * @inheritdoc ILoan
+     */
     function loanType() external view returns (ILoanType) {
         return settings.loanType;
     }
 
+    /**
+     * @inheritdoc ILoan
+     */
     function serviceConfiguration()
         external
         view

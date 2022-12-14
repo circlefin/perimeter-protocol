@@ -10,11 +10,18 @@ import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol"
 
 /**
  * @title PoolAccessControlFactory
+ * @dev Allows permissioning of pool participants through trusted verifications of
+ * Verite credentials or an allow list curated by the Pool Admin.
  */
 contract PoolAccessControlFactory is
     IPoolAccessControlFactory,
     BeaconProxyFactory
 {
+    /**
+     * @dev Constructor
+     * @param serviceConfiguration Reference to the permissioned version
+     * of the service configuration.
+     */
     constructor(address serviceConfiguration) {
         _serviceConfiguration = IPermissionedServiceConfiguration(
             serviceConfiguration

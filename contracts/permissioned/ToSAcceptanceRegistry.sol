@@ -5,6 +5,11 @@ import "./interfaces/IToSAcceptanceRegistry.sol";
 import "../interfaces/IServiceConfiguration.sol";
 import "../upgrades/DeployerUUPSUpgradeable.sol";
 
+/**
+ * @title Terms of Service Acceptance Registry.
+ * @dev Terms of Service acceptance is required in the permissioned version of Perimeter
+ * before lenders, borrowers, or PoolAdmin's can meaningfully interact with the protocol.
+ */
 contract ToSAcceptanceRegistry is
     IToSAcceptanceRegistry,
     DeployerUUPSUpgradeable

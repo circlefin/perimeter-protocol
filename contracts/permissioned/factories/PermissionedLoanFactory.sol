@@ -6,7 +6,8 @@ import "../../factories/LoanFactory.sol";
 import "../PermissionedLoan.sol";
 
 /**
- * @title PermissionedLoanFactory
+ * @title Permissioned version of the LoanFactory
+ * @dev Emits PermissionLoans. Also acts as a beacon for said proxies.
  */
 contract PermissionedLoanFactory is LoanFactory {
     constructor(address serviceConfiguration, address vaultFactory)

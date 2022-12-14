@@ -7,7 +7,8 @@ import "./PoolAccessControl.sol";
 import "./PermissionedPool.sol";
 
 /**
- * @title PermissionedLoan
+ * @title Permission version of Loan.
+ * @dev Enforces access control prior to select borrower actions.
  */
 contract PermissionedLoan is Loan {
     /**

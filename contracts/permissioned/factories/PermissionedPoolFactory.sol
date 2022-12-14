@@ -7,7 +7,8 @@ import "../PermissionedPool.sol";
 import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 
 /**
- * @title PermissionedPoolFactory
+ * @title Permissioned Version of the PoolFactory
+ * @dev Emits PermissionedPools as Beacon Proxies. Also acts as a beacon for said proxies.
  */
 contract PermissionedPoolFactory is PoolFactory {
     /**
