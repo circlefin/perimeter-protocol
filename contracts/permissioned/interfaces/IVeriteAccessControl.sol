@@ -57,14 +57,14 @@ interface IVeriteAccessControl {
      *
      * Emits a {CredentialSchemaAdded} event.
      */
-    function addCredentialSchema(string calldata) external;
+    function addCredentialSchema(string[] calldata) external;
 
     /**
      * @dev Remove a supported credential schema
      *
      * Emits a {CredentialSchemaRemoved} event.
      */
-    function removeCredentialSchema(string calldata) external;
+    function removeCredentialSchema(string[] calldata) external;
 
     /*//////////////////////////////////////////////////////////////
                 Verification

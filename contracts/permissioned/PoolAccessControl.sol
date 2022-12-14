@@ -145,7 +145,7 @@ contract PoolAccessControl is
         super.removeTrustedVerifier(addr);
     }
 
-    function addCredentialSchema(string calldata schema)
+    function addCredentialSchema(string[] calldata schema)
         public
         override
         onlyNotPaused
@@ -153,7 +153,7 @@ contract PoolAccessControl is
         super.addCredentialSchema(schema);
     }
 
-    function removeCredentialSchema(string calldata schema)
+    function removeCredentialSchema(string[] calldata schema)
         public
         override
         onlyNotPaused

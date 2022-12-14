@@ -20,7 +20,7 @@ export function verificationDomain(contractAddress: string) {
   return {
     name: "VerificationRegistry",
     version: "1.0",
-    chainId: 31337,
+    chainId: 5,
     verifyingContract: contractAddress
   };
 }
@@ -40,7 +40,7 @@ export function verificationTypes() {
 }
 
 type VerificationResult = {
-  schema: string;
+  schema: string[];
   subject: string;
   expiration: number;
   verifier_verification_id: string;

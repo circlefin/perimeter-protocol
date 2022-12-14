@@ -81,27 +81,27 @@ abstract contract VeriteAccessControl is
     /**
      * @inheritdoc IVeriteAccessControl
      */
-    function addCredentialSchema(string calldata schema)
+    function addCredentialSchema(string[] calldata schema)
         public
         virtual
         onlyVeriteAdmin
     {
-        _supportedCredentialSchemas[schema] = true;
+        _supportedCredentialSchemas[concat(schema)] = true;
 
-        emit CredentialSchemaAdded(schema);
+        emit CredentialSchemaAdded(concat(schema));
     }
 
     /**
      * @inheritdoc IVeriteAccessControl
      */
-    function removeCredentialSchema(string calldata schema)
+    function removeCredentialSchema(string[] calldata schema)
         public
         virtual
         onlyVeriteAdmin
     {
-        delete _supportedCredentialSchemas[schema];
+        delete _supportedCredentialSchemas[concat(schema)];
 
-        emit CredentialSchemaRemoved(schema);
+        emit CredentialSchemaRemoved(concat(schema));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -126,11 +126,9 @@ abstract contract VeriteAccessControl is
         VerificationResult memory verificationResult,
         bytes memory signature
     ) public virtual onlyVeriteEligible {
+        string memory schema = concat(verificationResult.schema);
         // Ensure the result has a supported schema
-        require(
-            _supportedCredentialSchemas[verificationResult.schema[0]],
-            "INVALID_SCHEMA"
-        );
+        require(_supportedCredentialSchemas[schema], "INVALID_SCHEMA");
 
         // ensure that the result has not expired
         require(
@@ -144,7 +142,7 @@ abstract contract VeriteAccessControl is
                     keccak256(
                         "VerificationResult(string[] schema,address subject,uint256 expiration,string verifier_verification_id)"
                     ),
-                    keccak256(bytes(concat(verificationResult.schema))),
+                    keccak256(bytes(schema)),
                     verificationResult.subject,
                     verificationResult.expiration,
                     keccak256(

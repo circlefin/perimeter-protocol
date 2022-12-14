@@ -45,7 +45,7 @@ describe("VeriteAccessControl", () => {
       // Register the schema
       await veriteAccessControl
         .connect(admin)
-        .addCredentialSchema(verificationResult.schema[0]);
+        .addCredentialSchema(verificationResult.schema);
 
       // Verify the verification result
       await expect(
@@ -72,7 +72,7 @@ describe("VeriteAccessControl", () => {
       // Register the schema
       await veriteAccessControl
         .connect(admin)
-        .addCredentialSchema(verificationResult.schema[0]);
+        .addCredentialSchema(verificationResult.schema);
       await expect(
         veriteAccessControl
           .connect(subject)
@@ -126,7 +126,7 @@ describe("VeriteAccessControl", () => {
       // Register the schema
       await veriteAccessControl
         .connect(admin)
-        .addCredentialSchema(verificationResult.schema[0]);
+        .addCredentialSchema(verificationResult.schema);
 
       // Verify the verification result
       await expect(
@@ -202,7 +202,7 @@ describe("VeriteAccessControl", () => {
       // Register the schema
       await veriteAccessControl
         .connect(admin)
-        .addCredentialSchema(verificationResult.schema[0]);
+        .addCredentialSchema(verificationResult.schema);
 
       // Verify the verification result
       await expect(
