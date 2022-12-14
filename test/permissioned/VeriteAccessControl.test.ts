@@ -145,22 +145,23 @@ describe("VeriteAccessControl", () => {
       const expiration = 1671038498;
 
       const domain = {
-        name: "VerificationRegistry",
-        version: "1.0",
+        // name: "VerificationRegistry",
+        // version: "1.0",
         chainId: 5,
         verifyingContract: "0x3b380e8d02A068ae779b73c7E24c2d18a176BbAD"
       };
       const types = {
         VerificationResult: [
-          { name: "schema", type: "string" },
+          { name: "schema", type: "string[]" },
           { name: "subject", type: "address" },
           { name: "expiration", type: "uint256" },
           { name: "verifier_verification_id", type: "string" }
         ]
       };
       const verificationResult = {
-        schema:
-          "https://verite.id/definitions/processes/kycaml/0.0.1/generic--usa-legal_person",
+        schema: [
+          "https://verite.id/definitions/processes/kycaml/0.0.1/generic--usa-legal_person"
+        ],
         subject: "0x9f5caad8169dea4c4a7cd9be64a1f473d56409a0",
         expiration: expiration,
         verifier_verification_id: "7e1d8658-c18d-4eb8-bb02-828d9989752f"
@@ -174,7 +175,7 @@ describe("VeriteAccessControl", () => {
       );
 
       expect(recoveredAddress).to.equal(
-        "0xeb45ca911a2b481dEAdE649486ec77E9907F7e12"
+        "0x76b5A39e3b33317073B0C2a6d1a2Fdaa8300C648"
       );
     });
   });
