@@ -295,8 +295,26 @@ describe("PoolController", () => {
       ).to.be.revertedWith("Pool: caller is not admin");
     });
 
-    it("does not allow setting the request fee if the pool is paused", async () => {
-      // TODO: Pause pool
+    it("does not allow setting the withdraw gate if the pool is paused", async () => {
+      const {
+        pool,
+        poolController,
+        poolAdmin,
+        liquidityAsset,
+        serviceConfiguration,
+        pauser
+      } = await loadFixture(loadPoolFixture);
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      const originalSettings = await poolController.settings();
+      expect(originalSettings.withdrawGateBps).to.equal(10_000);
+
+      // Pause the protocol
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      await expect(
+        poolController.connect(poolAdmin).setWithdrawGate(10)
+      ).to.be.revertedWith("Pool: Protocol paused");
     });
 
     it("prevents setting a value too large ", async () => {
@@ -318,14 +336,26 @@ describe("PoolController", () => {
     });
 
     it("returns 100% if the pool is closed", async () => {
-      const { poolController, poolAdmin } = await loadFixture(loadPoolFixture);
+      const { pool, poolController, poolAdmin, liquidityAsset } =
+        await loadFixture(loadPoolFixture);
+      await activatePool(pool, poolAdmin, liquidityAsset);
 
       await poolController.connect(poolAdmin).setWithdrawGate(0);
 
       expect(await poolController.withdrawGate()).to.equal(0);
 
-      // TODO: Close Pool
-      // expect(await pool.withdrawGate()).to.equal(10_000);
+      const now = await time.latest();
+      // set pool end date
+      await poolController.connect(poolAdmin).setPoolEndDate(now + 10);
+
+      expect(await poolController.withdrawGate()).to.equal(0);
+      expect(await poolController.state()).to.equal(1); // active
+
+      // Move in the future
+      await time.increaseTo(now + 20);
+
+      expect(await poolController.state()).to.equal(3); // closed
+      expect(await poolController.withdrawGate()).to.equal(10_000); // 100%
     });
   });
 
@@ -433,7 +463,7 @@ describe("PoolController", () => {
     it("reverts if trying to set end date to be in the past", async () => {
       const { poolController, poolAdmin } = await loadFixture(loadPoolFixture);
 
-      const now = time.latest();
+      const now = await time.latest();
 
       await expect(
         poolController.connect(poolAdmin).setPoolEndDate(now)

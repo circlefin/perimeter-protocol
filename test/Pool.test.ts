@@ -648,7 +648,6 @@ describe("Pool", () => {
         await poolController.connect(poolAdmin).setRequestFee(1000); // 10%
         await activatePool(pool, poolAdmin, liquidityAsset);
 
-        // TODO: Show a non 1:1 share value
         expect(await pool.previewRedeemRequest(27)).to.equal(24);
       });
     });
@@ -707,7 +706,6 @@ describe("Pool", () => {
 
         expect(await pool.balanceOf(otherAccount.address)).to.equal(100);
 
-        // TODO: Show a non 1:1 share value
         await pool.connect(otherAccount).requestRedeem(50);
 
         expect(await pool.balanceOf(otherAccount.address)).to.equal(97);
@@ -793,7 +791,6 @@ describe("Pool", () => {
         await poolController.connect(poolAdmin).setRequestFee(1000); // 10%
         await activatePool(pool, poolAdmin, liquidityAsset);
 
-        // TODO: Show a non 1:1 share value
         expect(await pool.previewWithdrawRequest(27)).to.equal(30);
       });
     });
@@ -850,7 +847,6 @@ describe("Pool", () => {
 
         expect(await pool.balanceOf(otherAccount.address)).to.equal(100);
 
-        // TODO: Show a non 1:1 share value
         await pool.connect(otherAccount).requestWithdraw(50);
 
         expect(await pool.balanceOf(otherAccount.address)).to.equal(97);

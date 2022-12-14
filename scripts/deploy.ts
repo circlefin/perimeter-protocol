@@ -71,7 +71,7 @@ async function main() {
   );
 
   // Set ToSAcceptanceRegsitry URL
-  const TOS_ACCEPTANCE_REGISTRY_URL = "http://example.com"; // TODO update with real URL
+  const TOS_ACCEPTANCE_REGISTRY_URL = "http://example.com";
   const setTosUrlTx = await toSAcceptanceRegistry
     .connect(operator)
     .updateTermsOfService(TOS_ACCEPTANCE_REGISTRY_URL);
