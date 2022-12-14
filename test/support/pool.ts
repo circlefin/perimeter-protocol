@@ -177,7 +177,8 @@ export async function deployPermissionedPool({
 
   const poolControllerFactory = await deployPoolControllerFactory(
     poolLib.address,
-    serviceConfiguration.address
+    serviceConfiguration.address,
+    "PermissionedPoolController"
   );
 
   const vaultFactory = await deployVaultFactory(serviceConfiguration.address);
@@ -236,7 +237,7 @@ export async function deployPermissionedPool({
   );
 
   const poolController = await ethers.getContractAt(
-    "PoolController",
+    "PermissionedPoolController",
     await pool.poolController()
   );
 
@@ -247,6 +248,9 @@ export async function deployPermissionedPool({
 
   return {
     pool,
+    poolControllerFactory,
+    withdrawControllerFactory,
+    poolLib,
     liquidityAsset,
     serviceConfiguration,
     withdrawController,
@@ -359,14 +363,15 @@ export async function deployWithdrawControllerFactory(
 
 export async function deployPoolControllerFactory(
   poolLibAddress: string,
-  serviceConfigAddress: string
+  serviceConfigAddress: string,
+  contract = "PoolController"
 ) {
   const { deployer } = await getCommonSigners();
   const Factory = await ethers.getContractFactory("PoolControllerFactory");
   const factory = await Factory.deploy(serviceConfigAddress);
 
   // Attach PoolController implementation
-  const Impl = await ethers.getContractFactory("PoolController", {
+  const Impl = await ethers.getContractFactory(contract, {
     libraries: {
       PoolLib: poolLibAddress
     }

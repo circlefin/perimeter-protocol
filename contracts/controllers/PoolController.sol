@@ -67,6 +67,14 @@ contract PoolController is IPoolController, BeaconImplementation {
     }
 
     /**
+     * @dev Modifier that can be overriden by derived classes to enforce
+     * access control.
+     */
+    modifier onlyPermittedAdmin() virtual {
+        _;
+    }
+
+    /**
      * @dev Modifier that checks that the caller is the pool's admin.
      */
     modifier onlyAdmin() {
@@ -180,6 +188,7 @@ contract PoolController is IPoolController, BeaconImplementation {
     function setRequestFee(uint256 feeBps)
         external
         onlyNotPaused
+        onlyPermittedAdmin
         onlyAdmin
         atState(IPoolLifeCycleState.Initialized)
     {
@@ -207,6 +216,7 @@ contract PoolController is IPoolController, BeaconImplementation {
     function setRequestCancellationFee(uint256 feeBps)
         external
         onlyNotPaused
+        onlyPermittedAdmin
         onlyAdmin
         atState(IPoolLifeCycleState.Initialized)
     {
@@ -234,6 +244,7 @@ contract PoolController is IPoolController, BeaconImplementation {
     function setWithdrawGate(uint256 _withdrawGateBps)
         external
         onlyNotPaused
+        onlyPermittedAdmin
         onlyAdmin
         atInitializedOrActiveState
     {
@@ -271,6 +282,7 @@ contract PoolController is IPoolController, BeaconImplementation {
     function setPoolCapacity(uint256 newCapacity)
         external
         onlyNotPaused
+        onlyPermittedAdmin
         onlyAdmin
     {
         require(newCapacity >= pool.totalAssets(), "Pool: invalid capacity");
@@ -281,7 +293,12 @@ contract PoolController is IPoolController, BeaconImplementation {
     /**
      * @inheritdoc IPoolController
      */
-    function setPoolEndDate(uint256 endDate) external onlyNotPaused onlyAdmin {
+    function setPoolEndDate(uint256 endDate)
+        external
+        onlyNotPaused
+        onlyPermittedAdmin
+        onlyAdmin
+    {
         require(_settings.endDate > endDate, "Pool: can't move end date up");
         require(
             endDate > block.timestamp,
@@ -311,6 +328,7 @@ contract PoolController is IPoolController, BeaconImplementation {
     function setServiceFeeBps(uint256 serviceFeeBps)
         external
         onlyNotPaused
+        onlyPermittedAdmin
         onlyAdmin
     {
         require(serviceFeeBps <= 10000, "Pool: invalid service fee");
@@ -324,6 +342,7 @@ contract PoolController is IPoolController, BeaconImplementation {
     function setFixedFee(uint256 amount, uint256 interval)
         external
         onlyNotPaused
+        onlyPermittedAdmin
         onlyAdmin
     {
         if (amount > 0) {
@@ -399,6 +418,7 @@ contract PoolController is IPoolController, BeaconImplementation {
     function depositFirstLoss(uint256 amount, address spender)
         external
         onlyNotPaused
+        onlyPermittedAdmin
         onlyAdmin
         atInitializedOrActiveState
     {
@@ -429,6 +449,7 @@ contract PoolController is IPoolController, BeaconImplementation {
     function withdrawFirstLoss(uint256 amount, address receiver)
         external
         onlyNotPaused
+        onlyPermittedAdmin
         onlyAdmin
         atState(IPoolLifeCycleState.Closed)
         returns (uint256)
@@ -461,6 +482,7 @@ contract PoolController is IPoolController, BeaconImplementation {
     function fundLoan(address addr)
         external
         onlyNotPaused
+        onlyPermittedAdmin
         onlyAdmin
         atState(IPoolLifeCycleState.Active)
         isPoolLoan(addr)
@@ -474,6 +496,7 @@ contract PoolController is IPoolController, BeaconImplementation {
     function defaultLoan(address loan)
         external
         onlyNotPaused
+        onlyPermittedAdmin
         onlyAdmin
         atActiveOrClosedState
         onlySnapshottedPool
@@ -496,7 +519,12 @@ contract PoolController is IPoolController, BeaconImplementation {
     /**
      * @inheritdoc IPoolController
      */
-    function claimFixedFee() external onlyNotPaused onlyAdmin {
+    function claimFixedFee()
+        external
+        onlyNotPaused
+        onlyPermittedAdmin
+        onlyAdmin
+    {
         pool.claimFixedFee(
             msg.sender,
             _settings.fixedFee,
@@ -511,7 +539,13 @@ contract PoolController is IPoolController, BeaconImplementation {
     /**
      * @inheritdoc IPoolController
      */
-    function snapshot() external override onlyNotPaused onlyAdmin {
+    function snapshot()
+        external
+        override
+        onlyNotPaused
+        onlyPermittedAdmin
+        onlyAdmin
+    {
         pool.snapshot();
     }
 }

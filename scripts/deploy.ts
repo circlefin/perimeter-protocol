@@ -180,19 +180,26 @@ async function main() {
   console.log(
     `PoolControllerFactory deployed to ${poolControllerFactory.address}`
   );
-  const PoolController = await ethers.getContractFactory("PoolController", {
-    libraries: {
-      PoolLib: poolLib.address
+  const PoolController = await ethers.getContractFactory(
+    "PermissionedPoolController",
+    {
+      libraries: {
+        PoolLib: poolLib.address
+      }
     }
-  });
+  );
   const poolController = await PoolController.deploy();
   await poolController.deployed();
-  console.log(`PoolController deployed to ${poolController.address}`);
+  console.log(
+    `PermissionedPoolController deployed to ${poolController.address}`
+  );
   tx = await poolControllerFactory
     .connect(deployer)
     .setImplementation(poolController.address);
   await tx.wait();
-  console.log(`PoolController set as implementation for its factory`);
+  console.log(
+    `PermissionedPoolController set as implementation for its factory`
+  );
 
   // Deploy VaultFactory
   const VaultFactory = await ethers.getContractFactory("VaultFactory");
@@ -231,7 +238,7 @@ async function main() {
   console.log(`Pool deployed to ${pool.address}`);
   tx = await poolFactory.connect(deployer).setImplementation(pool.address);
   await tx.wait();
-  console.log(`Pool set as imlementation for its factory`);
+  console.log(`Pool set as implementation for its factory`);
 
   // Deploy LoanFactory
   const LoanFactory = await ethers.getContractFactory(

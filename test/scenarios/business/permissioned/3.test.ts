@@ -5,6 +5,7 @@ import { deployPermissionedPool, activatePool } from "../../../support/pool";
 import { deployLoan, fundLoan } from "../../../support/loan";
 import { deployMockERC20 } from "../../../support/erc20";
 import { performVeriteVerification } from "../../../support/verite";
+import { getCommonSigners } from "../../../support/utils";
 
 describe("Permissioned Business Scenario 3", () => {
   const INPUTS = {
@@ -40,7 +41,8 @@ describe("Permissioned Business Scenario 3", () => {
   }
 
   async function fixtures() {
-    const [poolAdmin, lenderA, lenderB, borrower] = await ethers.getSigners();
+    const { operator, poolAdmin, otherAccounts } = await getCommonSigners();
+    const [lenderA, lenderB, borrower] = otherAccounts.slice(0, 3);
     const endTime = (await time.latest()) + 5_184_000; // 60 days.
     const poolSettings = {
       endDate: endTime, // Jan 1, 2050
@@ -55,6 +57,7 @@ describe("Permissioned Business Scenario 3", () => {
       pool,
       serviceConfiguration,
       poolController,
+      poolAdminAccessControl,
       poolAccessControl,
       tosAcceptanceRegistry
     } = await deployPermissionedPool({
@@ -95,9 +98,11 @@ describe("Permissioned Business Scenario 3", () => {
 
     return {
       startTime,
+      operator,
       pool,
       poolController,
       poolAccessControl,
+      poolAdminAccessControl,
       tosAcceptanceRegistry,
       lenderA,
       lenderB,
@@ -111,9 +116,11 @@ describe("Permissioned Business Scenario 3", () => {
   it("runs simulation", async () => {
     const {
       startTime,
+      operator,
       pool,
       poolController,
       poolAccessControl,
+      poolAdminAccessControl,
       tosAcceptanceRegistry,
       lenderA,
       lenderB,
@@ -168,6 +175,11 @@ describe("Permissioned Business Scenario 3", () => {
 
     // +4  days, loan is funded
     await advanceToDay(startTime, 4);
+    await performVeriteVerification(
+      poolAdminAccessControl,
+      operator,
+      poolAdmin
+    );
     await fundLoan(loan, poolController, poolAdmin);
     await loan.connect(borrower).drawdown(INPUTS.loan.principal);
 

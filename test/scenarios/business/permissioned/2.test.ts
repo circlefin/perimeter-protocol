@@ -5,6 +5,7 @@ import { deployPermissionedPool, activatePool } from "../../../support/pool";
 import { deployLoan, fundLoan } from "../../../support/loan";
 import { deployMockERC20 } from "../../../support/erc20";
 import { performVeriteVerification } from "../../../support/verite";
+import { getCommonSigners } from "../../../support/utils";
 
 describe("Permissioned Business Scenario 2", () => {
   const INPUTS = {
@@ -40,7 +41,9 @@ describe("Permissioned Business Scenario 2", () => {
   }
 
   async function fixtures() {
-    const [poolAdmin, lenderA, lenderB, borrower] = await ethers.getSigners();
+    const { operator, poolAdmin, otherAccounts } = await getCommonSigners();
+    const [lenderA, lenderB, borrower] = otherAccounts.slice(0, 3);
+
     const endTime = (await time.latest()) + 5_184_000; // 60 days.
     const poolSettings = {
       endDate: endTime, // Jan 1, 2050
@@ -55,6 +58,7 @@ describe("Permissioned Business Scenario 2", () => {
       pool,
       serviceConfiguration,
       withdrawController,
+      poolAdminAccessControl,
       poolController,
       poolAccessControl,
       tosAcceptanceRegistry
@@ -96,8 +100,10 @@ describe("Permissioned Business Scenario 2", () => {
 
     return {
       startTime,
+      operator,
       pool,
       poolController,
+      poolAdminAccessControl,
       poolAccessControl,
       tosAcceptanceRegistry,
       lenderA,
@@ -113,8 +119,10 @@ describe("Permissioned Business Scenario 2", () => {
   it("runs simulation", async () => {
     const {
       startTime,
+      operator,
       pool,
       poolController,
+      poolAdminAccessControl,
       poolAccessControl,
       tosAcceptanceRegistry,
       lenderA,
@@ -171,6 +179,11 @@ describe("Permissioned Business Scenario 2", () => {
 
     // +4  days, loan is funded
     await advanceToDay(startTime, 4);
+    await performVeriteVerification(
+      poolAdminAccessControl,
+      operator,
+      poolAdmin
+    );
     await fundLoan(loan, poolController, poolAdmin);
     await loan.connect(borrower).drawdown(INPUTS.loan.principal);
 

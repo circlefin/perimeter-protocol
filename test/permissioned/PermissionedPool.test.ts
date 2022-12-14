@@ -8,15 +8,23 @@ import {
   depositToPool,
   progressWithdrawWindow
 } from "../support/pool";
+import { getCommonSigners } from "../support/utils";
+import { performVeriteVerification } from "../support/verite";
 
 describe("PermissionedPool", () => {
   async function loadPoolFixture() {
-    const [poolAdmin, otherAccount, thirdAccount, allowedLender] =
-      await ethers.getSigners();
+    const {
+      operator,
+      poolAdmin,
+      otherAccount,
+      aliceLender: thirdAccount,
+      bobLender: allowedLender
+    } = await getCommonSigners();
     const {
       pool,
       liquidityAsset,
       poolAccessControl,
+      poolAdminAccessControl,
       tosAcceptanceRegistry,
       poolController
     } = await deployPermissionedPool({
@@ -30,9 +38,11 @@ describe("PermissionedPool", () => {
       .allowParticipant(allowedLender.address);
 
     return {
+      operator,
       pool,
       poolController,
       poolAccessControl,
+      poolAdminAccessControl,
       liquidityAsset,
       poolAdmin,
       otherAccount,
@@ -232,13 +242,31 @@ describe("PermissionedPool", () => {
     });
 
     it("snapshots the pool if PA via poolController", async () => {
-      const { pool, poolAdmin, poolController, liquidityAsset } =
-        await loadFixture(loadPoolFixture);
+      const {
+        pool,
+        poolAdmin,
+        poolAdminAccessControl,
+        poolController,
+        liquidityAsset,
+        operator
+      } = await loadFixture(loadPoolFixture);
 
       await activatePool(pool, poolAdmin, liquidityAsset);
 
       const { withdrawRequestPeriodDuration } = await pool.settings();
       await time.increase(withdrawRequestPeriodDuration);
+
+      // expect the snapshot to require an up to date Verification
+      await expect(
+        poolController.connect(poolAdmin).snapshot()
+      ).to.be.revertedWith("ADMIN_NOT_ALLOWED");
+
+      // Perform Verite Verification
+      await performVeriteVerification(
+        poolAdminAccessControl,
+        operator,
+        poolAdmin
+      );
 
       await expect(poolController.connect(poolAdmin).snapshot()).to.emit(
         pool,
