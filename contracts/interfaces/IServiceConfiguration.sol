@@ -6,6 +6,41 @@ pragma solidity ^0.8.16;
  */
 interface IServiceConfiguration {
     /**
+     * @dev Emitted when an address is changed.
+     */
+    event AddressSet(bytes32 which, address addr);
+
+    /**
+     * @dev Emitted when a liquidity asset is set.
+     */
+    event LiquidityAssetSet(address addr, bool value);
+
+    /**
+     * @dev Emitted when first loss minimum is set for an asset.
+     */
+    event FirstLossMinimumSet(address addr, uint256 value);
+
+    /**
+     * @dev Emitted when a parameter is set.
+     */
+    event ParameterSet(bytes32, uint256 value);
+
+    /**
+     * @dev Emitted when the protocol is paused.
+     */
+    event ProtocolPaused(bool paused);
+
+    /**
+     * @dev Emitted when a loan factory is set
+     */
+    event LoanFactorySet(address indexed factory, bool isValid);
+
+    /**
+     * @dev Emitted when the TermsOfServiceRegistry is set
+     */
+    event TermsOfServiceRegistrySet(address indexed registry);
+
+    /**
      * @dev checks if a given address has the Operator role
      */
     function isOperator(address addr) external view returns (bool);
@@ -15,14 +50,34 @@ interface IServiceConfiguration {
      */
     function isDeployer(address addr) external view returns (bool);
 
+    /**
+     * @dev Whether the protocol is paused.
+     */
     function paused() external view returns (bool);
 
+    /**
+     * @dev First loss minimum required per-currency to activate a pool.
+     */
     function firstLossMinimum(address addr) external view returns (uint256);
 
+    /**
+     * @dev Ongoing fee deducted from borrower interest payments to the first loss vault.
+     */
     function firstLossFeeBps() external view returns (uint256);
 
+    /**
+     * @dev Protocol fee. Set to zero.
+     */
+    function protocolFeeBps() external view returns (uint256);
+
+    /**
+     * @dev Whether an address is supported as a liquidity asset.
+     */
     function isLiquidityAsset(address addr) external view returns (bool);
 
+    /**
+     * @dev Address of the Terms of Service acceptance registry.
+     */
     function tosAcceptanceRegistry() external view returns (address);
 
     /**

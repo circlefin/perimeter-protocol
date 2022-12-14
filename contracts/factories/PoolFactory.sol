@@ -8,7 +8,9 @@ import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol"
 import "../upgrades/BeaconProxyFactory.sol";
 
 /**
- * @title PoolFactory
+ * @title A factory that emits Pool contracts.
+ * @dev Acts as a beacon contract, emitting beacon proxies and holding a reference
+ * to their implementation contract.
  */
 contract PoolFactory is IPoolFactory, BeaconProxyFactory {
     /**
@@ -26,6 +28,13 @@ contract PoolFactory is IPoolFactory, BeaconProxyFactory {
      */
     address internal _vaultFactory;
 
+    /**
+     * @dev Constructor
+     * @param serviceConfiguration Reference to the global service configuration.
+     * @param withdrawControllerFactory Reference to the withdraw controller factory.
+     * @param poolControllerFactory Reference to the pool controller factory.
+     * @param vaultFactory Reference to the Vault factory.
+     */
     constructor(
         address serviceConfiguration,
         address withdrawControllerFactory,
@@ -39,8 +48,7 @@ contract PoolFactory is IPoolFactory, BeaconProxyFactory {
     }
 
     /**
-     * @dev Creates a pool
-     * @dev Emits `PoolCreated` event.
+     * @inheritdoc IPoolFactory
      */
     function createPool(
         address liquidityAsset,

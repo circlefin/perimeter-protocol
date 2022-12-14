@@ -8,16 +8,26 @@ import "../upgrades/BeaconProxyFactory.sol";
 import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 
 /**
- * @title LoanFactory
+ * @title A factory that emits Loan contracts.
+ * @dev Acts as a beacon contract, emitting beacon proxies and holding a reference
+ * to their implementation contract.
  */
 contract LoanFactory is ILoanFactory, BeaconProxyFactory {
     /**
-     * @dev Mapping of created loans
+     * @inheritdoc ILoanFactory
      */
-    mapping(address => bool) internal _isLoan;
+    mapping(address => bool) public isLoan;
 
+    /**
+     * @dev A reference to the VaultFactory.
+     */
     address internal _vaultFactory;
 
+    /**
+     * @dev Constructor for the LoanFactory.
+     * @param serviceConfiguration Reference to the global service configuration.
+     * @param vaultFactory Reference to a VaultFactory.
+     */
     constructor(address serviceConfiguration, address vaultFactory) {
         _serviceConfiguration = IServiceConfiguration(serviceConfiguration);
         _vaultFactory = vaultFactory;
@@ -40,7 +50,7 @@ contract LoanFactory is ILoanFactory, BeaconProxyFactory {
         require(implementation != address(0), "LoanFactory: no implementation");
         address addr = initializeLoan(borrower, pool, liquidityAsset, settings);
         emit LoanCreated(addr);
-        _isLoan[addr] = true;
+        isLoan[addr] = true;
         return addr;
     }
 
@@ -67,12 +77,5 @@ contract LoanFactory is ILoanFactory, BeaconProxyFactory {
             )
         );
         return address(proxy);
-    }
-
-    /**
-     * @dev Checks whether the address corresponds to a created loan for this factory
-     */
-    function isLoan(address loan) public view returns (bool) {
-        return _isLoan[loan];
     }
 }

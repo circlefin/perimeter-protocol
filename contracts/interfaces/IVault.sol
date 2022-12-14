@@ -4,7 +4,8 @@ pragma solidity ^0.8.16;
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 /**
- * @title IVault
+ * @title Interface for the Vault.
+ * @dev Vaults simply hold a balance, and allow withdrawals by the Vault's owner.
  */
 interface IVault {
     /**

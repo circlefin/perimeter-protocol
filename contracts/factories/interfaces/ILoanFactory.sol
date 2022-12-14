@@ -4,7 +4,7 @@ pragma solidity ^0.8.16;
 import "../../interfaces/ILoan.sol";
 
 /**
- * @title ILoanFactory
+ * @title Interface for the LoanFactory.
  */
 interface ILoanFactory {
     /**
@@ -22,4 +22,9 @@ interface ILoanFactory {
         address liquidityAsset,
         ILoanSettings memory settings
     ) external returns (address);
+
+    /**
+     * @dev Checks whether a Loan address was created by the factory.
+     */
+    function isLoan(address loan) external view returns (bool);
 }

@@ -5,8 +5,9 @@ import "../interfaces/IServiceConfiguration.sol";
 import "./interfaces/IBeacon.sol";
 
 /**
- * @title BeaconProxyFactory
- * @dev Base contract for emitting new Beacon proxy contracts.
+ * @title Factory for emitting beacon proxies.
+ * @dev Base contract for emitting new Beacon proxy contracts. Allows setting new
+ * implementations by the global deployer.
  */
 abstract contract BeaconProxyFactory is IBeacon {
     /**

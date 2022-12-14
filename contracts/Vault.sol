@@ -12,7 +12,8 @@ import {ERC721HolderUpgradeable} from "@openzeppelin/contracts-upgradeable/token
 import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
 /**
- * @title Vault
+ * @title Vault holds a balance, and allows withdrawals to the Vault's owner.
+ * @dev Vaults are deployed as beacon proxy contracts.
  */
 contract Vault is
     IVault,
@@ -22,6 +23,9 @@ contract Vault is
 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
+    /**
+     * @dev Reference to the global service configuration
+     */
     IServiceConfiguration private _serviceConfiguration;
 
     /**

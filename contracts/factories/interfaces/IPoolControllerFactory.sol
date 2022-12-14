@@ -4,7 +4,7 @@ pragma solidity ^0.8.16;
 import "../../interfaces/IPool.sol";
 
 /**
- * @title The interface for controlling access to Pools
+ * @title Interface for the PoolController factory.
  */
 interface IPoolControllerFactory {
     /**

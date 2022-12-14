@@ -1,0 +1,101 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.16;
+
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+
+/**
+ * @title Interface that exposes methods to request withdraws / redeems.
+ * @dev Terminology and design informed to complement ERC4626.
+ */
+interface IRequestWithdrawable {
+    /**
+     * @dev Returns the maximum number of `shares` that can be
+     * requested to be redeemed from the owner balance with a single
+     * `requestRedeem` call in the current block.
+     *
+     * Note: This is equivalent of EIP-4626 `maxRedeem`
+     */
+    function maxRedeemRequest(address owner)
+        external
+        view
+        returns (uint256 maxShares);
+
+    /**
+     * @dev Returns the maximum amount of underlying `assets` that can be
+     * requested to be withdrawn from the owner balance with a single
+     * `requestWithdraw` call in the current block.
+     *
+     * Note: This is equivalent of EIP-4626 `maxWithdraw`
+     */
+    function maxWithdrawRequest(address owner)
+        external
+        view
+        returns (uint256 maxAssets);
+
+    /**
+     * @dev Simulate the effects of a redeem request at the current block.
+     * Returns the amount of underlying assets that would be requested if this
+     * entire redeem request were to be processed at the current block.
+     *
+     * Note: This is equivalent of EIP-4626 `previewRedeem`
+     */
+    function previewRedeemRequest(uint256 shares)
+        external
+        view
+        returns (uint256 assets);
+
+    /**
+     * @dev Simulate the effects of a withdrawal request at the current block.
+     * Returns the amount of `shares` that would be burned if this entire
+     * withdrawal request were to be processed at the current block.
+     *
+     * Note: This is equivalent of EIP-4626 `previewWithdraw`
+     */
+    function previewWithdrawRequest(uint256 assets)
+        external
+        view
+        returns (uint256 shares);
+
+    /**
+     * @dev Submits a withdrawal request, incurring a fee.
+     */
+    function requestRedeem(uint256 shares) external returns (uint256 assets);
+
+    /**
+     * @dev Submits a withdrawal request, incurring a fee.
+     */
+    function requestWithdraw(uint256 assets) external returns (uint256 shares);
+
+    /**
+     * @dev Returns the maximum number of `shares` that can be
+     * cancelled from being requested for a redemption.
+     *
+     * Note: This is equivalent of EIP-4626 `maxRedeem`
+     */
+    function maxRequestCancellation(address owner)
+        external
+        view
+        returns (uint256 maxShares);
+
+    /**
+     * @dev Cancels a redeem request for a specific number of `shares` from
+     * owner and returns an estimated amnount of underlying that equates to
+     * this number of shares.
+     *
+     * Emits a {WithdrawRequestCancelled} event.
+     */
+    function cancelRedeemRequest(uint256 shares)
+        external
+        returns (uint256 assets);
+
+    /**
+     * @dev Cancels a withdraw request for a specific values of `assets` from
+     * owner and returns an estimated number of shares that equates to
+     * this number of assets.
+     *
+     * Emits a {WithdrawRequestCancelled} event.
+     */
+    function cancelWithdrawRequest(uint256 assets)
+        external
+        returns (uint256 shares);
+}

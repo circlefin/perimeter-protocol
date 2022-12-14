@@ -4,7 +4,7 @@ pragma solidity ^0.8.16;
 import "../../interfaces/IPool.sol";
 
 /**
- * @title The PoolFactory
+ * @title Interface for the PoolFactory.
  */
 interface IPoolFactory {
     /**
@@ -13,8 +13,8 @@ interface IPoolFactory {
     event PoolCreated(address indexed addr);
 
     /**
-     * @dev Creates a pool's PoolAdmin controller
-     * @dev Emits `PoolControllerCreated` event.
+     * @dev Creates a Pool.
+     * @dev Emits `PoolCreated` event.
      */
     function createPool(address, IPoolConfigurableSettings calldata)
         external

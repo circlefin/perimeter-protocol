@@ -10,7 +10,8 @@ import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "../upgrades/BeaconImplementation.sol";
 
 /**
- * @title WithdrawState
+ * @title A Pool's withdraw controller.
+ * @dev Deployed as a beacon proxy contract.
  */
 contract WithdrawController is IWithdrawController, BeaconImplementation {
     using SafeMath for uint256;
@@ -52,14 +53,12 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
     }
 
     /*//////////////////////////////////////////////////////////////
-                        State Views
+                               State Views
     //////////////////////////////////////////////////////////////*/
 
     /**
      * @dev The current withdraw period. Funds marked with this period (or
      * earlier), are eligible to be considered for redemption/widrawal.
-     *
-     * TODO: This can be internal
      */
     function withdrawPeriod() public view returns (uint256 period) {
         period = PoolLib.calculateCurrentWithdrawPeriod(
@@ -341,7 +340,7 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
     }
 
     /*//////////////////////////////////////////////////////////////
-                            Snapshot
+                                Snapshot
     //////////////////////////////////////////////////////////////*/
 
     /**
@@ -493,7 +492,7 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
     }
 
     /**
-     * @dev Snapshots a lender
+     * @dev Snapshots a lender, catching them up to the current withdraw window.
      */
     function snapshotLender(address addr)
         internal
