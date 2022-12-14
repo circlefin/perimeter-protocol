@@ -29,7 +29,6 @@ const config: HardhatUserConfig | ExtendedHardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      chainId: 5,
       allowUnlimitedContractSize: true,
       usdcAddress: undefined
     },
@@ -45,7 +44,7 @@ const config: HardhatUserConfig | ExtendedHardhatUserConfig = {
         process.env.GOERLI_OPERATOR!,
         process.env.GOERLI_DEPLOYER!,
         process.env.GOERLI_PAUSER!,
-        "0xf7e61a4a8ae000920614847ebb846bc5bdb1865d133fd24d33c3c67fe7367eb4"
+        process.env.GOERLI_ACCOUNT!
       ].filter((x) => x)
     }
   },

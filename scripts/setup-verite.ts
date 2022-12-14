@@ -14,8 +14,9 @@ async function main() {
   // One-time setup of PoolAdminAccessControl
   const poolAdminAccessControlAddress =
     "0x3b380e8d02A068ae779b73c7E24c2d18a176BbAD";
-  const credentialSchema =
-    "https://verite.id/definitions/processes/kycaml/0.0.1/generic--usa-legal_person";
+  const credentialSchema = [
+    "https://verite.id/definitions/processes/kycaml/0.0.1/generic--usa-legal_person"
+  ];
   const trustedVerifier = "0xeb45ca911a2b481dEAdE649486ec77E9907F7e12";
 
   const PoolAdminAccessControl = await ethers.getContractFactory(

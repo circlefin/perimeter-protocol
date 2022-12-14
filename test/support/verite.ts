@@ -20,7 +20,7 @@ export function verificationDomain(contractAddress: string) {
   return {
     name: "VerificationRegistry",
     version: "1.0",
-    chainId: 5,
+    chainId: 31337,
     verifyingContract: contractAddress
   };
 }

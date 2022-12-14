@@ -88,7 +88,7 @@ abstract contract VeriteAccessControl is
     {
         _supportedCredentialSchemas[concat(schema)] = true;
 
-        emit CredentialSchemaAdded(concat(schema));
+        emit CredentialSchemaAdded(schema);
     }
 
     /**
@@ -101,7 +101,7 @@ abstract contract VeriteAccessControl is
     {
         delete _supportedCredentialSchemas[concat(schema)];
 
-        emit CredentialSchemaRemoved(concat(schema));
+        emit CredentialSchemaRemoved(schema);
     }
 
     /*//////////////////////////////////////////////////////////////

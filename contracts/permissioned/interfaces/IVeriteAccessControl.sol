@@ -22,12 +22,12 @@ interface IVeriteAccessControl {
     /**
      * @dev Emitted when a new credential schema is added
      */
-    event CredentialSchemaAdded(string schema);
+    event CredentialSchemaAdded(string[] schema);
 
     /**
      * @dev Emitted when a credential schema is removed
      */
-    event CredentialSchemaRemoved(string schema);
+    event CredentialSchemaRemoved(string[] schema);
 
     /**
      * @dev Emitted when an address validate via Verite

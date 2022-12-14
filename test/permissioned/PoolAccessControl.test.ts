@@ -332,18 +332,22 @@ describe("PoolAccessControl", () => {
       await serviceConfiguration.connect(pauser).setPaused(true);
 
       await expect(
-        poolAccessControl.connect(poolAdmin).addCredentialSchema("schema://kyc")
+        poolAccessControl
+          .connect(poolAdmin)
+          .addCredentialSchema(["schema://kyc"])
       ).to.be.revertedWith("PoolAccessControl: Protocol paused");
     });
 
-    it("adds a new verifier", async () => {
+    it("adds a new credential schema", async () => {
       const { poolAccessControl, poolAdmin } = await loadFixture(deployFixture);
 
       await expect(
-        poolAccessControl.connect(poolAdmin).addCredentialSchema("schema://kyc")
+        poolAccessControl
+          .connect(poolAdmin)
+          .addCredentialSchema(["schema://kyc"])
       )
         .to.emit(poolAccessControl, "CredentialSchemaAdded")
-        .withArgs("schema://kyc");
+        .withArgs(["schema://kyc"]);
     });
   });
 
@@ -357,7 +361,7 @@ describe("PoolAccessControl", () => {
       await expect(
         poolAccessControl
           .connect(poolAdmin)
-          .removeCredentialSchema("schema://kyc")
+          .removeCredentialSchema(["schema://kyc"])
       ).to.be.revertedWith("PoolAccessControl: Protocol paused");
     });
 
@@ -367,10 +371,10 @@ describe("PoolAccessControl", () => {
       await expect(
         poolAccessControl
           .connect(poolAdmin)
-          .removeCredentialSchema("schema://kyc")
+          .removeCredentialSchema(["schema://kyc"])
       )
         .to.emit(poolAccessControl, "CredentialSchemaRemoved")
-        .withArgs("schema://kyc");
+        .withArgs(["schema://kyc"]);
     });
   });
 
