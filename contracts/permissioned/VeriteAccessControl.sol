@@ -128,7 +128,7 @@ abstract contract VeriteAccessControl is
     ) public virtual onlyVeriteEligible {
         // Ensure the result has a supported schema
         require(
-            _supportedCredentialSchemas[verificationResult.schema],
+            _supportedCredentialSchemas[verificationResult.schema[0]],
             "INVALID_SCHEMA"
         );
 
@@ -142,9 +142,13 @@ abstract contract VeriteAccessControl is
             keccak256(
                 abi.encode(
                     keccak256(
-                        "VerificationResult(string schema,address subject,uint256 expiration,string verifier_verification_id)"
+                        "VerificationResult(string[] schema,address subject,uint256 expiration,string verifier_verification_id)"
                     ),
-                    keccak256(bytes(verificationResult.schema)),
+                    keccak256(
+                        abi.encodePacked(
+                            keccak256(bytes(verificationResult.schema[0]))
+                        )
+                    ),
                     verificationResult.subject,
                     verificationResult.expiration,
                     keccak256(
