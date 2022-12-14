@@ -29,6 +29,7 @@ const config: HardhatUserConfig | ExtendedHardhatUserConfig = {
   },
   networks: {
     hardhat: {
+      chainId: 5,
       allowUnlimitedContractSize: true,
       usdcAddress: undefined
     },

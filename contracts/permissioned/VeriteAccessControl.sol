@@ -146,7 +146,9 @@ abstract contract VeriteAccessControl is
                     ),
                     keccak256(
                         abi.encodePacked(
-                            keccak256(bytes(verificationResult.schema[0]))
+                            keccak256(
+                                abi.encodePacked(verificationResult.schema[0])
+                            )
                         )
                     ),
                     verificationResult.subject,

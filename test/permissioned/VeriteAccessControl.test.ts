@@ -45,7 +45,7 @@ describe("VeriteAccessControl", () => {
       // Register the schema
       await veriteAccessControl
         .connect(admin)
-        .addCredentialSchema(verificationResult.schema);
+        .addCredentialSchema(verificationResult.schema[0]);
 
       // Verify the verification result
       await expect(
@@ -72,8 +72,7 @@ describe("VeriteAccessControl", () => {
       // Register the schema
       await veriteAccessControl
         .connect(admin)
-        .addCredentialSchema(verificationResult.schema);
-
+        .addCredentialSchema(verificationResult.schema[0]);
       await expect(
         veriteAccessControl
           .connect(subject)
@@ -127,7 +126,7 @@ describe("VeriteAccessControl", () => {
       // Register the schema
       await veriteAccessControl
         .connect(admin)
-        .addCredentialSchema(verificationResult.schema);
+        .addCredentialSchema(verificationResult.schema[0]);
 
       // Verify the verification result
       await expect(
@@ -177,6 +176,44 @@ describe("VeriteAccessControl", () => {
       expect(recoveredAddress).to.equal(
         "0x76b5A39e3b33317073B0C2a6d1a2Fdaa8300C648"
       );
+    });
+
+    it("can integrate on-chain with Circle's verifier", async () => {
+      const { veriteAccessControl, verifier, admin, subject } =
+        await deployFixture();
+
+      // Register the verifier
+      const tx = await veriteAccessControl
+        .connect(admin)
+        .addTrustedVerifier("0x76b5A39e3b33317073B0C2a6d1a2Fdaa8300C648");
+      await tx.wait();
+
+      const signature =
+        "0xb74a88703ea1183a72c467675695b0b72b03d4863f55b8c5f941be426496fd4724330bde3f5d406996dabf1da866f17c430b4b1789db94686c56f78fcafdeabe1c";
+      const verificationResult = {
+        schema: [
+          "https://verite.id/definitions/processes/kycaml/0.0.1/generic--usa-legal_person"
+        ],
+        subject: "0x9f5caad8169dea4c4a7cd9be64a1f473d56409a0",
+        expiration: 1671101414,
+        verifier_verification_id: "6c475c71-e6df-457f-afa9-ebc2ba52813a"
+      };
+
+      // Register the schema
+      await veriteAccessControl
+        .connect(admin)
+        .addCredentialSchema(verificationResult.schema[0]);
+
+      // Verify the verification result
+      await expect(
+        veriteAccessControl
+          .connect(subject)
+          .verify(verificationResult, signature)
+      )
+        .to.emit(veriteAccessControl, "VerificationResultConfirmed")
+        .withArgs(
+          ethers.utils.getAddress("0x9f5caad8169dea4c4a7cd9be64a1f473d56409a0")
+        );
     });
   });
 });

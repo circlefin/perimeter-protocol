@@ -8,7 +8,9 @@ import { ethers as hardhatEthers } from "hardhat";
  * Returns a schema for use in verification
  */
 export function verificationSchema() {
-  return "verite.id/definitions/processes/kycaml/0.0.1/generic--usa-legal_person";
+  return [
+    "https://verite.id/definitions/processes/kycaml/0.0.1/generic--usa-legal_person"
+  ];
 }
 
 /**
@@ -29,7 +31,7 @@ export function verificationDomain(contractAddress: string) {
 export function verificationTypes() {
   return {
     VerificationResult: [
-      { name: "schema", type: "string" },
+      { name: "schema", type: "string[]" },
       { name: "subject", type: "address" },
       { name: "expiration", type: "uint256" },
       { name: "verifier_verification_id", type: "string" }
