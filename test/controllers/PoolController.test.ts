@@ -354,7 +354,7 @@ describe("PoolController", () => {
       // Move in the future
       await time.increaseTo(now + 20);
 
-      expect(await poolController.state()).to.equal(3); // closed
+      expect(await poolController.state()).to.equal(2); // closed
       expect(await poolController.withdrawGate()).to.equal(10_000); // 100%
     });
   });
@@ -374,7 +374,7 @@ describe("PoolController", () => {
       const { endDate } = await poolController.settings();
       await time.increaseTo(endDate);
 
-      expect(await poolController.state()).to.equal(3); // sanity check its closed
+      expect(await poolController.state()).to.equal(2); // sanity check its closed
       expect(await poolController.withdrawRequestPeriodDuration()).to.equal(
         86400
       ); // 1 day
@@ -395,7 +395,7 @@ describe("PoolController", () => {
       const { endDate } = await newPoolController.settings();
       await time.increaseTo(endDate);
 
-      expect(await newPoolController.state()).to.equal(3); // sanity check its closed
+      expect(await newPoolController.state()).to.equal(2); // sanity check its closed
       expect(await newPoolController.withdrawRequestPeriodDuration()).to.equal(
         overriddenPoolSettings.withdrawRequestPeriodDuration
       ); // Unchanged
@@ -578,7 +578,7 @@ describe("PoolController", () => {
       const poolEndDate = (await poolController.settings()).endDate;
       await time.increaseTo(poolEndDate);
 
-      expect(await poolController.state()).to.equal(3); // closed
+      expect(await poolController.state()).to.equal(2); // closed
     });
   });
   describe("depositFirstLoss()", async () => {
@@ -733,7 +733,7 @@ describe("PoolController", () => {
 
       // Fast forward past pool close
       await time.increaseTo((await pool.settings()).endDate);
-      expect(await poolController.state()).to.equal(3); // Closed
+      expect(await poolController.state()).to.equal(2); // Closed
 
       await expect(
         poolController
@@ -1249,7 +1249,7 @@ describe("PoolController", () => {
 
       // Fast forward to pool end date
       await time.increaseTo((await pool.settings()).endDate);
-      expect(await pool.state()).to.equal(3); // Closed
+      expect(await pool.state()).to.equal(2); // Closed
 
       // Default should proceed
       await expect(poolController.connect(poolAdmin).defaultLoan(loan.address))

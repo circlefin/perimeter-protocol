@@ -288,7 +288,7 @@ describe("Snapshot Variations", () => {
     await time.increaseTo(newCloseDate + 1);
 
     // Check that the pool is closed
-    expect(await pool.state()).to.equal(3);
+    expect(await pool.state()).to.equal(2);
 
     // Check that we're still in the same withdraw period, since it has only been a few seconds.
     expect(await withdrawController.withdrawPeriod()).to.equal(0);

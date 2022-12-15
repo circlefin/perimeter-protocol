@@ -9,7 +9,6 @@ import "../../interfaces/IPool.sol";
 enum IPoolLifeCycleState {
     Initialized,
     Active,
-    Paused,
     Closed
 }
 
