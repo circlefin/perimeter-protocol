@@ -44,7 +44,7 @@ const config: HardhatUserConfig | ExtendedHardhatUserConfig = {
         process.env.ACCOUNT_OPERATOR!,
         process.env.ACCOUNT_DEPLOYER!,
         process.env.ACCOUNT_PAUSER!,
-        process.env.ACCOUNT_ACCOUNT!
+        process.env.ACCOUNT_OTHER!
       ].filter((x) => x)
     },
     mumbai: {
@@ -56,7 +56,7 @@ const config: HardhatUserConfig | ExtendedHardhatUserConfig = {
         process.env.ACCOUNT_OPERATOR!,
         process.env.ACCOUNT_DEPLOYER!,
         process.env.ACCOUNT_PAUSER!,
-        process.env.ACCOUNT_ACCOUNT!
+        process.env.ACCOUNT_OTHER!
       ].filter((x) => x)
     }
   },
