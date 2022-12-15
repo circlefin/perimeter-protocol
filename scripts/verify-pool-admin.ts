@@ -1,9 +1,5 @@
-import { ethers, upgrades } from "hardhat";
+import { ethers } from "hardhat";
 import hre from "hardhat";
-
-type ExtendedHreNetworkConfig = typeof hre.network.config & {
-  usdcAddress: string | undefined;
-};
 
 async function main() {
   // Address of the ToSAcceptanceRegistry contract TODO: this is mumbai

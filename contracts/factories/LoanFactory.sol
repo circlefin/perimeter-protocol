@@ -42,7 +42,7 @@ contract LoanFactory is ILoanFactory, BeaconProxyFactory {
         address pool,
         address liquidityAsset,
         ILoanSettings memory settings
-    ) public returns (address LoanAddress) {
+    ) public returns (address) {
         require(
             _serviceConfiguration.paused() == false,
             "LoanFactory: Protocol paused"
