@@ -9,7 +9,7 @@ import "../../interfaces/IServiceConfiguration.sol";
  */
 interface IPermissionedServiceConfiguration is IServiceConfiguration {
     /**
-     * @dev Determine whether the subject address has a verification record that is not expired
+     * @dev Reference to the PoolAdminAccessControl, which enforces access control on Pool Admins.
      */
     function poolAdminAccessControl()
         external

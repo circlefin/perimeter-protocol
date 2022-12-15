@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 /**
- * @title The interface for controlling access to Pools
+ * @title The interface for a contract that processes trusted Verite credential verifications.
  */
 interface IVeriteAccessControl {
     /*//////////////////////////////////////////////////////////////

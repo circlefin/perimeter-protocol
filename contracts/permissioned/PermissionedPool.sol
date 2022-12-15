@@ -7,7 +7,8 @@ import "./factories/interfaces/IPoolAccessControlFactory.sol";
 import "./PoolAccessControl.sol";
 
 /**
- * @title PermissionedPool
+ * @title Permissioned version of the Pool.
+ * @dev Enforces access control around lender actions.
  */
 contract PermissionedPool is Pool {
     /**

@@ -183,7 +183,8 @@ library LoanLib {
     }
 
     /**
-     * Fund a loan
+     * @dev Called on loan fundings, pulls funds from the pool into the
+     * loan's funding vault.
      */
     function fundLoan(
         address liquidityAsset,
@@ -200,7 +201,8 @@ library LoanLib {
     }
 
     /**
-     * Drawdown a loan
+     * @dev Pulls funds from the loan's funding vault and transfers
+     * to the borrower.
      */
     function drawdown(
         uint256 amount,
@@ -242,7 +244,8 @@ library LoanLib {
     }
 
     /**
-     * Paydown principal
+     * @dev Allows partial re-payment of loan principal, moving funds from the
+     * borrower to the loan's funding vault.
      */
     function paydownPrincipal(
         address asset,
@@ -258,7 +261,7 @@ library LoanLib {
     }
 
     /**
-     * Make a payment
+     * @dev Transfers funds from the borrower back to the pool.
      */
     function completePayment(
         address liquidityAsset,
@@ -270,7 +273,7 @@ library LoanLib {
     }
 
     /**
-     * Make a payment
+     * @dev Withdraws from funding vault and returns capital to the pool.
      */
     function returnCanceledLoanPrincipal(
         IVault fundingVault,

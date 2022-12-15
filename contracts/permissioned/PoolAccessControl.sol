@@ -137,14 +137,23 @@ contract PoolAccessControl is
         emit ParticipantRemoved(addr);
     }
 
+    /**
+     * @inheritdoc IVeriteAccessControl
+     */
     function addTrustedVerifier(address addr) public override onlyNotPaused {
         super.addTrustedVerifier(addr);
     }
 
+    /**
+     * @inheritdoc IVeriteAccessControl
+     */
     function removeTrustedVerifier(address addr) public override onlyNotPaused {
         super.removeTrustedVerifier(addr);
     }
 
+    /**
+     * @inheritdoc IVeriteAccessControl
+     */
     function addCredentialSchema(string[] calldata schema)
         public
         override
@@ -153,6 +162,9 @@ contract PoolAccessControl is
         super.addCredentialSchema(schema);
     }
 
+    /**
+     * @inheritdoc IVeriteAccessControl
+     */
     function removeCredentialSchema(string[] calldata schema)
         public
         override
@@ -161,6 +173,9 @@ contract PoolAccessControl is
         super.removeCredentialSchema(schema);
     }
 
+    /**
+     * @inheritdoc IVeriteAccessControl
+     */
     function verify(
         VerificationResult memory verificationResult,
         bytes memory signature
