@@ -192,7 +192,7 @@ interface IPool is IERC4626, IRequestWithdrawable {
     /**
      * @dev Called by the Pool Controller, it withdraws from the FeeVault.
      */
-    function withdrawAccumulatedFees(uint256 amount, address receiver) external;
+    function withdrawFeeVault(uint256 amount, address receiver) external;
 
     /**
      * @dev Calculate the total amount of underlying assets held by the vault,

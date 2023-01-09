@@ -429,7 +429,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     /**
      * @inheritdoc IPool
      */
-    function withdrawAccumulatedFees(uint256 amount, address receiver)
+    function withdrawFeeVault(uint256 amount, address receiver)
         external
         onlyNotPaused
         onlyPoolController

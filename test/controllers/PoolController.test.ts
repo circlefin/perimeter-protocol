@@ -1420,7 +1420,7 @@ describe("PoolController", () => {
 
       const tx = poolController
         .connect(otherAccount)
-        .withdrawAccumulatedFees(1, otherAccount.address);
+        .withdrawFeeVault(1, otherAccount.address);
       await expect(tx).to.be.revertedWith("Pool: caller is not admin");
     });
 
@@ -1432,7 +1432,7 @@ describe("PoolController", () => {
 
       const tx = poolController
         .connect(poolAdmin)
-        .withdrawAccumulatedFees(1, poolAdmin.address);
+        .withdrawFeeVault(1, poolAdmin.address);
       await expect(tx).to.be.revertedWith("Pool: Protocol paused");
     });
 
@@ -1471,7 +1471,7 @@ describe("PoolController", () => {
       // Check that the PA can claim the fee
       const txn = await poolController
         .connect(poolAdmin)
-        .withdrawAccumulatedFees(208, poolAdmin.address);
+        .withdrawFeeVault(208, poolAdmin.address);
       await expect(txn).to.not.be.reverted;
 
       // Check that the fee moved from the vault to the PA
