@@ -426,6 +426,18 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         IERC20Upgradeable(_liquidityAsset).safeTransfer(recipient, fixedFee);
     }
 
+    /**
+     * @inheritdoc IPool
+     */
+    function withdrawAccumulatedFees(uint256 amount, address receiver)
+        external
+        onlyNotPaused
+        onlyPoolController
+        onlySnapshottedPool
+    {
+        _feeVault.withdrawERC20(address(_liquidityAsset), amount, receiver);
+    }
+
     /*//////////////////////////////////////////////////////////////
                 Withdraw Controller Proxy Methods
     //////////////////////////////////////////////////////////////*/

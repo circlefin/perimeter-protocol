@@ -224,6 +224,12 @@ interface IPoolController {
      */
     function claimFixedFee() external;
 
+    /**
+     * @dev Called by the pool admin, this claims fees that have accumulated
+     * in the Pool's FeeVault from ongoing borrower payments.
+     */
+    function withdrawAccumulatedFees(uint256 amount, address receiver) external;
+
     /*//////////////////////////////////////////////////////////////
                 Snapshot
     //////////////////////////////////////////////////////////////*/

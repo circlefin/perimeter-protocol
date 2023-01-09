@@ -532,6 +532,18 @@ contract PoolController is IPoolController, BeaconImplementation {
         );
     }
 
+    /**
+     * @inheritdoc IPoolController
+     */
+    function withdrawAccumulatedFees(uint256 amount, address receiver)
+        external
+        onlyNotPaused
+        onlyPermittedAdmin
+        onlyAdmin
+    {
+        pool.withdrawAccumulatedFees(amount, receiver);
+    }
+
     /*//////////////////////////////////////////////////////////////
                                 Snapshot
     //////////////////////////////////////////////////////////////*/
