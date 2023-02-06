@@ -224,6 +224,7 @@ contract Loan is ILoan, BeaconImplementation {
             settings.principal
         );
         _state = ILoanLifeCycleState.Canceled;
+        // IPool(_pool).onLoanStateTransitioned();
         return _state;
     }
 
@@ -255,7 +256,10 @@ contract Loan is ILoan, BeaconImplementation {
     /**
      * @inheritdoc ILoan
      */
-    function postFungibleCollateral(address asset, uint256 amount)
+    function postFungibleCollateral(
+        address asset,
+        uint256 amount
+    )
         external
         virtual
         onlyNotPaused
@@ -278,7 +282,10 @@ contract Loan is ILoan, BeaconImplementation {
     /**
      * @inheritdoc ILoan
      */
-    function postNonFungibleCollateral(address asset, uint256 tokenId)
+    function postNonFungibleCollateral(
+        address asset,
+        uint256 tokenId
+    )
         external
         virtual
         onlyNotPaused
@@ -329,7 +336,9 @@ contract Loan is ILoan, BeaconImplementation {
     /**
      * @inheritdoc ILoan
      */
-    function drawdown(uint256 amount)
+    function drawdown(
+        uint256 amount
+    )
         external
         virtual
         onlyNotPaused
@@ -354,12 +363,9 @@ contract Loan is ILoan, BeaconImplementation {
     /**
      * @inheritdoc ILoan
      */
-    function paydownPrincipal(uint256 amount)
-        external
-        onlyNotPaused
-        onlyPermittedBorrower
-        onlyBorrower
-    {
+    function paydownPrincipal(
+        uint256 amount
+    ) external onlyNotPaused onlyPermittedBorrower onlyBorrower {
         require(outstandingPrincipal >= amount, "Loan: amount too high");
         require(settings.loanType == ILoanType.Open, "Loan: invalid loan type");
         LoanLib.paydownPrincipal(liquidityAsset, amount, fundingVault);
@@ -409,11 +415,9 @@ contract Loan is ILoan, BeaconImplementation {
     /**
      * @inheritdoc ILoan
      */
-    function previewFees(uint256 amount)
-        public
-        view
-        returns (ILoanFees memory)
-    {
+    function previewFees(
+        uint256 amount
+    ) public view returns (ILoanFees memory) {
         return
             LoanLib.previewFees(
                 settings,

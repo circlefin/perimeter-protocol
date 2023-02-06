@@ -277,12 +277,9 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     /**
      * @inheritdoc IPool
      */
-    function fundLoan(address addr)
-        external
-        onlyNotPaused
-        onlyPoolController
-        onlySnapshottedPool
-    {
+    function fundLoan(
+        address addr
+    ) external onlyNotPaused onlyPoolController onlySnapshottedPool {
         require(!_fundedLoans[addr], "Pool: already funded");
         _fundedLoans[addr] = true;
         ILoan loan = ILoan(addr);
@@ -347,11 +344,10 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     /**
      * @inheritdoc IPool
      */
-    function onLoanDefaulted(address loan, uint256 firstLossApplied)
-        external
-        override
-        onlyPoolController
-    {
+    function onLoanDefaulted(
+        address loan,
+        uint256 firstLossApplied
+    ) external override onlyPoolController {
         uint256 outstandingPrincipal = ILoan(loan).outstandingPrincipal();
         _accountings.outstandingLoanPrincipals -= outstandingPrincipal;
         _accountings.totalDefaults += outstandingPrincipal;
@@ -429,12 +425,10 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     /**
      * @inheritdoc IPool
      */
-    function withdrawFeeVault(uint256 amount, address receiver)
-        external
-        onlyNotPaused
-        onlyPoolController
-        onlySnapshottedPool
-    {
+    function withdrawFeeVault(
+        uint256 amount,
+        address receiver
+    ) external onlyNotPaused onlyPoolController onlySnapshottedPool {
         _feeVault.withdrawERC20(address(_liquidityAsset), amount, receiver);
     }
 
@@ -445,51 +439,45 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     /**
      * @inheritdoc IRequestWithdrawable
      */
-    function maxRedeemRequest(address owner)
-        public
-        view
-        returns (uint256 maxShares)
-    {
+    function maxRedeemRequest(
+        address owner
+    ) public view returns (uint256 maxShares) {
         maxShares = withdrawController.maxRedeemRequest(owner);
     }
 
     /**
      * @inheritdoc IRequestWithdrawable
      */
-    function maxWithdrawRequest(address owner)
-        public
-        view
-        returns (uint256 maxAssets)
-    {
+    function maxWithdrawRequest(
+        address owner
+    ) public view returns (uint256 maxAssets) {
         maxAssets = convertToAssets(maxRedeemRequest(owner));
     }
 
     /**
      * @inheritdoc IRequestWithdrawable
      */
-    function previewRedeemRequest(uint256 shares)
-        external
-        view
-        returns (uint256 assets)
-    {
+    function previewRedeemRequest(
+        uint256 shares
+    ) external view returns (uint256 assets) {
         assets = withdrawController.previewRedeemRequest(shares);
     }
 
     /**
      * @inheritdoc IRequestWithdrawable
      */
-    function previewWithdrawRequest(uint256 assets)
-        external
-        view
-        returns (uint256 shares)
-    {
+    function previewWithdrawRequest(
+        uint256 assets
+    ) external view returns (uint256 shares) {
         shares = withdrawController.previewWithdrawRequest(assets);
     }
 
     /**
      * @inheritdoc IRequestWithdrawable
      */
-    function requestRedeem(uint256 shares)
+    function requestRedeem(
+        uint256 shares
+    )
         external
         onlyNotPaused
         onlyActivatedPool
@@ -505,7 +493,9 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     /**
      * @inheritdoc IRequestWithdrawable
      */
-    function requestWithdraw(uint256 assets)
+    function requestWithdraw(
+        uint256 assets
+    )
         external
         onlyNotPaused
         onlyActivatedPool
@@ -542,18 +532,18 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     /**
      * @inheritdoc IRequestWithdrawable
      */
-    function maxRequestCancellation(address owner)
-        public
-        view
-        returns (uint256 maxShares)
-    {
+    function maxRequestCancellation(
+        address owner
+    ) public view returns (uint256 maxShares) {
         maxShares = withdrawController.maxRequestCancellation(owner);
     }
 
     /**
      * @inheritdoc IRequestWithdrawable
      */
-    function cancelRedeemRequest(uint256 shares)
+    function cancelRedeemRequest(
+        uint256 shares
+    )
         external
         onlyNotPaused
         onlyActivatedPool
@@ -569,7 +559,9 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     /**
      * @inheritdoc IRequestWithdrawable
      */
-    function cancelWithdrawRequest(uint256 assets)
+    function cancelWithdrawRequest(
+        uint256 assets
+    )
         external
         onlyNotPaused
         onlyActivatedPool
@@ -654,12 +646,9 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     /**
      * @inheritdoc IERC4626
      */
-    function convertToShares(uint256 assets)
-        public
-        view
-        override
-        returns (uint256 shares)
-    {
+    function convertToShares(
+        uint256 assets
+    ) public view override returns (uint256 shares) {
         shares = PoolLib.calculateSharesFromAssets(
             assets,
             totalAvailableSupply(),
@@ -671,12 +660,9 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     /**
      * @inheritdoc IERC4626
      */
-    function convertToAssets(uint256 shares)
-        public
-        view
-        override
-        returns (uint256 assets)
-    {
+    function convertToAssets(
+        uint256 shares
+    ) public view override returns (uint256 assets) {
         assets = PoolLib.calculateAssetsFromShares(
             shares,
             totalAvailableAssets(),
@@ -688,13 +674,9 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     /**
      * @inheritdoc IERC4626
      */
-    function maxDeposit(address)
-        public
-        view
-        virtual
-        override
-        returns (uint256)
-    {
+    function maxDeposit(
+        address
+    ) public view virtual override returns (uint256) {
         return
             PoolLib.calculateMaxDeposit(
                 poolController.state(),
@@ -706,12 +688,9 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     /**
      * @inheritdoc IERC4626
      */
-    function previewDeposit(uint256 assets)
-        public
-        view
-        override
-        returns (uint256 shares)
-    {
+    function previewDeposit(
+        uint256 assets
+    ) public view override returns (uint256 shares) {
         shares = PoolLib.calculateSharesFromAssets(
             assets,
             totalAvailableSupply(),
@@ -724,7 +703,10 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     /**
      * @inheritdoc IERC4626
      */
-    function deposit(uint256 assets, address receiver)
+    function deposit(
+        uint256 assets,
+        address receiver
+    )
         public
         virtual
         override
@@ -750,25 +732,18 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     /**
      * @inheritdoc IERC4626
      */
-    function maxMint(address receiver)
-        public
-        view
-        virtual
-        override
-        returns (uint256)
-    {
+    function maxMint(
+        address receiver
+    ) public view virtual override returns (uint256) {
         return previewDeposit(maxDeposit(receiver));
     }
 
     /**
      * @inheritdoc IERC4626
      */
-    function previewMint(uint256 shares)
-        public
-        view
-        override
-        returns (uint256 assets)
-    {
+    function previewMint(
+        uint256 shares
+    ) public view override returns (uint256 assets) {
         assets = PoolLib.calculateAssetsFromShares(
             shares,
             totalAvailableAssets() +
@@ -781,7 +756,10 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     /**
      * @inheritdoc IERC4626
      */
-    function mint(uint256 shares, address receiver)
+    function mint(
+        uint256 shares,
+        address receiver
+    )
         public
         virtual
         override
@@ -808,24 +786,18 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     /**
      * @inheritdoc IERC4626
      */
-    function maxWithdraw(address owner)
-        public
-        view
-        override
-        returns (uint256 assets)
-    {
+    function maxWithdraw(
+        address owner
+    ) public view override returns (uint256 assets) {
         assets = withdrawController.maxWithdraw(owner);
     }
 
     /**
      * @inheritdoc IERC4626
      */
-    function previewWithdraw(uint256 assets)
-        external
-        view
-        override
-        returns (uint256 shares)
-    {
+    function previewWithdraw(
+        uint256 assets
+    ) external view override returns (uint256 shares) {
         shares = withdrawController.previewWithdraw(msg.sender, assets);
     }
 
@@ -859,24 +831,18 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     /**
      * @inheritdoc IERC4626
      */
-    function maxRedeem(address owner)
-        public
-        view
-        override
-        returns (uint256 maxShares)
-    {
+    function maxRedeem(
+        address owner
+    ) public view override returns (uint256 maxShares) {
         maxShares = withdrawController.maxRedeem(owner);
     }
 
     /**
      * @inheritdoc IERC4626
      */
-    function previewRedeem(uint256 shares)
-        external
-        view
-        override
-        returns (uint256 assets)
-    {
+    function previewRedeem(
+        uint256 shares
+    ) external view override returns (uint256 assets) {
         assets = withdrawController.previewRedeem(msg.sender, shares);
     }
 
