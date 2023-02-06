@@ -15,7 +15,7 @@ library LoanLib {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
-    uint256 public constant RAY = 10 ** 27;
+    uint256 public constant RAY = 10**27;
 
     /**
      * @dev Emitted when loan is funded.
@@ -287,17 +287,19 @@ library LoanLib {
         emit CanceledLoanPrincipalReturned(pool, amount);
     }
 
-    function previewFirstLossFee(
-        uint256 payment,
-        uint256 firstLossFeeBps
-    ) public pure returns (uint256) {
+    function previewFirstLossFee(uint256 payment, uint256 firstLossFeeBps)
+        public
+        pure
+        returns (uint256)
+    {
         return RAY.mul(payment).mul(firstLossFeeBps).div(100_00).div(RAY);
     }
 
-    function previewServiceFee(
-        uint256 payment,
-        uint256 serviceFeeBps
-    ) public pure returns (uint256) {
+    function previewServiceFee(uint256 payment, uint256 serviceFeeBps)
+        public
+        pure
+        returns (uint256)
+    {
         return RAY.mul(payment).mul(serviceFeeBps).div(100_00).div(RAY);
     }
 

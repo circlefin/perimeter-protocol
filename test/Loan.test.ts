@@ -436,25 +436,33 @@ describe("Loan", () => {
       expect(await loan.state()).to.equal(2);
     });
 
-    it.only("updates the pool accountings to reflect the principal returned", async () => {
-      const { borrower, pool, liquidityAsset, loan, poolController, poolAdmin } =
-        await loadFixture(deployFixture);
+    it("updates the pool accountings to reflect the principal returned", async () => {
+      const {
+        borrower,
+        pool,
+        liquidityAsset,
+        loan,
+        poolController,
+        poolAdmin
+      } = await loadFixture(deployFixture);
       await collateralizeLoan(loan, borrower, liquidityAsset);
 
-      // Before funding, check that oustandingLoanPrincipals is zero 
+      // Before funding, check that oustandingLoanPrincipals is zero
       expect((await pool.accountings()).outstandingLoanPrincipals).to.equal(0);
 
-      // Fund loan 
+      // Fund loan
       await fundLoan(loan, poolController, poolAdmin);
 
-      // Check that outstandingLoanPrincipals in the pool reflects the loan principal 
-      expect((await pool.accountings()).outstandingLoanPrincipals).to.equal(await loan.principal());
+      // Check that outstandingLoanPrincipals in the pool reflects the loan principal
+      expect((await pool.accountings()).outstandingLoanPrincipals).to.equal(
+        await loan.principal()
+      );
 
-      // Cancel loan 
+      // Cancel loan
       await time.increaseTo(await loan.dropDeadTimestamp());
       await loan.connect(borrower).cancelFunded();
 
-      // Check that outstandingLoanPrincipals in the pool is back to zero 
+      // Check that outstandingLoanPrincipals in the pool is back to zero
       expect((await pool.accountings()).outstandingLoanPrincipals).to.equal(0);
     });
 
@@ -1642,11 +1650,11 @@ describe("Loan", () => {
         liquidityAsset,
         borrower,
         0 -
-        interestPayment -
-        principal -
-        originationFee -
-        firstLossFee +
-        prepaidPrincipal
+          interestPayment -
+          principal -
+          originationFee -
+          firstLossFee +
+          prepaidPrincipal
       );
       await expect(tx).to.changeTokenBalance(
         liquidityAsset,
