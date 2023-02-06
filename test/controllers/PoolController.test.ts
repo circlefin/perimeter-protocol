@@ -116,6 +116,36 @@ describe("PoolController", () => {
     };
   }
 
+  async function loadPoolFixtureWithServiceFee() {
+    const { poolAdmin, pauser, borrower, otherAccount } =
+      await getCommonSigners();
+    const { pool, poolController, liquidityAsset, serviceConfiguration } =
+      await deployPool({
+        poolAdmin,
+        settings: { serviceFeeBps: 500 },
+        pauser
+      });
+
+    const { loan } = await deployLoan(
+      pool.address,
+      borrower.address,
+      liquidityAsset.address,
+      serviceConfiguration
+    );
+
+    return {
+      pool,
+      poolController,
+      liquidityAsset,
+      poolAdmin,
+      borrower,
+      otherAccount,
+      loan,
+      serviceConfiguration,
+      pauser
+    };
+  }
+
   describe("setRequestFee()", () => {
     it("sets the request fee in Bps", async () => {
       const { poolController, poolAdmin } = await loadFixture(loadPoolFixture);
@@ -1379,6 +1409,80 @@ describe("PoolController", () => {
 
       const tx2 = poolController.connect(poolAdmin).claimFixedFee();
       await expect(tx2).to.changeTokenBalance(liquidityAsset, poolAdmin, 100);
+    });
+  });
+
+  describe("withdraw accumulated fees", () => {
+    it("claiming fees is only available to the pool admin", async () => {
+      const { poolController, otherAccount } = await loadFixture(
+        loadPoolFixtureWithServiceFee
+      );
+
+      const tx = poolController
+        .connect(otherAccount)
+        .withdrawFeeVault(1, otherAccount.address);
+      await expect(tx).to.be.revertedWith("Pool: caller is not admin");
+    });
+
+    it("reverts if the protocol is paused", async () => {
+      const { poolController, poolAdmin, serviceConfiguration, pauser } =
+        await loadFixture(loadPoolFixtureWithServiceFee);
+
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      const tx = poolController
+        .connect(poolAdmin)
+        .withdrawFeeVault(1, poolAdmin.address);
+      await expect(tx).to.be.revertedWith("Pool: Protocol paused");
+    });
+
+    it("can withdraw accumulated fees", async () => {
+      const {
+        pool,
+        loan,
+        borrower,
+        poolController,
+        otherAccount,
+        poolAdmin,
+        liquidityAsset
+      } = await loadFixture(loadPoolFixtureWithServiceFee);
+
+      // Make payments on a loan to accumulate fees in the feevault
+
+      // Fund loan + drawdown
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(pool, otherAccount, liquidityAsset, 1_000_000);
+      await fundLoan(loan, poolController, poolAdmin);
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      // Make first payment
+      await time.increase(await loan.paymentPeriod());
+
+      // 4166 interest payment
+      // with 5% service fee sliced off for the FeeVault == 208
+      await liquidityAsset.connect(borrower).approve(loan.address, 4166);
+      await loan.connect(borrower).completeNextPayment();
+
+      // Check that fees have accumulated...
+      const feeVaultAddr = await pool.feeVault();
+      const balance = await liquidityAsset.balanceOf(feeVaultAddr);
+      expect(balance).to.equal(208);
+
+      // Check that the PA can claim the fee
+      const txn = await poolController
+        .connect(poolAdmin)
+        .withdrawFeeVault(208, poolAdmin.address);
+      await expect(txn).to.not.be.reverted;
+
+      // Check that the fee moved from the vault to the PA
+      await expect(txn).to.changeTokenBalances(
+        liquidityAsset,
+        [poolAdmin.address, feeVaultAddr],
+        [+208, -208]
+      );
+
+      // Vault should now be empty
+      expect(await liquidityAsset.balanceOf(feeVaultAddr)).to.equal(0);
     });
   });
 
