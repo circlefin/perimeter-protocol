@@ -548,14 +548,7 @@ library PoolLib {
         IPoolWithdrawState memory state,
         uint256 requestCancellationFeeBps
     ) public pure returns (uint256) {
-        uint256 sharesRemaining = state.requestedShares + state.eligibleShares;
-
-        uint256 sharesFee = calculateCancellationFee(
-            sharesRemaining,
-            requestCancellationFeeBps
-        );
-
-        return Math.max(sharesRemaining - sharesFee, 0);
+        return state.requestedShares + state.eligibleShares;
     }
 
     /**
