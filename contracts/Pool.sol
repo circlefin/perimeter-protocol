@@ -596,7 +596,6 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
             "Pool: InsufficientBalance"
         );
         uint256 feeShares = poolController.requestCancellationFee(shares);
-
         _burn(owner, feeShares);
         withdrawController.performRequestCancellation(owner, shares);
 

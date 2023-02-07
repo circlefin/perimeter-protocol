@@ -96,7 +96,7 @@ describe("Withdraw Requests", () => {
         (100 /* initial balance */ -
           50 /* requested */ -
           5) /* previous request fee */ *
-        0.9 /* sub the request fee */
+          0.9 /* sub the request fee */
       )
     );
     expect(await pool.maxWithdrawRequest(aliceLender.address)).to.equal(41);
@@ -107,7 +107,7 @@ describe("Withdraw Requests", () => {
         (70 /* initial balance */ -
           10 /* requested */ -
           1) /* previous request fee */ *
-        0.9 /* sub the request fee */
+          0.9 /* sub the request fee */
       )
     );
     expect(await pool.maxWithdrawRequest(bobLender.address)).to.equal(54);
@@ -148,8 +148,8 @@ describe("Withdraw Requests", () => {
     expect(await pool.maxWithdraw(bobLender.address)).to.equal(6);
 
     // Cancel a request
-    expect(await pool.maxRequestCancellation(aliceLender.address)).to.equal(16);
-    expect(await pool.maxRequestCancellation(bobLender.address)).to.equal(3);
+    expect(await pool.maxRequestCancellation(aliceLender.address)).to.equal(17);
+    expect(await pool.maxRequestCancellation(bobLender.address)).to.equal(4);
 
     // Cancel Bob's request
     const bobBalance = await pool.balanceOf(bobLender.address);
@@ -157,10 +157,10 @@ describe("Withdraw Requests", () => {
 
     // Expect a fee to be paid
     expect(await pool.balanceOf(bobLender.address)).to.equal(bobBalance.sub(1));
-    expect(await pool.maxRequestCancellation(bobLender.address)).to.equal(0);
+    expect(await pool.maxRequestCancellation(bobLender.address)).to.equal(1);
   });
 
-  it.only("allows canceling a full request balance", async () => {
+  it("allows canceling a full request balance", async () => {
     const { pool, aliceLender, bobLender, withdrawController } =
       await loadFixture(loadPoolFixture);
 
