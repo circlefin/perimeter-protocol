@@ -96,7 +96,7 @@ describe("Withdraw Requests", () => {
         (100 /* initial balance */ -
           50 /* requested */ -
           5) /* previous request fee */ *
-          0.9 /* sub the request fee */
+        0.9 /* sub the request fee */
       )
     );
     expect(await pool.maxWithdrawRequest(aliceLender.address)).to.equal(41);
@@ -107,7 +107,7 @@ describe("Withdraw Requests", () => {
         (70 /* initial balance */ -
           10 /* requested */ -
           1) /* previous request fee */ *
-          0.9 /* sub the request fee */
+        0.9 /* sub the request fee */
       )
     );
     expect(await pool.maxWithdrawRequest(bobLender.address)).to.equal(54);
@@ -158,5 +158,25 @@ describe("Withdraw Requests", () => {
     // Expect a fee to be paid
     expect(await pool.balanceOf(bobLender.address)).to.equal(bobBalance.sub(1));
     expect(await pool.maxRequestCancellation(bobLender.address)).to.equal(0);
+  });
+
+  it.only("allows canceling a full request balance", async () => {
+    const { pool, aliceLender, bobLender, withdrawController } =
+      await loadFixture(loadPoolFixture);
+
+    // Alice requests full redemption
+    await pool.connect(aliceLender).requestRedeem(
+      await pool.maxRedeemRequest(aliceLender.address)
+    );
+    expect(await withdrawController.requestedBalanceOf(aliceLender.address)).to.equal(90);
+
+    // Check max request cancellation 
+    expect(await pool.maxRequestCancellation(aliceLender.address)).to.equal(89);
+
+    // Cancel request 
+    await pool.connect(aliceLender).cancelRedeemRequest(89);
+
+    // Check balance -- this fails. RequestedBalance is 1.
+    expect(await withdrawController.requestedBalanceOf(aliceLender.address)).to.equal(0)
   });
 });
