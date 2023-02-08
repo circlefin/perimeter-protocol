@@ -879,7 +879,7 @@ describe("PoolLib", () => {
       ).to.equal(72);
     });
 
-    it("returns the number of shares minus fees", async () => {
+    it("returns the number of shares irrespective of fees ", async () => {
       const { poolLibWrapper } = await loadFixture(deployFixture);
 
       const fees = 1200; // 12%
@@ -892,7 +892,7 @@ describe("PoolLib", () => {
 
       expect(
         await poolLibWrapper.calculateMaxCancellation(withdrawState, fees)
-      ).to.equal(63);
+      ).to.equal(72);
     });
   });
 });

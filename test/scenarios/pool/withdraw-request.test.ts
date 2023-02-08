@@ -148,8 +148,8 @@ describe("Withdraw Requests", () => {
     expect(await pool.maxWithdraw(bobLender.address)).to.equal(6);
 
     // Cancel a request
-    expect(await pool.maxRequestCancellation(aliceLender.address)).to.equal(16);
-    expect(await pool.maxRequestCancellation(bobLender.address)).to.equal(3);
+    expect(await pool.maxRequestCancellation(aliceLender.address)).to.equal(17);
+    expect(await pool.maxRequestCancellation(bobLender.address)).to.equal(4);
 
     // Cancel Bob's request
     const bobBalance = await pool.balanceOf(bobLender.address);
@@ -157,6 +157,34 @@ describe("Withdraw Requests", () => {
 
     // Expect a fee to be paid
     expect(await pool.balanceOf(bobLender.address)).to.equal(bobBalance.sub(1));
-    expect(await pool.maxRequestCancellation(bobLender.address)).to.equal(0);
+    expect(await pool.maxRequestCancellation(bobLender.address)).to.equal(1);
+  });
+
+  it("allows canceling a full request balance", async () => {
+    const { pool, aliceLender, bobLender, withdrawController } =
+      await loadFixture(loadPoolFixture);
+
+    // Alice requests full redemption
+    await pool
+      .connect(aliceLender)
+      .requestRedeem(await pool.maxRedeemRequest(aliceLender.address));
+    expect(
+      await withdrawController.requestedBalanceOf(aliceLender.address)
+    ).to.equal(90);
+
+    // Check max request cancellation
+    expect(await pool.maxRequestCancellation(aliceLender.address)).to.equal(90);
+
+    // Cancel request
+    const txn = await pool.connect(aliceLender).cancelRedeemRequest(90);
+
+    // Check that the cancellation burned a PT in fees
+    // 1% cancellation fee of 90 == 1 token
+    await expect(txn).to.changeTokenBalance(pool, aliceLender.address, -1);
+
+    // Check requested balance is now zeroed out
+    expect(
+      await withdrawController.requestedBalanceOf(aliceLender.address)
+    ).to.equal(0);
   });
 });
