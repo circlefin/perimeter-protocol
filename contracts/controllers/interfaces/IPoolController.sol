@@ -2,6 +2,7 @@
 pragma solidity ^0.8.16;
 
 import "../../interfaces/IPool.sol";
+import "../../interfaces/ILoan.sol";
 
 /**
  * @dev Expresses the various states a pool can be in throughout its lifecycle.
@@ -219,6 +220,16 @@ interface IPoolController {
      * from open-term loans.
      */
     function reclaimLoanFunds(address loan, uint256 amount) external;
+
+    /**
+     * @dev Called by the pool admin, this allows claiming loan collateral
+     * back to the PA.
+     */
+    function claimLoanCollateral(
+        address loan,
+        address[] memory assets,
+        ILoanNonFungibleCollateral[] memory nonFungibleAssets
+    ) external;
 
     /*//////////////////////////////////////////////////////////////
                 Fees

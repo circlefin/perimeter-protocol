@@ -7,7 +7,7 @@ import {
   depositToPool,
   progressWithdrawWindow
 } from "../support/pool";
-import { deployLoan, fundLoan } from "../support/loan";
+import { collateralizeLoan, deployLoan, fundLoan } from "../support/loan";
 import { getCommonSigners } from "../support/utils";
 import { performVeriteVerification } from "../support/verite";
 
@@ -58,7 +58,8 @@ describe("PermissionedPool", () => {
       otherAccount,
       thirdAccount,
       allowedLender,
-      openTermLoan
+      openTermLoan,
+      borrower
     };
   }
 
@@ -332,6 +333,85 @@ describe("PermissionedPool", () => {
         liquidityAsset,
         [fundingVault, pool.address],
         [-reclaimAmount, +reclaimAmount]
+      );
+    });
+  });
+
+  describe("claimLoanCollateral()", () => {
+    it("reverts if not allowed PA", async () => {
+      const {
+        poolAdmin,
+        poolAdminAccessControl,
+        poolController,
+        openTermLoan
+      } = await loadFixture(loadPoolFixture);
+
+      // Since the PA is already Verite-verified, advance until the credential expired
+      // The expiry is currently set to 1000 seconds
+      await time.increase(1000);
+      expect(await poolAdminAccessControl.isAllowed(poolAdmin.address)).to.be
+        .false;
+
+      await expect(
+        poolController
+          .connect(poolAdmin)
+          .claimLoanCollateral(openTermLoan.address, [], [])
+      ).to.be.rejectedWith("ADMIN_NOT_ALLOWED");
+    });
+
+    it("can reclaim collateral", async () => {
+      const {
+        poolAdmin,
+        borrower,
+        allowedLender,
+        liquidityAsset,
+        pool,
+        poolAdminAccessControl,
+        poolController,
+        openTermLoan
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(
+        pool,
+        allowedLender,
+        liquidityAsset,
+        await openTermLoan.principal()
+      );
+
+      // collateralize loan
+      const collateralAmount = 10;
+      await liquidityAsset.mint(borrower.address, collateralAmount);
+      await collateralizeLoan(
+        openTermLoan,
+        borrower,
+        liquidityAsset,
+        collateralAmount
+      );
+
+      // Fund loan
+      await fundLoan(openTermLoan, poolController, poolAdmin);
+
+      // Drawdown to activate it
+      await openTermLoan.connect(borrower).drawdown(1);
+
+      // Default loan
+      await poolController.connect(poolAdmin).defaultLoan(openTermLoan.address);
+
+      // PA can now claim collateral via PoolController
+      const txn = await poolController
+        .connect(poolAdmin)
+        .claimLoanCollateral(
+          openTermLoan.address,
+          [liquidityAsset.address],
+          []
+        );
+
+      const collateralLocker = await openTermLoan.collateralVault();
+      await expect(txn).to.changeTokenBalances(
+        liquidityAsset,
+        [collateralLocker, poolAdmin.address],
+        [-collateralAmount, +collateralAmount]
       );
     });
   });

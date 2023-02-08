@@ -518,55 +518,77 @@ describe("Loan", () => {
 
     describe("Permissions", () => {
       describe("Loan is Requested", () => {
-        it("reverts if called by PM or borrower", async () => {
-          const { loan, borrower, poolAdmin } = await loadFixture(
-            deployFixture
-          );
+        it("reverts if called by PM or borrower or other", async () => {
+          const { loan, borrower, poolAdmin, poolController, other } =
+            await loadFixture(deployFixture);
 
           expect(await loan.state()).to.equal(0); // Requested
 
           await expect(
-            loan.connect(poolAdmin).claimCollateral([], [])
+            poolController
+              .connect(poolAdmin)
+              .claimLoanCollateral(loan.address, [], [])
           ).to.be.revertedWith("Loan: unable to claim collateral");
 
           await expect(
             loan.connect(borrower).claimCollateral([], [])
           ).to.be.revertedWith("Loan: unable to claim collateral");
+
+          await expect(
+            loan.connect(other).claimCollateral([], [])
+          ).to.be.revertedWith("Loan: caller is not pool");
         });
       });
 
       describe("Loan is Collateralized", () => {
-        it("reverts if called by PM or borrower", async () => {
-          const { loan, poolAdmin, collateralAsset, borrower } =
-            await loadFixture(deployFixture);
+        it("reverts if called by PM or borrower or other", async () => {
+          const {
+            loan,
+            other,
+            poolController,
+            poolAdmin,
+            collateralAsset,
+            borrower
+          } = await loadFixture(deployFixture);
 
           // Post collateral
           await collateralizeLoan(loan, borrower, collateralAsset);
           expect(await loan.state()).to.equal(1); // Collateralized
 
           await expect(
-            loan.connect(poolAdmin).claimCollateral([], [])
+            poolController
+              .connect(poolAdmin)
+              .claimLoanCollateral(loan.address, [], [])
           ).to.be.revertedWith("Loan: unable to claim collateral");
 
           await expect(
             loan.connect(borrower).claimCollateral([], [])
           ).to.be.revertedWith("Loan: unable to claim collateral");
+
+          await expect(
+            loan.connect(other).claimCollateral([], [])
+          ).to.be.revertedWith("Loan: caller is not pool");
         });
       });
 
       describe("Loan is Canceled", () => {
-        it("reverts if called by PM", async () => {
-          const { loan, poolAdmin, borrower } = await loadFixture(
-            deployFixture
-          );
+        it("reverts if called by PM or other", async () => {
+          const { loan, other, poolController, poolAdmin, borrower } =
+            await loadFixture(deployFixture);
 
           // cancel loan
           await loan.connect(borrower).cancelRequested();
           expect(await loan.state()).to.equal(2); // canceled
 
           await expect(
-            loan.connect(poolAdmin).claimCollateral([], [])
+            poolController
+              .connect(poolAdmin)
+              .claimLoanCollateral(loan.address, [], [])
           ).to.be.revertedWith("Loan: unable to claim collateral");
+
+          await expect(
+            loan.connect(other).claimCollateral([], [])
+          ).to.be.revertedWith("Loan: caller is not pool");
         });
 
         it("does not revert if called by the borrower", async () => {
@@ -582,9 +604,15 @@ describe("Loan", () => {
       });
 
       describe("Loan is funded", () => {
-        it("reverts if called by PM or borrower", async () => {
-          const { loan, poolAdmin, poolController, borrower, collateralAsset } =
-            await loadFixture(deployFixture);
+        it("reverts if called by PM or borrower or other", async () => {
+          const {
+            loan,
+            other,
+            poolAdmin,
+            poolController,
+            borrower,
+            collateralAsset
+          } = await loadFixture(deployFixture);
 
           // collateralize and fund loan
           await collateralizeLoan(loan, borrower, collateralAsset);
@@ -592,19 +620,31 @@ describe("Loan", () => {
           expect(await loan.state()).to.equal(4); // funded
 
           await expect(
-            loan.connect(poolAdmin).claimCollateral([], [])
+            poolController
+              .connect(poolAdmin)
+              .claimLoanCollateral(loan.address, [], [])
           ).to.be.revertedWith("Loan: unable to claim collateral");
 
           await expect(
             loan.connect(borrower).claimCollateral([], [])
           ).to.be.revertedWith("Loan: unable to claim collateral");
+
+          await expect(
+            loan.connect(other).claimCollateral([], [])
+          ).to.be.revertedWith("Loan: caller is not pool");
         });
       });
 
       describe("Loan is Defaulted", () => {
-        it("reverts if called by the borrower", async () => {
-          const { loan, poolAdmin, poolController, borrower, collateralAsset } =
-            await loadFixture(deployFixture);
+        it("reverts if called by the borrower or other", async () => {
+          const {
+            loan,
+            other,
+            poolAdmin,
+            poolController,
+            borrower,
+            collateralAsset
+          } = await loadFixture(deployFixture);
 
           // fund loan and default it
           await collateralizeLoan(loan, borrower, collateralAsset);
@@ -616,6 +656,10 @@ describe("Loan", () => {
           await expect(
             loan.connect(borrower).claimCollateral([], [])
           ).to.be.revertedWith("Loan: unable to claim collateral");
+
+          await expect(
+            loan.connect(other).claimCollateral([], [])
+          ).to.be.revertedWith("Loan: caller is not pool");
         });
 
         it("PM can attempt claim", async () => {
@@ -629,15 +673,19 @@ describe("Loan", () => {
           await poolController.connect(poolAdmin).defaultLoan(loan.address);
           expect(await loan.state()).to.equal(3); // defaulted
 
-          await expect(loan.connect(poolAdmin).claimCollateral([], [])).to.not
-            .be.reverted;
+          await expect(
+            poolController
+              .connect(poolAdmin)
+              .claimLoanCollateral(loan.address, [], [])
+          ).to.not.be.reverted;
         });
       });
 
       describe("Loan is Matured", () => {
-        it("Reverts if called by PM", async () => {
+        it("Reverts if called by PM or other", async () => {
           const {
             loan,
+            other,
             poolAdmin,
             liquidityAsset,
             poolController,
@@ -653,8 +701,14 @@ describe("Loan", () => {
           expect(await loan.state()).to.equal(5); // matured
 
           await expect(
-            loan.connect(poolAdmin).claimCollateral([], [])
+            poolController
+              .connect(poolAdmin)
+              .claimLoanCollateral(loan.address, [], [])
           ).to.be.revertedWith("Loan: unable to claim collateral");
+
+          await expect(
+            loan.connect(other).claimCollateral([], [])
+          ).to.be.revertedWith("Loan: caller is not pool");
         });
 
         it("Allows borrower to claim collateral", async () => {

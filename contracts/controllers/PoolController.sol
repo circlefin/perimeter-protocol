@@ -523,8 +523,25 @@ contract PoolController is IPoolController, BeaconImplementation {
         onlyPermittedAdmin
         onlySnapshottedPool
     {
-        require(loan != address(0), "Pool: 0 address");
         ILoan(loan).reclaimFunds(amount);
+    }
+
+    /**
+     * @inheritdoc IPoolController
+     */
+    function claimLoanCollateral(
+        address loan,
+        address[] memory assets,
+        ILoanNonFungibleCollateral[] memory nonFungibleAssets
+    )
+        external
+        override
+        onlyNotPaused
+        onlyAdmin
+        onlyPermittedAdmin
+        onlySnapshottedPool
+    {
+        ILoan(loan).claimCollateral(assets, nonFungibleAssets);
     }
 
     /*//////////////////////////////////////////////////////////////

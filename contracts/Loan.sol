@@ -234,17 +234,21 @@ contract Loan is ILoan, BeaconImplementation {
         address[] memory assets,
         ILoanNonFungibleCollateral[] memory nonFungibleAssets
     ) external override onlyNotPaused {
+        address recipient;
         if (msg.sender == _borrower) {
             _checkBorrowerCanWithdrawCollateral();
+            recipient = _borrower;
         } else {
             // Only the PA or borrower can withdraw collateral.
-            _checkPACanWithdrawCollateral();
+            _checkPoolCanWithdrawCollateral();
+            recipient = IPool(_pool).admin();
         }
 
-        LoanLib.withdrawFungibleCollateral(collateralVault, assets);
+        LoanLib.withdrawFungibleCollateral(collateralVault, assets, recipient);
         LoanLib.withdrawNonFungibleCollateral(
             collateralVault,
-            nonFungibleAssets
+            nonFungibleAssets,
+            recipient
         );
     }
 
@@ -266,7 +270,11 @@ contract Loan is ILoan, BeaconImplementation {
     /**
      * @dev Internal check that a PA is eligible to withdraw collateral.
      */
-    function _checkPACanWithdrawCollateral() internal view onlyPoolAdmin {
+    function _checkPoolCanWithdrawCollateral()
+        internal
+        view
+        onlyPoolController
+    {
         require(
             _state == ILoanLifeCycleState.Defaulted,
             "Loan: unable to claim collateral"

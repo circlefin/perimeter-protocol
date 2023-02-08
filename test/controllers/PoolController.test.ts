@@ -1573,6 +1573,123 @@ describe("PoolController", () => {
     });
   });
 
+  describe("claimLoanCollateral()", async () => {
+    it("can only be called by the pool admin", async () => {
+      const { otherAccount, loan, poolController } = await loadFixture(
+        loadPoolFixture
+      );
+
+      await expect(
+        poolController
+          .connect(otherAccount)
+          .claimLoanCollateral(loan.address, [], [])
+      ).to.be.revertedWith("Pool: caller is not admin");
+    });
+
+    it("reverts if paused", async () => {
+      const { loan, poolController, poolAdmin, pauser, serviceConfiguration } =
+        await loadFixture(loadPoolFixture);
+
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      await expect(
+        poolController
+          .connect(poolAdmin)
+          .claimLoanCollateral(loan.address, [], [])
+      ).to.be.revertedWith("Pool: Protocol paused");
+    });
+
+    it("can claim collateral", async () => {
+      const {
+        poolAdmin,
+        borrower,
+        otherAccount,
+        liquidityAsset,
+        pool,
+        poolController,
+        loan
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        await loan.principal()
+      );
+
+      // collateralize loan
+      const collateralAmount = 10;
+      await liquidityAsset.mint(borrower.address, collateralAmount);
+      await collateralizeLoan(loan, borrower, liquidityAsset, collateralAmount);
+
+      // Fund loan
+      await fundLoan(loan, poolController, poolAdmin);
+
+      // Drawdown to activate it
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      // Default loan
+      await poolController.connect(poolAdmin).defaultLoan(loan.address);
+
+      // PA can now claim collateral via PoolController
+      const txn = await poolController
+        .connect(poolAdmin)
+        .claimLoanCollateral(loan.address, [liquidityAsset.address], []);
+
+      const collateralLocker = await loan.collateralVault();
+      await expect(txn).to.changeTokenBalances(
+        liquidityAsset,
+        [collateralLocker, poolAdmin.address],
+        [-collateralAmount, +collateralAmount]
+      );
+    });
+
+    it("triggers a snapshot of the pool", async () => {
+      const {
+        poolAdmin,
+        borrower,
+        otherAccount,
+        liquidityAsset,
+        pool,
+        poolController,
+        loan
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        await loan.principal()
+      );
+
+      // collateralize loan
+      const collateralAmount = 10;
+      await liquidityAsset.mint(borrower.address, collateralAmount);
+      await collateralizeLoan(loan, borrower, liquidityAsset, collateralAmount);
+
+      // Fund loan
+      await fundLoan(loan, poolController, poolAdmin);
+
+      // Drawdown to activate it
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      // Default loan
+      await poolController.connect(poolAdmin).defaultLoan(loan.address);
+
+      await time.increase(
+        (
+          await pool.settings()
+        ).withdrawRequestPeriodDuration
+      );
+      const txn = await poolController
+        .connect(poolAdmin)
+        .claimLoanCollateral(loan.address, [liquidityAsset.address], []);
+      await expect(txn).to.emit(pool, "PoolSnapshotted");
+    });
+  });
+
   describe("Upgrades", () => {
     it("Can be upgraded", async () => {
       const { poolController, poolLib, poolControllerFactory, deployer } =
