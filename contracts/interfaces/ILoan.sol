@@ -14,8 +14,7 @@ enum ILoanLifeCycleState {
     Defaulted,
     Funded,
     Matured,
-    Active,
-    Callback
+    Active
 }
 
 /**
