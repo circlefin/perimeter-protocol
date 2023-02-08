@@ -366,7 +366,6 @@ describe("PermissionedPool", () => {
         allowedLender,
         liquidityAsset,
         pool,
-        poolAdminAccessControl,
         poolController,
         openTermLoan
       } = await loadFixture(loadPoolFixture);
@@ -413,6 +412,69 @@ describe("PermissionedPool", () => {
         [collateralLocker, poolAdmin.address],
         [-collateralAmount, +collateralAmount]
       );
+    });
+  });
+
+  describe("cancelFundedLoan()", () => {
+    it("reverts if not allowed PA", async () => {
+      const {
+        poolAdmin,
+        poolAdminAccessControl,
+        poolController,
+        openTermLoan
+      } = await loadFixture(loadPoolFixture);
+
+      // Since the PA is already Verite-verified, advance until the credential expired
+      // The expiry is currently set to 1000 seconds
+      await time.increase(1000);
+      expect(await poolAdminAccessControl.isAllowed(poolAdmin.address)).to.be
+        .false;
+
+      await expect(
+        poolController.connect(poolAdmin).cancelFundedLoan(openTermLoan.address)
+      ).to.be.rejectedWith("ADMIN_NOT_ALLOWED");
+    });
+
+    it("can cancel loan if allowed PA", async () => {
+      const {
+        poolAdmin,
+        allowedLender,
+        liquidityAsset,
+        pool,
+        poolController,
+        openTermLoan,
+        poolAdminAccessControl,
+        operator
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(
+        pool,
+        allowedLender,
+        liquidityAsset,
+        await openTermLoan.principal()
+      );
+
+      // Fund loan
+      await fundLoan(openTermLoan, poolController, poolAdmin);
+      const dropDeadDate = await openTermLoan.dropDeadTimestamp();
+      const now = await time.latest();
+      if (now < dropDeadDate.toNumber()) {
+        await time.increaseTo(dropDeadDate);
+      }
+
+      // Re-verify PA
+      await performVeriteVerification(
+        poolAdminAccessControl,
+        operator,
+        poolAdmin
+      );
+
+      // Cancel loan
+      await poolController
+        .connect(poolAdmin)
+        .cancelFundedLoan(openTermLoan.address);
+      expect(await openTermLoan.state()).to.equal(2); // canceled
     });
   });
 });

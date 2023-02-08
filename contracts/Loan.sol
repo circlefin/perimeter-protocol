@@ -209,7 +209,8 @@ contract Loan is ILoan, BeaconImplementation {
         returns (ILoanLifeCycleState)
     {
         require(
-            msg.sender == _borrower || msg.sender == IPool(_pool).admin(),
+            msg.sender == _borrower ||
+                msg.sender == address(IPool(_pool).poolController()),
             "Loan: invalid caller"
         );
         require(

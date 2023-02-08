@@ -1690,6 +1690,96 @@ describe("PoolController", () => {
     });
   });
 
+  describe("cancelFundedLoan()", () => {
+    it("can only be called by the pool admin", async () => {
+      const { otherAccount, loan, poolController } = await loadFixture(
+        loadPoolFixture
+      );
+
+      await expect(
+        poolController.connect(otherAccount).cancelFundedLoan(loan.address)
+      ).to.be.revertedWith("Pool: caller is not admin");
+    });
+
+    it("reverts if paused", async () => {
+      const { loan, poolController, poolAdmin, pauser, serviceConfiguration } =
+        await loadFixture(loadPoolFixture);
+
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      await expect(
+        poolController.connect(poolAdmin).cancelFundedLoan(loan.address)
+      ).to.be.revertedWith("Pool: Protocol paused");
+    });
+
+    it("can cancel funded loan", async () => {
+      const {
+        poolAdmin,
+        otherAccount,
+        liquidityAsset,
+        pool,
+        poolController,
+        loan
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        await loan.principal()
+      );
+
+      // Fund loan
+      await fundLoan(loan, poolController, poolAdmin);
+
+      // Advance to drop dead date
+      // Note that
+      const dropDeadTimestamp = await loan.dropDeadTimestamp();
+      if ((await time.latest()) < dropDeadTimestamp.toNumber()) {
+        console.log(dropDeadTimestamp.toBigInt());
+        await time.increaseTo(dropDeadTimestamp.toBigInt());
+      }
+
+      // Cancel loan
+      await poolController.connect(poolAdmin).cancelFundedLoan(loan.address);
+      expect(await loan.state()).to.equal(2); // canceled
+    });
+
+    it("triggers a snapshot of the pool", async () => {
+      const {
+        poolAdmin,
+        borrower,
+        otherAccount,
+        liquidityAsset,
+        pool,
+        poolController,
+        loan
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        await loan.principal()
+      );
+
+      // Fund loan
+      await fundLoan(loan, poolController, poolAdmin);
+
+      await time.increase(
+        (
+          await pool.settings()
+        ).withdrawRequestPeriodDuration
+      );
+      const txn = await poolController
+        .connect(poolAdmin)
+        .cancelFundedLoan(loan.address);
+      await expect(txn).to.emit(pool, "PoolSnapshotted");
+    });
+  });
+
   describe("Upgrades", () => {
     it("Can be upgraded", async () => {
       const { poolController, poolLib, poolControllerFactory, deployer } =

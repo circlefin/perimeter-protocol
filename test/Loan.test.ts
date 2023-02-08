@@ -411,7 +411,9 @@ describe("Loan", () => {
       await collateralizeLoan(loan, borrower, liquidityAsset);
       await fundLoan(loan, poolController, poolAdmin);
       await time.increaseTo(await loan.dropDeadTimestamp());
-      await expect(loan.connect(poolAdmin).cancelFunded()).not.to.be.reverted;
+      await expect(
+        poolController.connect(poolAdmin).cancelFundedLoan(loan.address)
+      ).not.to.be.reverted;
     });
 
     it("can be called by borrower", async () => {

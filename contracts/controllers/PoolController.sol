@@ -544,6 +544,20 @@ contract PoolController is IPoolController, BeaconImplementation {
         ILoan(loan).claimCollateral(assets, nonFungibleAssets);
     }
 
+    /**
+     * @inheritdoc IPoolController
+     * @dev Note that the Loan enforces the paused state, so it's not added here.
+     */
+    function cancelFundedLoan(address loan)
+        external
+        override
+        onlyAdmin
+        onlyPermittedAdmin
+        onlySnapshottedPool
+    {
+        ILoan(loan).cancelFunded();
+    }
+
     /*//////////////////////////////////////////////////////////////
                                 Fees
     //////////////////////////////////////////////////////////////*/

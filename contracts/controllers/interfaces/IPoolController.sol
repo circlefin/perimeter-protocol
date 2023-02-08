@@ -231,6 +231,11 @@ interface IPoolController {
         ILoanNonFungibleCollateral[] memory nonFungibleAssets
     ) external;
 
+    /**
+     * @dev Called by the pool admin, this cancels a funded loan.
+     */
+    function cancelFundedLoan(address loan) external;
+
     /*//////////////////////////////////////////////////////////////
                 Fees
     //////////////////////////////////////////////////////////////*/
