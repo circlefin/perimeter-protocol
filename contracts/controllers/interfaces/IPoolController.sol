@@ -214,6 +214,12 @@ interface IPoolController {
      */
     function defaultLoan(address) external;
 
+    /**
+     * @dev Called by the pool admin, this allows reclaiming loan principal funds back to the pool
+     * from open-term loans.
+     */
+    function reclaimLoanFunds(address loan, uint256 amount) external;
+
     /*//////////////////////////////////////////////////////////////
                 Fees
     //////////////////////////////////////////////////////////////*/

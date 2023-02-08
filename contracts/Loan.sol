@@ -338,7 +338,7 @@ contract Loan is ILoan, BeaconImplementation {
     /**
      * @inheritdoc ILoan
      */
-    function reclaimFunds(uint256 amount) external onlyNotPaused onlyPoolAdmin {
+    function reclaimFunds(uint256 amount) external override onlyPoolController {
         require(settings.loanType == ILoanType.Open);
 
         fundingVault.withdrawERC20(liquidityAsset, amount, _pool);

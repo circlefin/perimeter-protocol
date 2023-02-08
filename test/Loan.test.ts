@@ -1133,6 +1133,16 @@ describe("Loan", () => {
     });
   });
 
+  describe("reclaimFunds()", () => {
+    it("reverts if not called by the poolController", async () => {
+      const { loan, poolAdmin } = await loadFixture(deployFixture);
+
+      await expect(loan.connect(poolAdmin).reclaimFunds(1)).to.be.revertedWith(
+        "Loan: caller is not pool"
+      );
+    });
+  });
+
   describe("payments", () => {
     it("reverts if the protocol is paused", async () => {
       const {
@@ -1683,9 +1693,9 @@ describe("Loan", () => {
       );
 
       // Pool Admin can then reclaim the funds
-      const reclaimFundsTx = loan
+      const reclaimFundsTx = poolController
         .connect(poolAdmin)
-        .reclaimFunds(prepaidPrincipal);
+        .reclaimLoanFunds(loan.address, prepaidPrincipal);
       await expect(reclaimFundsTx).to.not.be.reverted;
       await expect(reclaimFundsTx).to.changeTokenBalance(
         liquidityAsset,
@@ -1700,9 +1710,9 @@ describe("Loan", () => {
 
       // Pause protocol
       await serviceConfiguration.connect(pauser).setPaused(true);
-      await expect(loan.connect(poolAdmin).reclaimFunds(0)).to.be.revertedWith(
-        "Loan: Protocol paused"
-      );
+      await expect(
+        poolController.connect(poolAdmin).reclaimLoanFunds(loan.address, 0)
+      ).to.be.revertedWith("Pool: Protocol paused");
     });
 
     it("reverts if protocol paused when calling reclaimFunds", async () => {
@@ -1736,8 +1746,39 @@ describe("Loan", () => {
       await serviceConfiguration.connect(pauser).setPaused(true);
 
       // Reclaim funds
+      await expect(
+        poolController.connect(poolAdmin).reclaimLoanFunds(loan.address, 0)
+      ).to.be.revertedWith("Pool: Protocol paused");
+    });
+
+    it("reverts if not called by PoolController", async () => {
+      const {
+        borrower,
+        collateralAsset,
+        liquidityAsset,
+        loan,
+        poolController,
+        poolAdmin
+      } = await deployFixtureOpenTerm();
+
+      // Setup
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await loan
+        .connect(borrower)
+        .postFungibleCollateral(collateralAsset.address, 100);
+      await poolController.connect(poolAdmin).fundLoan(loan.address);
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      // Repay some of the principal
+      const prepaidPrincipal = 1_000;
+      await liquidityAsset
+        .connect(borrower)
+        .approve(loan.address, prepaidPrincipal);
+      await loan.connect(borrower).paydownPrincipal(prepaidPrincipal);
+
+      // Reclaim funds should revert
       await expect(loan.connect(poolAdmin).reclaimFunds(0)).to.be.revertedWith(
-        "Loan: Protocol paused"
+        "Loan: caller is not pool"
       );
     });
 

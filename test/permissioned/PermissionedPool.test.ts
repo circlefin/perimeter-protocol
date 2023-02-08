@@ -7,6 +7,7 @@ import {
   depositToPool,
   progressWithdrawWindow
 } from "../support/pool";
+import { deployLoan, fundLoan } from "../support/loan";
 import { getCommonSigners } from "../support/utils";
 import { performVeriteVerification } from "../support/verite";
 
@@ -14,6 +15,7 @@ describe("PermissionedPool", () => {
   async function loadPoolFixture() {
     const {
       operator,
+      borrower,
       poolAdmin,
       otherAccount,
       aliceLender: thirdAccount,
@@ -25,7 +27,8 @@ describe("PermissionedPool", () => {
       poolAccessControl,
       poolAdminAccessControl,
       tosAcceptanceRegistry,
-      poolController
+      poolController,
+      serviceConfiguration
     } = await deployPermissionedPool({
       poolAdmin: poolAdmin
     });
@@ -35,6 +38,14 @@ describe("PermissionedPool", () => {
     await poolAccessControl
       .connect(poolAdmin)
       .allowParticipant(allowedLender.address);
+
+    const { loan: openTermLoan } = await deployLoan(
+      pool.address,
+      borrower.address,
+      liquidityAsset.address,
+      serviceConfiguration,
+      { loanType: 1 }
+    );
 
     return {
       operator,
@@ -46,7 +57,8 @@ describe("PermissionedPool", () => {
       poolAdmin,
       otherAccount,
       thirdAccount,
-      allowedLender
+      allowedLender,
+      openTermLoan
     };
   }
 
@@ -270,6 +282,56 @@ describe("PermissionedPool", () => {
       await expect(poolController.connect(poolAdmin).snapshot()).to.emit(
         pool,
         "PoolSnapshotted"
+      );
+    });
+  });
+
+  describe("reclaimLoanFunds()", () => {
+    it("reverts if not allowed PA", async () => {
+      const { poolAdmin, poolController, openTermLoan } = await loadFixture(
+        loadPoolFixture
+      );
+
+      // Since the PA is already Verite-verified, advance until the credential expired
+      // The expiry is currently set to 1000 seconds
+      await time.increase(1000);
+      await expect(
+        poolController
+          .connect(poolAdmin)
+          .reclaimLoanFunds(openTermLoan.address, 0)
+      ).to.be.rejectedWith("ADMIN_NOT_ALLOWED");
+    });
+
+    it("reclaims funds if allowed PA", async () => {
+      const {
+        pool,
+        poolAdmin,
+        allowedLender,
+        liquidityAsset,
+        poolController,
+        openTermLoan
+      } = await loadFixture(loadPoolFixture);
+
+      // Set up a funded open-term loan
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(
+        pool,
+        allowedLender,
+        liquidityAsset,
+        await openTermLoan.principal()
+      );
+      await fundLoan(openTermLoan, poolController, poolAdmin);
+
+      const reclaimAmount = 1;
+      const fundingVault = await openTermLoan.fundingVault();
+      const txn = await poolController
+        .connect(poolAdmin)
+        .reclaimLoanFunds(openTermLoan.address, reclaimAmount);
+      await expect(txn).to.not.be.reverted;
+      await expect(txn).to.changeTokenBalances(
+        liquidityAsset,
+        [fundingVault, pool.address],
+        [-reclaimAmount, +reclaimAmount]
       );
     });
   });

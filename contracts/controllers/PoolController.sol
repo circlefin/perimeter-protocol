@@ -512,6 +512,21 @@ contract PoolController is IPoolController, BeaconImplementation {
         );
     }
 
+    /**
+     * @inheritdoc IPoolController
+     */
+    function reclaimLoanFunds(address loan, uint256 amount)
+        external
+        override
+        onlyNotPaused
+        onlyAdmin
+        onlyPermittedAdmin
+        onlySnapshottedPool
+    {
+        require(loan != address(0), "Pool: 0 address");
+        ILoan(loan).reclaimFunds(amount);
+    }
+
     /*//////////////////////////////////////////////////////////////
                                 Fees
     //////////////////////////////////////////////////////////////*/

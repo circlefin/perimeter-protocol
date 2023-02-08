@@ -94,7 +94,9 @@ describe("Open Term Defaulted Loan Scenario", () => {
     );
 
     // PA reclaims the rest
-    await loan.connect(poolAdmin).reclaimFunds(500_000);
+    await poolController
+      .connect(poolAdmin)
+      .reclaimLoanFunds(loan.address, 500_000);
     expect((await pool.accountings()).outstandingLoanPrincipals).to.equal(0);
   });
 });
