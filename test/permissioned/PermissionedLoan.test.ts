@@ -141,6 +141,51 @@ describe("PermissionedLoan", () => {
     });
   });
 
+  describe("claimCollateral()", () => {
+    it("allows claiming collateral by the borrower if valid participant", async () => {
+      const {
+        loan,
+        borrower,
+        nftAsset,
+        poolAccessControl,
+        tosAcceptanceRegistry,
+        poolAdmin
+      } = await loadFixture(loadLoanFixture);
+
+      // Collateralize loan
+      await tosAcceptanceRegistry.connect(borrower).acceptTermsOfService();
+      await poolAccessControl
+        .connect(poolAdmin)
+        .allowParticipant(borrower.address);
+
+      const { tokenId } = await collateralizeLoanNFT(loan, borrower, nftAsset);
+      expect(await loan.state()).to.equal(1); // collateralized
+
+      // Advance to drop dead date, and cancel loan
+      await time.increaseTo(await loan.dropDeadTimestamp());
+      await loan.connect(borrower).cancelCollateralized();
+      expect(await loan.state()).to.equal(2); // canceled
+
+      expect(await nftAsset.ownerOf(tokenId)).to.equal(
+        await loan.collateralVault()
+      );
+      await expect(
+        loan.connect(borrower).claimCollateral(
+          [],
+          [
+            {
+              asset: nftAsset.address,
+              tokenId: tokenId
+            }
+          ]
+        )
+      ).to.not.be.reverted;
+
+      // Check that borrower now holds collateral
+      expect(await nftAsset.ownerOf(tokenId)).to.equal(borrower.address);
+    });
+  });
+
   describe("drawdown()", () => {
     it("allows drawing down for valid participants", async () => {
       const {
@@ -285,7 +330,7 @@ describe("PermissionedLoan", () => {
     });
 
     describe("claimCollateral()", () => {
-      it.only("reverts if borrower not an allowed participant", async () => {
+      it("reverts if borrower not an allowed participant", async () => {
         const {
           loan,
           borrower,
