@@ -419,11 +419,7 @@ contract Loan is ILoan, BeaconImplementation {
             _fees
         );
 
-        LoanLib.completePayment(
-            liquidityAsset,
-            _pool,
-            _fees.interestPayment + _fees.latePaymentFee
-        );
+        LoanLib.completePayment(liquidityAsset, _pool, _fees.interestPayment);
         paymentsRemaining -= 1;
         paymentDueDate += settings.paymentPeriod * 1 days;
         return payment;

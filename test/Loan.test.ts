@@ -1307,12 +1307,15 @@ describe("Loan", () => {
       await expect(tx).to.not.be.reverted;
       await expect(tx).to.changeTokenBalance(liquidityAsset, borrower, -3083);
       await expect(tx).to.changeTokenBalance(liquidityAsset, pool, 1979);
-      await expect(tx).to.changeTokenBalance(liquidityAsset, firstLoss, 104 + 1000);
+      await expect(tx).to.changeTokenBalance(
+        liquidityAsset,
+        firstLoss,
+        104 + 1000
+      );
       expect(await loan.paymentsRemaining()).to.equal(5);
       const newDueDate = await loan.paymentDueDate();
       expect(newDueDate).to.equal(dueDate.add(THIRTY_DAYS));
     });
-
 
     it("can payoff the entire loan at once", async () => {
       const {
@@ -1723,11 +1726,11 @@ describe("Loan", () => {
         liquidityAsset,
         borrower,
         0 -
-        interestPayment -
-        principal -
-        originationFee -
-        firstLossFee +
-        prepaidPrincipal
+          interestPayment -
+          principal -
+          originationFee -
+          firstLossFee +
+          prepaidPrincipal
       );
       await expect(tx).to.changeTokenBalance(
         liquidityAsset,

@@ -375,7 +375,7 @@ library LoanLib {
             IERC20(asset).safeTransferFrom(
                 msg.sender,
                 firstLossVault,
-                fees.firstLossFee
+                fees.firstLossFee + fees.latePaymentFee
             );
         }
 
