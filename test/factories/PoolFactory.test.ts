@@ -197,6 +197,18 @@ describe("PoolFactory", () => {
     await expect(tx).to.be.revertedWith("PoolFactory: Protocol paused");
   });
 
+  it("reverts if serviceFeeBps exceeds 100%", async () => {
+    const { poolFactory, liquidityAsset } = await loadFixture(deployFixture);
+
+    // Attempt to create a pool with > 100% withdraw gate
+    const poolSettings = Object.assign({}, DEFAULT_POOL_SETTINGS, {
+      serviceFeeBps: 10_001
+    });
+
+    const tx = poolFactory.createPool(liquidityAsset.address, poolSettings);
+    await expect(tx).to.be.revertedWith("PoolFactory: Invalid service fee");
+  });
+
   it("emits PoolCreated", async () => {
     const { poolFactory, liquidityAsset } = await loadFixture(deployFixture);
 

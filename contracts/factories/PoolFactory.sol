@@ -90,6 +90,10 @@ contract PoolFactory is IPoolFactory, BeaconProxyFactory {
             "PoolFactory: Invalid request cancellation fee"
         );
         require(
+            settings.serviceFeeBps <= 10_000,
+            "PoolFactory: Invalid service fee"
+        );
+        require(
             _serviceConfiguration.isLiquidityAsset(liquidityAsset),
             "PoolFactory: invalid asset"
         );
