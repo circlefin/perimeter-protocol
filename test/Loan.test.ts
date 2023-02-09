@@ -1294,7 +1294,7 @@ describe("Loan", () => {
       await poolController.connect(poolAdmin).fundLoan(loan.address);
       await loan.connect(borrower).drawdown(await loan.principal());
 
-      // Advance time to drop dead timestamp
+      // Advance time to payment due date
       const foo = await loan.paymentDueDate();
       await time.increaseTo(foo.add(100));
 
@@ -1306,12 +1306,13 @@ describe("Loan", () => {
       const tx = loan.connect(borrower).completeNextPayment();
       await expect(tx).to.not.be.reverted;
       await expect(tx).to.changeTokenBalance(liquidityAsset, borrower, -3083);
-      await expect(tx).to.changeTokenBalance(liquidityAsset, pool, 1979 + 1000);
-      await expect(tx).to.changeTokenBalance(liquidityAsset, firstLoss, 104);
+      await expect(tx).to.changeTokenBalance(liquidityAsset, pool, 1979);
+      await expect(tx).to.changeTokenBalance(liquidityAsset, firstLoss, 104 + 1000);
       expect(await loan.paymentsRemaining()).to.equal(5);
       const newDueDate = await loan.paymentDueDate();
       expect(newDueDate).to.equal(dueDate.add(THIRTY_DAYS));
     });
+
 
     it("can payoff the entire loan at once", async () => {
       const {
@@ -1722,11 +1723,11 @@ describe("Loan", () => {
         liquidityAsset,
         borrower,
         0 -
-          interestPayment -
-          principal -
-          originationFee -
-          firstLossFee +
-          prepaidPrincipal
+        interestPayment -
+        principal -
+        originationFee -
+        firstLossFee +
+        prepaidPrincipal
       );
       await expect(tx).to.changeTokenBalance(
         liquidityAsset,
