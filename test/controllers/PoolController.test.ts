@@ -1750,7 +1750,6 @@ describe("PoolController", () => {
     it("triggers a snapshot of the pool", async () => {
       const {
         poolAdmin,
-        borrower,
         otherAccount,
         liquidityAsset,
         pool,
@@ -1807,7 +1806,7 @@ describe("PoolController", () => {
       const { poolAdmin, poolController, loan } = await loadFixture(
         loadPoolFixture
       );
-      let callbackTimestamp = await loan.callbackTimestamp();
+      const callbackTimestamp = await loan.callbackTimestamp();
       expect(callbackTimestamp).to.equal(0);
 
       await poolController.connect(poolAdmin).markLoanCallback(loan.address);
