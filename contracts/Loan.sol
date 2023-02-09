@@ -233,7 +233,7 @@ contract Loan is ILoan, BeaconImplementation {
             recipient = _borrower;
         } else {
             // Only the PA or borrower can withdraw collateral.
-            _checkPoolCanWithdrawCollateral();
+            _checkAdminCanWithdrawCollateral();
             recipient = IPool(_pool).admin();
         }
 
@@ -263,7 +263,7 @@ contract Loan is ILoan, BeaconImplementation {
     /**
      * @dev Internal check that a PA is eligible to withdraw collateral.
      */
-    function _checkPoolCanWithdrawCollateral()
+    function _checkAdminCanWithdrawCollateral()
         internal
         view
         onlyPoolController
