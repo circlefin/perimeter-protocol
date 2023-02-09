@@ -85,14 +85,6 @@ contract Loan is ILoan, BeaconImplementation {
         _;
     }
 
-    modifier onlyPoolAdmin() {
-        require(
-            msg.sender == IPool(_pool).admin(),
-            "Loan: caller is not pool admin"
-        );
-        _;
-    }
-
     /**
      * @dev Modifier that can be overriden by derived classes to enforce
      * access control.
