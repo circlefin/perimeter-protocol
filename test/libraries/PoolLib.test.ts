@@ -25,12 +25,12 @@ describe("PoolLib", () => {
         }
       }
     );
-    const poolLibWrapper = await PoolLibWrapper.deploy();
+    const liquidityAsset = (await deployMockERC20()).mockERC20;
+    await liquidityAsset.mint(caller.address, FIRST_LOSS_AMOUNT);
+
+    const poolLibWrapper = await PoolLibWrapper.deploy(liquidityAsset.address);
     await poolLibWrapper.deployed();
 
-    const liquidityAsset = (await deployMockERC20()).mockERC20;
-
-    await liquidityAsset.mint(caller.address, FIRST_LOSS_AMOUNT);
     await liquidityAsset
       .connect(caller)
       .approve(poolLibWrapper.address, FIRST_LOSS_AMOUNT);

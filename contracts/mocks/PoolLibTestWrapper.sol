@@ -13,6 +13,7 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
     using EnumerableSet for EnumerableSet.AddressSet;
 
+    address public asset;
     EnumerableSet.AddressSet private _activeLoans;
     IPoolAccountings private _accountings;
 
@@ -33,6 +34,10 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
         uint256 assets,
         uint256 shares
     );
+
+    constructor(address _asset) {
+        asset = _asset;
+    }
 
     function executeFirstLossDeposit(
         address liquidityAsset,
@@ -106,27 +111,27 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
     }
 
     function calculateTotalAssets(
-        address asset,
+        address asset_,
         address vault,
         uint256 outstandingLoanPrincipals
     ) external view returns (uint256) {
         return
             PoolLib.calculateTotalAssets(
-                asset,
+                asset_,
                 vault,
                 outstandingLoanPrincipals
             );
     }
 
     function calculateTotalAvailableAssets(
-        address asset,
+        address asset_,
         address vault,
         uint256 outstandingLoanPrincipals,
         uint256 withdrawableAssets
     ) external view returns (uint256) {
         return
             PoolLib.calculateTotalAvailableAssets(
-                asset,
+                asset_,
                 vault,
                 outstandingLoanPrincipals,
                 withdrawableAssets
@@ -173,7 +178,7 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
     }
 
     function executeDeposit(
-        address asset,
+        address asset_,
         address vault,
         address sharesReceiver,
         uint256 assets,
@@ -182,7 +187,7 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
     ) external returns (uint256) {
         return
             PoolLib.executeDeposit(
-                asset,
+                asset_,
                 vault,
                 sharesReceiver,
                 assets,

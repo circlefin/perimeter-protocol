@@ -25,6 +25,10 @@ contract VaultFactory is IVaultFactory, BeaconProxyFactory {
      * @inheritdoc IVaultFactory
      */
     function createVault(address owner) public override returns (address addr) {
+        require(
+            implementation != address(0),
+            "VaultFactory: no implementation set"
+        );
         BeaconProxy proxy = new BeaconProxy(
             address(this),
             abi.encodeWithSelector(

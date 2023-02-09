@@ -6,7 +6,7 @@ import { DEFAULT_LOAN_SETTINGS } from "../support/loan";
 import { getCommonSigners } from "../support/utils";
 import { deployMockERC20 } from "../support/erc20";
 
-describe("Loan", () => {
+describe("LoanFactory", () => {
   async function deployLoanFactoryFixture() {
     const { deployer, operator, pauser, poolAdmin, borrower } =
       await getCommonSigners();
