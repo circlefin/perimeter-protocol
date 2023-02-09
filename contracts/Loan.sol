@@ -138,6 +138,7 @@ contract Loan is ILoan, BeaconImplementation {
 
         LoanLib.validateLoan(
             _serviceConfiguration,
+            IPool(_pool),
             settings.duration,
             settings.paymentPeriod,
             settings.principal,

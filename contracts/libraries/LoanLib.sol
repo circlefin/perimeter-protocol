@@ -74,6 +74,7 @@ library LoanLib {
      */
     function validateLoan(
         IServiceConfiguration config,
+        IPool pool,
         uint256 duration,
         uint256 paymentPeriod,
         uint256 principal,
@@ -90,6 +91,10 @@ library LoanLib {
         require(
             config.isLiquidityAsset(liquidityAsset),
             "LoanLib: Liquidity asset not allowed"
+        );
+        require(
+            pool.asset() == liquidityAsset,
+            "LoanLib: Not allowed asset for pool"
         );
     }
 
