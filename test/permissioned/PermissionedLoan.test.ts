@@ -375,6 +375,49 @@ describe("PermissionedLoan", () => {
           )
         ).to.be.revertedWith("BORROWER_NOT_ALLOWED");
       });
+
+      it("borrower can claim collateral if allowed participant", async () => {
+        const {
+          loan,
+          borrower,
+          nftAsset,
+          poolAccessControl,
+          tosAcceptanceRegistry,
+          poolAdmin
+        } = await loadFixture(loadLoanFixture);
+
+        // Collateralize loan
+        await tosAcceptanceRegistry.connect(borrower).acceptTermsOfService();
+        await poolAccessControl
+          .connect(poolAdmin)
+          .allowParticipant(borrower.address);
+
+        const { tokenId } = await collateralizeLoanNFT(
+          loan,
+          borrower,
+          nftAsset
+        );
+        expect(await loan.state()).to.equal(1); // collateralized
+
+        // Advance to drop dead date, and cancel loan
+        await time.increaseTo(await loan.dropDeadTimestamp());
+        await loan.connect(borrower).cancelCollateralized();
+        expect(await loan.state()).to.equal(2); // canceled
+
+        await expect(
+          loan.connect(borrower).claimCollateral(
+            [],
+            [
+              {
+                asset: nftAsset.address,
+                tokenId: tokenId
+              }
+            ]
+          )
+        ).to.not.be.reverted;
+
+        expect(await nftAsset.ownerOf(tokenId)).to.equal(borrower.address);
+      });
     });
   });
 });
