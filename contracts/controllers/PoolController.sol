@@ -528,25 +528,19 @@ contract PoolController is IPoolController, BeaconImplementation {
 
     /**
      * @inheritdoc IPoolController
+     * @dev Note that the Loan enforces the non-paused state, so it's omitted here.
      */
     function claimLoanCollateral(
         address loan,
         address[] memory assets,
         ILoanNonFungibleCollateral[] memory nonFungibleAssets
-    )
-        external
-        override
-        onlyNotPaused
-        onlyAdmin
-        onlyPermittedAdmin
-        onlySnapshottedPool
-    {
+    ) external override onlyAdmin onlyPermittedAdmin onlySnapshottedPool {
         ILoan(loan).claimCollateral(assets, nonFungibleAssets);
     }
 
     /**
      * @inheritdoc IPoolController
-     * @dev Note that the Loan enforces the paused state, so it's not added here.
+     * @dev Note that the Loan enforces the non-paused state, so it's omitted here.
      */
     function cancelFundedLoan(address loan)
         external
@@ -564,6 +558,7 @@ contract PoolController is IPoolController, BeaconImplementation {
     function markLoanCallback(address loan)
         external
         override
+        onlyNotPaused
         onlyAdmin
         onlyPermittedAdmin
         onlySnapshottedPool

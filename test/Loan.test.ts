@@ -1599,14 +1599,16 @@ describe("Loan", () => {
     });
 
     it("reverts when protocol is paused", async () => {
-      const { loan, serviceConfiguration, pauser, poolAdmin } =
+      const { loan, poolController, serviceConfiguration, pauser, poolAdmin } =
         await loadFixture(deployFixture);
 
       // Pause protocol
       await serviceConfiguration.connect(pauser).setPaused(true);
 
-      const tx = loan.connect(poolAdmin).markCallback();
-      await expect(tx).to.be.revertedWith("Loan: Protocol paused");
+      const tx = poolController
+        .connect(poolAdmin)
+        .markLoanCallback(loan.address);
+      await expect(tx).to.be.revertedWith("Pool: Protocol paused");
     });
   });
 
