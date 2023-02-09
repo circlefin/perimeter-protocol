@@ -558,6 +558,19 @@ contract PoolController is IPoolController, BeaconImplementation {
         ILoan(loan).cancelFunded();
     }
 
+    /**
+     * @inheritdoc IPoolController
+     */
+    function markLoanCallback(address loan)
+        external
+        override
+        onlyAdmin
+        onlyPermittedAdmin
+        onlySnapshottedPool
+    {
+        ILoan(loan).markCallback();
+    }
+
     /*//////////////////////////////////////////////////////////////
                                 Fees
     //////////////////////////////////////////////////////////////*/

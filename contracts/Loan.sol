@@ -538,7 +538,7 @@ contract Loan is ILoan, BeaconImplementation {
     /**
      * @inheritdoc ILoan
      */
-    function markCallback() external override onlyNotPaused onlyPoolAdmin {
+    function markCallback() external override onlyNotPaused onlyPoolController {
         callbackTimestamp = block.timestamp;
     }
 

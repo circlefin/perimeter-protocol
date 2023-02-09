@@ -236,6 +236,12 @@ interface IPoolController {
      */
     function cancelFundedLoan(address loan) external;
 
+    /**
+     * @dev Called by the pool admin, this marks an open-term loan as being
+     * called back.
+     */
+    function markLoanCallback(address loan) external;
+
     /*//////////////////////////////////////////////////////////////
                 Fees
     //////////////////////////////////////////////////////////////*/

@@ -1572,13 +1572,17 @@ describe("Loan", () => {
   });
 
   describe("callbacks", () => {
-    it("can be called back by pool admin", async () => {
-      const { poolAdmin, loan } = await loadFixture(deployFixture);
+    it("can be called back by pool", async () => {
+      const { poolAdmin, poolController, loan } = await loadFixture(
+        deployFixture
+      );
 
       // Callback timestamp defaults to 0
       expect(await loan.callbackTimestamp()).to.equal(0);
 
-      const tx = loan.connect(poolAdmin).markCallback();
+      const tx = poolController
+        .connect(poolAdmin)
+        .markLoanCallback(loan.address);
       await expect(tx).not.to.be.reverted;
 
       // Callback timestamp should be set to latest block timestamp
@@ -1587,7 +1591,7 @@ describe("Loan", () => {
       expect(await loan.callbackTimestamp()).to.equal(now);
     });
 
-    it("can only be called back by pool admin", async () => {
+    it("reverts if called by other than pool", async () => {
       const { loan, other } = await loadFixture(deployFixture);
 
       const tx = loan.connect(other).markCallback();
