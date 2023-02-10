@@ -236,7 +236,15 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
         IPoolWithdrawState memory state,
         uint256 currentPeriod,
         uint256 cancelledShares
-    ) public pure returns (IPoolWithdrawState memory) {
+    )
+        public
+        pure
+        returns (
+            IPoolWithdrawState memory,
+            uint256,
+            uint256
+        )
+    {
         return
             PoolLib.calculateWithdrawStateForCancellation(
                 state,

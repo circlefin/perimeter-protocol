@@ -325,18 +325,22 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
         uint256 currentPeriod = withdrawPeriod();
 
         // Update the requested amount from the user
-        _withdrawState[owner] = PoolLib.calculateWithdrawStateForCancellation(
-            _currentWithdrawState(owner),
-            currentPeriod,
-            shares
-        );
+        uint256 canceledRequested;
+        uint256 canceledEligible;
+        (_withdrawState[owner], canceledRequested, canceledEligible) = PoolLib
+            .calculateWithdrawStateForCancellation(
+                _currentWithdrawState(owner),
+                currentPeriod,
+                shares
+            );
 
         // Update the global amount
-        _globalWithdrawState = PoolLib.calculateWithdrawStateForCancellation(
+        _globalWithdrawState = PoolLib.progressWithdrawState(
             _globalWithdrawState,
-            currentPeriod,
-            shares
+            currentPeriod
         );
+        _globalWithdrawState.requestedShares -= canceledRequested;
+        _globalWithdrawState.eligibleShares -= canceledEligible;
     }
 
     /*//////////////////////////////////////////////////////////////
