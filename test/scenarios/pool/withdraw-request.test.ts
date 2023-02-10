@@ -221,8 +221,8 @@ describe("Withdraw Requests", () => {
     ).to.equal(0);
   });
 
-  it.only("cancellations affect the global withdraw state consistently with the individuals", async () => {
-    const { pool, aliceLender, bobLender, withdrawController, liquidityAsset } =
+  it("cancellations affect the global withdraw state consistently with the individuals", async () => {
+    const { pool, aliceLender, bobLender, withdrawController } =
       await loadFixture(loadPoolFixtureNoFees);
     const { withdrawRequestPeriodDuration } = await pool.settings();
 

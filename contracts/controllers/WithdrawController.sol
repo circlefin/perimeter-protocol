@@ -8,6 +8,7 @@ import "../libraries/PoolLib.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "../upgrades/BeaconImplementation.sol";
+import "hardhat/console.sol";
 
 /**
  * @title A Pool's withdraw controller.
@@ -325,22 +326,29 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
         uint256 currentPeriod = withdrawPeriod();
 
         // Update the requested amount from the user
-        uint256 canceledRequested;
-        uint256 canceledEligible;
-        (_withdrawState[owner], canceledRequested, canceledEligible) = PoolLib
-            .calculateWithdrawStateForCancellation(
-                _currentWithdrawState(owner),
-                currentPeriod,
-                shares
-            );
+        IPoolWithdrawState memory lenderState = _currentWithdrawState(owner);
+        uint256 requestedSharesPrior = lenderState.requestedShares;
+        uint256 eligibleSharesPrior = lenderState.eligibleShares;
+
+        lenderState = PoolLib.calculateWithdrawStateForCancellation(
+            lenderState,
+            shares
+        );
+        _withdrawState[owner] = lenderState;
 
         // Update the global amount
+        // We adjust the requested and eligible balances based on the
+        // lenders adjusted state post-cancellation.
         _globalWithdrawState = PoolLib.progressWithdrawState(
             _globalWithdrawState,
             currentPeriod
         );
-        _globalWithdrawState.requestedShares -= canceledRequested;
-        _globalWithdrawState.eligibleShares -= canceledEligible;
+        _globalWithdrawState.requestedShares -=
+            requestedSharesPrior -
+            lenderState.requestedShares;
+        _globalWithdrawState.eligibleShares -=
+            eligibleSharesPrior -
+            lenderState.eligibleShares;
     }
 
     /*//////////////////////////////////////////////////////////////

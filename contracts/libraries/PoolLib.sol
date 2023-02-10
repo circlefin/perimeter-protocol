@@ -474,37 +474,23 @@ library PoolLib {
      */
     function calculateWithdrawStateForCancellation(
         IPoolWithdrawState memory state,
-        uint256 currentPeriod,
         uint256 cancelledShares
-    )
-        public
-        pure
-        returns (
-            IPoolWithdrawState memory updatedState,
-            uint256 canceledRequested,
-            uint256 canceledEligible
-        )
-    {
-        updatedState = progressWithdrawState(state, currentPeriod);
-
+    ) public pure returns (IPoolWithdrawState memory updatedState) {
+        updatedState = state;
         // Decrease the requested, eligible shares count, and ensure the "latestRequestPeriod"
         // is set to the current request period.
         if (updatedState.requestedShares > cancelledShares) {
-            canceledRequested = cancelledShares;
             updatedState.requestedShares -= cancelledShares;
             cancelledShares = 0;
         } else {
-            canceledRequested = updatedState.requestedShares;
             cancelledShares -= updatedState.requestedShares;
             updatedState.requestedShares = 0;
         }
 
         if (updatedState.eligibleShares > cancelledShares) {
-            canceledEligible = cancelledShares;
             updatedState.eligibleShares -= cancelledShares;
             cancelledShares = 0;
         } else {
-            canceledEligible = updatedState.eligibleShares;
             cancelledShares -= updatedState.eligibleShares;
             updatedState.eligibleShares = 0;
         }
