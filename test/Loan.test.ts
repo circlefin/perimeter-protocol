@@ -1317,6 +1317,60 @@ describe("Loan", () => {
       expect(newDueDate).to.equal(dueDate.add(THIRTY_DAYS));
     });
 
+    it("paying off the entire loan, late, incurs one late fee", async () => {
+      const {
+        borrower,
+        collateralAsset,
+        liquidityAsset,
+        loan,
+        pool,
+        poolController,
+        poolAdmin
+      } = await loadFixture(deployFixtureWithLateFees);
+
+      // Setup
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await loan
+        .connect(borrower)
+        .postFungibleCollateral(collateralAsset.address, 100);
+      await poolController.connect(poolAdmin).fundLoan(loan.address);
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      // Mint additional tokens to cover the interest payments + late fee
+      const interestWithLateFees = 12498 + 1000;
+      await liquidityAsset.mint(borrower.address, interestWithLateFees);
+
+      // Advance past payment due date
+      const dueDate = await loan.paymentDueDate();
+      await time.increaseTo(dueDate.add(100));
+
+      // Make payment
+      await liquidityAsset
+        .connect(borrower)
+        .approve(loan.address, interestWithLateFees + 500_000);
+      const tx = loan.connect(borrower).completeFullPayment();
+      await expect(tx).to.not.be.reverted;
+      await expect(tx).to.changeTokenBalance(
+        liquidityAsset,
+        borrower,
+        -12498 - 500_000 - 1000 // interest + principal + late fee
+      );
+      await expect(tx).to.changeTokenBalance(
+        liquidityAsset,
+        pool,
+        12498 + 500_000 - 624 // interest + principal - protocol-wide FL fee of 5%
+      );
+      const firstLoss = await pool.firstLossVault();
+      await expect(tx).to.changeTokenBalance(
+        liquidityAsset,
+        firstLoss,
+        624 + 1000 // protocol-wise FL fee + late fee
+      );
+
+      expect(await loan.paymentsRemaining()).to.equal(0);
+      expect(await loan.state()).to.equal(5);
+    });
+
     it("can payoff the entire loan at once", async () => {
       const {
         borrower,
