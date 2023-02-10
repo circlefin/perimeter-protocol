@@ -495,9 +495,7 @@ contract Loan is ILoan, BeaconImplementation {
         LoanLib.completePayment(
             liquidityAsset,
             _pool,
-            outstandingPrincipal.add(_fees.interestPayment).add(
-                _fees.latePaymentFee
-            )
+            outstandingPrincipal.add(_fees.interestPayment)
         );
         IPool(_pool).onLoanPrincipalReturned(outstandingPrincipal);
 
