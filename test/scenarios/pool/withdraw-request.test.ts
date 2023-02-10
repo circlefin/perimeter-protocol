@@ -28,6 +28,39 @@ describe("Withdraw Requests", () => {
 
     return {
       pool,
+      poolController,
+      liquidityAsset,
+      withdrawController,
+      poolAdmin,
+      aliceLender,
+      bobLender
+    };
+  }
+
+  async function loadPoolFixtureNoFees() {
+    const [poolAdmin, aliceLender, bobLender] = await ethers.getSigners();
+    const { pool, liquidityAsset, poolController, withdrawController } =
+      await deployPool({
+        poolAdmin: poolAdmin,
+        settings: {
+          requestCancellationFeeBps: 0,
+          requestFeeBps: 0,
+          withdrawGateBps: 0
+        }
+      });
+
+    // activate the pool
+    await activatePool(pool, poolAdmin, liquidityAsset);
+
+    // deposit 100 tokens from Alice
+    await depositToPool(pool, aliceLender, liquidityAsset, 100);
+
+    // deposit 100 tokens from Bob
+    await depositToPool(pool, bobLender, liquidityAsset, 100);
+
+    return {
+      pool,
+      poolController,
       liquidityAsset,
       withdrawController,
       poolAdmin,
@@ -186,5 +219,61 @@ describe("Withdraw Requests", () => {
     expect(
       await withdrawController.requestedBalanceOf(aliceLender.address)
     ).to.equal(0);
+  });
+
+  it.only("cancellations affect the global withdraw state consistently with the individuals", async () => {
+    const { pool, aliceLender, bobLender, withdrawController, liquidityAsset } =
+      await loadFixture(loadPoolFixtureNoFees);
+    const { withdrawRequestPeriodDuration } = await pool.settings();
+
+    expect(await pool.maxRedeemRequest(aliceLender.address)).to.equal(100);
+    expect(await pool.maxRedeemRequest(bobLender.address)).to.equal(100);
+
+    // Request half
+    await pool.connect(aliceLender).requestRedeem(50);
+    await pool.connect(bobLender).requestRedeem(50);
+
+    // Advance to next period
+    await time.increase(withdrawRequestPeriodDuration);
+
+    // Request other half
+    await pool.connect(aliceLender).requestRedeem(50);
+    await pool.connect(bobLender).requestRedeem(50);
+
+    // We now expect each lender to have 50 requested and 50 eligible
+    expect(
+      await withdrawController.eligibleBalanceOf(aliceLender.address)
+    ).to.equal(50);
+    expect(
+      await withdrawController.requestedBalanceOf(aliceLender.address)
+    ).to.equal(50);
+
+    expect(
+      await withdrawController.eligibleBalanceOf(bobLender.address)
+    ).to.equal(50);
+    expect(
+      await withdrawController.requestedBalanceOf(bobLender.address)
+    ).to.equal(50);
+
+    // We expect the global requested balance and the global eligible balance to be 100 and 100
+    expect(await withdrawController.totalRequestedBalance()).to.equal(100);
+    expect(await withdrawController.totalEligibleBalance()).to.equal(100);
+
+    // Alice now cancels the 100 shares (her full balance)
+    await pool.connect(aliceLender).cancelRedeemRequest(100);
+
+    // We expect her requested balance to be 0 and her eligible balance to be 0
+    expect(
+      await withdrawController.requestedBalanceOf(aliceLender.address)
+    ).to.equal(0);
+    expect(
+      await withdrawController.eligibleBalanceOf(aliceLender.address)
+    ).to.equal(0);
+
+    // Since Alice had 50 eligible and 50 requested, we should expect those same amounts
+    // to be decremented from the global withdraw state.
+    // So we expect the global state to now have 50 requested and 50 eligible
+    expect(await withdrawController.totalRequestedBalance()).to.equal(50);
+    expect(await withdrawController.totalEligibleBalance()).to.equal(50);
   });
 });
