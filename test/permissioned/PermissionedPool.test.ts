@@ -262,6 +262,7 @@ describe("PermissionedPool", () => {
 
       await pool.connect(allowedLender).requestRedeem(5);
       await progressWithdrawWindow(pool);
+      await pool.connect(allowedLender).claimSnapshots(allowedLender.address);
 
       await expect(
         pool
@@ -294,6 +295,7 @@ describe("PermissionedPool", () => {
 
       await pool.connect(allowedLender).requestRedeem(5);
       await progressWithdrawWindow(pool);
+      await pool.connect(allowedLender).claimSnapshots(allowedLender.address);
 
       await expect(
         pool

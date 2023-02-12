@@ -200,8 +200,15 @@ describe("Permissioned Business Scenario 3", () => {
 
     // +14 days, run the snapshot
     await advanceToDay(startTime, 14);
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderA);
     await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
     await pool.connect(lenderB).snapshot();
+    await pool.connect(lenderA).claimSnapshots(1);
+    await pool.connect(lenderB).claimSnapshots(1);
+    expect(await pool.maxRedeem(lenderA.address)).to.equal(283960890);
+    expect(await pool.maxRedeem(lenderB.address)).to.equal(425941335);
+    expect(await pool.maxWithdraw(lenderA.address)).to.equal(291666665);
+    expect(await pool.maxWithdraw(lenderB.address)).to.equal(437499998);
 
     // +18 days, complete payment made
     await advanceToDay(startTime, 18);
@@ -221,12 +228,14 @@ describe("Permissioned Business Scenario 3", () => {
     expect(await pool.maxWithdraw(lenderB.address)).to.equal(437499999);
 
     await pool.connect(lenderB).snapshot();
+    await pool.connect(lenderA).claimSnapshots(1);
+    await pool.connect(lenderB).claimSnapshots(1);
 
     // check balances after
     expect(await pool.maxRedeem(lenderA.address)).to.equal(195141980444);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(292712970667);
-    expect(await pool.maxWithdraw(lenderA.address)).to.equal(200729166665);
-    expect(await pool.maxWithdraw(lenderB.address)).to.equal(301093749998);
+    expect(await pool.maxWithdraw(lenderA.address)).to.equal(200729166664);
+    expect(await pool.maxWithdraw(lenderB.address)).to.equal(301093749997);
 
     // +22 days, lender A requests remaining PT redemption
     await advanceToDay(startTime, 22);
@@ -250,14 +259,17 @@ describe("Permissioned Business Scenario 3", () => {
     expect(await pool.maxRedeem(lenderA.address)).to.equal(5141980444);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(292712970667);
     expect(await pool.maxWithdraw(lenderA.address)).to.equal(5289202494);
-    expect(await pool.maxWithdraw(lenderB.address)).to.equal(301093749998);
+    expect(await pool.maxWithdraw(lenderB.address)).to.equal(301093749997);
 
     await pool.connect(lenderA).snapshot();
+    await pool.connect(lenderA).claimSnapshots(1);
+    await pool.connect(lenderB).claimSnapshots(1);
+
     // check balances after
     expect(await pool.maxRedeem(lenderA.address)).to.equal(235828499681);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(298694213967);
-    expect(await pool.maxWithdraw(lenderA.address)).to.equal(249504070965);
-    expect(await pool.maxWithdraw(lenderB.address)).to.equal(307425756528);
+    expect(await pool.maxWithdraw(lenderA.address)).to.equal(249504070964);
+    expect(await pool.maxWithdraw(lenderB.address)).to.equal(307425756525);
 
     // +29 days, lender B requests remaining PT redemption
     await advanceToDay(startTime, 29);
@@ -280,14 +292,17 @@ describe("Permissioned Business Scenario 3", () => {
     await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
     expect(await pool.maxRedeem(lenderA.address)).to.equal(235828499681);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(3694213967);
-    expect(await pool.maxWithdraw(lenderA.address)).to.equal(249504070965);
+    expect(await pool.maxWithdraw(lenderA.address)).to.equal(249504070964);
     expect(await pool.maxWithdraw(lenderB.address)).to.equal(3802204631);
 
     await pool.connect(lenderB).snapshot();
+    await pool.connect(lenderA).claimSnapshots(1);
+    await pool.connect(lenderB).claimSnapshots(1);
+
     // check balances after
     expect(await pool.maxRedeem(lenderA.address)).to.equal(261009487935);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(92442345077);
-    expect(await pool.maxWithdraw(lenderA.address)).to.equal(277192417683);
+    expect(await pool.maxWithdraw(lenderA.address)).to.equal(277192417681);
     expect(await pool.maxWithdraw(lenderB.address)).to.equal(101387295413);
 
     // +39 days, inspect results
@@ -298,21 +313,21 @@ describe("Permissioned Business Scenario 3", () => {
     await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
     expect(await pool.maxRedeem(lenderA.address)).to.equal(261009487935);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(92442345077);
-    expect(await pool.maxWithdraw(lenderA.address)).to.equal(277192417683);
+    expect(await pool.maxWithdraw(lenderA.address)).to.equal(277192417681);
     expect(await pool.maxWithdraw(lenderB.address)).to.equal(101387295413);
 
-    expect(await mockUSDC.balanceOf(lenderA.address)).to.equal(195439964171);
-    expect(await mockUSDC.balanceOf(lenderB.address)).to.equal(303623551897);
+    expect(await mockUSDC.balanceOf(lenderA.address)).to.equal(195439964170);
+    expect(await mockUSDC.balanceOf(lenderB.address)).to.equal(303623551894);
 
     // Sanity check that withdrawals can actually be done at advertised rate
     const txn1 = await pool
       .connect(lenderA)
-      .withdraw(277192417683, lenderA.address, lenderA.address);
+      .withdraw(277192417681, lenderA.address, lenderA.address);
     expect(txn1).to.changeTokenBalance(pool, lenderA.address, -261009487935);
     expect(txn1).to.changeTokenBalance(
       mockUSDC,
       lenderA.address,
-      +277192417683
+      +277192417681
     );
 
     const txn2 = await pool

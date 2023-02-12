@@ -157,6 +157,8 @@ describe("Withdraw Requests", () => {
 
     // snapshot it
     await pool.snapshot();
+    await pool.connect(aliceLender).claimSnapshots(1);
+    await pool.connect(bobLender).claimSnapshots(1);
 
     // 170 assets = 160 shares. 25% withdraw gate = 40
     expect(await withdrawController.totalRedeemableShares()).to.equal(40);
@@ -171,8 +173,8 @@ describe("Withdraw Requests", () => {
     // verify Alice's state is updated
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(
       33
-    ); /* 50 * (40/60) */
-    expect(await pool.maxWithdraw(aliceLender.address)).to.equal(34);
+    ); /* 50 * (40/60) = 33.33 rounded down */
+    expect(await pool.maxWithdraw(aliceLender.address)).to.equal(33);
 
     // verify Bob's state is updated
     expect(await pool.maxRedeem(bobLender.address)).to.equal(

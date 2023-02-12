@@ -89,13 +89,14 @@ describe("WithdrawController", () => {
       await time.increase(withdrawRequestPeriodDuration);
 
       await pool.connect(poolAdmin).snapshot();
+      await pool.connect(otherAccount).claimSnapshots(10);
 
       const balance = await pool.balanceOf(otherAccount.address);
       const redeemable = await pool.maxRedeem(otherAccount.address);
 
       expect(
         await withdrawController.interestBearingBalanceOf(otherAccount.address)
-      ).to.equal(48);
+      ).to.equal(47);
       expect(
         await withdrawController.interestBearingBalanceOf(otherAccount.address)
       ).to.equal(balance.sub(redeemable));
@@ -221,16 +222,18 @@ describe("WithdrawController", () => {
       await time.increase(withdrawRequestPeriodDuration);
       await pool.connect(poolAdmin).snapshot();
 
-      expect(await withdrawController.totalWithdrawableAssets()).to.equal(39);
+      expect(await withdrawController.totalWithdrawableAssets()).to.equal(40);
 
       // Redeem, expect it to decrement
+      await pool.connect(otherAccount).claimSnapshots(10);
+      await pool.connect(bob).claimSnapshots(10);
       await pool
         .connect(otherAccount)
-        .redeem(9, otherAccount.address, otherAccount.address);
+        .redeem(10, otherAccount.address, otherAccount.address);
       expect(await withdrawController.totalWithdrawableAssets()).to.equal(30);
 
-      await pool.connect(bob).redeem(29, bob.address, bob.address);
-      expect(await withdrawController.totalWithdrawableAssets()).to.equal(1); // snapshot dust
+      await pool.connect(bob).redeem(30, bob.address, bob.address);
+      expect(await withdrawController.totalWithdrawableAssets()).to.equal(0);
     });
   });
 
@@ -258,17 +261,19 @@ describe("WithdrawController", () => {
 
       await time.increase(withdrawRequestPeriodDuration);
       await pool.connect(poolAdmin).snapshot();
+      await pool.connect(bob).claimSnapshots(10);
+      await pool.connect(otherAccount).claimSnapshots(10);
 
-      expect(await withdrawController.totalRedeemableShares()).to.equal(39); // 30 + 10 - snapshot dust
+      expect(await withdrawController.totalRedeemableShares()).to.equal(40); // 30 + 10 - snapshot dust
 
       // redeem, and see that it's decremented
-      await pool.connect(bob).redeem(29, bob.address, bob.address);
+      await pool.connect(bob).redeem(30, bob.address, bob.address);
       expect(await withdrawController.totalRedeemableShares()).to.equal(10); // other account needs to redeem
 
       await pool
         .connect(otherAccount)
-        .redeem(9, otherAccount.address, otherAccount.address);
-      expect(await withdrawController.totalRedeemableShares()).to.equal(1); // snapshot dust
+        .redeem(10, otherAccount.address, otherAccount.address);
+      expect(await withdrawController.totalRedeemableShares()).to.equal(0);
     });
   });
 
