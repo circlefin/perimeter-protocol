@@ -436,6 +436,36 @@ describe("Loan", () => {
       expect(await loan.state()).to.equal(2);
     });
 
+    it("updates the pool accountings to reflect the principal returned", async () => {
+      const {
+        borrower,
+        pool,
+        liquidityAsset,
+        loan,
+        poolController,
+        poolAdmin
+      } = await loadFixture(deployFixture);
+      await collateralizeLoan(loan, borrower, liquidityAsset);
+
+      // Before funding, check that oustandingLoanPrincipals is zero
+      expect((await pool.accountings()).outstandingLoanPrincipals).to.equal(0);
+
+      // Fund loan
+      await fundLoan(loan, poolController, poolAdmin);
+
+      // Check that outstandingLoanPrincipals in the pool reflects the loan principal
+      expect((await pool.accountings()).outstandingLoanPrincipals).to.equal(
+        await loan.principal()
+      );
+
+      // Cancel loan
+      await time.increaseTo(await loan.dropDeadTimestamp());
+      await loan.connect(borrower).cancelFunded();
+
+      // Check that outstandingLoanPrincipals in the pool is back to zero
+      expect((await pool.accountings()).outstandingLoanPrincipals).to.equal(0);
+    });
+
     it("reverts if protocol is paused", async () => {
       const {
         serviceConfiguration,

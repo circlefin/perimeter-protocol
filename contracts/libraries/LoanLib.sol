@@ -7,6 +7,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import "../interfaces/ILoan.sol";
+import "../interfaces/IPool.sol";
 import "../interfaces/IServiceConfiguration.sol";
 import "../interfaces/IVault.sol";
 
@@ -282,6 +283,7 @@ library LoanLib {
         uint256 amount
     ) public {
         fundingVault.withdrawERC20(asset, amount, pool);
+        IPool(pool).onLoanPrincipalReturned(amount);
         emit CanceledLoanPrincipalReturned(pool, amount);
     }
 
