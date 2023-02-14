@@ -723,7 +723,6 @@ describe("PoolLib", () => {
       expect(
         await poolLibWrapper.calculateWithdrawStateForCancellation(
           withdrawState,
-          0,
           22
         )
       ).to.deep.equal(
@@ -745,11 +744,7 @@ describe("PoolLib", () => {
       });
 
       await expect(
-        poolLibWrapper.calculateWithdrawStateForCancellation(
-          withdrawState,
-          1,
-          33
-        )
+        poolLibWrapper.calculateWithdrawStateForCancellation(withdrawState, 33)
       ).to.be.revertedWith("Pool: Invalid cancelled shares");
     });
   });
