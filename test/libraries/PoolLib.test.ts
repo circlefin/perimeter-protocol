@@ -861,7 +861,6 @@ describe("PoolLib", () => {
     it("returns the number of shares the owner can cancel from a request", async () => {
       const { poolLibWrapper } = await loadFixture(deployFixture);
 
-      const fees = 0;
       const withdrawState = buildWithdrawState({
         requestedShares: 50,
         eligibleShares: 22,
@@ -870,23 +869,7 @@ describe("PoolLib", () => {
       });
 
       expect(
-        await poolLibWrapper.calculateMaxCancellation(withdrawState, fees)
-      ).to.equal(72);
-    });
-
-    it("returns the number of shares irrespective of fees ", async () => {
-      const { poolLibWrapper } = await loadFixture(deployFixture);
-
-      const fees = 1200; // 12%
-      const withdrawState = buildWithdrawState({
-        requestedShares: 50,
-        eligibleShares: 22,
-        redeemableShares: 28,
-        latestRequestPeriod: 2
-      });
-
-      expect(
-        await poolLibWrapper.calculateMaxCancellation(withdrawState, fees)
+        await poolLibWrapper.calculateMaxCancellation(withdrawState)
       ).to.equal(72);
     });
   });
