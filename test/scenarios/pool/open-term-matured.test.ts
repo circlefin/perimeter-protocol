@@ -99,7 +99,9 @@ describe("Open Term Matured Loan Scenario", () => {
     await loan.connect(borrower).drawdown(500_000);
 
     // pool admin reclaims the remaining 500k, check that accountings were updated
-    await loan.connect(poolAdmin).reclaimFunds(500_000);
+    await poolController
+      .connect(poolAdmin)
+      .reclaimLoanFunds(loan.address, 500_000);
     expect((await pool.accountings()).outstandingLoanPrincipals).to.equal(
       500_000
     );
@@ -128,7 +130,9 @@ describe("Open Term Matured Loan Scenario", () => {
       500_000
     );
     expect(await mockERC20.balanceOf(loan.fundingVault())).to.equal(500_000);
-    await loan.connect(poolAdmin).reclaimFunds(500_000);
+    await poolController
+      .connect(poolAdmin)
+      .reclaimLoanFunds(loan.address, 500_000);
     expect((await pool.accountings()).outstandingLoanPrincipals).to.equal(0);
   });
 });

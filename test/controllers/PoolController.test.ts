@@ -1486,6 +1486,354 @@ describe("PoolController", () => {
     });
   });
 
+  describe("reclaimLoanFunds()", async () => {
+    it("can only be called by the pool admin", async () => {
+      const { loan, borrower, poolController } = await loadFixture(
+        loadPoolFixture
+      );
+
+      await expect(
+        poolController.connect(borrower).reclaimLoanFunds(loan.address, 0)
+      ).to.be.revertedWith("Pool: caller is not admin");
+    });
+
+    it("reverts if paused", async () => {
+      const { loan, pauser, poolController, serviceConfiguration, poolAdmin } =
+        await loadFixture(loadPoolFixture);
+
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      await expect(
+        poolController.connect(poolAdmin).reclaimLoanFunds(loan.address, 0)
+      ).to.be.revertedWith("Pool: Protocol paused");
+    });
+
+    it("can reclaim funds", async () => {
+      const {
+        otherAccount,
+        pool,
+        poolController,
+        poolAdmin,
+        openTermLoan,
+        liquidityAsset
+      } = await loadFixture(loadPoolFixture);
+
+      // Set up Pool with open term loan
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        await openTermLoan.principal()
+      );
+      await fundLoan(openTermLoan, poolController, poolAdmin);
+
+      // Reclaim funds
+      const reclaimAmount = 10;
+      const txn = await poolController
+        .connect(poolAdmin)
+        .reclaimLoanFunds(openTermLoan.address, reclaimAmount);
+      const fundingVault = await openTermLoan.fundingVault();
+      await expect(txn).to.changeTokenBalances(
+        liquidityAsset,
+        [fundingVault, pool.address],
+        [-reclaimAmount, +reclaimAmount]
+      );
+    });
+
+    it("triggers a snapshot of the pool", async () => {
+      const {
+        otherAccount,
+        pool,
+        poolController,
+        poolAdmin,
+        openTermLoan,
+        liquidityAsset
+      } = await loadFixture(loadPoolFixture);
+
+      // Set up Pool with open term loan
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        await openTermLoan.principal()
+      );
+      await fundLoan(openTermLoan, poolController, poolAdmin);
+
+      // Reclaim funds and see if a snapshot was triggered
+      // Event is only emitted if a snapshot was actually taken
+      const snapshotPeriod = (await pool.settings())
+        .withdrawRequestPeriodDuration;
+      await time.increase(snapshotPeriod);
+      const txn = await poolController
+        .connect(poolAdmin)
+        .reclaimLoanFunds(openTermLoan.address, 0);
+      await expect(txn).to.emit(pool, "PoolSnapshotted");
+    });
+  });
+
+  describe("claimLoanCollateral()", async () => {
+    it("can only be called by the pool admin", async () => {
+      const { otherAccount, loan, poolController } = await loadFixture(
+        loadPoolFixture
+      );
+
+      await expect(
+        poolController
+          .connect(otherAccount)
+          .claimLoanCollateral(loan.address, [], [])
+      ).to.be.revertedWith("Pool: caller is not admin");
+    });
+
+    it("reverts if paused", async () => {
+      const { loan, poolController, poolAdmin, pauser, serviceConfiguration } =
+        await loadFixture(loadPoolFixture);
+
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      await expect(
+        poolController
+          .connect(poolAdmin)
+          .claimLoanCollateral(loan.address, [], [])
+      ).to.be.revertedWith("Pool: Protocol paused");
+    });
+
+    it("can claim collateral", async () => {
+      const {
+        poolAdmin,
+        borrower,
+        otherAccount,
+        liquidityAsset,
+        pool,
+        poolController,
+        loan
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        await loan.principal()
+      );
+
+      // collateralize loan
+      const collateralAmount = 10;
+      await liquidityAsset.mint(borrower.address, collateralAmount);
+      await collateralizeLoan(loan, borrower, liquidityAsset, collateralAmount);
+
+      // Fund loan
+      await fundLoan(loan, poolController, poolAdmin);
+
+      // Drawdown to activate it
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      // Default loan
+      await poolController.connect(poolAdmin).defaultLoan(loan.address);
+
+      // PA can now claim collateral via PoolController
+      const txn = await poolController
+        .connect(poolAdmin)
+        .claimLoanCollateral(loan.address, [liquidityAsset.address], []);
+
+      const collateralLocker = await loan.collateralVault();
+      await expect(txn).to.changeTokenBalances(
+        liquidityAsset,
+        [collateralLocker, poolAdmin.address],
+        [-collateralAmount, +collateralAmount]
+      );
+    });
+
+    it("triggers a snapshot of the pool", async () => {
+      const {
+        poolAdmin,
+        borrower,
+        otherAccount,
+        liquidityAsset,
+        pool,
+        poolController,
+        loan
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        await loan.principal()
+      );
+
+      // collateralize loan
+      const collateralAmount = 10;
+      await liquidityAsset.mint(borrower.address, collateralAmount);
+      await collateralizeLoan(loan, borrower, liquidityAsset, collateralAmount);
+
+      // Fund loan
+      await fundLoan(loan, poolController, poolAdmin);
+
+      // Drawdown to activate it
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      // Default loan
+      await poolController.connect(poolAdmin).defaultLoan(loan.address);
+
+      await time.increase(
+        (
+          await pool.settings()
+        ).withdrawRequestPeriodDuration
+      );
+      const txn = await poolController
+        .connect(poolAdmin)
+        .claimLoanCollateral(loan.address, [liquidityAsset.address], []);
+      await expect(txn).to.emit(pool, "PoolSnapshotted");
+    });
+  });
+
+  describe("cancelFundedLoan()", () => {
+    it("can only be called by the pool admin", async () => {
+      const { otherAccount, loan, poolController } = await loadFixture(
+        loadPoolFixture
+      );
+
+      await expect(
+        poolController.connect(otherAccount).cancelFundedLoan(loan.address)
+      ).to.be.revertedWith("Pool: caller is not admin");
+    });
+
+    it("reverts if paused", async () => {
+      const { loan, poolController, poolAdmin, pauser, serviceConfiguration } =
+        await loadFixture(loadPoolFixture);
+
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      await expect(
+        poolController.connect(poolAdmin).cancelFundedLoan(loan.address)
+      ).to.be.revertedWith("Pool: Protocol paused");
+    });
+
+    it("can cancel funded loan", async () => {
+      const {
+        poolAdmin,
+        otherAccount,
+        liquidityAsset,
+        pool,
+        poolController,
+        loan
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        await loan.principal()
+      );
+
+      // Fund loan
+      await fundLoan(loan, poolController, poolAdmin);
+
+      // Advance to drop dead date
+      // Note that depending on the subset of tests run, time.latest()
+      // can either be before or after the dropdead timestamp, hence this conditional.
+      const dropDeadTimestamp = await loan.dropDeadTimestamp();
+      if ((await time.latest()) < dropDeadTimestamp.toNumber()) {
+        console.log(dropDeadTimestamp.toBigInt());
+        await time.increaseTo(dropDeadTimestamp.toBigInt());
+      }
+
+      // Cancel loan
+      await poolController.connect(poolAdmin).cancelFundedLoan(loan.address);
+      expect(await loan.state()).to.equal(2); // canceled
+    });
+
+    it("triggers a snapshot of the pool", async () => {
+      const {
+        poolAdmin,
+        otherAccount,
+        liquidityAsset,
+        pool,
+        poolController,
+        loan
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        await loan.principal()
+      );
+
+      // Fund loan
+      await fundLoan(loan, poolController, poolAdmin);
+
+      await time.increase(
+        (
+          await pool.settings()
+        ).withdrawRequestPeriodDuration
+      );
+      const txn = await poolController
+        .connect(poolAdmin)
+        .cancelFundedLoan(loan.address);
+      await expect(txn).to.emit(pool, "PoolSnapshotted");
+    });
+  });
+
+  describe("markLoanCallback()", () => {
+    it("can only be called by the pool admin", async () => {
+      const { otherAccount, loan, poolController } = await loadFixture(
+        loadPoolFixture
+      );
+
+      await expect(
+        poolController.connect(otherAccount).markLoanCallback(loan.address)
+      ).to.be.revertedWith("Pool: caller is not admin");
+    });
+
+    it("reverts if paused", async () => {
+      const { loan, poolController, poolAdmin, pauser, serviceConfiguration } =
+        await loadFixture(loadPoolFixture);
+
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      await expect(
+        poolController.connect(poolAdmin).markLoanCallback(loan.address)
+      ).to.be.revertedWith("Pool: Protocol paused");
+    });
+
+    it("mark loan as called back", async () => {
+      const { poolAdmin, poolController, loan } = await loadFixture(
+        loadPoolFixture
+      );
+      const callbackTimestamp = await loan.callbackTimestamp();
+      expect(callbackTimestamp).to.equal(0);
+
+      await poolController.connect(poolAdmin).markLoanCallback(loan.address);
+      expect(await loan.callbackTimestamp()).to.be.greaterThan(
+        callbackTimestamp
+      );
+    });
+
+    it("triggers a snapshot of the pool", async () => {
+      const { poolAdmin, pool, poolController, liquidityAsset, loan } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      await time.increase(
+        (
+          await pool.settings()
+        ).withdrawRequestPeriodDuration
+      );
+
+      const txn = await poolController
+        .connect(poolAdmin)
+        .markLoanCallback(loan.address);
+      await expect(txn).to.emit(pool, "PoolSnapshotted");
+    });
+  });
+
   describe("Upgrades", () => {
     it("Can be upgraded", async () => {
       const { poolController, poolLib, poolControllerFactory, deployer } =

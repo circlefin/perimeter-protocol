@@ -85,14 +85,6 @@ contract Loan is ILoan, BeaconImplementation {
         _;
     }
 
-    modifier onlyPoolAdmin() {
-        require(
-            msg.sender == IPool(_pool).admin(),
-            "Loan: caller is not pool admin"
-        );
-        _;
-    }
-
     /**
      * @dev Modifier that can be overriden by derived classes to enforce
      * access control.
@@ -209,7 +201,8 @@ contract Loan is ILoan, BeaconImplementation {
         returns (ILoanLifeCycleState)
     {
         require(
-            msg.sender == _borrower || msg.sender == IPool(_pool).admin(),
+            msg.sender == _borrower ||
+                msg.sender == address(IPool(_pool).poolController()),
             "Loan: invalid caller"
         );
         require(
@@ -228,27 +221,56 @@ contract Loan is ILoan, BeaconImplementation {
     }
 
     /**
-     * @dev Claims specific collateral types. Can be called by the borrower
-     * (when Canceled or Matured) or by the PA (when Defaulted)
+     * @inheritdoc ILoan
      */
     function claimCollateral(
         address[] memory assets,
         ILoanNonFungibleCollateral[] memory nonFungibleAssets
     ) external override onlyNotPaused {
-        require(
-            (_state == ILoanLifeCycleState.Canceled &&
-                msg.sender == _borrower) ||
-                (_state == ILoanLifeCycleState.Defaulted &&
-                    msg.sender == IPool(_pool).admin()) ||
-                (_state == ILoanLifeCycleState.Matured &&
-                    msg.sender == _borrower),
-            "Loan: unable to claim collateral"
-        );
+        address recipient;
+        if (msg.sender == _borrower) {
+            _checkBorrowerCanWithdrawCollateral();
+            recipient = _borrower;
+        } else {
+            // Only the PA or borrower can withdraw collateral.
+            _checkAdminCanWithdrawCollateral();
+            recipient = IPool(_pool).admin();
+        }
 
-        LoanLib.withdrawFungibleCollateral(collateralVault, assets);
+        LoanLib.withdrawFungibleCollateral(collateralVault, assets, recipient);
         LoanLib.withdrawNonFungibleCollateral(
             collateralVault,
-            nonFungibleAssets
+            nonFungibleAssets,
+            recipient
+        );
+    }
+
+    /**
+     * @dev Internal check that a borrower is eligible to withdraw collateral.
+     */
+    function _checkBorrowerCanWithdrawCollateral()
+        internal
+        view
+        onlyPermittedBorrower
+    {
+        require(
+            _state == ILoanLifeCycleState.Canceled ||
+                _state == ILoanLifeCycleState.Matured,
+            "Loan: unable to claim collateral"
+        );
+    }
+
+    /**
+     * @dev Internal check that a PA is eligible to withdraw collateral.
+     */
+    function _checkAdminCanWithdrawCollateral()
+        internal
+        view
+        onlyPoolController
+    {
+        require(
+            _state == ILoanLifeCycleState.Defaulted,
+            "Loan: unable to claim collateral"
         );
     }
 
@@ -317,7 +339,7 @@ contract Loan is ILoan, BeaconImplementation {
     /**
      * @inheritdoc ILoan
      */
-    function reclaimFunds(uint256 amount) external onlyNotPaused onlyPoolAdmin {
+    function reclaimFunds(uint256 amount) external override onlyPoolController {
         require(settings.loanType == ILoanType.Open);
 
         fundingVault.withdrawERC20(liquidityAsset, amount, _pool);
@@ -508,7 +530,7 @@ contract Loan is ILoan, BeaconImplementation {
     /**
      * @inheritdoc ILoan
      */
-    function markCallback() external override onlyNotPaused onlyPoolAdmin {
+    function markCallback() external override onlyPoolController {
         callbackTimestamp = block.timestamp;
     }
 

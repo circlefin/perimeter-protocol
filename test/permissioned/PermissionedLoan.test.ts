@@ -1,4 +1,4 @@
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { deployMockERC20 } from "../support/erc20";
@@ -138,6 +138,51 @@ describe("PermissionedLoan", () => {
       postedNft = await loan.nonFungibleCollateral();
       expect(postedNft.length).to.equal(1);
       expect(postedNft[0].tokenId).to.equal(tokenId);
+    });
+  });
+
+  describe("claimCollateral()", () => {
+    it("allows claiming collateral by the borrower if valid participant", async () => {
+      const {
+        loan,
+        borrower,
+        nftAsset,
+        poolAccessControl,
+        tosAcceptanceRegistry,
+        poolAdmin
+      } = await loadFixture(loadLoanFixture);
+
+      // Collateralize loan
+      await tosAcceptanceRegistry.connect(borrower).acceptTermsOfService();
+      await poolAccessControl
+        .connect(poolAdmin)
+        .allowParticipant(borrower.address);
+
+      const { tokenId } = await collateralizeLoanNFT(loan, borrower, nftAsset);
+      expect(await loan.state()).to.equal(1); // collateralized
+
+      // Advance to drop dead date, and cancel loan
+      await time.increaseTo(await loan.dropDeadTimestamp());
+      await loan.connect(borrower).cancelCollateralized();
+      expect(await loan.state()).to.equal(2); // canceled
+
+      expect(await nftAsset.ownerOf(tokenId)).to.equal(
+        await loan.collateralVault()
+      );
+      await expect(
+        loan.connect(borrower).claimCollateral(
+          [],
+          [
+            {
+              asset: nftAsset.address,
+              tokenId: tokenId
+            }
+          ]
+        )
+      ).to.not.be.reverted;
+
+      // Check that borrower now holds collateral
+      expect(await nftAsset.ownerOf(tokenId)).to.equal(borrower.address);
     });
   });
 
@@ -281,6 +326,97 @@ describe("PermissionedLoan", () => {
         await expect(
           loan.connect(borrower).completeFullPayment()
         ).to.be.revertedWith("BORROWER_NOT_ALLOWED");
+      });
+    });
+
+    describe("claimCollateral()", () => {
+      it("reverts if borrower not an allowed participant", async () => {
+        const {
+          loan,
+          borrower,
+          nftAsset,
+          poolAccessControl,
+          tosAcceptanceRegistry,
+          poolAdmin
+        } = await loadFixture(loadLoanFixture);
+
+        // Collateralize loan
+        await tosAcceptanceRegistry.connect(borrower).acceptTermsOfService();
+        await poolAccessControl
+          .connect(poolAdmin)
+          .allowParticipant(borrower.address);
+
+        const { tokenId } = await collateralizeLoanNFT(
+          loan,
+          borrower,
+          nftAsset
+        );
+        expect(await loan.state()).to.equal(1); // collateralized
+
+        // Advance to drop dead date, and cancel loan
+        await time.increaseTo(await loan.dropDeadTimestamp());
+        await loan.connect(borrower).cancelCollateralized();
+        expect(await loan.state()).to.equal(2); // canceled
+
+        // Remove borrower from access control
+        await poolAccessControl
+          .connect(poolAdmin)
+          .removeParticipant(borrower.address);
+
+        await expect(
+          loan.connect(borrower).claimCollateral(
+            [],
+            [
+              {
+                asset: nftAsset.address,
+                tokenId: tokenId
+              }
+            ]
+          )
+        ).to.be.revertedWith("BORROWER_NOT_ALLOWED");
+      });
+
+      it("borrower can claim collateral if allowed participant", async () => {
+        const {
+          loan,
+          borrower,
+          nftAsset,
+          poolAccessControl,
+          tosAcceptanceRegistry,
+          poolAdmin
+        } = await loadFixture(loadLoanFixture);
+
+        // Collateralize loan
+        await tosAcceptanceRegistry.connect(borrower).acceptTermsOfService();
+        await poolAccessControl
+          .connect(poolAdmin)
+          .allowParticipant(borrower.address);
+
+        const { tokenId } = await collateralizeLoanNFT(
+          loan,
+          borrower,
+          nftAsset
+        );
+        expect(await loan.state()).to.equal(1); // collateralized
+
+        // Advance to drop dead date, and cancel loan
+        await time.increaseTo(await loan.dropDeadTimestamp());
+        await loan.connect(borrower).cancelCollateralized();
+        expect(await loan.state()).to.equal(2); // canceled
+
+        await expect(
+          loan.connect(borrower).claimCollateral(
+            [],
+            [
+              {
+                asset: nftAsset.address,
+                tokenId: tokenId
+              }
+            ]
+          )
+        ).to.not.be.reverted;
+
+        expect(await nftAsset.ownerOf(tokenId)).to.equal(borrower.address);
       });
     });
   });

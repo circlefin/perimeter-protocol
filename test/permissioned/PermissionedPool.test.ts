@@ -7,6 +7,7 @@ import {
   depositToPool,
   progressWithdrawWindow
 } from "../support/pool";
+import { deployLoan } from "../support/loan";
 import { getCommonSigners } from "../support/utils";
 import { performVeriteVerification } from "../support/verite";
 
@@ -14,6 +15,7 @@ describe("PermissionedPool", () => {
   async function loadPoolFixture() {
     const {
       operator,
+      borrower,
       poolAdmin,
       otherAccount,
       aliceLender: thirdAccount,
@@ -25,7 +27,8 @@ describe("PermissionedPool", () => {
       poolAccessControl,
       poolAdminAccessControl,
       tosAcceptanceRegistry,
-      poolController
+      poolController,
+      serviceConfiguration
     } = await deployPermissionedPool({
       poolAdmin: poolAdmin
     });
@@ -35,6 +38,14 @@ describe("PermissionedPool", () => {
     await poolAccessControl
       .connect(poolAdmin)
       .allowParticipant(allowedLender.address);
+
+    const { loan: openTermLoan } = await deployLoan(
+      pool.address,
+      borrower.address,
+      liquidityAsset.address,
+      serviceConfiguration,
+      { loanType: 1 }
+    );
 
     return {
       operator,
@@ -46,7 +57,9 @@ describe("PermissionedPool", () => {
       poolAdmin,
       otherAccount,
       thirdAccount,
-      allowedLender
+      allowedLender,
+      openTermLoan,
+      borrower
     };
   }
 

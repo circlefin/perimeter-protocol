@@ -512,6 +512,60 @@ contract PoolController is IPoolController, BeaconImplementation {
         );
     }
 
+    /**
+     * @inheritdoc IPoolController
+     */
+    function reclaimLoanFunds(address loan, uint256 amount)
+        external
+        override
+        onlyNotPaused
+        onlyAdmin
+        onlyPermittedAdmin
+        onlySnapshottedPool
+    {
+        ILoan(loan).reclaimFunds(amount);
+    }
+
+    /**
+     * @inheritdoc IPoolController
+     * @dev Note that the Loan enforces the non-paused state, so it's omitted here.
+     */
+    function claimLoanCollateral(
+        address loan,
+        address[] memory assets,
+        ILoanNonFungibleCollateral[] memory nonFungibleAssets
+    ) external override onlyAdmin onlyPermittedAdmin onlySnapshottedPool {
+        ILoan(loan).claimCollateral(assets, nonFungibleAssets);
+    }
+
+    /**
+     * @inheritdoc IPoolController
+     * @dev Note that the Loan enforces the non-paused state, so it's omitted here.
+     */
+    function cancelFundedLoan(address loan)
+        external
+        override
+        onlyAdmin
+        onlyPermittedAdmin
+        onlySnapshottedPool
+    {
+        ILoan(loan).cancelFunded();
+    }
+
+    /**
+     * @inheritdoc IPoolController
+     */
+    function markLoanCallback(address loan)
+        external
+        override
+        onlyNotPaused
+        onlyAdmin
+        onlyPermittedAdmin
+        onlySnapshottedPool
+    {
+        ILoan(loan).markCallback();
+    }
+
     /*//////////////////////////////////////////////////////////////
                                 Fees
     //////////////////////////////////////////////////////////////*/

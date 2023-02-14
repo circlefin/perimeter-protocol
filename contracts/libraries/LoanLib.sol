@@ -154,14 +154,15 @@ library LoanLib {
      */
     function withdrawFungibleCollateral(
         IVault collateralVault,
-        address[] memory collateralToWithdraw
+        address[] memory collateralToWithdraw,
+        address recipient
     ) external {
         for (uint256 i = 0; i < collateralToWithdraw.length; i++) {
             address asset = collateralToWithdraw[i];
 
             // Perform transfer
             uint256 amount = IERC20(asset).balanceOf(address(collateralVault));
-            collateralVault.withdrawERC20(asset, amount, msg.sender);
+            collateralVault.withdrawERC20(asset, amount, recipient);
             emit WithdrewCollateral(asset, amount);
         }
     }
@@ -171,14 +172,15 @@ library LoanLib {
      */
     function withdrawNonFungibleCollateral(
         IVault collateralVault,
-        ILoanNonFungibleCollateral[] memory collateralToWithdraw
+        ILoanNonFungibleCollateral[] memory collateralToWithdraw,
+        address recipient
     ) external {
         for (uint256 i = 0; i < collateralToWithdraw.length; i++) {
             ILoanNonFungibleCollateral memory wc = collateralToWithdraw[i];
             address asset = wc.asset;
             uint256 tokenId = wc.tokenId;
 
-            collateralVault.withdrawERC721(asset, tokenId, msg.sender);
+            collateralVault.withdrawERC721(asset, tokenId, recipient);
             emit WithdrewNonFungibleCollateral(asset, tokenId);
         }
     }
