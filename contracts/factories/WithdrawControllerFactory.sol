@@ -36,6 +36,10 @@ contract WithdrawControllerFactory is
             _serviceConfiguration.paused() == false,
             "WithdrawControllerFactory: Protocol paused"
         );
+        require(
+            implementation != address(0),
+            "WithdrawControllerFactory: no impl"
+        );
 
         BeaconProxy proxy = new BeaconProxy(
             address(this),

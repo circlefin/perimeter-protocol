@@ -898,6 +898,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         require(receiver == owner, "Pool: Withdrawal to unrelated address");
         require(receiver == msg.sender, "Pool: Must transfer to msg.sender");
         require(shares > 0, "Pool: 0 redeem not allowed");
+        require(maxRedeem(owner) >= shares, "Pool: InsufficientBalance");
 
         // Update the withdraw state
         assets = withdrawController.redeem(owner, shares);
