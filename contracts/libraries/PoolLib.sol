@@ -542,10 +542,11 @@ library PoolLib {
      * @dev Calculates the Maximum amount of shares that can be cancelled
      * from the current withdraw request.
      */
-    function calculateMaxCancellation(
-        IPoolWithdrawState memory state,
-        uint256 requestCancellationFeeBps
-    ) public pure returns (uint256) {
+    function calculateMaxCancellation(IPoolWithdrawState memory state)
+        public
+        pure
+        returns (uint256)
+    {
         return state.requestedShares + state.eligibleShares;
     }
 

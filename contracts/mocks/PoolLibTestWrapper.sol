@@ -272,11 +272,11 @@ contract PoolLibTestWrapper is ERC20("PoolLibTest", "PLT") {
             );
     }
 
-    function calculateMaxCancellation(
-        IPoolWithdrawState memory state,
-        uint256 requestCancellationFeeBps
-    ) public pure returns (uint256) {
-        return
-            PoolLib.calculateMaxCancellation(state, requestCancellationFeeBps);
+    function calculateMaxCancellation(IPoolWithdrawState memory state)
+        public
+        pure
+        returns (uint256)
+    {
+        return PoolLib.calculateMaxCancellation(state);
     }
 }

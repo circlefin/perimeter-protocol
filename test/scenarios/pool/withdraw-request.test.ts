@@ -194,8 +194,9 @@ describe("Withdraw Requests", () => {
   });
 
   it("allows canceling a full request balance", async () => {
-    const { pool, aliceLender, bobLender, withdrawController } =
-      await loadFixture(loadPoolFixture);
+    const { pool, aliceLender, withdrawController } = await loadFixture(
+      loadPoolFixture
+    );
 
     // Alice requests full redemption
     await pool
