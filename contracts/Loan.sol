@@ -504,7 +504,7 @@ contract Loan is ILoan, BeaconImplementation {
         _state = ILoanLifeCycleState.Matured;
 
         IPool(_pool).onLoanStateTransitioned();
-        return payment;
+        return outstandingPrincipal.add(_fees.interestPayment);
     }
 
     /**
