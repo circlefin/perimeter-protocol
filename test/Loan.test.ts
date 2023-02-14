@@ -1372,7 +1372,7 @@ describe("Loan", () => {
       expect(await loan.state()).to.equal(5);
     });
 
-    it.only("making the interest payments on time, but returning the principal late, should incur a late fee", async () => {
+    it("making the interest payments on time, but returning the principal late, should incur a late fee", async () => {
       const {
         borrower,
         collateralAsset,
@@ -1399,7 +1399,6 @@ describe("Loan", () => {
       let paymentDueDate = BigNumber.from(0);
       for (let i = 0; i < 6; i++) {
         paymentDueDate = await loan.paymentDueDate();
-        console.log(paymentDueDate);
         await time.increaseTo(paymentDueDate.sub(100));
 
         // Make payment
@@ -1415,9 +1414,14 @@ describe("Loan", () => {
       await time.increaseTo(paymentDueDate.add(100));
 
       // Approve principal + late fee
+      // Mint extra for the borrower to include the late fee
+      await liquidityAsset.mint(borrower.address, 1_000);
       await liquidityAsset
         .connect(borrower)
         .approve(loan.address, 500_000 + 1_000);
+      expect(
+        await liquidityAsset.balanceOf(borrower.address)
+      ).to.be.greaterThanOrEqual(500_000 + 1_000);
 
       const tx = await loan.connect(borrower).completeFullPayment();
       await expect(tx).to.not.be.reverted;
