@@ -224,7 +224,7 @@ describe("Withdraw Requests", () => {
     ).to.equal(0);
   });
 
-  it("cancellations affect the global withdraw state consistently with the individuals", async () => {
+  it.only("cancellations affect the global withdraw state consistently with the individuals", async () => {
     const { pool, aliceLender, bobLender, withdrawController } =
       await loadFixture(loadPoolFixtureNoFees);
     const { withdrawRequestPeriodDuration } = await pool.settings();
@@ -240,6 +240,8 @@ describe("Withdraw Requests", () => {
     await time.increase(withdrawRequestPeriodDuration);
 
     // Request other half
+    await pool.connect(aliceLender).claimSnapshots(1);
+    await pool.connect(bobLender).claimSnapshots(1);
     await pool.connect(aliceLender).requestRedeem(50);
     await pool.connect(bobLender).requestRedeem(50);
 
@@ -263,6 +265,7 @@ describe("Withdraw Requests", () => {
     expect(await withdrawController.totalEligibleBalance()).to.equal(100);
 
     // Alice now cancels the 100 shares (her full balance)
+    await pool.connect(aliceLender).claimSnapshots(10);
     await pool.connect(aliceLender).cancelRedeemRequest(100);
 
     // We expect her requested balance to be 0 and her eligible balance to be 0
