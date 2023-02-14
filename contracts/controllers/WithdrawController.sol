@@ -294,12 +294,10 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
      */
     function performRequest(address owner, uint256 shares) external onlyPool {
         IPoolWithdrawState memory _state = _currentWithdrawState(owner);
-        if (_state.requestedShares > 0 || _state.eligibleShares > 0) {
-            require(
-                !claimRequired(owner),
-                "WithdrawController: must claim snapshots first"
-            );
-        }
+        require(
+            !_claimRequired(_state),
+            "WithdrawController: must claim snapshots first"
+        );
 
         uint256 currentPeriod = withdrawPeriod();
 
@@ -458,9 +456,20 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
      */
     function claimRequired(address lender) public view returns (bool) {
         IPoolWithdrawState memory _state = _currentWithdrawState(lender);
+        return _claimRequired(_state);
+    }
+
+    /**
+     * @dev Internal function used to avoid duplicate calls to _currentWithdrawState.
+     */
+    function _claimRequired(IPoolWithdrawState memory state)
+        internal
+        view
+        returns (bool)
+    {
         return
-            _state.eligibleShares > 0 &&
-            _state.latestSnapshotPeriod <
+            state.eligibleShares > 0 &&
+            state.latestSnapshotPeriod <
             _globalWithdrawState.latestSnapshotPeriod;
     }
 
