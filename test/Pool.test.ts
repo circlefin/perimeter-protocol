@@ -593,6 +593,16 @@ describe("Pool", () => {
       ).to.be.revertedWith("WithdrawController: invalid limit");
     });
 
+    it("reverts if called by a non-lender", async () => {
+      const { pool, poolAdmin, liquidityAsset, otherAccount } =
+        await loadFixture(loadPoolFixture);
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      await expect(
+        pool.connect(otherAccount).claimSnapshots(0)
+      ).to.be.revertedWith("Pool: caller is not a lender");
+    });
+
     it("reverts if paused", async () => {
       const {
         pool,
