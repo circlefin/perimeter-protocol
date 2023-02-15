@@ -113,6 +113,24 @@ describe("Pool", () => {
       );
     });
 
+    it.only("returns 0 when the pool is paused", async () => {
+      const {
+        pool,
+        pauser,
+        serviceConfiguration,
+        poolAdmin,
+        otherAccount,
+        liquidityAsset
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      // Pause
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      expect(await pool.maxDeposit(otherAccount.address)).to.equal(0);
+    });
+
     it("returns the full pool capacity less totalAvailableAssets", async () => {
       const { pool, poolAdmin, otherAccount, liquidityAsset } =
         await loadFixture(loadPoolFixture);
@@ -320,6 +338,24 @@ describe("Pool", () => {
       expect(await pool.maxMint(otherAccount.address)).to.equal(
         DEFAULT_POOL_SETTINGS.maxCapacity
       );
+    });
+
+    it.only("returns 0 when the pool is paused", async () => {
+      const {
+        pool,
+        pauser,
+        serviceConfiguration,
+        poolAdmin,
+        otherAccount,
+        liquidityAsset
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      // Pause
+      await serviceConfiguration.connect(pauser).setPaused(true);
+
+      expect(await pool.maxMint(otherAccount.address)).to.equal(0);
     });
 
     it("returns the full pool capacity less totalAvailableAssets", async () => {
@@ -961,6 +997,44 @@ describe("Pool", () => {
 
         expect(await pool.maxRedeem(otherAccount.address)).to.equal(9); // 10 - snapshot dust
       });
+
+      it.only("returns 0 when the pool is paused", async () => {
+        const {
+          pool,
+          pauser,
+          serviceConfiguration,
+          poolAdmin,
+          otherAccount,
+          liquidityAsset
+        } = await loadFixture(loadPoolFixture);
+
+        await activatePool(pool, poolAdmin, liquidityAsset);
+
+        // Deposit and request withdraw
+        const depositAmount = 10;
+        const withdrawAmount = 5;
+        await depositToPool(pool, otherAccount, liquidityAsset, depositAmount);
+        await pool.connect(otherAccount).requestWithdraw(withdrawAmount);
+
+        // Advance to next period
+        await time.increase(
+          (
+            await pool.settings()
+          ).withdrawRequestPeriodDuration
+        );
+        await pool.snapshot();
+
+        // Some should be withdrawable
+        expect(await pool.maxWithdraw(otherAccount.address)).to.be.greaterThan(
+          0
+        );
+
+        // Pause
+        await serviceConfiguration.connect(pauser).setPaused(true);
+
+        // Should be 0
+        expect(await pool.maxRedeem(otherAccount.address)).to.equal(0);
+      });
     });
 
     describe("maxWithdraw()", () => {
@@ -977,6 +1051,44 @@ describe("Pool", () => {
         await pool.connect(poolAdmin).snapshot();
 
         expect(await pool.maxWithdraw(otherAccount.address)).to.equal(9);
+      });
+
+      it.only("returns 0 when the pool is paused", async () => {
+        const {
+          pool,
+          pauser,
+          serviceConfiguration,
+          poolAdmin,
+          otherAccount,
+          liquidityAsset
+        } = await loadFixture(loadPoolFixture);
+
+        await activatePool(pool, poolAdmin, liquidityAsset);
+
+        // Deposit and request withdraw
+        const depositAmount = 10;
+        const withdrawAmount = 5;
+        await depositToPool(pool, otherAccount, liquidityAsset, depositAmount);
+        await pool.connect(otherAccount).requestWithdraw(withdrawAmount);
+
+        // Advance to next period
+        await time.increase(
+          (
+            await pool.settings()
+          ).withdrawRequestPeriodDuration
+        );
+        await pool.snapshot();
+
+        // Some should be withdrawable
+        expect(await pool.maxWithdraw(otherAccount.address)).to.be.greaterThan(
+          0
+        );
+
+        // Pause
+        await serviceConfiguration.connect(pauser).setPaused(true);
+
+        // Should be zero
+        expect(await pool.maxWithdraw(otherAccount.address)).to.equal(0);
       });
     });
   });
