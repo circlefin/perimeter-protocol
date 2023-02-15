@@ -113,7 +113,7 @@ describe("Pool", () => {
       );
     });
 
-    it.only("returns 0 when the pool is paused", async () => {
+    it("returns 0 when the pool is paused", async () => {
       const {
         pool,
         pauser,
@@ -340,7 +340,7 @@ describe("Pool", () => {
       );
     });
 
-    it.only("returns 0 when the pool is paused", async () => {
+    it("returns 0 when the pool is paused", async () => {
       const {
         pool,
         pauser,
@@ -998,7 +998,7 @@ describe("Pool", () => {
         expect(await pool.maxRedeem(otherAccount.address)).to.equal(9); // 10 - snapshot dust
       });
 
-      it.only("returns 0 when the pool is paused", async () => {
+      it("returns 0 when the pool is paused", async () => {
         const {
           pool,
           pauser,
@@ -1053,7 +1053,7 @@ describe("Pool", () => {
         expect(await pool.maxWithdraw(otherAccount.address)).to.equal(9);
       });
 
-      it.only("returns 0 when the pool is paused", async () => {
+      it("returns 0 when the pool is paused", async () => {
         const {
           pool,
           pauser,

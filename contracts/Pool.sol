@@ -695,6 +695,9 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         override
         returns (uint256)
     {
+        if (_serviceConfiguration.paused() == true) {
+            return 0;
+        }
         return
             PoolLib.calculateMaxDeposit(
                 poolController.state(),
@@ -814,6 +817,9 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         override
         returns (uint256 assets)
     {
+        if (_serviceConfiguration.paused() == true) {
+            return 0;
+        }
         assets = withdrawController.maxWithdraw(owner);
     }
 
@@ -865,6 +871,9 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         override
         returns (uint256 maxShares)
     {
+        if (_serviceConfiguration.paused() == true) {
+            return 0;
+        }
         maxShares = withdrawController.maxRedeem(owner);
     }
 
