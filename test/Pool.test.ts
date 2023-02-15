@@ -571,6 +571,146 @@ describe("Pool", () => {
     });
   });
 
+  describe("ClaimSnapshots()", () => {
+    it("reverts with a 0 limit", async () => {
+      const { pool, poolAdmin, liquidityAsset, otherAccount } =
+        await loadFixture(loadPoolFixture);
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      await depositToPool(pool, otherAccount, liquidityAsset, 100);
+      await pool.connect(otherAccount).requestRedeem(50);
+
+      // Advance to next period
+      await time.increase(
+        (
+          await pool.settings()
+        ).withdrawRequestPeriodDuration
+      );
+      await pool.snapshot();
+
+      await expect(
+        pool.connect(otherAccount).claimSnapshots(0)
+      ).to.be.revertedWith("WithdrawController: invalid limit");
+    });
+
+    it("reverts if paused", async () => {
+      const {
+        pool,
+        pauser,
+        serviceConfiguration,
+        poolAdmin,
+        liquidityAsset,
+        otherAccount
+      } = await loadFixture(loadPoolFixture);
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      await depositToPool(pool, otherAccount, liquidityAsset, 100);
+      await pool.connect(otherAccount).requestRedeem(50);
+
+      // Advance to next period
+      await time.increase(
+        (
+          await pool.settings()
+        ).withdrawRequestPeriodDuration
+      );
+      await pool.snapshot();
+
+      await serviceConfiguration.connect(pauser).setPaused(true);
+      await expect(
+        pool.connect(otherAccount).claimSnapshots(1)
+      ).to.be.revertedWith("Pool: Protocol paused");
+    });
+
+    it("emits an event", async () => {
+      const {
+        pool,
+        poolAdmin,
+        withdrawController,
+        liquidityAsset,
+        otherAccount
+      } = await loadFixture(loadPoolFixture);
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      await depositToPool(pool, otherAccount, liquidityAsset, 100);
+      await pool.connect(otherAccount).requestRedeem(50);
+
+      // Advance to next period
+      await time.increase(
+        (
+          await pool.settings()
+        ).withdrawRequestPeriodDuration
+      );
+      await pool.snapshot();
+
+      const txn = await pool.connect(otherAccount).claimSnapshots(1);
+      // 100% withdrawal gate, with a 5% request fee
+      // At the time of snapshot, 50 shares are allocated at an exchange rate
+      // of 100 assets / 97 shares, translating to 51.5 i.e. 51 rounded down.
+      await expect(txn)
+        .to.emit(withdrawController, "SnapshotsClaimed")
+        .withArgs(otherAccount.address, 1, 50, 51);
+    });
+  });
+
+  describe("claimRequired()", () => {
+    it("returns false if in same period as request", async () => {
+      const { pool, poolAdmin, liquidityAsset, otherAccount } =
+        await loadFixture(loadPoolFixture);
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      await depositToPool(pool, otherAccount, liquidityAsset, 100);
+      await pool.connect(otherAccount).requestRedeem(50);
+
+      expect(await pool.claimRequired(otherAccount.address)).to.be.false;
+    });
+
+    it("returns true if at least one snapshot has occurred since request", async () => {
+      const { pool, poolAdmin, liquidityAsset, otherAccount } =
+        await loadFixture(loadPoolFixture);
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      await depositToPool(pool, otherAccount, liquidityAsset, 100);
+      await pool.connect(otherAccount).requestRedeem(50);
+
+      // Advance to next period
+      await time.increase(
+        (
+          await pool.settings()
+        ).withdrawRequestPeriodDuration
+      );
+      expect(await pool.claimRequired(otherAccount.address)).to.be.false;
+
+      // snapshot
+      await pool.snapshot();
+
+      expect(await pool.claimRequired(otherAccount.address)).to.be.true;
+    });
+
+    it("returns false once claimSnapshots is called", async () => {
+      const { pool, poolAdmin, liquidityAsset, otherAccount } =
+        await loadFixture(loadPoolFixture);
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      await depositToPool(pool, otherAccount, liquidityAsset, 100);
+      await pool.connect(otherAccount).requestRedeem(50);
+
+      // Advance to next period
+      await time.increase(
+        (
+          await pool.settings()
+        ).withdrawRequestPeriodDuration
+      );
+      expect(await pool.claimRequired(otherAccount.address)).to.be.false;
+
+      // snapshot
+      await pool.snapshot();
+
+      expect(await pool.claimRequired(otherAccount.address)).to.be.true;
+      await pool.connect(otherAccount).claimSnapshots(1);
+      expect(await pool.claimRequired(otherAccount.address)).to.be.false;
+    });
+  });
+
   describe("Rounding", async () => {
     describe("convertToAssets()", () => {
       it("rounds down", async () => {
@@ -1465,7 +1605,7 @@ describe("Pool", () => {
       const { withdrawRequestPeriodDuration } = await pool.settings();
       await time.increase(withdrawRequestPeriodDuration);
 
-      await expect(pool.claimSnapshots(otherAccount.address)).to.emit(
+      await expect(pool.connect(otherAccount).claimSnapshots(1)).to.emit(
         pool,
         "PoolSnapshotted"
       );

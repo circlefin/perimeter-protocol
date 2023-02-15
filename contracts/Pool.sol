@@ -657,6 +657,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         external
         onlyNotPaused
         onlyPermittedLender
+        onlyLender
         onlySnapshottedPool
         returns (uint256 shares, uint256 assets)
     {

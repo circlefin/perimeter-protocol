@@ -147,7 +147,7 @@ describe("Snapshot Variations", () => {
       DEPOSIT_AMOUNT / 2
     );
 
-    await pool.claimSnapshots(aliceLender.address);
+    await pool.connect(aliceLender).claimSnapshots(1);
     expect(await pool.maxRedeem(aliceLender.address)).to.equal(DEPOSIT_AMOUNT);
 
     // Fast forward to 4th period

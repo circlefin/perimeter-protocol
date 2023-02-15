@@ -495,6 +495,7 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
         // Break once we reach the last snapshop for the pool or if all the eligible
         // shares have been converted, or if we reach the limit.
         uint256 snapshotShares;
+        uint256 snapshotsClaimed;
         IPoolSnapshotState memory _periodSnapshot;
         for (limit; limit > 0; limit--) {
             _periodSnapshot = _snapshots[periodToClaim];
@@ -509,6 +510,7 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
             assetsWithdrawable += snapshotShares
                 .mul(_periodSnapshot.fxRateRay)
                 .div(PoolLib.RAY);
+            snapshotsClaimed += 1;
 
             // Break if there are no more shares to claim.
             // Treat the lender as fully caught up.
@@ -532,6 +534,12 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
         withdrawState.withdrawableAssets += assetsWithdrawable;
         withdrawState.redeemableShares += sharesRedeemable;
         _withdrawState[lender] = withdrawState;
+        emit SnapshotsClaimed(
+            lender,
+            snapshotsClaimed,
+            sharesRedeemable,
+            assetsWithdrawable
+        );
     }
 
     /*//////////////////////////////////////////////////////////////

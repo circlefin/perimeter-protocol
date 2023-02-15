@@ -30,6 +30,16 @@ struct IPoolSnapshotState {
  * to their withdrawal requests.
  */
 interface IWithdrawController {
+    /**
+     * @dev Emitted when a lender claims snapshots.
+     */
+    event SnapshotsClaimed(
+        address indexed lender,
+        uint256 numberSnapshots,
+        uint256 shares,
+        uint256 assets
+    );
+
     function withdrawPeriod() external view returns (uint256);
 
     /*//////////////////////////////////////////////////////////////
