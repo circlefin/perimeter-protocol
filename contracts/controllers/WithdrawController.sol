@@ -209,12 +209,21 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
         view
         returns (uint256 assets)
     {
-        uint256 shareFees = PoolLib.calculateRequestFee(
+        assets = _pool.convertToAssets(shares);
+    }
+
+    /**
+     * @inheritdoc IWithdrawController
+     */
+    function previewRedeemRequestFees(uint256 shares)
+        external
+        view
+        returns (uint256 feeShares)
+    {
+        feeShares = PoolLib.calculateRequestFee(
             shares,
             _pool.settings().requestFeeBps
         );
-
-        assets = _pool.convertToAssets(shares - shareFees);
     }
 
     /**
@@ -225,12 +234,23 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
         view
         returns (uint256 shares)
     {
+        shares = _pool.convertToShares(assets);
+    }
+
+    /**
+     * @inheritdoc IWithdrawController
+     */
+    function previewWithdrawRequestFees(uint256 assets)
+        external
+        view
+        returns (uint256 feeShares)
+    {
         uint256 assetFees = PoolLib.calculateRequestFee(
             assets,
             _pool.settings().requestFeeBps
         );
 
-        shares = _pool.convertToShares(assets + assetFees);
+        feeShares = _pool.convertToShares(assetFees);
     }
 
     /**

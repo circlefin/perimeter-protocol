@@ -70,10 +70,18 @@ describe("Direct Deposit", () => {
 
     // Check withdrawal amounts
     expect(await pool.connect(lender).previewWithdrawRequest(100_000)).to.equal(
-      52_500 // 50_000 plus fees
+      50_000
     );
+    expect(
+      await pool.connect(lender).previewWithdrawRequestFees(100_000)
+    ).to.equal(2_500);
     expect(await pool.connect(lender).previewRedeemRequest(100_000)).to.equal(
-      190_000 // 200_000 minus fees
+      200_000
+    );
+    expect(
+      await pool.connect(lender).previewRedeemRequestFees(100_000)
+    ).to.equal(
+      5_000 // 5k shares, aka 10k assets
     );
   });
 
@@ -105,10 +113,18 @@ describe("Direct Deposit", () => {
 
     // Check withdrawal amounts
     expect(await pool.connect(lender).previewWithdrawRequest(100_000)).to.equal(
-      52_500 // 50_000 plus fees
+      50_000
     );
+    expect(
+      await pool.connect(lender).previewWithdrawRequestFees(100_000)
+    ).to.equal(2_500);
     expect(await pool.connect(lender).previewRedeemRequest(100_000)).to.equal(
-      190_000 // 200_000 minus fees
+      200_000
+    );
+    expect(
+      await pool.connect(lender).previewRedeemRequestFees(100_000)
+    ).to.equal(
+      5_000 // 5k shares, aka 10k assets
     );
   });
 

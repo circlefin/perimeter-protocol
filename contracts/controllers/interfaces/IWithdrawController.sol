@@ -117,6 +117,16 @@ interface IWithdrawController {
     function previewRedeemRequest(uint256) external view returns (uint256);
 
     /**
+     * @dev Returns the amount of fees (shares) that would be required to process
+     * a redeem request at this current block.
+     *
+     */
+    function previewRedeemRequestFees(uint256 shares)
+        external
+        view
+        returns (uint256 feeShares);
+
+    /**
      * @dev Simulate the effects of a withdrawal request at the current block.
      * Returns the amount of `shares` that would be burned if this entire
      * withdrawal request were to be processed at the current block.
@@ -124,6 +134,15 @@ interface IWithdrawController {
      * Note: This is equivalent of EIP-4626 `previewWithdraw`
      */
     function previewWithdrawRequest(uint256) external view returns (uint256);
+
+    /**
+     * @dev Returns the amount of fees that would be burned, in shares, to fulfill
+     * a withdraw request in this current block.
+     */
+    function previewWithdrawRequestFees(uint256 assets)
+        external
+        view
+        returns (uint256 feeShares);
 
     /**
      * @dev Simulates the effects of their redeemption at the current block.

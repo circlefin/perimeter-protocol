@@ -45,6 +45,16 @@ interface IRequestWithdrawable {
         returns (uint256 assets);
 
     /**
+     * @dev Returns the amount of fees (shares) that would be required to process
+     * a redeem request at this current block.
+     *
+     */
+    function previewRedeemRequestFees(uint256 shares)
+        external
+        view
+        returns (uint256 feeShares);
+
+    /**
      * @dev Simulate the effects of a withdrawal request at the current block.
      * Returns the amount of `shares` that would be burned if this entire
      * withdrawal request were to be processed at the current block.
@@ -55,6 +65,15 @@ interface IRequestWithdrawable {
         external
         view
         returns (uint256 shares);
+
+    /**
+     * @dev Returns the amount of fees that would be burned, in shares, to fulfill
+     * a withdraw request in this current block.
+     */
+    function previewWithdrawRequestFees(uint256 assets)
+        external
+        view
+        returns (uint256 feeShares);
 
     /**
      * @dev Submits a withdrawal request, incurring a fee.
