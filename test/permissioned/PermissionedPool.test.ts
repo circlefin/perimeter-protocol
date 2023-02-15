@@ -87,6 +87,54 @@ describe("PermissionedPool", () => {
     });
   });
 
+  describe("maxRedeem()", () => {
+    it.only("returns value if allowed lender", async () => {
+      const { pool, poolAccessControl, allowedLender, poolAdmin, liquidityAsset } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(pool, allowedLender, liquidityAsset, 10);
+      await pool.connect(allowedLender).requestRedeem(5);
+
+      // fast forward to allocate funds 
+      await time.increase((await pool.settings()).withdrawRequestPeriodDuration);
+      await pool.connect(allowedLender).snapshot();
+
+      // Some is redeemable
+      expect(await pool.maxRedeem(allowedLender.address)).to.be.greaterThan(0);
+
+      // Remove lender 
+      await poolAccessControl.connect(poolAdmin).removeParticipant(allowedLender.address);
+      expect(await poolAccessControl.isAllowed(allowedLender.address)).to.be.false;
+
+      expect(await pool.maxRedeem(allowedLender.address)).to.equal(0);
+    });
+  });
+
+  describe("maxWithdraw()", () => {
+    it.only("returns value if allowed lender", async () => {
+      const { pool, poolAccessControl, allowedLender, poolAdmin, liquidityAsset } =
+        await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(pool, allowedLender, liquidityAsset, 10);
+      await pool.connect(allowedLender).requestRedeem(5);
+
+      // fast forward to allocate funds 
+      await time.increase((await pool.settings()).withdrawRequestPeriodDuration);
+      await pool.connect(allowedLender).snapshot();
+
+      // Some is withdrawable
+      expect(await pool.maxWithdraw(allowedLender.address)).to.be.greaterThan(0);
+
+      // Remove lender 
+      await poolAccessControl.connect(poolAdmin).removeParticipant(allowedLender.address);
+      expect(await poolAccessControl.isAllowed(allowedLender.address)).to.be.false;
+
+      expect(await pool.maxWithdraw(allowedLender.address)).to.equal(0);
+    });
+  });
+
   describe("maxDeposit()", async () => {
     it("returns 0 if lender or receiver not in access control list", async () => {
       const { pool, poolAdmin, otherAccount, liquidityAsset } =
