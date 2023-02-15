@@ -126,6 +126,46 @@ describe("Pool", () => {
       );
     });
 
+    it.only("returns 0 if totalAvailableAssets exceeds pool max capacity", async () => {
+      const {
+        pool,
+        poolController,
+        loan,
+        borrower,
+        poolAdmin,
+        otherAccount,
+        liquidityAsset
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      // Fund loan
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        DEFAULT_POOL_SETTINGS.maxCapacity
+      );
+      await fundLoan(loan, poolController, poolAdmin);
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      // Pay back loan
+      const interestWithFLFee = 23747 + 1249;
+      await liquidityAsset
+        .connect(borrower)
+        .approve(loan.address, interestWithFLFee + 1_000_000); // With principal
+      await liquidityAsset.mint(borrower.address, interestWithFLFee);
+      await loan.connect(borrower).completeFullPayment();
+
+      // Check total available assets
+      expect(await pool.totalAvailableAssets()).to.be.greaterThan(
+        (await pool.settings()).maxCapacity
+      );
+
+      // Max Deposit should return 0
+      expect(await pool.maxDeposit(otherAccount.address)).to.equal(0);
+    });
+
     it("returns 0 when pool is closed ", async () => {
       const { pool, poolAdmin, otherAccount, liquidityAsset } =
         await loadFixture(loadPoolFixture);
@@ -293,6 +333,46 @@ describe("Pool", () => {
       expect(await pool.maxMint(otherAccount.address)).to.equal(
         DEFAULT_POOL_SETTINGS.maxCapacity - depositAmt
       );
+    });
+
+    it.only("returns 0 if totalAvailableAssets exceeds pool max capacity", async () => {
+      const {
+        pool,
+        poolController,
+        loan,
+        borrower,
+        poolAdmin,
+        otherAccount,
+        liquidityAsset
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      // Fund loan
+      await depositToPool(
+        pool,
+        otherAccount,
+        liquidityAsset,
+        DEFAULT_POOL_SETTINGS.maxCapacity
+      );
+      await fundLoan(loan, poolController, poolAdmin);
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      // Pay back loan
+      const interestWithFLFee = 23747 + 1249;
+      await liquidityAsset
+        .connect(borrower)
+        .approve(loan.address, interestWithFLFee + 1_000_000); // With principal
+      await liquidityAsset.mint(borrower.address, interestWithFLFee);
+      await loan.connect(borrower).completeFullPayment();
+
+      // Check total available assets
+      expect(await pool.totalAvailableAssets()).to.be.greaterThan(
+        (await pool.settings()).maxCapacity
+      );
+
+      // Max Deposit should return 0
+      expect(await pool.maxMint(otherAccount.address)).to.equal(0);
     });
 
     it("returns 0 when pool is closed ", async () => {
