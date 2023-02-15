@@ -371,7 +371,7 @@ library LoanLib {
         address feeVault,
         ILoanFees calldata fees
     ) public {
-        if (fees.firstLossFee > 0) {
+        if (fees.firstLossFee > 0 || fees.latePaymentFee > 0) {
             IERC20(asset).safeTransferFrom(
                 msg.sender,
                 firstLossVault,

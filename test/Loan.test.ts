@@ -15,6 +15,7 @@ import {
   matureLoan
 } from "./support/loan";
 import { findEventByName, getCommonSigners } from "./support/utils";
+import { BigNumber } from "ethers";
 
 describe("Loan", () => {
   const THIRTY_DAYS = 30 * 60 * 60 * 24;
@@ -1368,6 +1369,79 @@ describe("Loan", () => {
       );
 
       expect(await loan.paymentsRemaining()).to.equal(0);
+      expect(await loan.state()).to.equal(5);
+    });
+
+    it("charges a late fee if the principal is paid back late, but the interest payments on-time", async () => {
+      const {
+        borrower,
+        collateralAsset,
+        liquidityAsset,
+        loan,
+        pool,
+        poolController,
+        poolAdmin
+      } = await loadFixture(deployFixtureWithLateFees);
+
+      // Setup
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await loan
+        .connect(borrower)
+        .postFungibleCollateral(collateralAsset.address, 100);
+      await poolController.connect(poolAdmin).fundLoan(loan.address);
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      // Mint additional tokens to cover the 6 interest payments
+      const interest = 2083;
+      await liquidityAsset.mint(borrower.address, interest * 6);
+
+      // Make all the interest payments on time
+      let paymentDueDate = BigNumber.from(0);
+      for (let i = 0; i < 6; i++) {
+        paymentDueDate = await loan.paymentDueDate();
+        await time.increaseTo(paymentDueDate.sub(100));
+
+        // Make payment
+        await liquidityAsset.connect(borrower).approve(loan.address, interest);
+        await loan.connect(borrower).completeNextPayment();
+      }
+
+      // All interest payments made
+      expect(await loan.paymentsRemaining()).to.equal(0);
+
+      // paymentDueDate was the due date of the final payment.
+      // Advance past it -- there should now be a late penalty incurred on paying back the principal
+      await time.increaseTo(paymentDueDate.add(100));
+
+      // Approve principal + late fee
+      // Mint extra for the borrower to include the late fee
+      await liquidityAsset.mint(borrower.address, 1_000);
+      await liquidityAsset
+        .connect(borrower)
+        .approve(loan.address, 500_000 + 1_000);
+      expect(
+        await liquidityAsset.balanceOf(borrower.address)
+      ).to.be.greaterThanOrEqual(500_000 + 1_000);
+
+      const tx = await loan.connect(borrower).completeFullPayment();
+      await expect(tx).to.not.be.reverted;
+      await expect(tx).to.changeTokenBalance(
+        liquidityAsset,
+        borrower,
+        -500_000 - 1000 // principal + late fee
+      );
+      await expect(tx).to.changeTokenBalance(
+        liquidityAsset,
+        pool,
+        +500_000 // principal
+      );
+      const firstLoss = await pool.firstLossVault();
+      await expect(tx).to.changeTokenBalance(
+        liquidityAsset,
+        firstLoss,
+        +1000 // late fee goes to FL vault, not the pool
+      );
+
       expect(await loan.state()).to.equal(5);
     });
 
