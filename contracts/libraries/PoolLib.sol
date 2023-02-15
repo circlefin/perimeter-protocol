@@ -49,7 +49,7 @@ library PoolLib {
      * @dev See IERC4626
      */
     event Deposit(
-        address indexed caller,
+        address indexed sender,
         address indexed owner,
         uint256 assets,
         uint256 shares
