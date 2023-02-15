@@ -394,11 +394,11 @@ contract Loan is ILoan, BeaconImplementation {
      */
     function completeNextPayment()
         external
+        override
         onlyNotPaused
         onlyPermittedBorrower
         onlyBorrower
         atState(ILoanLifeCycleState.Active)
-        returns (uint256)
     {
         require(paymentsRemaining > 0, "Loan: No more payments remain");
 
@@ -423,7 +423,6 @@ contract Loan is ILoan, BeaconImplementation {
         if (paymentsRemaining > 0) {
             paymentDueDate += settings.paymentPeriod * 1 days;
         }
-        return payment;
     }
 
     /**
@@ -451,11 +450,11 @@ contract Loan is ILoan, BeaconImplementation {
      */
     function completeFullPayment()
         external
+        override
         onlyNotPaused
         onlyPermittedBorrower
         onlyBorrower
         atState(ILoanLifeCycleState.Active)
-        returns (uint256)
     {
         uint256 scalingValue = LoanLib.RAY;
 
@@ -504,7 +503,6 @@ contract Loan is ILoan, BeaconImplementation {
         _state = ILoanLifeCycleState.Matured;
 
         IPool(_pool).onLoanStateTransitioned();
-        return outstandingPrincipal.add(_fees.interestPayment);
     }
 
     /**

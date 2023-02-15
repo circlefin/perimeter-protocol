@@ -163,12 +163,12 @@ interface ILoan {
     /**
      * @dev Complete the next payment according to loan schedule inclusive of all fees.
      */
-    function completeNextPayment() external returns (uint256);
+    function completeNextPayment() external;
 
     /**
      * @dev Complete the final payment of the loan.
      */
-    function completeFullPayment() external returns (uint256);
+    function completeFullPayment() external;
 
     /**
      * @dev Allows partial repayment of outstanding principal in open-term loans.
