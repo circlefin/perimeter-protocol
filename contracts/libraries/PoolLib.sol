@@ -342,9 +342,12 @@ library PoolLib {
         uint256 poolMaxCapacity,
         uint256 totalAvailableAssets
     ) external pure returns (uint256) {
+        uint256 remainingCapacity = poolMaxCapacity > totalAvailableAssets
+            ? poolMaxCapacity - totalAvailableAssets
+            : 0;
         return
             poolLifeCycleState == IPoolLifeCycleState.Active
-                ? poolMaxCapacity - totalAvailableAssets
+                ? remainingCapacity
                 : 0;
     }
 

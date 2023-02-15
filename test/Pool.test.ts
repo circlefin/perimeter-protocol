@@ -126,7 +126,7 @@ describe("Pool", () => {
       );
     });
 
-    it.only("returns 0 if totalAvailableAssets exceeds pool max capacity", async () => {
+    it("returns 0 if totalAvailableAssets exceeds pool max capacity", async () => {
       const {
         pool,
         poolController,
@@ -335,7 +335,7 @@ describe("Pool", () => {
       );
     });
 
-    it.only("returns 0 if totalAvailableAssets exceeds pool max capacity", async () => {
+    it("returns 0 if totalAvailableAssets exceeds pool max capacity", async () => {
       const {
         pool,
         poolController,
