@@ -1372,7 +1372,7 @@ describe("Loan", () => {
       expect(await loan.state()).to.equal(5);
     });
 
-    it("making the interest payments on time, but returning the principal late, should incur a late fee", async () => {
+    it("charges a late fee if the principal is paid back late, but the interest payments on-time", async () => {
       const {
         borrower,
         collateralAsset,
@@ -1428,18 +1428,18 @@ describe("Loan", () => {
       await expect(tx).to.changeTokenBalance(
         liquidityAsset,
         borrower,
-        -500_000 - 1000 // interest + principal + late fee
+        -500_000 - 1000 // principal + late fee
       );
       await expect(tx).to.changeTokenBalance(
         liquidityAsset,
         pool,
-        +500_000 // interest + principal - protocol-wide FL fee of 5%
+        +500_000 // principal
       );
       const firstLoss = await pool.firstLossVault();
       await expect(tx).to.changeTokenBalance(
         liquidityAsset,
         firstLoss,
-        +1000 // late fee
+        +1000 // late fee goes to FL vault, not the pool
       );
 
       expect(await loan.state()).to.equal(5);
