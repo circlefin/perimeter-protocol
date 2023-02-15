@@ -190,6 +190,7 @@ describe("Permissioned Business Scenario 4", () => {
 
     // +14 days, run the snapshot
     await advanceToDay(startTime, 14);
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderA);
     await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
     await pool.connect(lenderB).snapshot();
 
@@ -207,6 +208,7 @@ describe("Permissioned Business Scenario 4", () => {
     // +21 days, run the snapshot
     await advanceToDay(startTime, 21);
     await performVeriteVerification(poolAccessControl, poolAdmin, lenderA);
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
     await pool.connect(lenderA).snapshot();
 
     // Check balances
@@ -234,6 +236,7 @@ describe("Permissioned Business Scenario 4", () => {
 
     // +28 days, run the snapshot
     await advanceToDay(startTime, 28);
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderA);
     await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
     await pool.connect(lenderB).snapshot();
 
@@ -259,6 +262,8 @@ describe("Permissioned Business Scenario 4", () => {
     await advanceToDay(startTime, 39);
 
     // check balances
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderA);
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
     expect(await pool.maxRedeem(lenderA.address)).to.equal(385717020197);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(331214376549);
     expect(await pool.maxWithdraw(lenderA.address)).to.equal(41554130767);

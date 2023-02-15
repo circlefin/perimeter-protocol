@@ -814,6 +814,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     function maxWithdraw(address owner)
         public
         view
+        virtual
         override
         returns (uint256 assets)
     {
@@ -868,6 +869,7 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     function maxRedeem(address owner)
         public
         view
+        virtual
         override
         returns (uint256 maxShares)
     {
