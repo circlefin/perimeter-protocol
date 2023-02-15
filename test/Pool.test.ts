@@ -642,13 +642,19 @@ describe("Pool", () => {
     });
 
     describe("previewRedeemRequest", () => {
-      it("returns the number of assets, minus fees, rounded down, that would be transferred in this redeem request, regardless of caller balance", async () => {
-        const { pool, poolController, poolAdmin, liquidityAsset } =
-          await loadFixture(loadPoolFixture);
-        await poolController.connect(poolAdmin).setRequestFee(1000); // 10%
-        await activatePool(pool, poolAdmin, liquidityAsset);
+      it("returns the number of assets that would be transferred in this redeem request", async () => {
+        const { pool } = await loadFixture(loadPoolFixture);
+        expect(await pool.previewRedeemRequest(27)).to.equal(27);
+      });
+    });
 
-        expect(await pool.previewRedeemRequest(27)).to.equal(24);
+    describe("previewRedeemRequestFees(assets)", () => {
+      it("returns the fees required to request shares for redemption", async () => {
+        const { pool, poolController, poolAdmin } = await loadFixture(
+          loadPoolFixture
+        );
+        await poolController.connect(poolAdmin).setRequestFee(1000); // 10%
+        expect(await pool.previewRedeemRequestFees(30)).to.equal(3);
       });
     });
 
@@ -786,12 +792,19 @@ describe("Pool", () => {
 
     describe("previewWithdrawRequest(assets)", () => {
       it("returns the share value of the provided assets, minus fees, regardless of caller balance", async () => {
-        const { pool, poolController, poolAdmin, liquidityAsset } =
-          await loadFixture(loadPoolFixture);
-        await poolController.connect(poolAdmin).setRequestFee(1000); // 10%
-        await activatePool(pool, poolAdmin, liquidityAsset);
+        const { pool } = await loadFixture(loadPoolFixture);
 
-        expect(await pool.previewWithdrawRequest(27)).to.equal(30);
+        expect(await pool.previewWithdrawRequest(30)).to.equal(30);
+      });
+    });
+
+    describe("previewWithdrawRequestFees(assets)", () => {
+      it("returns the fees required to request assets for withdrawal", async () => {
+        const { pool, poolController, poolAdmin } = await loadFixture(
+          loadPoolFixture
+        );
+        await poolController.connect(poolAdmin).setRequestFee(1000); // 10%
+        expect(await pool.previewWithdrawRequestFees(30)).to.equal(3);
       });
     });
 

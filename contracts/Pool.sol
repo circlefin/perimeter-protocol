@@ -478,12 +478,34 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     /**
      * @inheritdoc IRequestWithdrawable
      */
+    function previewRedeemRequestFees(uint256 shares)
+        external
+        view
+        returns (uint256 feeShares)
+    {
+        feeShares = withdrawController.previewRedeemRequestFees(shares);
+    }
+
+    /**
+     * @inheritdoc IRequestWithdrawable
+     */
     function previewWithdrawRequest(uint256 assets)
         external
         view
         returns (uint256 shares)
     {
         shares = withdrawController.previewWithdrawRequest(assets);
+    }
+
+    /**
+     * @inheritdoc IRequestWithdrawable
+     */
+    function previewWithdrawRequestFees(uint256 assets)
+        external
+        view
+        returns (uint256 feeShares)
+    {
+        feeShares = withdrawController.previewWithdrawRequestFees(assets);
     }
 
     /**
