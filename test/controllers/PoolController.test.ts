@@ -1737,7 +1737,6 @@ describe("PoolController", () => {
       // can either be before or after the dropdead timestamp, hence this conditional.
       const dropDeadTimestamp = await loan.dropDeadTimestamp();
       if ((await time.latest()) < dropDeadTimestamp.toNumber()) {
-        console.log(dropDeadTimestamp.toBigInt());
         await time.increaseTo(dropDeadTimestamp.toBigInt());
       }
 

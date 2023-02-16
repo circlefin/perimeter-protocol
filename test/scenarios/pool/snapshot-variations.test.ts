@@ -1,26 +1,42 @@
 import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { deployLoan, fundLoan } from "../../support/loan";
 import { deployPool, depositToPool, activatePool } from "../../support/pool";
+import { getCommonSigners } from "../../support/utils";
 
 describe("Snapshot Variations", () => {
   const DEPOSIT_AMOUNT = 1_000_000;
 
   async function loadPoolFixture() {
-    const [poolAdmin, aliceLender, bobLender] = await ethers.getSigners();
+    const { poolAdmin, aliceLender, bobLender, borrower } =
+      await getCommonSigners();
 
-    const { pool, liquidityAsset, withdrawController, poolController } =
-      await deployPool({
-        poolAdmin: poolAdmin
-      });
+    const {
+      pool,
+      liquidityAsset,
+      withdrawController,
+      poolController,
+      serviceConfiguration
+    } = await deployPool({
+      poolAdmin: poolAdmin
+    });
 
     // Set the request fee to 0, for simplicity
     await poolController.connect(poolAdmin).setRequestFee(0);
+
+    const { loan } = await deployLoan(
+      pool.address,
+      borrower.address,
+      liquidityAsset.address,
+      serviceConfiguration
+    );
 
     const { withdrawRequestPeriodDuration } = await pool.settings();
 
     return {
       pool,
+      loan,
+      borrower,
       liquidityAsset,
       poolAdmin,
       aliceLender,
@@ -560,5 +576,55 @@ describe("Snapshot Variations", () => {
       250_000 + 187_500 + 140_625 + 105_468 + 79_100
     );
     expect(await pool.claimRequired(aliceLender.address)).is.false;
+  });
+
+  it("funds earmarked by snapshots do not accumulate interest", async () => {
+    const {
+      pool,
+      loan,
+      borrower,
+      aliceLender,
+      bobLender,
+      liquidityAsset,
+      poolAdmin,
+      withdrawController,
+      poolController,
+      withdrawRequestPeriodDuration
+    } = await loadFixture(loadPoolFixture);
+
+    await poolController.connect(poolAdmin).setWithdrawGate(10_000);
+    await poolController.connect(poolAdmin).setRequestFee(0);
+
+    // activate the pool
+    await activatePool(pool, poolAdmin, liquidityAsset);
+
+    // deposit 1M tokens from Alice and Bob
+    await depositToPool(pool, aliceLender, liquidityAsset, DEPOSIT_AMOUNT);
+    await depositToPool(pool, bobLender, liquidityAsset, DEPOSIT_AMOUNT);
+
+    // Request maximum in window 0 for Alice
+    expect(await withdrawController.withdrawPeriod()).to.equal(0);
+    await pool.connect(aliceLender).requestRedeem(DEPOSIT_AMOUNT);
+
+    // Advance to window 1
+    await time.increase(withdrawRequestPeriodDuration);
+
+    // Fund loan
+    await fundLoan(loan, poolController, poolAdmin);
+    await liquidityAsset.mint(borrower.address, 1_000_000); // mint extra to pay back interest
+    await liquidityAsset.connect(borrower).approve(loan.address, 2_000_000);
+    await loan.connect(borrower).drawdown(await loan.principal());
+
+    // Payback loan
+    await loan.connect(borrower).completeFullPayment();
+
+    // Advance again
+    await time.increase(withdrawRequestPeriodDuration);
+
+    // Claim all at once
+    await pool.connect(aliceLender).claimSnapshots(3);
+    expect(await pool.maxWithdraw(aliceLender.address)).to.equal(
+      DEPOSIT_AMOUNT // 1:1, even though interest was paid back to the pool, making shares more valuable
+    );
   });
 });
