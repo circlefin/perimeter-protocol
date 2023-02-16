@@ -17,7 +17,7 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
     using SafeMath for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    uint256 public constant RAY = 10**27;
+    uint256 public constant RAY = 10 ** 27;
 
     /**
      * @dev A reference to the pool for this withdraw state
@@ -73,11 +73,9 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
     /**
      * @dev Returns the current withdraw state of an owner.
      */
-    function _currentWithdrawState(address owner)
-        internal
-        view
-        returns (IPoolWithdrawState memory state)
-    {
+    function _currentWithdrawState(
+        address owner
+    ) internal view returns (IPoolWithdrawState memory state) {
         uint256 currentPeriod = withdrawPeriod();
         state = PoolLib.progressWithdrawState(
             _withdrawState[owner],
@@ -106,22 +104,18 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
     /**
      * @inheritdoc IWithdrawController
      */
-    function interestBearingBalanceOf(address owner)
-        external
-        view
-        returns (uint256 shares)
-    {
+    function interestBearingBalanceOf(
+        address owner
+    ) external view returns (uint256 shares) {
         shares = _pool.balanceOf(owner) - maxRedeem(owner);
     }
 
     /**
      * @inheritdoc IWithdrawController
      */
-    function requestedBalanceOf(address owner)
-        external
-        view
-        returns (uint256 shares)
-    {
+    function requestedBalanceOf(
+        address owner
+    ) external view returns (uint256 shares) {
         shares = _currentWithdrawState(owner).requestedShares;
     }
 
@@ -135,11 +129,9 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
     /**
      * @inheritdoc IWithdrawController
      */
-    function eligibleBalanceOf(address owner)
-        external
-        view
-        returns (uint256 shares)
-    {
+    function eligibleBalanceOf(
+        address owner
+    ) external view returns (uint256 shares) {
         shares = _currentWithdrawState(owner).eligibleShares;
     }
 
@@ -171,11 +163,9 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
     /**
      * @inheritdoc IWithdrawController
      */
-    function maxRedeemRequest(address owner)
-        external
-        view
-        returns (uint256 maxShares)
-    {
+    function maxRedeemRequest(
+        address owner
+    ) external view returns (uint256 maxShares) {
         maxShares = PoolLib.calculateMaxRedeemRequest(
             _currentWithdrawState(owner),
             _pool.balanceOf(owner),
@@ -204,22 +194,18 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
     /**
      * @inheritdoc IWithdrawController
      */
-    function previewRedeemRequest(uint256 shares)
-        external
-        view
-        returns (uint256 assets)
-    {
+    function previewRedeemRequest(
+        uint256 shares
+    ) external view returns (uint256 assets) {
         assets = _pool.convertToAssets(shares);
     }
 
     /**
      * @inheritdoc IWithdrawController
      */
-    function previewRedeemRequestFees(uint256 shares)
-        external
-        view
-        returns (uint256 feeShares)
-    {
+    function previewRedeemRequestFees(
+        uint256 shares
+    ) external view returns (uint256 feeShares) {
         feeShares = PoolLib.calculateRequestFee(
             shares,
             _pool.settings().requestFeeBps
@@ -229,22 +215,18 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
     /**
      * @inheritdoc IWithdrawController
      */
-    function previewWithdrawRequest(uint256 assets)
-        external
-        view
-        returns (uint256 shares)
-    {
+    function previewWithdrawRequest(
+        uint256 assets
+    ) external view returns (uint256 shares) {
         shares = _pool.convertToShares(assets);
     }
 
     /**
      * @inheritdoc IWithdrawController
      */
-    function previewWithdrawRequestFees(uint256 assets)
-        external
-        view
-        returns (uint256 feeShares)
-    {
+    function previewWithdrawRequestFees(
+        uint256 assets
+    ) external view returns (uint256 feeShares) {
         uint256 assetFees = PoolLib.calculateRequestFee(
             assets,
             _pool.settings().requestFeeBps
@@ -256,11 +238,10 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
     /**
      * @inheritdoc IWithdrawController
      */
-    function previewRedeem(address owner, uint256 shares)
-        external
-        view
-        returns (uint256 assets)
-    {
+    function previewRedeem(
+        address owner,
+        uint256 shares
+    ) external view returns (uint256 assets) {
         IPoolWithdrawState memory withdrawState = _currentWithdrawState(owner);
         assets = PoolLib.calculateAssetsFromShares(
             shares,
@@ -273,11 +254,10 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
     /**
      * @inheritdoc IWithdrawController
      */
-    function previewWithdraw(address owner, uint256 assets)
-        external
-        view
-        returns (uint256 shares)
-    {
+    function previewWithdraw(
+        address owner,
+        uint256 assets
+    ) external view returns (uint256 shares) {
         IPoolWithdrawState memory withdrawState = _currentWithdrawState(owner);
         shares = PoolLib.calculateSharesFromAssets(
             assets,
@@ -331,11 +311,9 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
     /**
      * @inheritdoc IWithdrawController
      */
-    function maxRequestCancellation(address owner)
-        public
-        view
-        returns (uint256 maxShares)
-    {
+    function maxRequestCancellation(
+        address owner
+    ) public view returns (uint256 maxShares) {
         maxShares = PoolLib.calculateMaxCancellation(
             _currentWithdrawState(owner)
         );
@@ -344,10 +322,10 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
     /**
      * @inheritdoc IWithdrawController
      */
-    function performRequestCancellation(address owner, uint256 shares)
-        external
-        onlyPool
-    {
+    function performRequestCancellation(
+        address owner,
+        uint256 shares
+    ) external onlyPool {
         require(
             !claimRequired(owner),
             "WithdrawController: must claim eligible first"
@@ -387,7 +365,9 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
     /**
      * @inheritdoc IWithdrawController
      */
-    function snapshot(uint256 withdrawGate)
+    function snapshot(
+        uint256 withdrawGate
+    )
         external
         onlyPool
         returns (
@@ -464,11 +444,9 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
     /**
      * @dev Internal function used to avoid duplicate calls to _currentWithdrawState.
      */
-    function _claimRequired(IPoolWithdrawState memory state)
-        internal
-        view
-        returns (bool)
-    {
+    function _claimRequired(
+        IPoolWithdrawState memory state
+    ) internal view returns (bool) {
         return
             state.eligibleShares > 0 &&
             state.latestSnapshotPeriod <
@@ -478,7 +456,10 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
     /**
      * @inheritdoc IWithdrawController
      */
-    function claimSnapshots(address lender, uint256 limit)
+    function claimSnapshots(
+        address lender,
+        uint256 limit
+    )
         external
         onlyPool
         returns (uint256 sharesRedeemable, uint256 assetsWithdrawable)
@@ -499,7 +480,7 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
         uint256 snapshotShares;
         uint256 snapshotsClaimed;
         IPoolSnapshotState memory _periodSnapshot;
-        for (limit; limit > 0; limit--) {
+        for (snapshotsClaimed; snapshotsClaimed < limit; snapshotsClaimed++) {
             _periodSnapshot = _snapshots[periodToClaim];
 
             snapshotShares = withdrawState
@@ -512,7 +493,6 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
             assetsWithdrawable += snapshotShares
                 .mul(_periodSnapshot.fxRateRay)
                 .div(RAY);
-            snapshotsClaimed += 1;
 
             // Break if there are no more shares to claim.
             // Treat the lender as fully caught up.
@@ -551,11 +531,10 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
     /**
      * @inheritdoc IWithdrawController
      */
-    function redeem(address owner, uint256 shares)
-        external
-        onlyPool
-        returns (uint256 assets)
-    {
+    function redeem(
+        address owner,
+        uint256 shares
+    ) external onlyPool returns (uint256 assets) {
         IPoolWithdrawState memory state = _withdrawState[owner];
 
         // Calculate how many assets should be transferred
@@ -572,11 +551,10 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
     /**
      * @inheritdoc IWithdrawController
      */
-    function withdraw(address owner, uint256 assets)
-        external
-        onlyPool
-        returns (uint256 shares)
-    {
+    function withdraw(
+        address owner,
+        uint256 assets
+    ) external onlyPool returns (uint256 shares) {
         IPoolWithdrawState memory state = _withdrawState[owner];
 
         // Calculate how many shares should be burned
