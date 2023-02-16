@@ -222,10 +222,12 @@ describe("Permissioned Business Scenario 3", () => {
     // check balances before
     await performVeriteVerification(poolAccessControl, poolAdmin, lenderA);
     await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
+
+    // Unchanged from before
     expect(await pool.maxRedeem(lenderA.address)).to.equal(283960890);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(425941335);
-    expect(await pool.maxWithdraw(lenderA.address)).to.equal(291666666);
-    expect(await pool.maxWithdraw(lenderB.address)).to.equal(437499999);
+    expect(await pool.maxWithdraw(lenderA.address)).to.equal(291666665);
+    expect(await pool.maxWithdraw(lenderB.address)).to.equal(437499998);
 
     await pool.connect(lenderB).snapshot();
     await pool.connect(lenderA).claimSnapshots(1);

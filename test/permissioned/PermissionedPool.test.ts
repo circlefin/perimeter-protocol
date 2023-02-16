@@ -108,6 +108,7 @@ describe("PermissionedPool", () => {
         ).withdrawRequestPeriodDuration
       );
       await pool.connect(allowedLender).snapshot();
+      await pool.connect(allowedLender).claimSnapshots(1);
 
       // Some is redeemable
       expect(await pool.maxRedeem(allowedLender.address)).to.be.greaterThan(0);
@@ -144,6 +145,7 @@ describe("PermissionedPool", () => {
         ).withdrawRequestPeriodDuration
       );
       await pool.connect(allowedLender).snapshot();
+      await pool.connect(allowedLender).claimSnapshots(1);
 
       // Some is withdrawable
       expect(await pool.maxWithdraw(allowedLender.address)).to.be.greaterThan(

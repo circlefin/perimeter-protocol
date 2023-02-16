@@ -497,9 +497,9 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
         // Break once we reach the last snapshop for the pool or if all the eligible
         // shares have been converted, or if we reach the limit.
         uint256 snapshotShares;
-        uint256 snapshotsClaimed;
+        uint256 snapshotsClaimed = 1;
         IPoolSnapshotState memory _periodSnapshot;
-        for (snapshotsClaimed; snapshotsClaimed < limit; snapshotsClaimed++) {
+        for (snapshotsClaimed; snapshotsClaimed <= limit; snapshotsClaimed++) {
             _periodSnapshot = _snapshots[periodToClaim];
 
             snapshotShares = withdrawState

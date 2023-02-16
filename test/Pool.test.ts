@@ -1189,6 +1189,7 @@ describe("Pool", () => {
           ).withdrawRequestPeriodDuration
         );
         await pool.snapshot();
+        await pool.connect(otherAccount).claimSnapshots(1);
 
         // Some should be withdrawable
         expect(await pool.maxWithdraw(otherAccount.address)).to.be.greaterThan(
@@ -1244,6 +1245,7 @@ describe("Pool", () => {
           ).withdrawRequestPeriodDuration
         );
         await pool.snapshot();
+        await pool.connect(otherAccount).claimSnapshots(1);
 
         // Some should be withdrawable
         expect(await pool.maxWithdraw(otherAccount.address)).to.be.greaterThan(
