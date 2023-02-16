@@ -17,6 +17,8 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
     using SafeMath for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
 
+    uint256 public constant RAY = 10**27;
+
     /**
      * @dev A reference to the pool for this withdraw state
      */
@@ -406,9 +408,9 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
         uint256 liquidAssets = _pool.liquidityPoolAssets();
         uint256 availableAssets = liquidAssets
             .mul(withdrawGate)
-            .mul(PoolLib.RAY)
+            .mul(RAY)
             .div(10_000)
-            .div(PoolLib.RAY);
+            .div(RAY);
 
         uint256 availableShares = _pool.convertToShares(availableAssets);
 
@@ -423,14 +425,14 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
 
         // Calculate the redeemable rate for each lender
         uint256 redeemableRateRay = globalState.eligibleShares > 0
-            ? redeemableShares.mul(PoolLib.RAY).div(globalState.eligibleShares)
+            ? redeemableShares.mul(RAY).div(globalState.eligibleShares)
             : 0;
 
         _snapshots[period] = IPoolSnapshotState(
             redeemableRateRay,
             redeemableShares,
             redeemableShares > 0
-                ? withdrawableAssets.mul(PoolLib.RAY).div(redeemableShares)
+                ? withdrawableAssets.mul(RAY).div(redeemableShares)
                 : 0,
             0
         );
@@ -503,13 +505,13 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
             snapshotShares = withdrawState
                 .eligibleShares
                 .mul(_periodSnapshot.redeemableRateRay)
-                .div(PoolLib.RAY);
+                .div(RAY);
 
             withdrawState.eligibleShares -= snapshotShares;
             sharesRedeemable += snapshotShares;
             assetsWithdrawable += snapshotShares
                 .mul(_periodSnapshot.fxRateRay)
-                .div(PoolLib.RAY);
+                .div(RAY);
             snapshotsClaimed += 1;
 
             // Break if there are no more shares to claim.
