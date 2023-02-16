@@ -49,7 +49,7 @@ library PoolLib {
      * @dev See IERC4626
      */
     event Deposit(
-        address indexed caller,
+        address indexed sender,
         address indexed owner,
         uint256 assets,
         uint256 shares
@@ -342,9 +342,12 @@ library PoolLib {
         uint256 poolMaxCapacity,
         uint256 totalAvailableAssets
     ) external pure returns (uint256) {
+        uint256 remainingCapacity = poolMaxCapacity > totalAvailableAssets
+            ? poolMaxCapacity - totalAvailableAssets
+            : 0;
         return
             poolLifeCycleState == IPoolLifeCycleState.Active
-                ? poolMaxCapacity - totalAvailableAssets
+                ? remainingCapacity
                 : 0;
     }
 

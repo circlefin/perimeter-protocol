@@ -215,6 +215,7 @@ describe("Permissioned Business Scenario 2", () => {
 
     // +14 days, run the snapshot
     await advanceToDay(startTime, 14);
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderA);
     await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
     await pool.connect(lenderB).snapshot();
     // check balances
@@ -233,6 +234,7 @@ describe("Permissioned Business Scenario 2", () => {
     // +21 days, run the snapshot
     await advanceToDay(startTime, 21);
     await performVeriteVerification(poolAccessControl, poolAdmin, lenderA);
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
     await pool.connect(lenderA).snapshot();
     // check balances
     expect(await pool.maxRedeem(lenderA.address)).to.equal(195141980444);
@@ -249,6 +251,7 @@ describe("Permissioned Business Scenario 2", () => {
 
     // +28 days, run the snapshot
     await advanceToDay(startTime, 28);
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderA);
     await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
     await pool.connect(lenderB).snapshot();
     // check balances
@@ -266,6 +269,7 @@ describe("Permissioned Business Scenario 2", () => {
 
     // +35 days, run the snapshot
     await advanceToDay(startTime, 35);
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderA);
     await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
     await pool.connect(lenderB).snapshot();
     // check balances
@@ -282,6 +286,8 @@ describe("Permissioned Business Scenario 2", () => {
     // check balances
     // Lender A and B can redeem the same # of shares, but their assets differ
     // as they requested to withdraw at different times.
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderA);
+    await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
     expect(await pool.maxRedeem(lenderA.address)).to.equal(476190476189);
     expect(await pool.maxRedeem(lenderB.address)).to.equal(476190476189);
     expect(await pool.maxWithdraw(lenderA.address)).to.equal(500320728572); // $500,320
@@ -292,7 +298,6 @@ describe("Permissioned Business Scenario 2", () => {
     expect(await pool.totalAvailableSupply()).to.be.lt(5);
 
     // Sanity check that withdrawals can actually be done at advertised rate
-    await performVeriteVerification(poolAccessControl, poolAdmin, lenderA);
     const txn1 = await pool
       .connect(lenderA)
       .withdraw(500320728572, lenderA.address, lenderA.address);

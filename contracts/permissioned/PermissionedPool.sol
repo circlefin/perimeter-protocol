@@ -101,4 +101,40 @@ contract PermissionedPool is Pool {
 
         return super.maxMint(receiver);
     }
+
+    /**
+     * @inheritdoc Pool
+     * @dev If a lender is not (currently) allowed, 0 assets are allowed to be
+     * withdrawn from the Pool.
+     */
+    function maxWithdraw(address owner)
+        public
+        view
+        override
+        returns (uint256 assets)
+    {
+        if (!poolAccessControl.isAllowed(owner)) {
+            return 0;
+        }
+
+        return super.maxWithdraw(owner);
+    }
+
+    /**
+     * @inheritdoc Pool
+     * @dev If a lender is not (currently) allowed, 0 shares are allowed to be
+     * redeemed from the Pool.
+     */
+    function maxRedeem(address owner)
+        public
+        view
+        override
+        returns (uint256 maxShares)
+    {
+        if (!poolAccessControl.isAllowed(owner)) {
+            return 0;
+        }
+
+        return super.maxRedeem(owner);
+    }
 }

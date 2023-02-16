@@ -11,7 +11,7 @@ interface IERC4626 is IERC20Upgradeable {
      * @dev Emitted when tokens are deposited into the vault via the mint and deposit methods.
      */
     event Deposit(
-        address indexed caller,
+        address indexed sender,
         address indexed owner,
         uint256 assets,
         uint256 shares
@@ -21,7 +21,7 @@ interface IERC4626 is IERC20Upgradeable {
      * @dev Emitted when shares are withdrawn from the vault by a depositor in the redeem or withdraw methods.
      */
     event Withdraw(
-        address indexed caller,
+        address indexed sender,
         address indexed receiver,
         address indexed owner,
         uint256 assets,
