@@ -241,8 +241,8 @@ describe("Permissioned Business Scenario 1", () => {
       );
     await loanOne.connect(borrowerOne).completeFullPayment();
 
-    // +14 days, request full withdrawal at start of 2nd window
-    await advanceToDay(startTime, 14);
+    // +15 days, request full withdrawal at start of 2nd window
+    await advanceToDay(startTime, 15);
     await performVeriteVerification(poolAccessControl, poolAdmin, lenderA);
     await pool
       .connect(lenderA)
@@ -263,8 +263,8 @@ describe("Permissioned Business Scenario 1", () => {
       );
     await loanTwo.connect(borrowerTwo).completeFullPayment();
 
-    // Request window is 14 days, so fast forward to +28 days to claim in next window
-    await advanceToDay(startTime, 28);
+    // Request window is 14 days, so fast forward to +29 days to claim in next window
+    await advanceToDay(startTime, 29);
     await performVeriteVerification(poolAccessControl, poolAdmin, lenderA);
     await pool.connect(lenderA).snapshot();
     await pool.connect(lenderA).claimSnapshots(1);

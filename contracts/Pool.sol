@@ -361,6 +361,14 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
     /**
      * @inheritdoc IPool
      */
+    function onLoanWillMakePayment() external override {
+        require(_activeLoans.contains(msg.sender), "Pool: caller not loan");
+        _performSnapshot();
+    }
+
+    /**
+     * @inheritdoc IPool
+     */
     function totalAvailableAssets() public view returns (uint256 assets) {
         assets = PoolLib.calculateTotalAvailableAssets(
             address(_liquidityAsset),

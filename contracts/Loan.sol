@@ -401,7 +401,7 @@ contract Loan is ILoan, BeaconImplementation {
         atState(ILoanLifeCycleState.Active)
     {
         require(paymentsRemaining > 0, "Loan: No more payments remain");
-
+        IPool(_pool).onLoanWillMakePayment();
         ILoanFees memory _fees = LoanLib.previewFees(
             settings,
             payment,
@@ -456,6 +456,7 @@ contract Loan is ILoan, BeaconImplementation {
         onlyBorrower
         atState(ILoanLifeCycleState.Active)
     {
+        IPool(_pool).onLoanWillMakePayment();
         uint256 scalingValue = LoanLib.RAY;
 
         if (settings.loanType == ILoanType.Open) {

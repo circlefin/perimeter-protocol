@@ -627,4 +627,53 @@ describe("Snapshot Variations", () => {
       DEPOSIT_AMOUNT // 1:1, even though interest was paid back to the pool, making shares more valuable
     );
   });
+
+  it("eligible balances should not accumulate interest as active loans are repaid with no other pool activity", async () => {
+    const {
+      pool,
+      loan,
+      borrower,
+      aliceLender,
+      bobLender,
+      liquidityAsset,
+      poolAdmin,
+      withdrawController,
+      poolController,
+      withdrawRequestPeriodDuration
+    } = await loadFixture(loadPoolFixture);
+
+    await poolController.connect(poolAdmin).setWithdrawGate(10_000);
+    await poolController.connect(poolAdmin).setRequestFee(0);
+
+    // activate the pool
+    await activatePool(pool, poolAdmin, liquidityAsset);
+
+    // deposit 1M tokens from Alice and Bob
+    await depositToPool(pool, aliceLender, liquidityAsset, DEPOSIT_AMOUNT);
+    await depositToPool(pool, bobLender, liquidityAsset, DEPOSIT_AMOUNT);
+
+    // Request maximum in window 0 for Alice
+    expect(await withdrawController.withdrawPeriod()).to.equal(0);
+    await pool.connect(aliceLender).requestRedeem(DEPOSIT_AMOUNT);
+
+    // Fund loan immediately in window 0
+    await fundLoan(loan, poolController, poolAdmin);
+    await liquidityAsset.mint(borrower.address, 1_000_000); // mint extra to pay back interest
+    await liquidityAsset.connect(borrower).approve(loan.address, 2_000_000);
+    await loan.connect(borrower).drawdown(await loan.principal());
+
+    // Make payback loan in window 1
+    await time.increase(withdrawRequestPeriodDuration);
+    expect(await withdrawController.withdrawPeriod()).to.equal(1);
+    await loan.connect(borrower).completeFullPayment();
+
+    // Claim
+    // Since the lender requested a full redeem, and there's 100% liquidity gate,
+    // the full requested amount should be serviced at whenever the next snapshot is.
+    // We expect that the interest accrued in the intervening time should not accrue to the lender.
+    await pool.connect(aliceLender).claimSnapshots(1);
+    expect(await pool.maxWithdraw(aliceLender.address)).to.equal(
+      DEPOSIT_AMOUNT // 1:1, even though interest was paid back to the pool, making shares more valuable
+    );
+  });
 });

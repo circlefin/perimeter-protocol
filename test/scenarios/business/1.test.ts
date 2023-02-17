@@ -65,11 +65,12 @@ describe("Business Scenario 1", () => {
       "MUSDC",
       6
     );
-    const { pool, serviceConfiguration, poolController } = await deployPool({
-      poolAdmin: poolAdmin,
-      settings: poolSettings,
-      liquidityAsset: mockUSDC
-    });
+    const { pool, serviceConfiguration, poolController, withdrawController } =
+      await deployPool({
+        poolAdmin: poolAdmin,
+        settings: poolSettings,
+        liquidityAsset: mockUSDC
+      });
 
     // Confirm FL fee is set to 5%
     expect(await serviceConfiguration.firstLossFeeBps()).to.equal(500);
@@ -115,6 +116,7 @@ describe("Business Scenario 1", () => {
       startTime,
       pool,
       poolController,
+      withdrawController,
       lenderA,
       lenderB,
       mockUSDC,
@@ -131,6 +133,7 @@ describe("Business Scenario 1", () => {
       startTime,
       pool,
       poolController,
+      withdrawController,
       lenderA,
       lenderB,
       mockUSDC,
@@ -191,11 +194,15 @@ describe("Business Scenario 1", () => {
       );
     await loanOne.connect(borrowerOne).completeFullPayment();
 
-    // +14 days, request full withdrawal at start of 2nd window
-    await advanceToDay(startTime, 14);
+    // +15 days, request full withdrawal at start of 2nd window
+    expect(await withdrawController.withdrawPeriod()).to.equal(0);
+    await advanceToDay(startTime, 15);
+    expect(await withdrawController.withdrawPeriod()).to.equal(1);
+
     await pool
       .connect(lenderA)
       .requestRedeem(await pool.maxRedeemRequest(lenderA.address));
+
     await pool
       .connect(lenderB)
       .requestRedeem(await pool.maxRedeemRequest(lenderB.address));
@@ -208,10 +215,11 @@ describe("Business Scenario 1", () => {
         loanTwo.address,
         INPUTS.loanTwoPayment + INPUTS.loanTwo.principal
       );
+
     await loanTwo.connect(borrowerTwo).completeFullPayment();
 
-    // Request window is 14 days, so fast forward to +28 days to claim in next window
-    await advanceToDay(startTime, 28);
+    // Request window is 14 days, so fast forward to +29 days to claim in next window
+    await advanceToDay(startTime, 29);
     await pool.snapshot();
     await pool.connect(lenderA).claimSnapshots(10);
     await pool.connect(lenderB).claimSnapshots(10);

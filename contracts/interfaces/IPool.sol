@@ -181,6 +181,11 @@ interface IPool is IERC4626, IRequestWithdrawable {
     function onLoanDefaulted(address loan, uint256 firstLossApplied) external;
 
     /**
+     * @dev Called by an active loan, this notifies the Pool that payment will be made.
+     */
+    function onLoanWillMakePayment() external;
+
+    /**
      * @dev Called by the Pool Controller, it transfers the fixed fee
      */
     function claimFixedFee(
