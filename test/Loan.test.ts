@@ -1207,7 +1207,7 @@ describe("Loan", () => {
   });
 
   describe("PoolSnapshots", () => {
-    it("completing the next payment triggers a snapshot of the pool", async () => {
+    it("triggers a snapshot of the pool when completing the next payment", async () => {
       const {
         borrower,
         collateralAsset,
@@ -1243,7 +1243,7 @@ describe("Loan", () => {
       );
     });
 
-    it("completing the full payment triggers a snapshot of the pool", async () => {
+    it("triggers a snapshot of the pool when completing the full payment", async () => {
       const {
         borrower,
         collateralAsset,
