@@ -1206,6 +1206,83 @@ describe("Loan", () => {
     });
   });
 
+  describe("PoolSnapshots", () => {
+    it("completing the next payment triggers a snapshot of the pool", async () => {
+      const {
+        borrower,
+        collateralAsset,
+        liquidityAsset,
+        loan,
+        pool,
+        poolController,
+        withdrawController,
+        poolAdmin
+      } = await loadFixture(deployFixture);
+
+      // Setup
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await loan
+        .connect(borrower)
+        .postFungibleCollateral(collateralAsset.address, 100);
+      await poolController.connect(poolAdmin).fundLoan(loan.address);
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      // Advance to 2nd withdraw period
+      expect(await withdrawController.withdrawPeriod()).to.equal(0);
+      await time.increase(
+        (
+          await pool.settings()
+        ).withdrawRequestPeriodDuration
+      );
+      expect(await withdrawController.withdrawPeriod()).to.equal(1);
+
+      await liquidityAsset.connect(borrower).approve(loan.address, 2083);
+      await expect(loan.connect(borrower).completeNextPayment()).to.emit(
+        pool,
+        "PoolSnapshotted"
+      );
+    });
+
+    it("completing the full payment triggers a snapshot of the pool", async () => {
+      const {
+        borrower,
+        collateralAsset,
+        liquidityAsset,
+        loan,
+        pool,
+        poolController,
+        withdrawController,
+        poolAdmin
+      } = await loadFixture(deployFixture);
+
+      // Setup
+      await collateralAsset.connect(borrower).approve(loan.address, 100);
+      await loan
+        .connect(borrower)
+        .postFungibleCollateral(collateralAsset.address, 100);
+      await poolController.connect(poolAdmin).fundLoan(loan.address);
+      await loan.connect(borrower).drawdown(await loan.principal());
+
+      // Advance to 2nd withdraw period
+      expect(await withdrawController.withdrawPeriod()).to.equal(0);
+      await time.increase(
+        (
+          await pool.settings()
+        ).withdrawRequestPeriodDuration
+      );
+      expect(await withdrawController.withdrawPeriod()).to.equal(1);
+
+      await liquidityAsset
+        .connect(borrower)
+        .approve(loan.address, 12498 + 500_000);
+      await liquidityAsset.mint(borrower.address, 12498);
+      await expect(loan.connect(borrower).completeFullPayment()).to.emit(
+        pool,
+        "PoolSnapshotted"
+      );
+    });
+  });
+
   describe("payments", () => {
     it("reverts if the protocol is paused", async () => {
       const {
@@ -1280,42 +1357,6 @@ describe("Loan", () => {
       expect(await loan.paymentsRemaining()).to.equal(5);
       const newDueDate = await loan.paymentDueDate();
       expect(newDueDate).to.equal(dueDate.add(THIRTY_DAYS));
-    });
-
-    it("completing the next payment triggers a snapshot of the pool", async () => {
-      const {
-        borrower,
-        collateralAsset,
-        liquidityAsset,
-        loan,
-        pool,
-        poolController,
-        withdrawController,
-        poolAdmin
-      } = await loadFixture(deployFixture);
-
-      // Setup
-      await collateralAsset.connect(borrower).approve(loan.address, 100);
-      await loan
-        .connect(borrower)
-        .postFungibleCollateral(collateralAsset.address, 100);
-      await poolController.connect(poolAdmin).fundLoan(loan.address);
-      await loan.connect(borrower).drawdown(await loan.principal());
-
-      // Advance to 2nd withdraw period
-      expect(await withdrawController.withdrawPeriod()).to.equal(0);
-      await time.increase(
-        (
-          await pool.settings()
-        ).withdrawRequestPeriodDuration
-      );
-      expect(await withdrawController.withdrawPeriod()).to.equal(1);
-
-      await liquidityAsset.connect(borrower).approve(loan.address, 2083);
-      await expect(loan.connect(borrower).completeNextPayment()).to.emit(
-        pool,
-        "PoolSnapshotted"
-      );
     });
 
     it("can complete the next payment if late", async () => {
@@ -1412,45 +1453,6 @@ describe("Loan", () => {
 
       expect(await loan.paymentsRemaining()).to.equal(0);
       expect(await loan.state()).to.equal(5);
-    });
-
-    it("completing the full payment triggers a snapshot of the pool", async () => {
-      const {
-        borrower,
-        collateralAsset,
-        liquidityAsset,
-        loan,
-        pool,
-        poolController,
-        withdrawController,
-        poolAdmin
-      } = await loadFixture(deployFixture);
-
-      // Setup
-      await collateralAsset.connect(borrower).approve(loan.address, 100);
-      await loan
-        .connect(borrower)
-        .postFungibleCollateral(collateralAsset.address, 100);
-      await poolController.connect(poolAdmin).fundLoan(loan.address);
-      await loan.connect(borrower).drawdown(await loan.principal());
-
-      // Advance to 2nd withdraw period
-      expect(await withdrawController.withdrawPeriod()).to.equal(0);
-      await time.increase(
-        (
-          await pool.settings()
-        ).withdrawRequestPeriodDuration
-      );
-      expect(await withdrawController.withdrawPeriod()).to.equal(1);
-
-      await liquidityAsset
-        .connect(borrower)
-        .approve(loan.address, 12498 + 500_000);
-      await liquidityAsset.mint(borrower.address, 12498);
-      await expect(loan.connect(borrower).completeFullPayment()).to.emit(
-        pool,
-        "PoolSnapshotted"
-      );
     });
 
     it("charges a late fee if the principal is paid back late, but the interest payments on-time", async () => {
