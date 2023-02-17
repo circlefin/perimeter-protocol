@@ -628,7 +628,7 @@ describe("Snapshot Variations", () => {
     );
   });
 
-  it.only("eligible balances should not accumulate interest as active loans are repaid with no other pool activity", async () => {
+  it("eligible balances should not accumulate interest as active loans are repaid with no other pool activity", async () => {
     const {
       pool,
       loan,
@@ -638,7 +638,8 @@ describe("Snapshot Variations", () => {
       liquidityAsset,
       poolAdmin,
       withdrawController,
-      poolController
+      poolController,
+      withdrawRequestPeriodDuration
     } = await loadFixture(loadPoolFixture);
 
     await poolController.connect(poolAdmin).setWithdrawGate(10_000);
@@ -661,21 +662,16 @@ describe("Snapshot Variations", () => {
     await liquidityAsset.connect(borrower).approve(loan.address, 2_000_000);
     await loan.connect(borrower).drawdown(await loan.principal());
 
-    // Make payments on time
-    for (let i = 0; i < 6; i++) {
-      // Make payments on time
-      const dueDate = await loan.paymentDueDate();
-      await time.increaseTo(dueDate.sub(100));
-      await loan.connect(borrower).completeNextPayment();
-    }
-    // Payback principal
+    // Make payback loan in window 1
+    await time.increase(withdrawRequestPeriodDuration);
+    expect(await withdrawController.withdrawPeriod()).to.equal(1);
     await loan.connect(borrower).completeFullPayment();
 
-    // Claim all at once
+    // Claim 
     // Since the lender requested a full redeem, and there's 100% liquidity gate, 
     // the full requested amount should be serviced at whenever the next snapshot is. 
     // We expect that the interest accrued in the intervening time should not accrue to the lender.
-    await pool.connect(aliceLender).claimSnapshots(3);
+    await pool.connect(aliceLender).claimSnapshots(1);
     expect(await pool.maxWithdraw(aliceLender.address)).to.equal(
       DEPOSIT_AMOUNT // 1:1, even though interest was paid back to the pool, making shares more valuable
     );
