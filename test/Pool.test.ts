@@ -30,6 +30,7 @@ describe("Pool", () => {
 
     const {
       pool,
+      withdrawController,
       liquidityAsset,
       serviceConfiguration,
       poolController,
@@ -52,6 +53,7 @@ describe("Pool", () => {
 
     return {
       pool,
+      withdrawController,
       poolLib,
       deployer,
       poolFactory,
@@ -275,8 +277,8 @@ describe("Pool", () => {
       await activatePool(pool, poolAdmin, liquidityAsset);
       await liquidityAsset.mint(lenderA.address, 100);
       await depositToPool(pool, lenderA, liquidityAsset, 100);
-
       await pool.connect(lenderA).requestRedeem(50);
+
       const { withdrawRequestPeriodDuration } = await pool.settings();
       await time.increase(withdrawRequestPeriodDuration);
       await pool.snapshot();
@@ -286,15 +288,15 @@ describe("Pool", () => {
       await depositToPool(pool, lenderB, liquidityAsset, 100);
 
       // There's a 5% request fee, which burned 3 tokens when Lender A requested to redeem.
-      // That left 97 tokens in the Pool at the time of the snapshot, 49 of which were earmarked for withdrawal,
-      // along with 50 assets (since the exchange rate was 100/97 * 50 = 50.5 rounded down).
+      // That left 97 tokens in the Pool at the time of the snapshot, 50 of which were earmarked for withdrawal,
+      // along with 51 assets (since the exchange rate was 100/97 * 50 = 51.5 rounded down).
 
-      // So, at the time of deposit, there were 97 - 49 = 48 tokens, along with 50 assets.
-      // Depositing 100 * 48/50 = 96 pool tokens.
-      expect(await pool.balanceOf(lenderB.address)).to.equal(96);
+      // So, at the time of deposit, there were 97 - 50 = 47 tokens, along with 49 assets.
+      // Depositing 100 * 47/49 = 95.9 pool tokens, rounded down
+      expect(await pool.balanceOf(lenderB.address)).to.equal(95);
 
-      // Max redeem is 91 shares, since 96 * 0.05 = 4.8 in fees.
-      // 91 shares at an exchange rate of 150 / 144 = 94.79 assets rounded down
+      // Max redeem is 90 shares, since 95 * 0.05 = 4.75 in fees (round up to 5).
+      expect(await pool.maxRedeemRequest(lenderB.address)).to.equal(90);
       expect(await pool.maxWithdrawRequest(lenderB.address)).to.equal(94);
     });
 
@@ -566,6 +568,156 @@ describe("Pool", () => {
       await expect(depositPreviewAfter)
         .to.be.lessThan(depositPreviewBefore)
         .to.equal(997921);
+    });
+  });
+
+  describe("ClaimSnapshots()", () => {
+    it("reverts with a 0 limit", async () => {
+      const { pool, poolAdmin, liquidityAsset, otherAccount } =
+        await loadFixture(loadPoolFixture);
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      await depositToPool(pool, otherAccount, liquidityAsset, 100);
+      await pool.connect(otherAccount).requestRedeem(50);
+
+      // Advance to next period
+      await time.increase(
+        (
+          await pool.settings()
+        ).withdrawRequestPeriodDuration
+      );
+      await pool.snapshot();
+
+      await expect(
+        pool.connect(otherAccount).claimSnapshots(0)
+      ).to.be.revertedWith("WithdrawController: invalid limit");
+    });
+
+    it("reverts if called by a non-lender", async () => {
+      const { pool, poolAdmin, liquidityAsset, otherAccount } =
+        await loadFixture(loadPoolFixture);
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      await expect(
+        pool.connect(otherAccount).claimSnapshots(0)
+      ).to.be.revertedWith("Pool: caller is not a lender");
+    });
+
+    it("reverts if paused", async () => {
+      const {
+        pool,
+        pauser,
+        serviceConfiguration,
+        poolAdmin,
+        liquidityAsset,
+        otherAccount
+      } = await loadFixture(loadPoolFixture);
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      await depositToPool(pool, otherAccount, liquidityAsset, 100);
+      await pool.connect(otherAccount).requestRedeem(50);
+
+      // Advance to next period
+      await time.increase(
+        (
+          await pool.settings()
+        ).withdrawRequestPeriodDuration
+      );
+      await pool.snapshot();
+
+      await serviceConfiguration.connect(pauser).setPaused(true);
+      await expect(
+        pool.connect(otherAccount).claimSnapshots(1)
+      ).to.be.revertedWith("Pool: Protocol paused");
+    });
+
+    it("emits an event", async () => {
+      const {
+        pool,
+        poolAdmin,
+        withdrawController,
+        liquidityAsset,
+        otherAccount
+      } = await loadFixture(loadPoolFixture);
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      await depositToPool(pool, otherAccount, liquidityAsset, 100);
+      await pool.connect(otherAccount).requestRedeem(50);
+
+      // Advance to next period
+      await time.increase(
+        (
+          await pool.settings()
+        ).withdrawRequestPeriodDuration
+      );
+      await pool.snapshot();
+
+      const txn = await pool.connect(otherAccount).claimSnapshots(1);
+      // 100% withdrawal gate, with a 5% request fee
+      // At the time of snapshot, 50 shares are allocated at an exchange rate
+      // of 100 assets / 97 shares, translating to 51.5 i.e. 51 rounded down.
+      await expect(txn)
+        .to.emit(withdrawController, "SnapshotsClaimed")
+        .withArgs(otherAccount.address, 1, 50, 51);
+    });
+  });
+
+  describe("claimRequired()", () => {
+    it("returns false if in same period as request", async () => {
+      const { pool, poolAdmin, liquidityAsset, otherAccount } =
+        await loadFixture(loadPoolFixture);
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      await depositToPool(pool, otherAccount, liquidityAsset, 100);
+      await pool.connect(otherAccount).requestRedeem(50);
+
+      expect(await pool.claimRequired(otherAccount.address)).to.be.false;
+    });
+
+    it("returns true if at least one snapshot has occurred since request", async () => {
+      const { pool, poolAdmin, liquidityAsset, otherAccount } =
+        await loadFixture(loadPoolFixture);
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      await depositToPool(pool, otherAccount, liquidityAsset, 100);
+      await pool.connect(otherAccount).requestRedeem(50);
+
+      // Advance to next period
+      await time.increase(
+        (
+          await pool.settings()
+        ).withdrawRequestPeriodDuration
+      );
+      expect(await pool.claimRequired(otherAccount.address)).to.be.false;
+
+      // snapshot
+      await pool.snapshot();
+
+      expect(await pool.claimRequired(otherAccount.address)).to.be.true;
+    });
+
+    it("returns false once claimSnapshots is called", async () => {
+      const { pool, poolAdmin, liquidityAsset, otherAccount } =
+        await loadFixture(loadPoolFixture);
+      await activatePool(pool, poolAdmin, liquidityAsset);
+
+      await depositToPool(pool, otherAccount, liquidityAsset, 100);
+      await pool.connect(otherAccount).requestRedeem(50);
+
+      // Advance to next period
+      await time.increase(
+        (
+          await pool.settings()
+        ).withdrawRequestPeriodDuration
+      );
+      expect(await pool.claimRequired(otherAccount.address)).to.be.false;
+
+      // snapshot
+      await pool.snapshot();
+
+      expect(await pool.claimRequired(otherAccount.address)).to.be.true;
+      await pool.connect(otherAccount).claimSnapshots(1);
+      expect(await pool.claimRequired(otherAccount.address)).to.be.false;
     });
   });
 
@@ -1008,7 +1160,8 @@ describe("Pool", () => {
         await time.increase(withdrawRequestPeriodDuration);
         await pool.connect(poolAdmin).snapshot();
 
-        expect(await pool.maxRedeem(otherAccount.address)).to.equal(9); // 10 - snapshot dust
+        await pool.connect(otherAccount).claimSnapshots(10);
+        expect(await pool.maxRedeem(otherAccount.address)).to.equal(10);
       });
 
       it("returns 0 when the pool is paused", async () => {
@@ -1036,6 +1189,7 @@ describe("Pool", () => {
           ).withdrawRequestPeriodDuration
         );
         await pool.snapshot();
+        await pool.connect(otherAccount).claimSnapshots(1);
 
         // Some should be withdrawable
         expect(await pool.maxWithdraw(otherAccount.address)).to.be.greaterThan(
@@ -1062,8 +1216,8 @@ describe("Pool", () => {
 
         await time.increase(withdrawRequestPeriodDuration);
         await pool.connect(poolAdmin).snapshot();
-
-        expect(await pool.maxWithdraw(otherAccount.address)).to.equal(9);
+        await pool.connect(otherAccount).claimSnapshots(10);
+        expect(await pool.maxWithdraw(otherAccount.address)).to.equal(10);
       });
 
       it("returns 0 when the pool is paused", async () => {
@@ -1091,6 +1245,7 @@ describe("Pool", () => {
           ).withdrawRequestPeriodDuration
         );
         await pool.snapshot();
+        await pool.connect(otherAccount).claimSnapshots(1);
 
         // Some should be withdrawable
         expect(await pool.maxWithdraw(otherAccount.address)).to.be.greaterThan(
@@ -1136,17 +1291,18 @@ describe("Pool", () => {
       const startingAssets = await liquidityAsset.balanceOf(
         otherAccount.address
       );
-      expect(await pool.maxRedeem(otherAccount.address)).to.equal(9);
+      await pool.connect(otherAccount).claimSnapshots(10);
+      expect(await pool.maxRedeem(otherAccount.address)).to.equal(10);
 
       await pool
         .connect(otherAccount)
-        .redeem(9, otherAccount.address, otherAccount.address);
+        .redeem(10, otherAccount.address, otherAccount.address);
 
       expect(await liquidityAsset.balanceOf(otherAccount.address)).to.equal(
-        startingAssets.add(9)
+        startingAssets.add(10)
       );
       expect(await pool.balanceOf(otherAccount.address)).to.equal(
-        startingShares.sub(9)
+        startingShares.sub(10)
       );
     });
 
@@ -1168,12 +1324,14 @@ describe("Pool", () => {
 
       expect((await pool.accountings()).totalAssetsWithdrawn).to.equal(0);
 
+      await pool.connect(otherAccount).claimSnapshots(10);
       await pool
         .connect(otherAccount)
         .redeem(9, otherAccount.address, otherAccount.address);
 
       expect((await pool.accountings()).totalAssetsWithdrawn).to.equal(9);
 
+      await pool.connect(bob).claimSnapshots(10);
       await pool.connect(bob).redeem(29, bob.address, bob.address);
 
       expect((await pool.accountings()).totalAssetsWithdrawn).to.equal(38);
@@ -1251,6 +1409,7 @@ describe("Pool", () => {
       const { withdrawRequestPeriodDuration } = await pool.settings();
       await time.increase(withdrawRequestPeriodDuration);
       await pool.snapshot();
+      await pool.connect(otherAccount).claimSnapshots(10);
 
       // Redeem full amount
       const maxRedeem = await pool.maxRedeem(otherAccount.address);
@@ -1262,7 +1421,7 @@ describe("Pool", () => {
         otherAccount.address,
         999
       );
-      expect(await pool.totalSupply()).to.equal(2); // dust
+      expect(await pool.totalSupply()).to.equal(0);
     });
   });
 
@@ -1281,12 +1440,13 @@ describe("Pool", () => {
 
       await time.increase(withdrawRequestPeriodDuration);
       await pool.connect(poolAdmin).snapshot();
+      await pool.connect(otherAccount).claimSnapshots(10);
 
       const startingShares = await pool.balanceOf(otherAccount.address);
       const startingAssets = await liquidityAsset.balanceOf(
         otherAccount.address
       );
-      expect(await pool.maxWithdraw(otherAccount.address)).to.equal(9);
+      expect(await pool.maxWithdraw(otherAccount.address)).to.equal(10);
 
       await pool
         .connect(otherAccount)
@@ -1318,12 +1478,14 @@ describe("Pool", () => {
 
       expect((await pool.accountings()).totalAssetsWithdrawn).to.equal(0);
 
+      await pool.connect(otherAccount).claimSnapshots(10);
       await pool
         .connect(otherAccount)
         .withdraw(9, otherAccount.address, otherAccount.address);
 
       expect((await pool.accountings()).totalAssetsWithdrawn).to.equal(9);
 
+      await pool.connect(bob).claimSnapshots(10);
       await pool.connect(bob).withdraw(29, bob.address, bob.address);
 
       expect((await pool.accountings()).totalAssetsWithdrawn).to.equal(38);
@@ -1444,7 +1606,7 @@ describe("Pool", () => {
       );
     });
 
-    it("cancelRedeem()", async () => {
+    it("claimSnapshots()", async () => {
       const { pool, poolAdmin, liquidityAsset, otherAccount } =
         await loadFixture(loadPoolFixture);
 
@@ -1455,24 +1617,7 @@ describe("Pool", () => {
       const { withdrawRequestPeriodDuration } = await pool.settings();
       await time.increase(withdrawRequestPeriodDuration);
 
-      await expect(pool.connect(otherAccount).cancelRedeemRequest(0)).to.emit(
-        pool,
-        "PoolSnapshotted"
-      );
-    });
-
-    it("cancelWithdraw()", async () => {
-      const { pool, poolAdmin, liquidityAsset, otherAccount } =
-        await loadFixture(loadPoolFixture);
-
-      await activatePool(pool, poolAdmin, liquidityAsset);
-      await depositToPool(pool, otherAccount, liquidityAsset, 10);
-      await pool.connect(otherAccount).requestWithdraw(5);
-
-      const { withdrawRequestPeriodDuration } = await pool.settings();
-      await time.increase(withdrawRequestPeriodDuration);
-
-      await expect(pool.connect(otherAccount).cancelWithdrawRequest(0)).to.emit(
+      await expect(pool.connect(otherAccount).claimSnapshots(1)).to.emit(
         pool,
         "PoolSnapshotted"
       );
@@ -1487,8 +1632,14 @@ describe("Pool", () => {
       await pool.connect(otherAccount).requestRedeem(100);
 
       const { withdrawRequestPeriodDuration } = await pool.settings();
+      // Advance one period
+      // claimSnapshots() will snapshot the pool
       await time.increase(withdrawRequestPeriodDuration);
+      await pool.connect(otherAccount).claimSnapshots(10);
 
+      // Advance a 2nd period
+      await time.increase(withdrawRequestPeriodDuration);
+      // This should trigger another snapshot
       await expect(
         pool
           .connect(otherAccount)
@@ -1506,7 +1657,8 @@ describe("Pool", () => {
 
       const { withdrawRequestPeriodDuration } = await pool.settings();
       await time.increase(withdrawRequestPeriodDuration);
-
+      await pool.connect(otherAccount).claimSnapshots(10);
+      await time.increase(withdrawRequestPeriodDuration);
       await expect(
         pool
           .connect(otherAccount)

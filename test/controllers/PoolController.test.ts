@@ -962,11 +962,10 @@ describe("PoolController", () => {
       const { withdrawRequestPeriodDuration } = await pool.settings();
       await time.increase(withdrawRequestPeriodDuration);
       await pool.snapshot();
+      await pool.connect(otherAccount).claimSnapshots(100);
 
       // double check that the funds are now available for withdraw
-      expect(await pool.maxRedeem(otherAccount.address)).to.equal(
-        redeemAmount.sub(2)
-      );
+      expect(await pool.maxRedeem(otherAccount.address)).to.equal(redeemAmount);
 
       // check that totalAvailableAssets is dust
       expect(await pool.totalAvailableAssets()).to.lessThan(10);
@@ -1738,7 +1737,6 @@ describe("PoolController", () => {
       // can either be before or after the dropdead timestamp, hence this conditional.
       const dropDeadTimestamp = await loan.dropDeadTimestamp();
       if ((await time.latest()) < dropDeadTimestamp.toNumber()) {
-        console.log(dropDeadTimestamp.toBigInt());
         await time.increaseTo(dropDeadTimestamp.toBigInt());
       }
 

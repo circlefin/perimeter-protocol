@@ -267,6 +267,7 @@ describe("Permissioned Business Scenario 1", () => {
     await advanceToDay(startTime, 28);
     await performVeriteVerification(poolAccessControl, poolAdmin, lenderA);
     await pool.connect(lenderA).snapshot();
+    await pool.connect(lenderA).claimSnapshots(1);
     await pool
       .connect(lenderA)
       .redeem(
@@ -275,6 +276,7 @@ describe("Permissioned Business Scenario 1", () => {
         lenderA.address
       );
     await performVeriteVerification(poolAccessControl, poolAdmin, lenderB);
+    await pool.connect(lenderB).claimSnapshots(1);
     await pool
       .connect(lenderB)
       .redeem(
@@ -301,8 +303,8 @@ describe("Permissioned Business Scenario 1", () => {
       .sub(INPUTS.lenderADepositAmount)
       .sub(INPUTS.lenderBDepositAmount);
 
-    expect(totalEarnings).to.equal(1_754_861_106);
+    expect(totalEarnings).to.equal(1_754_861_105);
     expect(lenderABalance).to.equal(501_491_879_840);
-    expect(lenderBBalance).to.equal(200_262_981_266);
+    expect(lenderBBalance).to.equal(200_262_981_265);
   });
 });

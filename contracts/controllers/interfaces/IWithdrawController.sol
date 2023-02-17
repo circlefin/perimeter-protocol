@@ -17,9 +17,10 @@ struct IPoolWithdrawState {
  * @dev Holds per-snapshot state used to compute a user's redeemable shares and assets.
  */
 struct IPoolSnapshotState {
-    uint256 aggregationSumRay;
-    uint256 aggregationSumFxRay;
-    uint256 aggregationDifferenceRay;
+    uint256 redeemableRateRay;
+    uint256 sharesRedeemable;
+    uint256 fxRateRay;
+    uint256 nextSnapshotPeriod; // This serves as a pointer to the next snapshot (set whenever the next snapshot runs).
 }
 
 /**
@@ -29,6 +30,16 @@ struct IPoolSnapshotState {
  * to their withdrawal requests.
  */
 interface IWithdrawController {
+    /**
+     * @dev Emitted when a lender claims snapshots.
+     */
+    event SnapshotsClaimed(
+        address indexed lender,
+        uint256 numberSnapshots,
+        uint256 shares,
+        uint256 assets
+    );
+
     function withdrawPeriod() external view returns (uint256);
 
     /*//////////////////////////////////////////////////////////////
@@ -188,6 +199,19 @@ interface IWithdrawController {
      * of the WithdrawController.
      */
     function performRequestCancellation(address, uint256) external;
+
+    /**
+     * @dev Iterates over snapshots, up to a limit, and claims eligible funds earmarked
+     * across the snapshots, updating the lenders withdrawal state accordingly.
+     */
+    function claimSnapshots(address lender, uint256 limit)
+        external
+        returns (uint256 shares, uint256 assets);
+
+    /**
+     * @dev Determines whether a lender is "up to date" with the snapshots.
+     */
+    function claimRequired(address lender) external view returns (bool);
 
     /*//////////////////////////////////////////////////////////////
                             Snapshot

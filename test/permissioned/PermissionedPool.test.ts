@@ -108,6 +108,7 @@ describe("PermissionedPool", () => {
         ).withdrawRequestPeriodDuration
       );
       await pool.connect(allowedLender).snapshot();
+      await pool.connect(allowedLender).claimSnapshots(1);
 
       // Some is redeemable
       expect(await pool.maxRedeem(allowedLender.address)).to.be.greaterThan(0);
@@ -144,6 +145,7 @@ describe("PermissionedPool", () => {
         ).withdrawRequestPeriodDuration
       );
       await pool.connect(allowedLender).snapshot();
+      await pool.connect(allowedLender).claimSnapshots(1);
 
       // Some is withdrawable
       expect(await pool.maxWithdraw(allowedLender.address)).to.be.greaterThan(
@@ -239,6 +241,36 @@ describe("PermissionedPool", () => {
     });
   });
 
+  describe("claimSnapshots()", () => {
+    it("reverts if not called by allowed lender", async () => {
+      const {
+        pool,
+        poolAccessControl,
+        poolAdmin,
+        liquidityAsset,
+        allowedLender
+      } = await loadFixture(loadPoolFixture);
+
+      await activatePool(pool, poolAdmin, liquidityAsset);
+      await depositToPool(pool, allowedLender, liquidityAsset, 10);
+
+      await pool.connect(allowedLender).requestRedeem(5);
+      await progressWithdrawWindow(pool);
+
+      await expect(pool.connect(allowedLender).claimSnapshots(1)).to.not.be
+        .reverted;
+
+      // Disallow
+      await poolAccessControl
+        .connect(poolAdmin)
+        .removeParticipant(allowedLender.address);
+
+      await expect(
+        pool.connect(allowedLender).claimSnapshots(1)
+      ).to.be.revertedWith("LENDER_NOT_ALLOWED");
+    });
+  });
+
   describe("redeem()", () => {
     it("reverts if not allowed lender", async () => {
       const { pool, poolAdmin, liquidityAsset, otherAccount } =
@@ -262,6 +294,7 @@ describe("PermissionedPool", () => {
 
       await pool.connect(allowedLender).requestRedeem(5);
       await progressWithdrawWindow(pool);
+      await pool.connect(allowedLender).claimSnapshots(1);
 
       await expect(
         pool
@@ -294,6 +327,7 @@ describe("PermissionedPool", () => {
 
       await pool.connect(allowedLender).requestRedeem(5);
       await progressWithdrawWindow(pool);
+      await pool.connect(allowedLender).claimSnapshots(1);
 
       await expect(
         pool

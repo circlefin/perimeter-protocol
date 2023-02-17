@@ -213,6 +213,9 @@ describe("Business Scenario 1", () => {
     // Request window is 14 days, so fast forward to +28 days to claim in next window
     await advanceToDay(startTime, 28);
     await pool.snapshot();
+    await pool.connect(lenderA).claimSnapshots(10);
+    await pool.connect(lenderB).claimSnapshots(10);
+
     await pool
       .connect(lenderA)
       .redeem(
@@ -246,8 +249,8 @@ describe("Business Scenario 1", () => {
       .sub(INPUTS.lenderADepositAmount)
       .sub(INPUTS.lenderBDepositAmount);
 
-    expect(totalEarnings).to.equal(1_754_861_106);
+    expect(totalEarnings).to.equal(1_754_861_105);
     expect(lenderABalance).to.equal(501_491_879_840);
-    expect(lenderBBalance).to.equal(200_262_981_266);
+    expect(lenderBBalance).to.equal(200_262_981_265);
   });
 });

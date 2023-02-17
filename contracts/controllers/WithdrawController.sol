@@ -17,6 +17,8 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
     using SafeMath for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
 
+    uint256 public constant RAY = 10**27;
+
     /**
      * @dev A reference to the pool for this withdraw state
      */
@@ -81,8 +83,6 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
             _withdrawState[owner],
             currentPeriod
         );
-
-        return simulateSnapshot(state);
     }
 
     /**
@@ -295,16 +295,24 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
      * @inheritdoc IWithdrawController
      */
     function performRequest(address owner, uint256 shares) external onlyPool {
-        snapshotLender(owner); // Get them up-to-date
+        IPoolWithdrawState memory _state = _currentWithdrawState(owner);
+        require(
+            !_claimRequired(_state),
+            "WithdrawController: must claim snapshots first"
+        );
 
         uint256 currentPeriod = withdrawPeriod();
 
         // Update the requested amount from the user
         _withdrawState[owner] = PoolLib.calculateWithdrawStateForRequest(
-            _currentWithdrawState(owner),
+            _state,
             currentPeriod,
             shares
         );
+
+        // Either the owner has no outstanding requested / eligible shares, at which
+        // point we can treat this time of request as being "up-to-date" with the snapshots.
+        // Or, since claimRequired was enforced, they're up-to-date regardless.
         _withdrawState[owner].latestSnapshotPeriod = _globalWithdrawState
             .latestSnapshotPeriod;
 
@@ -340,7 +348,10 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
         external
         onlyPool
     {
-        snapshotLender(owner);
+        require(
+            !claimRequired(owner),
+            "WithdrawController: must claim eligible first"
+        );
         uint256 currentPeriod = withdrawPeriod();
 
         // Update the requested amount from the user
@@ -388,6 +399,7 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
     {
         period = withdrawPeriod();
         IPoolWithdrawState memory globalState = _currentGlobalWithdrawState();
+
         if (globalState.latestSnapshotPeriod == period) {
             return (period, 0, 0, false);
         }
@@ -396,63 +408,33 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
         uint256 liquidAssets = _pool.liquidityPoolAssets();
         uint256 availableAssets = liquidAssets
             .mul(withdrawGate)
-            .mul(PoolLib.RAY)
+            .mul(RAY)
             .div(10_000)
-            .div(PoolLib.RAY);
+            .div(RAY);
 
         uint256 availableShares = _pool.convertToShares(availableAssets);
 
         // Determine the amount of shares that we will actually distribute.
         redeemableShares = Math.min(
             availableShares,
-            globalState.eligibleShares > 0 ? globalState.eligibleShares - 1 : 0 // We offset by 1 to avoid a 100% redeem rate, which throws off all the math.
+            globalState.eligibleShares
         );
-
-        if (redeemableShares == 0) {
-            // unable to redeem anything, so the snapshot is unchanged from the last
-            _globalWithdrawState.latestSnapshotPeriod = period;
-            _snapshots[period] = _snapshots[globalState.latestSnapshotPeriod];
-            return (period, 0, 0, true);
-        }
 
         periodSnapshotted = true;
         withdrawableAssets = _pool.convertToAssets(redeemableShares);
 
         // Calculate the redeemable rate for each lender
-        uint256 redeemableRateRay = redeemableShares.mul(PoolLib.RAY).div(
-            globalState.eligibleShares
-        );
+        uint256 redeemableRateRay = globalState.eligibleShares > 0
+            ? redeemableShares.mul(RAY).div(globalState.eligibleShares)
+            : 0;
 
-        // Calculate the exchange rate for the snapshotted funds
-        uint256 fxExchangeRate = withdrawableAssets.mul(PoolLib.RAY).div(
-            redeemableShares
-        );
-
-        // Pull up the prior snapshot
-        IPoolSnapshotState memory lastSnapshot = _snapshots[
-            globalState.latestSnapshotPeriod
-        ];
-
-        // Cache the last aggregate difference. This is set to 1 * RAY if it
-        // doesn't exist, so that everything doesn't collapse to 0.
-        uint256 lastDiff = lastSnapshot.aggregationDifferenceRay != 0
-            ? lastSnapshot.aggregationDifferenceRay
-            : PoolLib.RAY;
-
-        // Cache new accumulating term to avoid duplicating the math
-        uint256 newAccumulatedTerm = redeemableRateRay.mul(lastDiff).div(
-            PoolLib.RAY
-        );
-
-        // Compute the new snapshotted values
         _snapshots[period] = IPoolSnapshotState(
-            // New aggregation
-            lastSnapshot.aggregationSumRay + newAccumulatedTerm,
-            // New aggregation w/ FX
-            lastSnapshot.aggregationSumFxRay +
-                newAccumulatedTerm.mul(fxExchangeRate).div(PoolLib.RAY),
-            // New difference
-            lastDiff.mul(PoolLib.RAY - redeemableRateRay).div(PoolLib.RAY)
+            redeemableRateRay,
+            redeemableShares,
+            redeemableShares > 0
+                ? withdrawableAssets.mul(RAY).div(redeemableShares)
+                : 0,
+            0
         );
 
         // Update the global withdraw state to earmark those funds
@@ -461,75 +443,104 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
             withdrawableAssets,
             redeemableShares
         );
+
+        // "Point" the prior snapshot to this one
+        _snapshots[globalState.latestSnapshotPeriod]
+            .nextSnapshotPeriod = period;
+
+        // Update the global state
         globalState.latestSnapshotPeriod = period;
         _globalWithdrawState = globalState;
     }
 
     /**
-     * @dev Simulates the effects of multiple snapshots against a lenders
-     * requested withdrawal.
+     * @inheritdoc IWithdrawController
      */
-    function simulateSnapshot(IPoolWithdrawState memory withdrawState)
-        internal
-        view
-        returns (IPoolWithdrawState memory)
-    {
-        uint256 lastPoolSnapshot = _globalWithdrawState.latestSnapshotPeriod;
-
-        // Current snaphot
-        IPoolSnapshotState memory endingSnapshot = _snapshots[lastPoolSnapshot];
-
-        // Offset snapshot
-        IPoolSnapshotState memory offsetSnapshot = _snapshots[
-            withdrawState.latestSnapshotPeriod
-        ];
-
-        // Calculate shares now redeemable
-        uint256 sharesRedeemable = withdrawState.eligibleShares.mul(
-            endingSnapshot.aggregationSumRay - offsetSnapshot.aggregationSumRay
-        );
-        sharesRedeemable = sharesRedeemable
-            .mul(offsetSnapshot.aggregationDifferenceRay > 0 ? PoolLib.RAY : 1)
-            .div(
-                offsetSnapshot.aggregationDifferenceRay > 0
-                    ? offsetSnapshot.aggregationDifferenceRay
-                    : 1
-            )
-            .div(PoolLib.RAY);
-
-        // Calculate assets now withdrawable
-        uint256 assetsWithdrawable = withdrawState.eligibleShares.mul(
-            endingSnapshot.aggregationSumFxRay -
-                offsetSnapshot.aggregationSumFxRay
-        );
-
-        assetsWithdrawable = assetsWithdrawable
-            .mul(offsetSnapshot.aggregationDifferenceRay > 0 ? PoolLib.RAY : 1)
-            .div(
-                offsetSnapshot.aggregationDifferenceRay > 0
-                    ? offsetSnapshot.aggregationDifferenceRay
-                    : 1
-            )
-            .div(PoolLib.RAY);
-
-        withdrawState.withdrawableAssets += assetsWithdrawable;
-        withdrawState.redeemableShares += sharesRedeemable;
-        withdrawState.eligibleShares -= sharesRedeemable;
-
-        withdrawState.latestSnapshotPeriod = lastPoolSnapshot;
-
-        return withdrawState;
+    function claimRequired(address lender) public view returns (bool) {
+        IPoolWithdrawState memory _state = _currentWithdrawState(lender);
+        return _claimRequired(_state);
     }
 
     /**
-     * @dev Snapshots a lender, catching them up to the current withdraw window.
+     * @dev Internal function used to avoid duplicate calls to _currentWithdrawState.
      */
-    function snapshotLender(address addr)
+    function _claimRequired(IPoolWithdrawState memory state)
         internal
-        returns (IPoolWithdrawState memory state)
+        view
+        returns (bool)
     {
-        state = _currentWithdrawState(addr);
-        _withdrawState[addr] = state;
+        return
+            state.eligibleShares > 0 &&
+            state.latestSnapshotPeriod <
+            _globalWithdrawState.latestSnapshotPeriod;
+    }
+
+    /**
+     * @inheritdoc IWithdrawController
+     */
+    function claimSnapshots(address lender, uint256 limit)
+        external
+        onlyPool
+        returns (uint256 sharesRedeemable, uint256 assetsWithdrawable)
+    {
+        require(limit > 0, "WithdrawController: invalid limit");
+        IPoolWithdrawState memory withdrawState = _currentWithdrawState(lender);
+        uint256 periodToClaim = _snapshots[withdrawState.latestSnapshotPeriod]
+            .nextSnapshotPeriod;
+        uint256 lastSnapshotPeriod = _globalWithdrawState.latestSnapshotPeriod;
+
+        if (periodToClaim > lastSnapshotPeriod || periodToClaim == 0) {
+            return (0, 0);
+        }
+
+        // Loop through snapshots and accumulate shares and assets
+        // Break once we reach the last snapshop for the pool or if all the eligible
+        // shares have been converted, or if we reach the limit.
+        uint256 snapshotShares;
+        uint256 snapshotsClaimed = 1;
+        IPoolSnapshotState memory _periodSnapshot;
+        for (snapshotsClaimed; snapshotsClaimed <= limit; snapshotsClaimed++) {
+            _periodSnapshot = _snapshots[periodToClaim];
+
+            snapshotShares = withdrawState
+                .eligibleShares
+                .mul(_periodSnapshot.redeemableRateRay)
+                .div(RAY);
+
+            withdrawState.eligibleShares -= snapshotShares;
+            sharesRedeemable += snapshotShares;
+            assetsWithdrawable += snapshotShares
+                .mul(_periodSnapshot.fxRateRay)
+                .div(RAY);
+
+            // Break if there are no more shares to claim.
+            // Treat the lender as fully caught up.
+            if (withdrawState.eligibleShares == 0) {
+                withdrawState.latestSnapshotPeriod = lastSnapshotPeriod;
+                break;
+            }
+
+            // "Advance" the withdraw state.
+            withdrawState.latestSnapshotPeriod = periodToClaim;
+
+            // If we just processed the latest snapshot, break
+            if (periodToClaim == lastSnapshotPeriod) {
+                break;
+            }
+
+            // Else, advance to the "next" snapshot
+            periodToClaim = _periodSnapshot.nextSnapshotPeriod;
+        }
+
+        withdrawState.withdrawableAssets += assetsWithdrawable;
+        withdrawState.redeemableShares += sharesRedeemable;
+        _withdrawState[lender] = withdrawState;
+        emit SnapshotsClaimed(
+            lender,
+            snapshotsClaimed,
+            sharesRedeemable,
+            assetsWithdrawable
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -544,7 +555,7 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
         onlyPool
         returns (uint256 assets)
     {
-        IPoolWithdrawState memory state = snapshotLender(owner);
+        IPoolWithdrawState memory state = _withdrawState[owner];
 
         // Calculate how many assets should be transferred
         assets = PoolLib.calculateAssetsFromShares(
@@ -565,7 +576,7 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
         onlyPool
         returns (uint256 shares)
     {
-        IPoolWithdrawState memory state = snapshotLender(owner);
+        IPoolWithdrawState memory state = _withdrawState[owner];
 
         // Calculate how many shares should be burned
         shares = PoolLib.calculateSharesFromAssets(

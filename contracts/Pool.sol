@@ -650,6 +650,27 @@ contract Pool is IPool, ERC20Upgradeable, BeaconImplementation {
         }
     }
 
+    /**
+     * @inheritdoc IPool
+     */
+    function claimSnapshots(uint256 limit)
+        external
+        onlyNotPaused
+        onlyPermittedLender
+        onlyLender
+        onlySnapshottedPool
+        returns (uint256 shares, uint256 assets)
+    {
+        return withdrawController.claimSnapshots(msg.sender, limit);
+    }
+
+    /**
+     * @inheritdoc IPool
+     */
+    function claimRequired(address lender) public view returns (bool) {
+        return withdrawController.claimRequired(lender);
+    }
+
     /*//////////////////////////////////////////////////////////////
                         ERC-4626 Methods
     //////////////////////////////////////////////////////////////*/

@@ -209,4 +209,16 @@ interface IPool is IERC4626, IRequestWithdrawable {
      * @dev The accrued interest at the current block.
      */
     function currentExpectedInterest() external view returns (uint256 interest);
+
+    /**
+     * @dev Claims funds earmarked across snapshots, up a limit of n snapshots.
+     */
+    function claimSnapshots(uint256 limit)
+        external
+        returns (uint256 shares, uint256 assets);
+
+    /**
+     * @dev Determines whether a lender has any funds across snapshots eligible for claiming.
+     */
+    function claimRequired(address lender) external view returns (bool);
 }
