@@ -656,7 +656,7 @@ describe("Snapshot Variations", () => {
     expect(await withdrawController.withdrawPeriod()).to.equal(0);
     await pool.connect(aliceLender).requestRedeem(DEPOSIT_AMOUNT);
 
-    // Fund loan immediately in window 0 
+    // Fund loan immediately in window 0
     await fundLoan(loan, poolController, poolAdmin);
     await liquidityAsset.mint(borrower.address, 1_000_000); // mint extra to pay back interest
     await liquidityAsset.connect(borrower).approve(loan.address, 2_000_000);
@@ -667,9 +667,9 @@ describe("Snapshot Variations", () => {
     expect(await withdrawController.withdrawPeriod()).to.equal(1);
     await loan.connect(borrower).completeFullPayment();
 
-    // Claim 
-    // Since the lender requested a full redeem, and there's 100% liquidity gate, 
-    // the full requested amount should be serviced at whenever the next snapshot is. 
+    // Claim
+    // Since the lender requested a full redeem, and there's 100% liquidity gate,
+    // the full requested amount should be serviced at whenever the next snapshot is.
     // We expect that the interest accrued in the intervening time should not accrue to the lender.
     await pool.connect(aliceLender).claimSnapshots(1);
     expect(await pool.maxWithdraw(aliceLender.address)).to.equal(
