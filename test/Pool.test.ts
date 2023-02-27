@@ -1297,26 +1297,34 @@ describe("Pool", () => {
     });
 
     describe("maxRequestCancellation()", () => {
-      it.only("returns the max you can cancel", async () => {
+      it("returns the max you can cancel", async () => {
         const { pool, poolAdmin, liquidityAsset, otherAccount } =
           await loadFixture(loadPoolFixture);
         await activatePool(pool, poolAdmin, liquidityAsset);
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
 
         await pool.connect(otherAccount).requestRedeem(50);
-        expect(await pool.maxRequestCancellation(otherAccount.address)).to.equal(50);
+        expect(
+          await pool.maxRequestCancellation(otherAccount.address)
+        ).to.equal(50);
       });
 
-      it.only("returns 0 if you have unclaimed snapshots", async () => {
+      it("returns 0 if you have unclaimed snapshots", async () => {
         const { pool, poolAdmin, liquidityAsset, otherAccount } =
           await loadFixture(loadPoolFixture);
         await activatePool(pool, poolAdmin, liquidityAsset);
         await depositToPool(pool, otherAccount, liquidityAsset, 100);
         await pool.connect(otherAccount).requestRedeem(50);
 
-        await time.increase((await pool.settings()).withdrawRequestPeriodDuration);
+        await time.increase(
+          (
+            await pool.settings()
+          ).withdrawRequestPeriodDuration
+        );
         await pool.snapshot();
-        expect(await pool.maxRequestCancellation(otherAccount.address)).to.equal(0);
+        expect(
+          await pool.maxRequestCancellation(otherAccount.address)
+        ).to.equal(0);
       });
     });
   });

@@ -341,9 +341,12 @@ contract WithdrawController is IWithdrawController, BeaconImplementation {
         view
         returns (uint256 maxShares)
     {
-        maxShares = PoolLib.calculateMaxCancellation(
-            _currentWithdrawState(owner)
-        );
+        IPoolWithdrawState memory state = _currentWithdrawState(owner);
+        if (_claimRequired(state)) {
+            return 0;
+        }
+
+        maxShares = PoolLib.calculateMaxCancellation(state);
     }
 
     /**
