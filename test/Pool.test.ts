@@ -907,6 +907,24 @@ describe("Pool", () => {
 
         expect(await pool.maxRedeemRequest(otherAccount.address)).to.equal(43);
       });
+
+      it("returns 0 if a lender needs to claim snapshots", async () => {
+        const { pool, poolAdmin, otherAccount, liquidityAsset } =
+          await loadFixture(loadPoolFixture);
+        await activatePool(pool, poolAdmin, liquidityAsset);
+        await depositToPool(pool, otherAccount, liquidityAsset, 100);
+        await pool.connect(otherAccount).requestRedeem(50);
+
+        await time.increase(
+          (
+            await pool.settings()
+          ).withdrawRequestPeriodDuration
+        );
+        await pool.snapshot();
+
+        expect(await pool.claimRequired(otherAccount.address)).to.be.true;
+        expect(await pool.maxRedeemRequest(otherAccount.address)).to.equal(0);
+      });
     });
 
     describe("previewRedeemRequest", () => {
@@ -1055,6 +1073,24 @@ describe("Pool", () => {
         expect(await pool.maxWithdrawRequest(otherAccount.address)).to.equal(
           44
         );
+      });
+
+      it("returns 0 if a lender needs to claim snapshots", async () => {
+        const { pool, poolAdmin, otherAccount, liquidityAsset } =
+          await loadFixture(loadPoolFixture);
+        await activatePool(pool, poolAdmin, liquidityAsset);
+        await depositToPool(pool, otherAccount, liquidityAsset, 100);
+        await pool.connect(otherAccount).requestRedeem(50);
+
+        await time.increase(
+          (
+            await pool.settings()
+          ).withdrawRequestPeriodDuration
+        );
+        await pool.snapshot();
+
+        expect(await pool.claimRequired(otherAccount.address)).to.be.true;
+        expect(await pool.maxWithdrawRequest(otherAccount.address)).to.equal(0);
       });
     });
 
