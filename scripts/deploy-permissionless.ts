@@ -20,6 +20,19 @@ type ExtendedHreNetworkConfig = typeof hre.network.config & {
   usdcAddress: string | undefined;
 };
 
+/**
+ * @notice A sample deployment script deploying the core contracts of Perimeter, sans permissioning
+ * @dev 4 key roles are used and configured as part of this deployment process:
+ * the protocol Admin, the Operator, the Deployer, and the Pauser.
+ *
+ * These are read as Ethers signers, and configured from the Hardhat Config using the following environment
+ * variables set in a .env file:
+ *
+ * ACCOUNT_ADMIN
+ * ACCOUNT_OPERATOR
+ * ACCOUNT_DEPLOYER
+ * ACCOUNT_PAUSER
+ */
 async function main() {
   // The token we use for the liquidity asset must exist. If it is not defined, we'll deploy a mock token.
   let usdcAddress = (hre.network.config as ExtendedHreNetworkConfig)
@@ -203,11 +216,16 @@ async function main() {
   await tx.wait();
   console.log(`ServiceConfiguration: set USDC as a liquidity asset`);
 
-  // Set first loss minimum to $10,000
+  // Set first loss minimum
+  const firstLossMin = ethers.BigNumber.from(
+    process.env["DEPLOY_FL_MINIMUM"] ?? 10_000_000000
+  );
   tx = await serviceConfiguration
     .connect(operator)
-    .setFirstLossMinimum(usdcAddress, 10_000_000000);
-  console.log(`ServiceConfiguration: set USDC first loss minimum to $10,000`);
+    .setFirstLossMinimum(usdcAddress, firstLossMin);
+  console.log(
+    `ServiceConfiguration: set USDC first loss minimum to ${firstLossMin}`
+  );
 }
 
 // We recommend this pattern to be able to use async/await everywhere

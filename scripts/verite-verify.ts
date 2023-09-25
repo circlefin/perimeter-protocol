@@ -27,14 +27,13 @@ import jwt from "jsonwebtoken";
 // The Chain ID for the network you are using (1 = mainnet, 5 = goerli)
 const CHAIN_ID = 5;
 // The contract address (PoolAdminAccessControl, etc).
-// Default is the Goerli PoolAdminAccessControl address.
-const CONTRACT_ADDRESS = "0x3b380e8d02A068ae779b73c7E24c2d18a176BbAD";
+const CONTRACT_ADDRESS = "";
 // The subject of the VC (the address of the user)
 const SUBJECT = "";
 // The Verifiable credential JWT for this address
 const VC_JWT = "";
 // The Circle verifier host
-const VERIFIER_HOST = "https://verifier-sandbox.circle.com/api/v1";
+const VERIFIER_HOST = "";
 
 /**
  * Optional config: You likely do not need to change anything below this line.
