@@ -1,4 +1,18 @@
-// SPDX-License-Identifier: MIT
+/*
+ * Copyright (c) 2023, Circle Internet Financial Limited.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 pragma solidity ^0.8.16;
 
 import "./IServiceConfiguration.sol";
@@ -184,17 +198,17 @@ interface ILoan {
      * @dev Preview fees for a given interest payment amount.
      * @param amount allows previewing the fee for a full or prorated payment.
      */
-    function previewFees(uint256 amount)
-        external
-        view
-        returns (ILoanFees memory);
+    function previewFees(
+        uint256 amount
+    ) external view returns (ILoanFees memory);
 
     /**
      * @dev Called by the borrower, this posts ERC20 assets to the collateral vault.
      */
-    function postFungibleCollateral(address asset, uint256 amount)
-        external
-        returns (ILoanLifeCycleState);
+    function postFungibleCollateral(
+        address asset,
+        uint256 amount
+    ) external returns (ILoanLifeCycleState);
 
     /**
      * @dev Returns the ERC20 collateral posted to the loan.
@@ -204,9 +218,10 @@ interface ILoan {
     /**
      * @dev Transfers and posts NFT collateral to be held by the loan's vault.
      */
-    function postNonFungibleCollateral(address asset, uint256 tokenId)
-        external
-        returns (ILoanLifeCycleState);
+    function postNonFungibleCollateral(
+        address asset,
+        uint256 tokenId
+    ) external returns (ILoanLifeCycleState);
 
     /**
      * @dev Returns NFT collateral posted to the loan.

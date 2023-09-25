@@ -1,4 +1,18 @@
-// SPDX-License-Identifier: MIT
+/*
+ * Copyright (c) 2023, Circle Internet Financial Limited.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 pragma solidity ^0.8.16;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -21,7 +35,7 @@ library PoolLib {
     using SafeMath for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    uint256 public constant RAY = 10**27;
+    uint256 public constant RAY = 10 ** 27;
     /**
      * @dev See IPoolController
      */
@@ -88,11 +102,10 @@ library PoolLib {
     /**
      * @dev Divide two numbers and round the result up
      */
-    function divideCeil(uint256 lhs, uint256 rhs)
-        internal
-        pure
-        returns (uint256)
-    {
+    function divideCeil(
+        uint256 lhs,
+        uint256 rhs
+    ) internal pure returns (uint256) {
         return (lhs + rhs - 1) / rhs;
     }
 
@@ -273,11 +286,10 @@ library PoolLib {
      * If the pool has assets, it is solvent. If no assets are available,
      * but no shares have been issued, it is solvent. Otherwise, it is insolvent.
      */
-    function isSolvent(uint256 totalAssets, uint256 totalShares)
-        private
-        pure
-        returns (bool)
-    {
+    function isSolvent(
+        uint256 totalAssets,
+        uint256 totalShares
+    ) private pure returns (bool) {
         return totalAssets > 0 || totalShares == 0;
     }
 
@@ -506,11 +518,10 @@ library PoolLib {
      * @dev Calculate the fee for making a withdrawRequest or a redeemRequest.
      * Per the EIP-4626 spec, this method rounds up.
      */
-    function calculateRequestFee(uint256 shares, uint256 requestFeeBps)
-        public
-        pure
-        returns (uint256)
-    {
+    function calculateRequestFee(
+        uint256 shares,
+        uint256 requestFeeBps
+    ) public pure returns (uint256) {
         return divideCeil(shares * requestFeeBps, 10_000);
     }
 
@@ -545,11 +556,9 @@ library PoolLib {
      * @dev Calculates the Maximum amount of shares that can be cancelled
      * from the current withdraw request.
      */
-    function calculateMaxCancellation(IPoolWithdrawState memory state)
-        public
-        pure
-        returns (uint256)
-    {
+    function calculateMaxCancellation(
+        IPoolWithdrawState memory state
+    ) public pure returns (uint256) {
         return state.requestedShares + state.eligibleShares;
     }
 

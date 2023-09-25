@@ -1,4 +1,18 @@
-// SPDX-License-Identifier: MIT
+/*
+ * Copyright (c) 2023, Circle Internet Financial Limited.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 pragma solidity ^0.8.16;
 
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
@@ -278,7 +292,10 @@ contract Loan is ILoan, BeaconImplementation {
     /**
      * @inheritdoc ILoan
      */
-    function postFungibleCollateral(address asset, uint256 amount)
+    function postFungibleCollateral(
+        address asset,
+        uint256 amount
+    )
         external
         virtual
         onlyNotPaused
@@ -301,7 +318,10 @@ contract Loan is ILoan, BeaconImplementation {
     /**
      * @inheritdoc ILoan
      */
-    function postNonFungibleCollateral(address asset, uint256 tokenId)
+    function postNonFungibleCollateral(
+        address asset,
+        uint256 tokenId
+    )
         external
         virtual
         onlyNotPaused
@@ -352,7 +372,9 @@ contract Loan is ILoan, BeaconImplementation {
     /**
      * @inheritdoc ILoan
      */
-    function drawdown(uint256 amount)
+    function drawdown(
+        uint256 amount
+    )
         external
         virtual
         onlyNotPaused
@@ -377,12 +399,9 @@ contract Loan is ILoan, BeaconImplementation {
     /**
      * @inheritdoc ILoan
      */
-    function paydownPrincipal(uint256 amount)
-        external
-        onlyNotPaused
-        onlyPermittedBorrower
-        onlyBorrower
-    {
+    function paydownPrincipal(
+        uint256 amount
+    ) external onlyNotPaused onlyPermittedBorrower onlyBorrower {
         require(outstandingPrincipal >= amount, "Loan: amount too high");
         require(settings.loanType == ILoanType.Open, "Loan: invalid loan type");
         LoanLib.paydownPrincipal(liquidityAsset, amount, fundingVault);
@@ -428,11 +447,9 @@ contract Loan is ILoan, BeaconImplementation {
     /**
      * @inheritdoc ILoan
      */
-    function previewFees(uint256 amount)
-        public
-        view
-        returns (ILoanFees memory)
-    {
+    function previewFees(
+        uint256 amount
+    ) public view returns (ILoanFees memory) {
         return
             LoanLib.previewFees(
                 settings,

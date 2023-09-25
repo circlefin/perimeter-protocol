@@ -1,4 +1,18 @@
-// SPDX-License-Identifier: MIT
+/*
+ * Copyright (c) 2023, Circle Internet Financial Limited.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 pragma solidity ^0.8.16;
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
@@ -103,11 +117,10 @@ contract ServiceConfiguration is
     /**
      * @dev Set a liquidity asset as valid or not.
      */
-    function setLiquidityAsset(address addr, bool value)
-        public
-        override
-        onlyOperator
-    {
+    function setLiquidityAsset(
+        address addr,
+        bool value
+    ) public override onlyOperator {
         isLiquidityAsset[addr] = value;
         emit LiquidityAssetSet(addr, value);
     }
@@ -137,11 +150,10 @@ contract ServiceConfiguration is
     /**
      * @inheritdoc IServiceConfiguration
      */
-    function setLoanFactory(address addr, bool isValid)
-        external
-        override
-        onlyOperator
-    {
+    function setLoanFactory(
+        address addr,
+        bool isValid
+    ) external override onlyOperator {
         isLoanFactory[addr] = isValid;
         emit LoanFactorySet(addr, isValid);
     }
@@ -149,11 +161,9 @@ contract ServiceConfiguration is
     /**
      * @inheritdoc IServiceConfiguration
      */
-    function setToSAcceptanceRegistry(address addr)
-        external
-        override
-        onlyOperator
-    {
+    function setToSAcceptanceRegistry(
+        address addr
+    ) external override onlyOperator {
         tosAcceptanceRegistry = addr;
         emit TermsOfServiceRegistrySet(addr);
     }
@@ -161,11 +171,10 @@ contract ServiceConfiguration is
     /**
      * @inheritdoc IServiceConfiguration
      */
-    function setFirstLossMinimum(address addr, uint256 value)
-        external
-        override
-        onlyOperator
-    {
+    function setFirstLossMinimum(
+        address addr,
+        uint256 value
+    ) external override onlyOperator {
         firstLossMinimum[addr] = value;
         emit FirstLossMinimumSet(addr, value);
     }

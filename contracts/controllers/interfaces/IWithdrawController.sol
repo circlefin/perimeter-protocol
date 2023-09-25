@@ -1,4 +1,18 @@
-// SPDX-License-Identifier: MIT
+/*
+ * Copyright (c) 2023, Circle Internet Financial Limited.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 pragma solidity ^0.8.16;
 
 /**
@@ -132,10 +146,9 @@ interface IWithdrawController {
      * a redeem request at this current block.
      *
      */
-    function previewRedeemRequestFees(uint256 shares)
-        external
-        view
-        returns (uint256 feeShares);
+    function previewRedeemRequestFees(
+        uint256 shares
+    ) external view returns (uint256 feeShares);
 
     /**
      * @dev Simulate the effects of a withdrawal request at the current block.
@@ -150,10 +163,9 @@ interface IWithdrawController {
      * @dev Returns the amount of fees that would be burned, in shares, to fulfill
      * a withdraw request in this current block.
      */
-    function previewWithdrawRequestFees(uint256 assets)
-        external
-        view
-        returns (uint256 feeShares);
+    function previewWithdrawRequestFees(
+        uint256 assets
+    ) external view returns (uint256 feeShares);
 
     /**
      * @dev Simulates the effects of their redeemption at the current block.
@@ -204,9 +216,10 @@ interface IWithdrawController {
      * @dev Iterates over snapshots, up to a limit, and claims eligible funds earmarked
      * across the snapshots, updating the lenders withdrawal state accordingly.
      */
-    function claimSnapshots(address lender, uint256 limit)
-        external
-        returns (uint256 shares, uint256 assets);
+    function claimSnapshots(
+        address lender,
+        uint256 limit
+    ) external returns (uint256 shares, uint256 assets);
 
     /**
      * @dev Determines whether a lender is "up to date" with the snapshots.
@@ -220,7 +233,9 @@ interface IWithdrawController {
     /**
      * @dev Snapshot the protocol. Performs accounting for withdrawals
      */
-    function snapshot(uint256 withdrawGate)
+    function snapshot(
+        uint256 withdrawGate
+    )
         external
         returns (
             uint256 period,
