@@ -199,9 +199,7 @@ contract PoolController is IPoolController, BeaconImplementation {
     /**
      * @inheritdoc IPoolController
      */
-    function setRequestFee(
-        uint256 feeBps
-    )
+    function setRequestFee(uint256 feeBps)
         external
         onlyNotPaused
         onlyPermittedAdmin
@@ -215,9 +213,11 @@ contract PoolController is IPoolController, BeaconImplementation {
     /**
      * @inheritdoc IPoolController
      */
-    function requestFee(
-        uint256 sharesOrAssets
-    ) public view returns (uint256 feeShares) {
+    function requestFee(uint256 sharesOrAssets)
+        public
+        view
+        returns (uint256 feeShares)
+    {
         feeShares = PoolLib.calculateRequestFee(
             sharesOrAssets,
             _settings.requestFeeBps
@@ -227,9 +227,7 @@ contract PoolController is IPoolController, BeaconImplementation {
     /**
      * @inheritdoc IPoolController
      */
-    function setRequestCancellationFee(
-        uint256 feeBps
-    )
+    function setRequestCancellationFee(uint256 feeBps)
         external
         onlyNotPaused
         onlyPermittedAdmin
@@ -243,9 +241,11 @@ contract PoolController is IPoolController, BeaconImplementation {
     /**
      * @inheritdoc IPoolController
      */
-    function requestCancellationFee(
-        uint256 sharesOrAssets
-    ) public view returns (uint256 feeShares) {
+    function requestCancellationFee(uint256 sharesOrAssets)
+        public
+        view
+        returns (uint256 feeShares)
+    {
         feeShares = PoolLib.calculateCancellationFee(
             sharesOrAssets,
             _settings.requestCancellationFeeBps
@@ -255,9 +255,7 @@ contract PoolController is IPoolController, BeaconImplementation {
     /**
      * @inheritdoc IPoolController
      */
-    function setWithdrawGate(
-        uint256 _withdrawGateBps
-    )
+    function setWithdrawGate(uint256 _withdrawGateBps)
         external
         onlyNotPaused
         onlyPermittedAdmin
@@ -295,9 +293,12 @@ contract PoolController is IPoolController, BeaconImplementation {
     /**
      * @inheritdoc IPoolController
      */
-    function setPoolCapacity(
-        uint256 newCapacity
-    ) external onlyNotPaused onlyPermittedAdmin onlyAdmin {
+    function setPoolCapacity(uint256 newCapacity)
+        external
+        onlyNotPaused
+        onlyPermittedAdmin
+        onlyAdmin
+    {
         require(newCapacity >= pool.totalAssets(), "Pool: invalid capacity");
         _settings.maxCapacity = newCapacity;
         emit PoolSettingsUpdated();
@@ -306,9 +307,12 @@ contract PoolController is IPoolController, BeaconImplementation {
     /**
      * @inheritdoc IPoolController
      */
-    function setPoolEndDate(
-        uint256 endDate
-    ) external onlyNotPaused onlyPermittedAdmin onlyAdmin {
+    function setPoolEndDate(uint256 endDate)
+        external
+        onlyNotPaused
+        onlyPermittedAdmin
+        onlyAdmin
+    {
         require(_settings.endDate > endDate, "Pool: can't move end date up");
         require(
             endDate > block.timestamp,
@@ -335,9 +339,12 @@ contract PoolController is IPoolController, BeaconImplementation {
     /**
      * @inheritdoc IPoolController
      */
-    function setServiceFeeBps(
-        uint256 serviceFeeBps
-    ) external onlyNotPaused onlyPermittedAdmin onlyAdmin {
+    function setServiceFeeBps(uint256 serviceFeeBps)
+        external
+        onlyNotPaused
+        onlyPermittedAdmin
+        onlyAdmin
+    {
         require(serviceFeeBps <= 10000, "Pool: invalid service fee");
         _settings.serviceFeeBps = serviceFeeBps;
         emit PoolSettingsUpdated();
@@ -346,10 +353,12 @@ contract PoolController is IPoolController, BeaconImplementation {
     /**
      * @inheritdoc IPoolController
      */
-    function setFixedFee(
-        uint256 amount,
-        uint256 interval
-    ) external onlyNotPaused onlyPermittedAdmin onlyAdmin {
+    function setFixedFee(uint256 amount, uint256 interval)
+        external
+        onlyNotPaused
+        onlyPermittedAdmin
+        onlyAdmin
+    {
         if (amount > 0) {
             require(interval > 0, "Pool: invalid fixed fee");
         }
@@ -420,10 +429,7 @@ contract PoolController is IPoolController, BeaconImplementation {
     /**
      * @inheritdoc IPoolController
      */
-    function depositFirstLoss(
-        uint256 amount,
-        address spender
-    )
+    function depositFirstLoss(uint256 amount, address spender)
         external
         onlyNotPaused
         onlyPermittedAdmin
@@ -454,10 +460,7 @@ contract PoolController is IPoolController, BeaconImplementation {
     /**
      * @inheritdoc IPoolController
      */
-    function withdrawFirstLoss(
-        uint256 amount,
-        address receiver
-    )
+    function withdrawFirstLoss(uint256 amount, address receiver)
         external
         onlyNotPaused
         onlyPermittedAdmin
@@ -490,9 +493,7 @@ contract PoolController is IPoolController, BeaconImplementation {
     /**
      * @inheritdoc IPoolController
      */
-    function fundLoan(
-        address addr
-    )
+    function fundLoan(address addr)
         external
         onlyNotPaused
         onlyPermittedAdmin
@@ -506,9 +507,7 @@ contract PoolController is IPoolController, BeaconImplementation {
     /**
      * @inheritdoc IPoolController
      */
-    function defaultLoan(
-        address loan
-    )
+    function defaultLoan(address loan)
         external
         onlyNotPaused
         onlyPermittedAdmin
@@ -530,10 +529,7 @@ contract PoolController is IPoolController, BeaconImplementation {
     /**
      * @inheritdoc IPoolController
      */
-    function reclaimLoanFunds(
-        address loan,
-        uint256 amount
-    )
+    function reclaimLoanFunds(address loan, uint256 amount)
         external
         override
         onlyNotPaused
@@ -560,18 +556,20 @@ contract PoolController is IPoolController, BeaconImplementation {
      * @inheritdoc IPoolController
      * @dev Note that the Loan enforces the non-paused state, so it's omitted here.
      */
-    function cancelFundedLoan(
-        address loan
-    ) external override onlyAdmin onlyPermittedAdmin onlySnapshottedPool {
+    function cancelFundedLoan(address loan)
+        external
+        override
+        onlyAdmin
+        onlyPermittedAdmin
+        onlySnapshottedPool
+    {
         ILoan(loan).cancelFunded();
     }
 
     /**
      * @inheritdoc IPoolController
      */
-    function markLoanCallback(
-        address loan
-    )
+    function markLoanCallback(address loan)
         external
         override
         onlyNotPaused
@@ -605,10 +603,12 @@ contract PoolController is IPoolController, BeaconImplementation {
     /**
      * @inheritdoc IPoolController
      */
-    function withdrawFeeVault(
-        uint256 amount,
-        address receiver
-    ) external onlyNotPaused onlyPermittedAdmin onlyAdmin {
+    function withdrawFeeVault(uint256 amount, address receiver)
+        external
+        onlyNotPaused
+        onlyPermittedAdmin
+        onlyAdmin
+    {
         pool.withdrawFeeVault(amount, receiver);
     }
 

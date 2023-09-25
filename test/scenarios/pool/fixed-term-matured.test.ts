@@ -73,7 +73,7 @@ describe("Fixed Term Matured Loan Scenario", () => {
     await mockERC20.mint(
       borrower.address,
       (INPUTS.loanPayment * DEFAULT_LOAN_SETTINGS.duration) /
-      DEFAULT_LOAN_SETTINGS.paymentPeriod
+        DEFAULT_LOAN_SETTINGS.paymentPeriod
     );
 
     return {
@@ -118,8 +118,8 @@ describe("Fixed Term Matured Loan Scenario", () => {
       .approve(
         loan.address,
         INPUTS.loanAmount +
-        (INPUTS.loanPayment * DEFAULT_LOAN_SETTINGS.duration) /
-        DEFAULT_LOAN_SETTINGS.paymentPeriod
+          (INPUTS.loanPayment * DEFAULT_LOAN_SETTINGS.duration) /
+            DEFAULT_LOAN_SETTINGS.paymentPeriod
       );
     await loan.connect(borrower).completeFullPayment();
 

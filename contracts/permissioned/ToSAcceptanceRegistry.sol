@@ -74,9 +74,11 @@ contract ToSAcceptanceRegistry is
     /**
      * @inheritdoc IToSAcceptanceRegistry
      */
-    function updateTermsOfService(
-        string memory url
-    ) external override onlyOperator {
+    function updateTermsOfService(string memory url)
+        external
+        override
+        onlyOperator
+    {
         _termsOfService = url;
         _termsSet = true;
         emit TermsOfServiceUpdated();

@@ -90,9 +90,12 @@ contract PermissionedPool is Pool {
      * @dev Since Pool does not enforce that msg.sender == receiver, we only
      * check the receiver here.
      */
-    function maxDeposit(
-        address receiver
-    ) public view override returns (uint256) {
+    function maxDeposit(address receiver)
+        public
+        view
+        override
+        returns (uint256)
+    {
         if (!poolAccessControl.isAllowed(receiver)) {
             return 0;
         }
@@ -118,9 +121,12 @@ contract PermissionedPool is Pool {
      * @dev If a lender is not (currently) allowed, 0 assets are allowed to be
      * withdrawn from the Pool.
      */
-    function maxWithdraw(
-        address owner
-    ) public view override returns (uint256 assets) {
+    function maxWithdraw(address owner)
+        public
+        view
+        override
+        returns (uint256 assets)
+    {
         if (!poolAccessControl.isAllowed(owner)) {
             return 0;
         }
@@ -133,9 +139,12 @@ contract PermissionedPool is Pool {
      * @dev If a lender is not (currently) allowed, 0 shares are allowed to be
      * redeemed from the Pool.
      */
-    function maxRedeem(
-        address owner
-    ) public view override returns (uint256 maxShares) {
+    function maxRedeem(address owner)
+        public
+        view
+        override
+        returns (uint256 maxShares)
+    {
         if (!poolAccessControl.isAllowed(owner)) {
             return 0;
         }

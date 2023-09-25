@@ -24,10 +24,9 @@ import "../PermissionedLoan.sol";
  * @dev Emits PermissionLoans. Also acts as a beacon for said proxies.
  */
 contract PermissionedLoanFactory is LoanFactory {
-    constructor(
-        address serviceConfiguration,
-        address vaultFactory
-    ) LoanFactory(serviceConfiguration, vaultFactory) {}
+    constructor(address serviceConfiguration, address vaultFactory)
+        LoanFactory(serviceConfiguration, vaultFactory)
+    {}
 
     /**
      * @inheritdoc LoanFactory

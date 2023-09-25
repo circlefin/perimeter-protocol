@@ -198,17 +198,17 @@ interface ILoan {
      * @dev Preview fees for a given interest payment amount.
      * @param amount allows previewing the fee for a full or prorated payment.
      */
-    function previewFees(
-        uint256 amount
-    ) external view returns (ILoanFees memory);
+    function previewFees(uint256 amount)
+        external
+        view
+        returns (ILoanFees memory);
 
     /**
      * @dev Called by the borrower, this posts ERC20 assets to the collateral vault.
      */
-    function postFungibleCollateral(
-        address asset,
-        uint256 amount
-    ) external returns (ILoanLifeCycleState);
+    function postFungibleCollateral(address asset, uint256 amount)
+        external
+        returns (ILoanLifeCycleState);
 
     /**
      * @dev Returns the ERC20 collateral posted to the loan.
@@ -218,10 +218,9 @@ interface ILoan {
     /**
      * @dev Transfers and posts NFT collateral to be held by the loan's vault.
      */
-    function postNonFungibleCollateral(
-        address asset,
-        uint256 tokenId
-    ) external returns (ILoanLifeCycleState);
+    function postNonFungibleCollateral(address asset, uint256 tokenId)
+        external
+        returns (ILoanLifeCycleState);
 
     /**
      * @dev Returns NFT collateral posted to the loan.

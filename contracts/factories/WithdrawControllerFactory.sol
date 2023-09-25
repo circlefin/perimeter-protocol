@@ -41,9 +41,11 @@ contract WithdrawControllerFactory is
     /**
      * @inheritdoc IWithdrawControllerFactory
      */
-    function createController(
-        address pool
-    ) public virtual returns (address addr) {
+    function createController(address pool)
+        public
+        virtual
+        returns (address addr)
+    {
         require(
             _serviceConfiguration.paused() == false,
             "WithdrawControllerFactory: Protocol paused"

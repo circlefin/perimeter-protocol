@@ -1952,11 +1952,11 @@ describe("Loan", () => {
         liquidityAsset,
         borrower,
         0 -
-        interestPayment -
-        principal -
-        originationFee -
-        firstLossFee +
-        prepaidPrincipal
+          interestPayment -
+          principal -
+          originationFee -
+          firstLossFee +
+          prepaidPrincipal
       );
       await expect(tx).to.changeTokenBalance(
         liquidityAsset,

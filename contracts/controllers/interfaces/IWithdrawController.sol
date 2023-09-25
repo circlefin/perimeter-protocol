@@ -146,9 +146,10 @@ interface IWithdrawController {
      * a redeem request at this current block.
      *
      */
-    function previewRedeemRequestFees(
-        uint256 shares
-    ) external view returns (uint256 feeShares);
+    function previewRedeemRequestFees(uint256 shares)
+        external
+        view
+        returns (uint256 feeShares);
 
     /**
      * @dev Simulate the effects of a withdrawal request at the current block.
@@ -163,9 +164,10 @@ interface IWithdrawController {
      * @dev Returns the amount of fees that would be burned, in shares, to fulfill
      * a withdraw request in this current block.
      */
-    function previewWithdrawRequestFees(
-        uint256 assets
-    ) external view returns (uint256 feeShares);
+    function previewWithdrawRequestFees(uint256 assets)
+        external
+        view
+        returns (uint256 feeShares);
 
     /**
      * @dev Simulates the effects of their redeemption at the current block.
@@ -216,10 +218,9 @@ interface IWithdrawController {
      * @dev Iterates over snapshots, up to a limit, and claims eligible funds earmarked
      * across the snapshots, updating the lenders withdrawal state accordingly.
      */
-    function claimSnapshots(
-        address lender,
-        uint256 limit
-    ) external returns (uint256 shares, uint256 assets);
+    function claimSnapshots(address lender, uint256 limit)
+        external
+        returns (uint256 shares, uint256 assets);
 
     /**
      * @dev Determines whether a lender is "up to date" with the snapshots.
@@ -233,9 +234,7 @@ interface IWithdrawController {
     /**
      * @dev Snapshot the protocol. Performs accounting for withdrawals
      */
-    function snapshot(
-        uint256 withdrawGate
-    )
+    function snapshot(uint256 withdrawGate)
         external
         returns (
             uint256 period,

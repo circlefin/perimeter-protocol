@@ -73,7 +73,7 @@ describe("Open Term Defaulted Loan Scenario", () => {
     await mockERC20.mint(
       borrower.address,
       (INPUTS.loanPayment * DEFAULT_LOAN_SETTINGS.duration) /
-      DEFAULT_LOAN_SETTINGS.paymentPeriod
+        DEFAULT_LOAN_SETTINGS.paymentPeriod
     );
 
     return {

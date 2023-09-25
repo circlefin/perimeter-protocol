@@ -202,7 +202,11 @@ interface IPool is IERC4626, IRequestWithdrawable {
     /**
      * @dev Called by the Pool Controller, it transfers the fixed fee
      */
-    function claimFixedFee(address, uint256, uint256) external;
+    function claimFixedFee(
+        address,
+        uint256,
+        uint256
+    ) external;
 
     /**
      * @dev Called by the Pool Controller, it withdraws from the FeeVault.
@@ -228,9 +232,9 @@ interface IPool is IERC4626, IRequestWithdrawable {
     /**
      * @dev Claims funds earmarked across snapshots, up a limit of n snapshots.
      */
-    function claimSnapshots(
-        uint256 limit
-    ) external returns (uint256 shares, uint256 assets);
+    function claimSnapshots(uint256 limit)
+        external
+        returns (uint256 shares, uint256 assets);
 
     /**
      * @dev Determines whether a lender has any funds across snapshots eligible for claiming.

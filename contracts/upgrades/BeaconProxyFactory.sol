@@ -48,9 +48,10 @@ abstract contract BeaconProxyFactory is IBeacon {
     /**
      * @inheritdoc IBeacon
      */
-    function setImplementation(
-        address newImplementation
-    ) external onlyDeployer {
+    function setImplementation(address newImplementation)
+        external
+        onlyDeployer
+    {
         implementation = newImplementation;
         emit ImplementationSet(newImplementation);
     }

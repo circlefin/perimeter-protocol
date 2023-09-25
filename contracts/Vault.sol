@@ -53,10 +53,10 @@ contract Vault is
     /**
      * @dev Initialize function as a Beacon proxy implementation.
      */
-    function initialize(
-        address owner,
-        address serviceConfiguration
-    ) public initializer {
+    function initialize(address owner, address serviceConfiguration)
+        public
+        initializer
+    {
         __ERC721Holder_init();
         _transferOwnership(owner);
         _serviceConfiguration = IServiceConfiguration(serviceConfiguration);

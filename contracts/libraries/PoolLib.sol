@@ -35,7 +35,7 @@ library PoolLib {
     using SafeMath for uint256;
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    uint256 public constant RAY = 10 ** 27;
+    uint256 public constant RAY = 10**27;
     /**
      * @dev See IPoolController
      */
@@ -102,10 +102,11 @@ library PoolLib {
     /**
      * @dev Divide two numbers and round the result up
      */
-    function divideCeil(
-        uint256 lhs,
-        uint256 rhs
-    ) internal pure returns (uint256) {
+    function divideCeil(uint256 lhs, uint256 rhs)
+        internal
+        pure
+        returns (uint256)
+    {
         return (lhs + rhs - 1) / rhs;
     }
 
@@ -286,10 +287,11 @@ library PoolLib {
      * If the pool has assets, it is solvent. If no assets are available,
      * but no shares have been issued, it is solvent. Otherwise, it is insolvent.
      */
-    function isSolvent(
-        uint256 totalAssets,
-        uint256 totalShares
-    ) private pure returns (bool) {
+    function isSolvent(uint256 totalAssets, uint256 totalShares)
+        private
+        pure
+        returns (bool)
+    {
         return totalAssets > 0 || totalShares == 0;
     }
 
@@ -518,10 +520,11 @@ library PoolLib {
      * @dev Calculate the fee for making a withdrawRequest or a redeemRequest.
      * Per the EIP-4626 spec, this method rounds up.
      */
-    function calculateRequestFee(
-        uint256 shares,
-        uint256 requestFeeBps
-    ) public pure returns (uint256) {
+    function calculateRequestFee(uint256 shares, uint256 requestFeeBps)
+        public
+        pure
+        returns (uint256)
+    {
         return divideCeil(shares * requestFeeBps, 10_000);
     }
 
@@ -556,9 +559,11 @@ library PoolLib {
      * @dev Calculates the Maximum amount of shares that can be cancelled
      * from the current withdraw request.
      */
-    function calculateMaxCancellation(
-        IPoolWithdrawState memory state
-    ) public pure returns (uint256) {
+    function calculateMaxCancellation(IPoolWithdrawState memory state)
+        public
+        pure
+        returns (uint256)
+    {
         return state.requestedShares + state.eligibleShares;
     }
 

@@ -48,8 +48,8 @@ export async function deployLoan(
   const { serviceConfiguration } = await (existingServiceConfiguration == null
     ? deployServiceConfiguration()
     : {
-      serviceConfiguration: existingServiceConfiguration
-    });
+        serviceConfiguration: existingServiceConfiguration
+      });
 
   const { operator, deployer } = await getCommonSigners();
 
@@ -125,8 +125,8 @@ export async function deployPermissionedLoan(
   const { serviceConfiguration } = await (existingServiceConfiguration == null
     ? deployPermissionedServiceConfiguration()
     : {
-      serviceConfiguration: existingServiceConfiguration
-    });
+        serviceConfiguration: existingServiceConfiguration
+      });
 
   const vaultFactory = await deployVaultFactory(serviceConfiguration.address);
 

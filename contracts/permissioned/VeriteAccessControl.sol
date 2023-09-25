@@ -82,9 +82,11 @@ abstract contract VeriteAccessControl is
     /**
      * @inheritdoc IVeriteAccessControl
      */
-    function removeTrustedVerifier(
-        address addr
-    ) public virtual onlyVeriteAdmin {
+    function removeTrustedVerifier(address addr)
+        public
+        virtual
+        onlyVeriteAdmin
+    {
         delete _trustedVerifiers[addr];
 
         emit TrustedVerifierRemoved(addr);
@@ -93,9 +95,11 @@ abstract contract VeriteAccessControl is
     /**
      * @inheritdoc IVeriteAccessControl
      */
-    function addCredentialSchema(
-        string[] calldata schema
-    ) public virtual onlyVeriteAdmin {
+    function addCredentialSchema(string[] calldata schema)
+        public
+        virtual
+        onlyVeriteAdmin
+    {
         _supportedCredentialSchemas[concat(schema)] = true;
 
         emit CredentialSchemaAdded(schema);
@@ -104,9 +108,11 @@ abstract contract VeriteAccessControl is
     /**
      * @inheritdoc IVeriteAccessControl
      */
-    function removeCredentialSchema(
-        string[] calldata schema
-    ) public virtual onlyVeriteAdmin {
+    function removeCredentialSchema(string[] calldata schema)
+        public
+        virtual
+        onlyVeriteAdmin
+    {
         delete _supportedCredentialSchemas[concat(schema)];
 
         emit CredentialSchemaRemoved(schema);
@@ -184,9 +190,11 @@ abstract contract VeriteAccessControl is
      * encoding itself. Protocols need to implement the type-specific encoding they need in their
      * contracts using a combination of `abi.encode` and `keccak256`.
      */
-    function concat(
-        string[] memory words
-    ) internal pure returns (string memory) {
+    function concat(string[] memory words)
+        internal
+        pure
+        returns (string memory)
+    {
         bytes memory output;
 
         for (uint256 i = 0; i < words.length; i++) {

@@ -98,10 +98,10 @@ contract PoolAccessControl is
     /**
      * @dev The constructor for the PoolAccessControl contract
      */
-    function initialize(
-        address pool,
-        address tosAcceptanceRegistry
-    ) public initializer {
+    function initialize(address pool, address tosAcceptanceRegistry)
+        public
+        initializer
+    {
         require(
             tosAcceptanceRegistry != address(0),
             "Pool: invalid ToS registry"
@@ -124,9 +124,11 @@ contract PoolAccessControl is
      *
      * Emits an {AllowedParticipantListUpdated} event.
      */
-    function allowParticipant(
-        address addr
-    ) external onlyNotPaused onlyPoolAdmin {
+    function allowParticipant(address addr)
+        external
+        onlyNotPaused
+        onlyPoolAdmin
+    {
         require(
             _tosRegistry.hasAccepted(addr),
             "Pool: participant not accepted ToS"
@@ -140,9 +142,11 @@ contract PoolAccessControl is
      *
      * Emits an {AllowedParticipantListUpdated} event.
      */
-    function removeParticipant(
-        address addr
-    ) external onlyNotPaused onlyPoolAdmin {
+    function removeParticipant(address addr)
+        external
+        onlyNotPaused
+        onlyPoolAdmin
+    {
         delete _allowedParticipants[addr];
         emit ParticipantRemoved(addr);
     }
@@ -164,18 +168,22 @@ contract PoolAccessControl is
     /**
      * @inheritdoc IVeriteAccessControl
      */
-    function addCredentialSchema(
-        string[] calldata schema
-    ) public override onlyNotPaused {
+    function addCredentialSchema(string[] calldata schema)
+        public
+        override
+        onlyNotPaused
+    {
         super.addCredentialSchema(schema);
     }
 
     /**
      * @inheritdoc IVeriteAccessControl
      */
-    function removeCredentialSchema(
-        string[] calldata schema
-    ) public override onlyNotPaused {
+    function removeCredentialSchema(string[] calldata schema)
+        public
+        override
+        onlyNotPaused
+    {
         super.removeCredentialSchema(schema);
     }
 

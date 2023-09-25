@@ -29,9 +29,10 @@ interface IRequestWithdrawable {
      *
      * Note: This is equivalent of EIP-4626 `maxRedeem`
      */
-    function maxRedeemRequest(
-        address owner
-    ) external view returns (uint256 maxShares);
+    function maxRedeemRequest(address owner)
+        external
+        view
+        returns (uint256 maxShares);
 
     /**
      * @dev Returns the maximum amount of underlying `assets` that can be
@@ -40,9 +41,10 @@ interface IRequestWithdrawable {
      *
      * Note: This is equivalent of EIP-4626 `maxWithdraw`
      */
-    function maxWithdrawRequest(
-        address owner
-    ) external view returns (uint256 maxAssets);
+    function maxWithdrawRequest(address owner)
+        external
+        view
+        returns (uint256 maxAssets);
 
     /**
      * @dev Simulate the effects of a redeem request at the current block.
@@ -51,18 +53,20 @@ interface IRequestWithdrawable {
      *
      * Note: This is equivalent of EIP-4626 `previewRedeem`
      */
-    function previewRedeemRequest(
-        uint256 shares
-    ) external view returns (uint256 assets);
+    function previewRedeemRequest(uint256 shares)
+        external
+        view
+        returns (uint256 assets);
 
     /**
      * @dev Returns the amount of fees (shares) that would be required to process
      * a redeem request at this current block.
      *
      */
-    function previewRedeemRequestFees(
-        uint256 shares
-    ) external view returns (uint256 feeShares);
+    function previewRedeemRequestFees(uint256 shares)
+        external
+        view
+        returns (uint256 feeShares);
 
     /**
      * @dev Simulate the effects of a withdrawal request at the current block.
@@ -71,17 +75,19 @@ interface IRequestWithdrawable {
      *
      * Note: This is equivalent of EIP-4626 `previewWithdraw`
      */
-    function previewWithdrawRequest(
-        uint256 assets
-    ) external view returns (uint256 shares);
+    function previewWithdrawRequest(uint256 assets)
+        external
+        view
+        returns (uint256 shares);
 
     /**
      * @dev Returns the amount of fees that would be burned, in shares, to fulfill
      * a withdraw request in this current block.
      */
-    function previewWithdrawRequestFees(
-        uint256 assets
-    ) external view returns (uint256 feeShares);
+    function previewWithdrawRequestFees(uint256 assets)
+        external
+        view
+        returns (uint256 feeShares);
 
     /**
      * @dev Submits a withdrawal request, incurring a fee.
@@ -99,9 +105,10 @@ interface IRequestWithdrawable {
      *
      * Note: This is equivalent of EIP-4626 `maxRedeem`
      */
-    function maxRequestCancellation(
-        address owner
-    ) external view returns (uint256 maxShares);
+    function maxRequestCancellation(address owner)
+        external
+        view
+        returns (uint256 maxShares);
 
     /**
      * @dev Cancels a redeem request for a specific number of `shares` from
@@ -110,9 +117,9 @@ interface IRequestWithdrawable {
      *
      * Emits a {WithdrawRequestCancelled} event.
      */
-    function cancelRedeemRequest(
-        uint256 shares
-    ) external returns (uint256 assets);
+    function cancelRedeemRequest(uint256 shares)
+        external
+        returns (uint256 assets);
 
     /**
      * @dev Cancels a withdraw request for a specific values of `assets` from
@@ -121,7 +128,7 @@ interface IRequestWithdrawable {
      *
      * Emits a {WithdrawRequestCancelled} event.
      */
-    function cancelWithdrawRequest(
-        uint256 assets
-    ) external returns (uint256 shares);
+    function cancelWithdrawRequest(uint256 assets)
+        external
+        returns (uint256 shares);
 }
