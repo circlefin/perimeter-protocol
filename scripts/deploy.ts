@@ -20,6 +20,26 @@ type ExtendedHreNetworkConfig = typeof hre.network.config & {
   usdcAddress: string | undefined;
 };
 
+/**
+ * @notice A sample deployment script deploying the core contracts of Perimeter
+ * @dev 4 key roles are used and configured as part of this deployment process:
+ * the protocol Admin, the Operator, the Deployer, and the Pauser.
+ *
+ * These are read as Ethers signers, and configured from the Hardhat Config using the following environment
+ * variables set in a .env file:
+ *
+ * ACCOUNT_ADMIN
+ * ACCOUNT_OPERATOR
+ * ACCOUNT_DEPLOYER
+ * ACCOUNT_PAUSER
+ *
+ * Additionally, several configuration values are used:
+ *
+ * DEPLOY_VERITE_SCHEMA - e.g. https://verite.id/definitions/processes/kycaml/0.0.1/generic--usa-legal_person
+ * DEPLOY_VERITE_VERIFIER - the address of a verifier
+ * DEPLOY_TOS_ACCEPTANCE_URL - the URL pointing to a ToS requiring consent
+ * DEPLOY_FL_MINIMUM - The minimum amount of first loss required to be contributed to a pool.
+ */
 async function main() {
   // The token we use for the liquidity asset must exist. If it is not defined, we'll deploy a mock token.
   let usdcAddress = (hre.network.config as ExtendedHreNetworkConfig)
@@ -86,14 +106,16 @@ async function main() {
   );
 
   // Set ToSAcceptanceRegsitry URL
-  const TOS_ACCEPTANCE_REGISTRY_URL = "http://example.com";
-  const setTosUrlTx = await toSAcceptanceRegistry
-    .connect(operator)
-    .updateTermsOfService(TOS_ACCEPTANCE_REGISTRY_URL);
-  await setTosUrlTx.wait();
-  console.log(
-    `ToSAcceptanceRegistry URL set to ${TOS_ACCEPTANCE_REGISTRY_URL}`
-  );
+  const TOS_ACCEPTANCE_REGISTRY_URL = process.env["DEPLOY_TOS_ACCEPTANCE_URL"];
+  if (TOS_ACCEPTANCE_REGISTRY_URL != null) {
+    const setTosUrlTx = await toSAcceptanceRegistry
+      .connect(operator)
+      .updateTermsOfService(TOS_ACCEPTANCE_REGISTRY_URL);
+    await setTosUrlTx.wait();
+    console.log(
+      `ToSAcceptanceRegistry URL set to ${TOS_ACCEPTANCE_REGISTRY_URL}`
+    );
+  }
 
   // Update ServiceConfiguration with the ToSAcceptanceRegistry
   const setTosRegistryTx = await serviceConfiguration
@@ -291,26 +313,35 @@ async function main() {
   await tx.wait();
   console.log(`ServiceConfiguration: set USDC as a liquidity asset`);
 
-  // Set first loss minimum to $10,000
+  // Set first loss minimum
+  const firstLossMin = ethers.BigNumber.from(
+    process.env["DEPLOY_FL_MINIMUM"] ?? 10_000_000000
+  );
   tx = await serviceConfiguration
     .connect(operator)
-    .setFirstLossMinimum(usdcAddress, 10_000_000000);
-  console.log(`ServiceConfiguration: set USDC first loss minimum to $10,000`);
+    .setFirstLossMinimum(usdcAddress, firstLossMin);
+  console.log(
+    `ServiceConfiguration: set USDC first loss minimum to ${firstLossMin}`
+  );
 
   // Configure Verite
-  const credentialSchema = [
-    "https://verite.id/definitions/processes/kycaml/0.0.1/generic--usa-legal_person"
-  ];
-  const trustedVerifier = "0x76b5A39e3b33317073B0C2a6d1a2Fdaa8300C648"; // Sandbox
+  const credentialSchema = process.env["DEPLOY_VERITE_SCHEMA"];
+  const trustedVerifier = process.env["DEPLOY_VERITE_VERIFIER"]; // For demonstration
 
-  tx = await poolAdminAccessControl
-    .connect(operator)
-    .addCredentialSchema(credentialSchema);
-  console.log(`Added Verite credential schema: ${credentialSchema}`);
-  tx = await poolAdminAccessControl
-    .connect(operator)
-    .addTrustedVerifier(trustedVerifier);
-  console.log(`Added Verite trusted verifier: ${trustedVerifier}`);
+  if (credentialSchema != null) {
+    tx = await poolAdminAccessControl
+      .connect(operator)
+      .addCredentialSchema([credentialSchema]);
+    console.log(`Added Verite credential schema: ${credentialSchema}`);
+  }
+
+  if (trustedVerifier != null) {
+    tx = await poolAdminAccessControl
+      .connect(operator)
+      .addTrustedVerifier(trustedVerifier);
+    console.log(`Added Verite trusted verifier: ${trustedVerifier}`);
+  }
+
   process.exitCode = 0;
   process.exit(0);
 }

@@ -17,12 +17,10 @@ import { ethers } from "hardhat";
 import hre from "hardhat";
 
 async function main() {
-  // Address of the ToSAcceptanceRegistry contract TODO: this is mumbai
-  const tosAcceptanceRegistryAddress =
-    "0x15B0d52d980b58c48c90A479B37e3B93a9bBEd16";
-  // Address of the PoolAdminAccessControl contract TODO: this is mumbai
-  const poolAdminAccessControlAddress =
-    "0x801a90094605123D55A8ea022dB623b6249c2b76";
+  // Address of the ToSAcceptanceRegistry contract
+  const tosAcceptanceRegistryAddress = "";
+  // Address of the PoolAdminAccessControl contract
+  const poolAdminAccessControlAddress = "";
   // The VerificationResult and signature from a Verite verifier. You can run the script
   // `verite-verify` to get your own results
   const verificationResult = {
