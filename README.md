@@ -30,7 +30,7 @@ The Perimeter architecture was designed with modularity in mind, allowing new `P
 
 Perimeter allows upgrades to be performed unilaterally by the global `Deployer` role. The following contracts are upgradeable by the `Deployer`:
 
-- "Singleton" contracts like the `ServiceConfiguration`, `PoolAdminAccessControl`, and `ToSAcceptance` can be individually upgraded in-place through the UUPS pattern.
+- "Singleton" contracts like the `ServiceConfiguration`, `PoolAdminAccessControl`, and `ToSAcceptance` can be individually upgraded in-place through the [UUPS](https://docs.openzeppelin.com/contracts/4.x/api/proxy#transparent-vs-uups) pattern.
 
 - The "1-to-N" contracts emitted by factories (`Pool`, `Loan`, `WithdrawController`, `Vault`, `PoolController`) are implemented as Beacon proxies, allowing a single transaction to update an implementation across all proxies simultaneously.
 
