@@ -4,7 +4,7 @@ This repository contains the core Solidity contracts for the Perimeter Protocol,
 
 ## About Perimeter
 
-A project by [Circle Research](https://www.circle.com/en/circle-research), Perimeter offers several important features, such as the ability to delegate loan management and monitoring, integration with [open identity standards](https://www.circle.com/en/verite), and the flexibility to accommodate different types of credit instruments. Perimeter stands out for not relying on a protocol token and its adaptability to various scenarios. 
+A project by [Circle Research](https://www.circle.com/en/circle-research), Perimeter offers several important features, such as the ability to delegate loan management and monitoring, integration with [open identity standards](https://www.circle.com/en/verite), and the flexibility to accommodate different types of credit instruments. Perimeter stands out for not relying on a protocol token and its adaptability to various scenarios.
 
 Please read more about Perimeter [in the whitepaper](https://www.circle.com/hubfs/Circle%20Research/Whitepapers/Perimeter_Protocol_Circle_Research.pdf).
 
@@ -34,11 +34,11 @@ Perimeter allows upgrades to be performed unilaterally by the global `Deployer` 
 
 - The "1-to-N" contracts emitted by factories (`Pool`, `Loan`, `WithdrawController`, `Vault`, `PoolController`) are implemented as Beacon proxies, allowing a single transaction to update an implementation across all proxies simultaneously.
 
-### Permissioning 
+### Permissioning
 
-As noted in the diagram, there are several layers of permissioning, which utilize a combination of [Verite](https://www.circle.com/en/verite)-based, privacy-preserving, decentralized identity credentials and standard allowlists, allowing Pool Admins to determine the appropriate permissioning strategy for their pools. 
+As noted in the diagram, there are several layers of permissioning, which utilize a combination of [Verite](https://www.circle.com/en/verite)-based, privacy-preserving, decentralized identity credentials and standard allowlists, allowing Pool Admins to determine the appropriate permissioning strategy for their pools.
 
-Specifically, for handling identity credentials, Perimeter follows a verifier pattern, in which trusted verifiers are registered with the protocol and can attest to verifying the privacy-preserving credentials off-chain. This verification result is then recorded on-chain, granting access for a period of time.  
+Specifically, for handling identity credentials, Perimeter follows a verifier pattern, in which trusted verifiers are registered with the protocol and can attest to verifying the privacy-preserving credentials off-chain. This verification result is then recorded on-chain, granting access for a period of time.
 
 Perimeter applies permissioning in several places:
 
@@ -166,7 +166,7 @@ npx hardhat verify --network goerli CONTRACT_ADDRESS arg1 arg2 arg3
 
 ## Deployment
 
-There are several deployment scripts available (see `scripts/deploy.ts`). These require a number of values to be set in an `.env` file in the root of the repository. 
+There are several deployment scripts available (see `scripts/deploy.ts`). These require a number of values to be set in an `.env` file in the root of the repository.
 
 ## Contributing
 
