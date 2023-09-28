@@ -74,8 +74,8 @@ interface IWithdrawController {
     function requestedBalanceOf(address) external view returns (uint256);
 
     /**
-     * @dev Returns the number of shares that are available to be redeemed by
-     * the owner in the current block.
+     * @dev @dev Returns the total number of shares that have been requested to be
+     * redeemed as of the current block.
      */
     function totalRequestedBalance() external view returns (uint256);
 
@@ -86,7 +86,7 @@ interface IWithdrawController {
     function eligibleBalanceOf(address) external view returns (uint256);
 
     /**
-     * @dev Returns the number of shares overall that are "vested" enough to be
+     * @dev Returns the total number of shares overall that are "vested" enough to be
      * considered for redeeming during the next withdraw period.
      */
     function totalEligibleBalance() external view returns (uint256);

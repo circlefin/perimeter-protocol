@@ -33,8 +33,8 @@ async function main() {
   };
   const signature = "";
 
-  const [admin, operator, deployer, pauser, other] =
-    await hre.ethers.getSigners();
+  // First 4 signers correspond to global protocol roles
+  const other = (await hre.ethers.getSigners())[4];
 
   let tx;
 

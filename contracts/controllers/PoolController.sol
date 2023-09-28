@@ -100,7 +100,7 @@ contract PoolController is IPoolController, BeaconImplementation {
     }
 
     /**
-     * @dev Modifier that checks that the pool is Initialized or Active
+     * @dev Modifier that checks that the pool is at a current state
      */
     modifier atState(IPoolLifeCycleState state_) {
         require(state() == state_, "Pool: FunctionInvalidAtThisLifeCycleState");
@@ -122,7 +122,7 @@ contract PoolController is IPoolController, BeaconImplementation {
     }
 
     /**
-     * @dev Modifier that checks that the pool is Initialized or Active
+     * @dev Modifier that checks that the pool is Closed or Active
      */
     modifier atActiveOrClosedState() {
         IPoolLifeCycleState _currentState = state();

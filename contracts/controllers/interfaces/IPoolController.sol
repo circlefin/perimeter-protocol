@@ -170,7 +170,7 @@ interface IPoolController {
     function setPoolEndDate(uint256) external;
 
     /**
-     * @dev The current amount of first loss available to the pool
+     * @dev The address of the vault holding the first loss balance.
      */
     function firstLossVault() external view returns (address);
 
