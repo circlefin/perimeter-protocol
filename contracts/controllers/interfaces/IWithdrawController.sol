@@ -74,7 +74,7 @@ interface IWithdrawController {
     function requestedBalanceOf(address) external view returns (uint256);
 
     /**
-     * @dev @dev Returns the total number of shares that have been requested to be
+     * @dev Returns the total number of shares that have been requested to be
      * redeemed as of the current block.
      */
     function totalRequestedBalance() external view returns (uint256);
