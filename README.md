@@ -1,12 +1,12 @@
-# perimeter-core
+# Perimeter Protocol
 
-This repository contains the core Solidity contracts for the Perimeter Protocol, an audited, open-source protocol that anyone can freely use to build unique credit applications using USDC.
+This repository contains an audited, open-source reference implementation for the Perimeter Protocol that anyone can freely use to build unique credit applications using USDC.
 
 ## About Perimeter
 
-A project by [Circle Research](https://www.circle.com/en/circle-research), Perimeter offers several important features, such as the ability to delegate loan management and monitoring, integration with [open identity standards](https://www.circle.com/en/verite), and the flexibility to accommodate different types of credit instruments. Perimeter stands out for not relying on a protocol token and its adaptability to various scenarios.
+A project by [Circle Research](https://www.circle.com/en/circle-research), Perimeter offers several important features, such as the ability to delegate loan management and monitoring, integration with [open identity standards](https://www.circle.com/en/verite), and the flexibility to accommodate different types of credit instruments. Perimeter stands out for not relying on a protocol token and its adaptability to various scenarios. Please read more about Perimeter [in the whitepaper](https://www.circle.com/hubfs/Circle%20Research/Whitepapers/Perimeter_Protocol_Circle_Research.pdf).
 
-Please read more about Perimeter [in the whitepaper](https://www.circle.com/hubfs/Circle%20Research/Whitepapers/Perimeter_Protocol_Circle_Research.pdf).
+Please note: Perimeter Protocol is a Proof-of-Concept by Circle Research and is provided “as-is” as an open-source contribution. As a research project, it has not been productionized nor does Circle have intentions to productionize it. Anyone using or extending Perimeter Protocol does so at their own risk, and should carefully consider whether additional security audits, reviews, or testing are needed before production use.
 
 ## Smart Contract Architecture
 
