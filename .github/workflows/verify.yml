@@ -22,3 +22,13 @@ jobs:
       - run: npm run lint
       - run: npm run type-check
       - run: npm test
+
+  scan:
+    needs: lint
+    if: github.event_name == 'pull_request'
+    uses: circlefin/circle-public-github-workflows/.github/workflows/pr-scan.yaml@v1
+
+  release-sbom:
+    needs: lint
+    if: github.event_name == 'push'
+    uses: circlefin/circle-public-github-workflows/.github/workflows/attach-release-assets.yaml@v1
